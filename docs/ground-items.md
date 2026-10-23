@@ -274,6 +274,18 @@ inside a loaded map piece that is one building (`Places::Separate`: a cottage, a
 cottage, the Tower's ruin; `PlaceService::Buildings`). Whether the rule finds the cottages' and
 Tristram's doorways, and not their fences, is unchecked. Act III's huts are next once these are heard.
 
+**A door by the corner, 2026-10-23.** The tester (build test-2026-10-23, `no_creak_*`): a Stony
+Field cottage, `Cott3.ds1`, said "cottage" but never creaked. Its collision rebuilt offline from
+the DS1 walls and the `act1/outdoors` DT1 subtile flags (bit 0x01; the flag rows read bottom to
+top, checked by the outline closing): its door is 3 cells wide at the same place as `Cott2`'s, but
+the building is narrower, so the wall on the door's east side is two cells long before it turns
+into the east wall; the rule wanted a tile (5 cells) of wall on each side. A flank now also counts
+when its wall is at least two cells long (`CornerRun`) and its last cell starts a wall of a tile
+running across the row, either way: a building's corner. A pillar has no such wall. Offline, the
+change finds `Cott3`/`Cott3A`'s doors and leaves `Cott1`, `Cott2`, `Cott5` and `Cott7` as they were;
+`Cott4` (as narrow, shorter) still fails, on the depth rule. Unverified live: the offline mask
+leaves out objects, roofs and the neighbouring pieces.
+
 ## Walked distance click (2026-10-20)
 
 A tester's request, to judge distances: a click every 1, 5 or 10 units walked (units as the

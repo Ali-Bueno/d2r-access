@@ -183,6 +183,7 @@ Radar::Position PushHeading(uint64_t now) {
 }
 // The thud when the game refuses a push into a wall; null when the world is unreadable.
 void TickBump(const Radar::World* world, uint64_t now) {
+	WallSlideService::SetSqueezes(world ? WallBump::Squeezes(*world) : 0);
 	if (!world) { g_bump.Reset(); return; }
 	const auto blocked = WallSlideService::LastBlocked();
 	const Radar::Position push{blocked.x, blocked.y};

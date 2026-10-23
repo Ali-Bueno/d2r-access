@@ -165,12 +165,12 @@ inline constexpr Texts esES{
 		"Has recogido oro; se recoge al pasar por encima. Al morir pierdes parte del oro que llevas encima, pero el del "
 		"alijo está a salvo. De vuelta en el campamento, abre el alijo y deposita el que no necesites."},
 	.shop = {
-		"Una tienda. En cuanto tengas el oro, compra un {portaltome} y un {idtome}: cada uno guarda hasta 20 "
-		"pergaminos en una sola casilla, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
+		"Una tienda. Si tienes el oro, cómprale a Akara un {idtome} y un {portaltome}: cada uno guarda hasta 20 "
+		"pergaminos en un hueco de una columna de ancho y dos filas de alto, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
 		"sueltos ocupan una casilla cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra "
 		"qué es un objeto sin identificar: úsalo y elige el objeto.",
-		"Una tienda. En cuanto tengas el oro, compra un {portaltome} y un {idtome}: cada uno guarda hasta 20 "
-		"pergaminos en una sola casilla, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
+		"Una tienda. Si tienes el oro, cómprale a Akara un {idtome} y un {portaltome}: cada uno guarda hasta 20 "
+		"pergaminos en un hueco de una columna de ancho y dos filas de alto, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
 		"sueltos ocupan una casilla cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra "
 		"qué es un objeto sin identificar: úsalo y elige el objeto."},
 	.levelUp = {
@@ -180,7 +180,7 @@ inline constexpr Texts esES{
 		"ficha; te guío dentro."},
 	.levelUpSheet = {
 		"Tu ficha. Estás en el más de Fuerza: con {dpad} arriba y abajo pasas por los cuatro atributos, y manteniendo "
-		"{a} gastas un punto en el que estés. Con {rs} arriba y abajo lees tus estadísticas línea a línea, y a la "
+		"{a} gastas un punto en el que estés; manteniendo {x}, cinco de golpe. Con {rs} arriba y abajo lees tus estadísticas línea a línea, y a la "
 		"derecha, los puntos que te quedan.",
 		"Tu ficha. Las flechas llevan el cursor al más de cada atributo, y A gasta un punto en él. J lee la "
 		"descripción de la línea en la que estás, y Mayúsculas con flecha arriba o abajo la recorre línea a línea."},

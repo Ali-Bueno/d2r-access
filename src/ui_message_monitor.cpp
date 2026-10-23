@@ -95,6 +95,11 @@ constexpr std::string_view DeleteModalPanel       = "DeleteCharacterModal";
 constexpr const char*      CharacterSelectTarget  = "CharacterSelect";
 constexpr const char*      DeleteCharacterCommand = "DeleteCharacter";
 bool g_characterDeleted = false;
+// A confirmed gold window closes as the gold moves; the move is the news, not the close (a tester, 2026-10-23).
+constexpr std::string_view GoldModalPanel     = "DropGoldModal";
+constexpr const char*      GoldPanelTarget    = "GoldPanelMessage";
+constexpr const char*      GoldConfirmCommand = "DropGold";
+bool g_goldConfirmed = false;
 
 // A modal's prompt (ConfirmationModalHD.json: Frame/Prompt) is set at
 // runtime; it is read natively a few updates after the modal opens, then the
@@ -265,6 +270,8 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 		if (panel == DeleteModalPanel && std::exchange(g_characterDeleted, false)) {
 			PanelState::Closed(panel);
 			Say("%s", Strings::Current().characterDeleted, false, PanelTitleHoldMs);
+		} else if (panel == GoldModalPanel && std::exchange(g_goldConfirmed, false)) {
+			PanelState::Closed(panel);
 		} else if (PanelState::Closed(panel) && IsAnnouncedPanel(panel, false, title) && panel != RebindPanel) {
 			Say(Strings::Current().panelClosed, spoken, false);
 		}
@@ -339,6 +346,8 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		AsyncLog::Info(context, "[ui] cinematic ended");
 	} else if (std::strcmp(event->target, CharacterSelectTarget) == 0 && std::strcmp(event->command, DeleteCharacterCommand) == 0) {
 		g_characterDeleted = true;
+	} else if (std::strcmp(event->target, GoldPanelTarget) == 0 && std::strcmp(event->command, GoldConfirmCommand) == 0) {
+		g_goldConfirmed = true;
 	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {
 		FocusTracker::NoteScrollInput();
 	} else if (std::strcmp(event->target, QuestLogTarget) == 0) {

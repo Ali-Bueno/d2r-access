@@ -163,6 +163,7 @@ int Padding(PresetPlace place) {
 bool Tracked(PlaceFeature kind) {
 	return Stairway(kind) || kind == PlaceFeature::BloodCistern || kind == PlaceFeature::BloodFountain;
 }
+bool Tracked(PlaceInterior kind) { return kind == PlaceInterior::Palace; }
 bool Stairway(PlaceFeature kind) { return kind == PlaceFeature::CliffStairs || kind == PlaceFeature::CliffStairsTop; }
 PlaceFeature Spoken(PlaceFeature kind) { return Stairway(kind) ? PlaceFeature::Stairs : kind; }
 
@@ -189,6 +190,11 @@ std::vector<Listing> Listings(const Piece& piece) {
 		if (paired[i] || !Tracked(seed.feature)) continue;
 		listed.push_back({Spoken(seed.feature), CentreX(seed), CentreY(seed), std::max(seed.maxX - seed.minX, seed.maxY - seed.minY)});
 	}
+	// As wide as the room, so a route to it ends at its door.
+	for (const auto& volume : piece.volumes)
+		if (Tracked(volume.interior))
+			listed.push_back({PlaceFeature::Count, (volume.minX + volume.maxX) / 2.0, (volume.minY + volume.maxY) / 2.0,
+				std::max(volume.maxX - volume.minX, volume.maxY - volume.minY), volume.interior});
 	return listed;
 }
 

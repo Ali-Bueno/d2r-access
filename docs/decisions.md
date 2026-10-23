@@ -3,6 +3,27 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-23 — The tester's list on build test-2026-10-23
+
+From `D2R Access test build 2026-10-23 notes.7z` (the list, five log pairs, a log bridge
+screenshot). Built and unit-tested only.
+- **Stairs keep the game's 45-degree retry** where the player threads a passage (walls on both
+  sides across the push); the eight-way fallback and any push into an open wall still stop, as the
+  user asked on 2026-09-22. Behind `narrow-slide`, on: it is the fix for the tester being stuck,
+  and the switch gives back the old rule. Rejected: diagonal retries only (left the Palace
+  Cellar's 3-wide gaps stuck); turning the whole prevention off by default.
+- **Log and plank bridges are "bridge"**, one word as the tester asked; "log bridge" and "stone
+  bridge" were not worth the extra word. Their footprint is their collision mesh, as a log's model
+  sits at one of its ends.
+- **The palace entrance is routable as its hall**, listed whole and as wide as it, so the route
+  ends at its door. Rejected: a new "palace gate" landmark (no gate model in the layout).
+- **The Moldy Tome's piece is no tower ruin**; the tome is a quest object already.
+- **A doorway's flank may be a building's corner** (two cells of wall turning into a tile of wall):
+  Cott3's door. Rejected: two cells of flank anywhere (would take gaps between pillars).
+- **Digits one step down from "a"** on the typing reel, in the tester's order 1 to 0. Rejected:
+  LB/RB group jumps (the settings list takes the shoulders every update).
+- **"Drop Gold closed" dropped after a confirmed transfer**; a cancel still says it.
+
 ## 2026-10-22 — The tester's list on build test-2026-10-22-2
 
 From `D2R Access test build 2026-10-22-2 notes.7z` (the list, four log pairs, the basin from both

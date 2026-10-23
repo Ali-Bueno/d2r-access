@@ -187,8 +187,9 @@ could not be entered. Two things, `src/pad_typing.cpp`, switch `pad-typing`
   focus rectangle (`MenuMouse::ClickAt`), the keyboard mode's own way into a
   box, so a keyboard then types there. Log: `[typing] A did not start editing`.
 - **While a box is being edited**, the right stick picks characters: up and
-  down step through `PadTyping::Charset` (lower case, digits, space, `-_.:`,
-  upper case), each said as it is reached; right sends the one reached as a
+  down step through `PadTyping::Charset` (up from "a": lower case, space, `-_.:`,
+  upper case; down from "a": the digits 1 to 0, for number passwords, a tester
+  2026-10-23), each said as it is reached; right sends the one reached as a
   keystroke (`SendInput`, `KEYEVENTF_UNICODE`) and left sends Backspace, so the
   text field reader echoes them as typing. Log: `[typing] 'a' sent`. The game's
   own B ends editing as before.

@@ -54,6 +54,30 @@ monsters. Other players, mouse routes and other path types retain stock probes.
 Unknown/unreadable ownership also retains stock behavior. No animation-mode
 filter is used: locomotion mode can be selected after path generation.
 
+## Stairs and narrow passages (2026-10-23)
+
+The tester got stuck again and again on the Arcane Sanctuary's stairways and in the Palace
+Cellar's gaps, with wall knocks, in a two-player game (`mp_stuck_*`: 203 knocks in 28 minutes in
+the Sanctuary against 1.2 a minute in town; standing still with the stick pushed 13% of the time
+there, 2-7% elsewhere). Every knock was this hook refusing one of the game's fallback probes, and
+all the movement was the game's own stick move: no route, no auto-walk. The Sanctuary's stairs run
+along a world diagonal (screen up and down), 3-4 cells wide in each row with edges stepping a cell
+a row; the player's cross body leaves a walking line one or two cells wide, so a stick a few
+degrees off the diagonal meets a step almost every cell, and only the game's 45-degree retry
+(snapping the direction) walks it. Multiplayer only added a few position corrections (8 jumps in
+100 minutes); with the mod, the same stairs trap a player offline too. The other player hosted and
+walked by route hops (click pathing, untouched) and refused only against flat walls.
+
+So the two 45-degree retries (`SnappedReturn`, `CenteredReturn`) keep their distance when the
+player threads a passage along the push: terrain in `WallBump::Contact` reach on both sides across
+it (`WallBump::Squeezes`, eight ways, read on the UI thread with the wall bump and published to the
+hook as a bitmask, `WallSlideService::SetSqueezes`). The eight-way fallback (`AlternateReturn`)
+stays refused, and so does a retry in the open, along a wall with open floor beyond, or in a
+corridor six cells wide: a push into an open wall still stops. Switch `narrow-slide` (Ctrl+S
+Navigation, "Slide along stairs and narrow passages", on). `[movement] ... narrow_slides=` counts
+the retries let through. Unverified live: walk the Sanctuary's entrance stairs with the stick a
+little off their line.
+
 ## Controls and validation
 
 Enabled by default. `access-movement on|off|status` controls prevention for the

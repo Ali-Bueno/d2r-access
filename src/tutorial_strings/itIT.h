@@ -179,12 +179,12 @@ inline constexpr Texts itIT{
 		"ma l'oro nello scrigno è al sicuro. Di ritorno al campo, apri lo scrigno personale e deposita ciò che non "
 		"ti serve."},
 	.shop = {
-		"Un negozio. Appena hai l'oro, compra un {portaltome} e un {idtome}: ciascuno contiene fino a 20 pergamene "
-		"in una sola casella, e le pergamene del suo tipo che compri dopo ci finiscono dentro. Le pergamene sciolte "
+		"Un negozio. Se hai l'oro, compra da Akara un {idtome} e un {portaltome}: ciascuno contiene fino a 20 pergamene "
+		"in uno spazio largo una colonna e alto due righe, e le pergamene del suo tipo che compri dopo ci finiscono dentro. Le pergamene sciolte "
 		"occupano una casella ciascuna e riempiono presto l'inventario. Una pergamena dell'Identificazione mostra "
 		"cos'è un oggetto non identificato: usala, poi scegli l'oggetto.",
-		"Un negozio. Appena hai l'oro, compra un {portaltome} e un {idtome}: ciascuno contiene fino a 20 pergamene "
-		"in una sola casella, e le pergamene del suo tipo che compri dopo ci finiscono dentro. Le pergamene sciolte "
+		"Un negozio. Se hai l'oro, compra da Akara un {idtome} e un {portaltome}: ciascuno contiene fino a 20 pergamene "
+		"in uno spazio largo una colonna e alto due righe, e le pergamene del suo tipo che compri dopo ci finiscono dentro. Le pergamene sciolte "
 		"occupano una casella ciascuna e riempiono presto l'inventario. Una pergamena dell'Identificazione mostra "
 		"cos'è un oggetto non identificato: usala, poi scegli l'oggetto."},
 	.levelUp = {
@@ -194,7 +194,7 @@ inline constexpr Texts itIT{
 		"schermata del personaggio; ti guiderò al suo interno."},
 	.levelUpSheet = {
 		"La schermata del personaggio. Sei sul più della Forza: {dpad} su e giù scorrono le quattro caratteristiche, e "
-		"tenere premuto {a} spende un punto su quella in cui ti trovi. {rs} su e giù leggono le tue statistiche riga per riga, e "
+		"tenere premuto {a} spende un punto su quella in cui ti trovi; tenere premuto {x} ne spende cinque in una volta. {rs} su e giù leggono le tue statistiche riga per riga, e "
 		"a destra dice i punti che ti restano.",
 		"La schermata del personaggio. I tasti freccia portano il cursore sul più di ogni caratteristica, e A vi spende un punto. "
 		"J legge la descrizione della riga in cui ti trovi, e Maiusc con la freccia su o giù la scorre riga per "

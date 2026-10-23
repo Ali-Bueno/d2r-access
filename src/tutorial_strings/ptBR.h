@@ -172,12 +172,12 @@ inline constexpr Texts ptBR{
 		"Você pegou ouro; ele é pego quando você anda sobre ele. Quando você morre, perde parte do ouro que carrega, "
 		"mas o ouro do baú está a salvo. De volta ao acampamento, abra o baú pessoal e deposite o que não precisa."},
 	.shop = {
-		"Uma loja. Assim que tiver o ouro, compre um {portaltome} e um {idtome}: cada um guarda até 20 pergaminhos "
-		"em uma única célula, e os pergaminhos do tipo dele que você comprar depois vão para dentro. Pergaminhos "
+		"Uma loja. Se tiver o ouro, compre de Akara um {idtome} e um {portaltome}: cada um guarda até 20 pergaminhos "
+		"em um espaço de uma coluna de largura e duas linhas de altura, e os pergaminhos do tipo dele que você comprar depois vão para dentro. Pergaminhos "
 		"soltos ocupam uma célula cada um e logo enchem o inventário. Um pergaminho de Identificação mostra o que é "
 		"um item não identificado: use-o e depois escolha o item.",
-		"Uma loja. Assim que tiver o ouro, compre um {portaltome} e um {idtome}: cada um guarda até 20 pergaminhos "
-		"em uma única célula, e os pergaminhos do tipo dele que você comprar depois vão para dentro. Pergaminhos "
+		"Uma loja. Se tiver o ouro, compre de Akara um {idtome} e um {portaltome}: cada um guarda até 20 pergaminhos "
+		"em um espaço de uma coluna de largura e duas linhas de altura, e os pergaminhos do tipo dele que você comprar depois vão para dentro. Pergaminhos "
 		"soltos ocupam uma célula cada um e logo enchem o inventário. Um pergaminho de Identificação mostra o que é "
 		"um item não identificado: use-o e depois escolha o item."},
 	.levelUp = {
@@ -187,7 +187,7 @@ inline constexpr Texts ptBR{
 		"tela do personagem; vou guiar você lá dentro."},
 	.levelUpSheet = {
 		"A tela do personagem. Você está no mais de Força: {dpad} para cima e para baixo percorrem os quatro atributos, e "
-		"manter {a} pressionado gasta um ponto no atributo em que você está. {rs} para cima e para baixo leem as suas estatísticas linha por linha, e "
+		"manter {a} pressionado gasta um ponto no atributo em que você está; manter {x} pressionado gasta cinco de uma vez. {rs} para cima e para baixo leem as suas estatísticas linha por linha, e "
 		"para a direita diz os pontos que restam.",
 		"A tela do personagem. As setas levam o cursor ao mais de cada atributo, e A gasta um ponto nele. "
 		"J lê a descrição da linha em que você está, e Shift com a seta para cima ou para baixo percorre linha por "

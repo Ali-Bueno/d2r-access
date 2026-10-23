@@ -252,6 +252,17 @@ void WallDoorways() {
 	Block(wide, 20, 15, 39, 15);
 	doorways = Rooms::Doorways(Level({wide}, {5, 5}, 2));
 	Check(doorways.empty(), "an opening wider than two tiles is not a doorway");
+
+	// A cottage's door two cells from the corner where its side wall turns (Cott3; a tester,
+	// 2026-10-23: it never creaked).
+	auto cottage = Floor(0, 0, 40, 40);
+	Block(cottage, 15, 15, 25, 15);
+	Block(cottage, 15, 15, 15, 30);
+	Block(cottage, 25, 15, 25, 30);
+	Block(cottage, 15, 30, 20, 30);
+	Block(cottage, 24, 30, 25, 30);
+	doorways = Rooms::Doorways(Level({cottage}, {22, 35}, 2));
+	Check(doorways.size() == 1 && Near(doorways.front(), 22, 30), "a door beside a building's corner is a doorway");
 }
 
 void Geometry() {

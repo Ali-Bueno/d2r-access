@@ -63,6 +63,16 @@ bool Contact(const Radar::World& world, Radar::Position push) {
 	return false;
 }
 
+uint8_t Squeezes(const Radar::World& world) {
+	uint8_t ways = 0;
+	for (int way = 0; way < 4; ++way) {
+		const double angle = way * std::numbers::pi / 4;
+		const Radar::Position across{-std::sin(angle), std::cos(angle)};
+		if (Contact(world, across) && Contact(world, {-across.x, -across.y})) ways |= static_cast<uint8_t>((1u << way) | (1u << (way + 4)));
+	}
+	return ways;
+}
+
 double Pan(Radar::Position push) {
 	const auto screen = Radar::ScreenOffset(push);
 	const double length = std::hypot(screen.x, screen.y);

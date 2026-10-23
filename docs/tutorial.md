@@ -220,7 +220,8 @@ hear it; whether it was used is not read (no skill-use signal is known), so noth
 first gold picked up outside the camp, at the next calm moment in play, says gold comes by walking
 over it, that death takes part of what is carried (the game's "Death takes its toll of %d Gold")
 and that the stash keeps it. The first shop (`VendorPanelLayout`) says, there, to buy the
-Tome of Town Portal and the Tome of Identify: twenty scrolls in one cell each, while loose scrolls fill the
+Tome of Identify and the Tome of Town Portal from Akara if the gold is there (the tester's words,
+2026-10-23): twenty scrolls each in one column by two rows, while loose scrolls fill the
 inventory. How gold is deposited with the pad is left to the stash's own reading (not measured).
 The tomes' and pages' names are the game's own (`Localization::Text`: `tbk`, `ibk`).
 
@@ -287,3 +288,11 @@ sound is the sixth of step 9's monster sounds ("Crosshair: your attack is aimed 
 can see"), and step 11 says what it means: attack when it beeps; with a pad, turn toward the growl
 until it does. The ten machine-translated languages got the new sentences the same way, with each
 language's own word for the crosshair from `crosshairOn`.
+
+## Tomes from Akara, five points on X (2026-10-23)
+
+The tester (build test-2026-10-23): the shop lesson now reads "If you have the gold, buy a Tome of
+Identify and a Tome of Town Portal from Akara", and a tome is one column by two rows, not one cell.
+The character sheet's pad text adds that holding X spends five attribute points at once (the
+tester's report; the keyboard text is unchanged, no key for it is known). The eleven other
+languages got the same sentences, Akara spelt as the game's own `npcs.json` spells her.

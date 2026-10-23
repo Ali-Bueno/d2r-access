@@ -17,6 +17,7 @@ using Unit = std::array<unsigned char, UnitPath + sizeof(uintptr_t)>;
 bool prevent = false;
 uintptr_t localPlayer = 0;
 const float* pushed = nullptr; // the push direction the last fallback reported
+bool retried = false; // whether the last fallback was one of the game's 45-degree retries
 int calls = 0, forwardedDistance = -1;
 NativeWallSlide::Probe forwarded{};
 
@@ -50,7 +51,9 @@ void Original(uintptr_t context, const float* start, const float* direction, int
 	*collision = 0;
 }
 }
-namespace D2RAccess::WallSlideService { bool Prevent(uintptr_t, const float* push) noexcept { pushed = push; return prevent; } }
+namespace D2RAccess::WallSlideService {
+bool Prevent(uintptr_t, const float* push, bool retry) noexcept { pushed = push; retried = retry; return prevent; }
+}
 namespace D2RAccess::NativeWorld { bool IsLocalPlayer(uintptr_t player) noexcept { return player == localPlayer; } }
 namespace D2RAccess::AsyncLog {
 void Info(const D2RL::PluginContext*, const char*) noexcept {}
@@ -110,6 +113,7 @@ int main() {
 		calls = 0; forwardedDistance = -1; point = 0; travel = alignment = 99.0f; collision = -1;
 		Dispatch(probe, caller, Original);
 		Check(calls == 1 && forwardedDistance == 0, "each audited quantized fallback receives zero travel distance");
+		Check(retried == (caller != 0x3AB6B4), "the two 45-degree retries are told apart from the eight-way fallback");
 		Check(point == 0xAABBCCDD && travel == 0.0f && alignment == -1.0f && collision == 0,
 			"zero-distance prevention still uses the original probe's normal output initialization");
 	}

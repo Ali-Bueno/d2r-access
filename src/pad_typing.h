@@ -18,8 +18,9 @@ struct PluginContext;
 // one reached and left deletes the last one. The keystrokes are sent as the
 // keyboard's, so the text field reader echoes them. docs/multiplayer.md
 namespace D2RAccess::PadTyping {
-// The characters offered, in the order the stick steps through them.
-inline constexpr std::string_view Charset = "abcdefghijklmnopqrstuvwxyz0123456789 -_.:ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+// The characters offered, in the order the stick steps up through them from "a", where it
+// starts: down from there goes 1 to 0 at once, for number passwords (a tester, 2026-10-23).
+inline constexpr std::string_view Charset = "abcdefghijklmnopqrstuvwxyz -_.:ABCDEFGHIJKLMNOPQRSTUVWXYZ0987654321";
 // Pure: the index `delta` steps from `index`, wrapping at either end.
 int Step(int index, int delta);
 

@@ -182,13 +182,13 @@ inline constexpr Texts deDE{
 		"des Goldes, das du bei dir trägst, aber Gold in der Persönlichen Truhe ist sicher. Zurück im Lager öffne "
 		"die Persönliche Truhe und zahle ein, was du nicht brauchst."},
 	.shop = {
-		"Ein Laden. Sobald du das Gold hast, kaufe einen {portaltome} und einen {idtome}: Jeder fasst bis zu 20 "
-		"Schriftrollen in einem einzigen Feld, und die Schriftrollen seiner Art, die du danach kaufst, kommen "
+		"Ein Laden. Wenn du das Gold hast, kaufe bei Akara einen {idtome} und einen {portaltome}: Jeder fasst bis zu 20 "
+		"Schriftrollen auf einem Platz von einer Spalte Breite und zwei Zeilen Höhe, und die Schriftrollen seiner Art, die du danach kaufst, kommen "
 		"hinein. Einzelne Schriftrollen belegen je ein Feld und füllen das Inventar schnell. Eine Schriftrolle der "
 		"Identifikation zeigt, was ein nicht identifizierter Gegenstand ist: Benutze sie und wähle dann den "
 		"Gegenstand.",
-		"Ein Laden. Sobald du das Gold hast, kaufe einen {portaltome} und einen {idtome}: Jeder fasst bis zu 20 "
-		"Schriftrollen in einem einzigen Feld, und die Schriftrollen seiner Art, die du danach kaufst, kommen "
+		"Ein Laden. Wenn du das Gold hast, kaufe bei Akara einen {idtome} und einen {portaltome}: Jeder fasst bis zu 20 "
+		"Schriftrollen auf einem Platz von einer Spalte Breite und zwei Zeilen Höhe, und die Schriftrollen seiner Art, die du danach kaufst, kommen "
 		"hinein. Einzelne Schriftrollen belegen je ein Feld und füllen das Inventar schnell. Eine Schriftrolle der "
 		"Identifikation zeigt, was ein nicht identifizierter Gegenstand ist: Benutze sie und wähle dann den "
 		"Gegenstand."},
@@ -199,7 +199,7 @@ inline constexpr Texts deDE{
 		"Charakterbildschirm zu öffnen; ich führe dich darin."},
 	.levelUpSheet = {
 		"Dein Charakterbildschirm. Du bist auf dem Plus von Stärke: {dpad} nach oben und unten gehen durch die vier Attribute, und "
-		"{a} gedrückt halten gibt einen Punkt für das aus, auf dem du bist. {rs} nach oben und unten lesen deine Werte Zeile für Zeile, und "
+		"{a} gedrückt halten gibt einen Punkt für das aus, auf dem du bist; {x} gedrückt halten gibt fünf auf einmal aus. {rs} nach oben und unten lesen deine Werte Zeile für Zeile, und "
 		"nach rechts nennt die Punkte, die dir bleiben.",
 		"Dein Charakterbildschirm. Die Pfeiltasten bringen den Cursor zum Plus jedes Attributs, und A gibt einen Punkt dafür aus. "
 		"J liest die Beschreibung der Zeile, auf der du bist, und Umschalt mit der Pfeiltaste nach oben oder unten geht Zeile für "

@@ -149,6 +149,27 @@ void ContactAndPan() {
 	Check(std::abs(Pan({1, 0}) - 2 / std::sqrt(5.0)) < 1e-12, "a world axis pans by its screen share at the 2:1 projection");
 	Check(Pan({}) == 0, "no push is centred");
 }
+
+// The Arcane Sanctuary's stairs run along a world diagonal, three cells wide in each row (a
+// tester, 2026-10-23: stuck on them with wall sliding refused).
+void Squeezed() {
+	Radar::World world;
+	world.player = {20, 20};
+	world.subtileFraction = {0.5, 0.5};
+	world.walkingMask = PlayerPath;
+	world.bodyPattern = 1;
+	world.rooms.push_back({0, 0, Size, Size, std::vector<uint16_t>(Size * Size)});
+	auto& cells = world.rooms[0].cells;
+	Check(Squeezes(world) == 0, "open ground threads no passage");
+	for (int y = 0; y < Size; ++y)
+		for (int x = 0; x < Size; ++x) cells[static_cast<size_t>(y) * Size + x] = std::abs(x - y) <= 1 ? 0 : Wall;
+	const uint8_t stairs = Squeezes(world);
+	Check((stairs >> Way({1, 1}) & 1) && (stairs >> Way({-1, -1}) & 1), "up and down a diagonal stairway is a passage");
+	Check(!(stairs >> Way({-1, 1}) & 1) && !(stairs >> Way({1, -1}) & 1), "across it, into its wall, is not");
+	for (int y = 0; y < Size; ++y)
+		for (int x = 0; x < Size; ++x) cells[static_cast<size_t>(y) * Size + x] = y >= 18 && y <= 23 ? 0 : Wall;
+	Check(!(Squeezes(world) >> Way({1, 0}) & 1), "a corridor six cells wide is open enough to stop in");
+}
 }
 void Looping() {
 	Push push;
@@ -170,5 +191,6 @@ int main() {
 	Rearming();
 	BrokenSequences();
 	ContactAndPan();
+	Squeezed();
 	Passed();
 }

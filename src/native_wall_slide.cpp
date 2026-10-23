@@ -67,8 +67,9 @@ void Dispatch(const Probe& probe, uintptr_t returnRva, ProbeFn original) {
 		t_desired[1] = probe.direction[1];
 		t_haveDesired = true;
 	}
-	const bool fallback = returnRva == SnappedReturn || returnRva == CenteredReturn || returnRva == AlternateReturn;
-	const bool prevent = fallback && WallSlideService::Prevent(probe.context, t_haveDesired ? t_desired : nullptr);
+	const bool retry = returnRva == SnappedReturn || returnRva == CenteredReturn;
+	const bool fallback = retry || returnRva == AlternateReturn;
+	const bool prevent = fallback && WallSlideService::Prevent(probe.context, t_haveDesired ? t_desired : nullptr, retry);
 	original(probe.context, probe.start, probe.direction, prevent ? 0 : probe.distance,
 		probe.point, probe.travel, probe.alignment, probe.collision);
 }

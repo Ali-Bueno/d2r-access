@@ -4,6 +4,7 @@
 #include "radar_config.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "wall_bump.h"
 
 #include <windows.h>
 #include <atomic>
@@ -14,7 +15,9 @@ namespace {
 enum class Command { None, On, Off, Status };
 std::atomic<Command> g_command{Command::None};
 std::atomic<bool> g_enabled{false};
-std::atomic<uint64_t> g_prevented{0}, g_attempts{0};
+std::atomic<uint64_t> g_prevented{0}, g_attempts{0}, g_squeezed{0};
+std::atomic<uint8_t> g_squeezes{0};
+std::atomic<bool> g_narrowSlide{true};
 std::atomic<float> g_pushX{0}, g_pushY{0};
 const D2RL::PluginContext* g_context = nullptr;
 std::atomic<bool> g_supported{false};
@@ -48,8 +51,9 @@ void Tick() {
 	const uint64_t prevented = g_prevented.load(std::memory_order_relaxed);
 	const uint64_t now = GetTickCount64();
 	if (command != Command::None || (prevented != g_reported && now >= g_reportAt)) {
-		AsyncLog::InfoF(g_context, "[movement] prevention enabled=%u supported=%u blocked_alternatives=%llu",
-			g_enabled ? 1u : 0u, g_supported ? 1u : 0u, static_cast<unsigned long long>(prevented));
+		AsyncLog::InfoF(g_context, "[movement] prevention enabled=%u supported=%u blocked_alternatives=%llu narrow_slides=%llu",
+			g_enabled ? 1u : 0u, g_supported ? 1u : 0u, static_cast<unsigned long long>(prevented),
+			static_cast<unsigned long long>(g_squeezed.load(std::memory_order_relaxed)));
 		g_reported = prevented;
 		g_reportAt = now + ReportIntervalMs;
 	}
@@ -59,7 +63,7 @@ void Tick() {
 	}
 }
 
-bool Prevent(uintptr_t pathContext, const float* push) noexcept {
+bool Prevent(uintptr_t pathContext, const float* push, bool retry) noexcept {
 	if (!g_supported || !NativeWallSlide::IsLocalDirectionalAttempt(pathContext)) return false;
 	if (push) {
 		g_pushX.store(push[0], std::memory_order_relaxed);
@@ -67,6 +71,11 @@ bool Prevent(uintptr_t pathContext, const float* push) noexcept {
 	}
 	g_attempts.fetch_add(1, std::memory_order_relaxed);
 	if (!g_enabled) return false;
+	if (retry && push && g_narrowSlide.load(std::memory_order_relaxed)
+		&& (g_squeezes.load(std::memory_order_relaxed) >> WallBump::Way({push[0], push[1]}) & 1u)) {
+		g_squeezed.fetch_add(1, std::memory_order_relaxed);
+		return false;
+	}
 	g_prevented.fetch_add(1, std::memory_order_relaxed);
 	return true;
 }
@@ -76,13 +85,18 @@ Blocked LastBlocked() noexcept {
 }
 
 bool Enabled() noexcept { return g_enabled; }
+void SetSqueezes(uint8_t ways) noexcept { g_squeezes.store(ways, std::memory_order_relaxed); }
+bool NarrowSlide() noexcept { return g_narrowSlide.load(std::memory_order_relaxed); }
+void SetNarrowSlide(bool on) noexcept { g_narrowSlide.store(on, std::memory_order_relaxed); }
 
 void Unregister() {
 	g_enabled = false;
 	g_command = Command::None;
 	g_context = nullptr;
 	g_supported = false;
-	g_prevented = g_attempts = 0;
+	g_prevented = g_attempts = g_squeezed = 0;
+	g_squeezes = 0;
+	g_narrowSlide = true;
 	g_pushX = g_pushY = 0;
 	g_reported = g_reportAt = 0;
 }

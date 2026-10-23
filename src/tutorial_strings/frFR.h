@@ -183,12 +183,12 @@ inline constexpr Texts frFR{
 		"l'or que vous portez, mais l'or du coffre est à l'abri. De retour au camp, ouvrez le coffre personnel et "
 		"déposez ce dont vous n'avez pas besoin."},
 	.shop = {
-		"Une boutique. Dès que vous avez l'or, achetez un {portaltome} et un {idtome} : chacun contient jusqu'à 20 "
-		"parchemins dans une seule case, et les parchemins de son type que vous achetez ensuite y vont. Les "
+		"Une boutique. Si vous avez l'or, achetez à Akara un {idtome} et un {portaltome} : chacun contient jusqu'à 20 "
+		"parchemins sur un emplacement d'une colonne de large et deux rangées de haut, et les parchemins de son type que vous achetez ensuite y vont. Les "
 		"parchemins isolés prennent une case chacun et remplissent vite l'inventaire. Un parchemin d'identification "
 		"montre ce qu'est un objet non identifié : utilisez-le, puis choisissez l'objet.",
-		"Une boutique. Dès que vous avez l'or, achetez un {portaltome} et un {idtome} : chacun contient jusqu'à 20 "
-		"parchemins dans une seule case, et les parchemins de son type que vous achetez ensuite y vont. Les "
+		"Une boutique. Si vous avez l'or, achetez à Akara un {idtome} et un {portaltome} : chacun contient jusqu'à 20 "
+		"parchemins sur un emplacement d'une colonne de large et deux rangées de haut, et les parchemins de son type que vous achetez ensuite y vont. Les "
 		"parchemins isolés prennent une case chacun et remplissent vite l'inventaire. Un parchemin d'identification "
 		"montre ce qu'est un objet non identifié : utilisez-le, puis choisissez l'objet."},
 	.levelUp = {
@@ -198,7 +198,7 @@ inline constexpr Texts frFR{
 		"écran de personnage ; je vous guiderai à l'intérieur."},
 	.levelUpSheet = {
 		"Votre écran de personnage. Vous êtes sur le plus de la Force : {dpad} haut et bas parcourent les quatre caractéristiques, et "
-		"maintenir {a} dépense un point sur celle où vous êtes. {rs} haut et bas lisent vos statistiques ligne par ligne, et "
+		"maintenir {a} dépense un point sur celle où vous êtes ; maintenir {x} en dépense cinq d'un coup. {rs} haut et bas lisent vos statistiques ligne par ligne, et "
 		"droite dit les points qu'il vous reste.",
 		"Votre écran de personnage. Les touches fléchées amènent le curseur sur le plus de chaque caractéristique, et A y dépense un point. "
 		"J lit la description de la ligne où vous êtes, et Maj avec la flèche haut ou bas la parcourt ligne par "

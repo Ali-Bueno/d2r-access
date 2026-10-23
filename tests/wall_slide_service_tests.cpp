@@ -4,6 +4,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "test_support.h"
+#include "wall_bump.h"
 
 #include <optional>
 #include <string>
@@ -108,6 +109,23 @@ int main() {
 	WallSlideService::Register(&context, true);
 	directional = false;
 	Check(!WallSlideService::Prevent(1) && directionalCalls == 1, "enabled prevention passes through unrelated native attempts");
+	directional = true;
+
+	// On a stairway along +x+y (way 1), the game's 45-degree retries still move the player
+	// (a tester, 2026-10-23: stuck on the Arcane Sanctuary's stairs).
+	const float diagonal[2]{0.6f, 0.8f};
+	Check(WallBump::Way({0.6, 0.8}) == 1 && WallBump::Way({-1, 0}) == 4 && WallBump::Way({0.1, -1}) == 6,
+		"a push heads one of eight ways, 45 degrees apart");
+	Check(WallSlideService::Prevent(1, diagonal, true), "out in the open a retry is still refused");
+	WallSlideService::SetSqueezes(1u << 1 | 1u << 5);
+	Check(!WallSlideService::Prevent(1, diagonal, true), "in a passage along the push the game's retry slides");
+	Check(WallSlideService::Prevent(1, diagonal, false), "while its eight-way fallback is still refused");
+	Check(WallSlideService::Prevent(1, nullptr, true), "a retry with no known push is refused");
+	const float across[2]{0.8f, -0.6f};
+	Check(WallSlideService::Prevent(1, across, true), "a push across the passage, into its wall, stops");
+	WallSlideService::SetNarrowSlide(false);
+	Check(WallSlideService::Prevent(1, diagonal, true), "with the switch off stairs stop too");
 	WallSlideService::Unregister();
+	Check(WallSlideService::NarrowSlide(), "the switch starts on");
 	Passed();
 }

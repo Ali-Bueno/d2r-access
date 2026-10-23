@@ -2,6 +2,25 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build test-2026-10-23 — 2026-10-23
+
+From `D2R Access test build 2026-10-23 notes.7z` ([decisions](docs/decisions.md)). 127/127 CTest;
+installed by the build. **Unverified live.** Heard working by the tester: distances in steps, the
+stash pages and gold, the Countess's cistern in both layouts.
+- Stuck on the Arcane Sanctuary's stairs (multiplayer): the wall-slide hook refused the game's
+  45-degree retries; let through in narrow passages (`WallBump::Squeezes`, switch `narrow-slide`)
+  ([wall sliding](docs/wall-sliding.md#stairs-and-narrow-passages-2026-10-23)).
+- Jungle log and plank bridges said "bridge", footprint from their collision mesh
+  (`MESH_FOOTPRINTS`); the Moldy Tome's piece no longer "tower ruin"; Lut Gholein's palace entrance
+  listed and routable (`Places::Tracked(PlaceInterior)`) ([places](docs/places.md)).
+- Cott3's door two cells from its corner: flank may be a corner (`CornerRun` in `Rooms::Doorways`)
+  ([ground items](docs/ground-items.md#doorways-2026-10-20)).
+- Typing reel: digits 1-0 down from "a" (`PadTyping::Charset`); "Drop Gold closed" silent after a
+  confirmed transfer; tutorial: tomes from Akara (1x2), hold X for five points ([tutorial](docs/tutorial.md)).
+
+**Next step:** live: the Sanctuary's stairs with the stick off-line (`narrow_slides=`), a jungle log
+bridge, a route to the palace entrance, Cott3's creak, a number password with the reel.
+
 ## The tester's list on build test-2026-10-22-2 — 2026-10-23 (released as test-2026-10-23 from f755839)
 
 Release: 127/127 CTest, 29 entries, 62,972,811 bytes, SHA-256 `58dab81d…19afa0542`; news

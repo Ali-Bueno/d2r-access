@@ -568,6 +568,8 @@ struct Table {
 	const char* distanceStepsOff;
 	const char* routeLongLegsOn; // %d = the shortest leg before a turn, units (RouteLegs::MinLegUnits)
 	const char* routeLongLegsOff;
+	const char* narrowSlideOn; // stairs and narrow passages keep the game's slide (WallSlideService::NarrowSlide)
+	const char* narrowSlideOff;
 	const char* speechPriority; // %s = a speechPriorityKinds entry, %s = a speechPriorityLevels entry
 	std::array<const char*, SpeechPriorityKindCount> speechPriorityKinds; // SpeechPriority::Kind order
 	std::array<const char*, SpeechPriorityLevelCount> speechPriorityLevels; // SpeechPriority::Level order
@@ -634,7 +636,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.speechPriority}) visit(s);
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

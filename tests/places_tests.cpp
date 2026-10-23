@@ -88,6 +88,16 @@ void GeneratedData() {
 	Check(grateAt("Act2/Sewer/SewNSW.ds1", 37, 33), "the sewers' round grate (manhole01) is a landmark (a tester, 2026-10-19)");
 	Check(!grateAt("Act2/Sewer/SewS2.ds1", -1, -1), "the flat water channel grates are not the round grate");
 	Check(Places::Padding(PresetPlace::Tower) > 0 && Places::Padding(PresetPlace::Cottage) == 0, "only the tower ruin is named from afar");
+	Check(Places::NameOf(163) == PresetPlace::Tower && Places::NameOf(162) == PresetPlace::None,
+		"the Black Marsh's tower is a tower ruin, the Moldy Tome's piece is not (a tester, 2026-10-23)");
+	const auto bridgeAt = [](const char* file) {
+		const auto* piece = Places::Find(file);
+		if (!piece) return false;
+		const auto seeds = Places::PieceOf(*piece).seeds;
+		return std::any_of(seeds.begin(), seeds.end(), [](const PlaceSeed& seed) {
+			return seed.feature == PlaceFeature::Bridge && seed.maxX - seed.minX > 1 && seed.maxY - seed.minY > 1; });
+	};
+	Check(bridgeAt("Act3/Jungle/BogN.ds1"), "a jungle log over the river is a bridge, as long as the log (a tester, 2026-10-23)");
 }
 
 // Walking distance, not straight-line distance, decides the landmark.
@@ -283,6 +293,15 @@ void StairwaysListedOnce() {
 		"Tristram's fountain is listed, a way out of its houses (a tester, 2026-10-22)");
 	const auto* copy = Places::Find("Act1/Crypt/CryptNWarpNext.ds1");
 	Check(!copy || Places::Listings(Places::PieceOf(*copy)).empty(), "the unused copy of her room is not");
+
+	for (const char* town : {"Act2/Town/LutW.ds1", "Act2/Town/LutN.ds1"}) {
+		const auto* lut = Places::Find(town);
+		const auto listed = lut ? Places::Listings(Places::PieceOf(*lut)) : std::vector<Places::Listing>{};
+		const auto palace = std::find_if(listed.begin(), listed.end(), [](const Places::Listing& listing) {
+			return listing.interior == PlaceInterior::Palace; });
+		Check(listed.size() == 1 && palace != listed.end() && palace->side >= 20,
+			"Lut Gholein's palace entrance is listed in both layouts, as wide as its hall (a tester, 2026-10-23)");
+	}
 }
 
 void CarryAndHysteresis() {

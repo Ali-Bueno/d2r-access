@@ -257,3 +257,29 @@ the beacon's arrival distance of 3 from its centre is clear of it. Unverified li
 Tower's ruin do). Tristram's DS1 has no door objects, and its ruined walls are unlikely to be the
 gap `Rooms::Doorways` looks for (a run of 3 cells to two tiles with wall a tile past each end).
 Unchecked: it needs the collision round one house. The tester called it not essential.
+
+## Jungle log bridges, the Moldy Tome's piece, the palace entrance (2026-10-23)
+
+**Log bridges.** The tester (build test-2026-10-23, screenshot in the Spider Forest): the jungle's
+stone bridges said "bridge", but a fallen tree over a river, which works the same, said nothing. The
+Act III jungle keeps its bridges in `act3_jungle_bridges/`: `bridge_stone01` (inside the prefab
+`pf_bridge_stone01_01`, already a bridge), `bridge_tree01` (the log, 48 pieces), `bridge_wood01`
+and `bridge_wood_end01` (plank bridges, mostly in the Great Marsh's `bog*` pieces) and
+`bridge_wood02`. The trees and planks are now "bridge" too, one word as the tester asked. Their model
+is anchored at one end (the log's mesh runs about 39 HD units one way and 29 the other from it), so
+their footprint is the collision mesh's whole extent (`MESH_FOOTPRINTS`, `collision_footprint`,
+sharing the cliff stairs' mesh reader): about 20x15 subtiles for a log. The `bridge_log0N` models
+under `act3_jungle_debris/` have no collision and are left out. 224 seeds; extract
+`act3_jungle_bridges\` with the presets.
+
+**The Moldy Tome's piece.** "Act 1 - Tower Tome" (Def 162, `tome.ds1`, the Stony Field) was named
+"tower ruin" by the LvlPrest name rule, padded six tiles like the tower; the tester heard it there
+and asked for it gone, keeping the Black Marsh's (Def 163). The rule now skips it; the tome itself
+is a quest object in the scanner.
+
+**Lut Gholein's palace entrance** is a scanner entry: the tester asked for the palace square or
+gate as a place to route to. Its hall is the town's `Palace` interior (`TOWN_2_PALACE`, 23-24 by 25
+subtiles in both layouts, `lutw.ds1` and `lutn.ds1`); `Places::Tracked(PlaceInterior)` lists it whole
+(`Listing::interior`, named by the interior word, "palace entrance"), as wide as the hall, so the
+beacon's arrival distance (3 plus half the footprint) ends a route at its door. Unverified live:
+where on the hall's edge the route ends while the guards still bar the way.

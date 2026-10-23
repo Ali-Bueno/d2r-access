@@ -11,6 +11,7 @@ inside the prefab JSON it names.
 
 The Act II cliff stairs are placed by their collision mesh (the model's own
 .physics file): its bounding-volume tree gives the bottom and the top landing.
+The Act III jungle's bridges take the mesh's whole extent as their footprint.
 
 A feature drawn by a game object, not a layout model, is read from the DS1's own
 object list: objpreset.txt names each act's preset object, objects.txt its size.
@@ -19,6 +20,7 @@ Usage (after every game patch):
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "hd\env\preset\"
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "\pf_"
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "act2_bigcliff_stairs\"
+    build/casc-extract/casc_extract.exe extract "<game dir>" <root> "act3_jungle_bridges\"
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> ".ds1"
     build/casc-extract/casc_extract.exe extract "<game dir>" game-data "excel\objpreset.txt" "excel\objects.txt"
     python tools/gen_places.py --hd-root <root> [--lvlprest PATH] [--out PATH]
@@ -79,7 +81,8 @@ FEATURES = [
     ("Tents", "model", r"/tent\d"),
     ("Wagon", "model", r"/wagon\d\d(?:_pf)?$"),
     ("River", "audio", r"river"),
-    ("Bridge", "model", r"_bridge/(?!bridge_tracks)"),
+    # The jungle's fallen trees and plank bridges over its rivers are bridges too (a tester, 2026-10-23).
+    ("Bridge", "model", r"_bridge/(?!bridge_tracks)|act3_jungle_bridges/bridge_(?:tree|wood)"),
     ("Campfire", "model", r"campfire|bonfire"),
     ("HangmanTree", "model", r"graveyard_hanging_corpse|graveyard_props/noose_wrap"),
     # The Act II desert's cliff stairs, the only way between a level's halves: also a tracker entry.
@@ -108,6 +111,8 @@ FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.d
 # Subtiles added around a feature's seeds: the Hangman's Tree is said under its whole canopy,
 # one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk).
 FEATURE_PADDING = {"HangmanTree": 5}
+# Models whose footprint is their collision mesh: a log over a river is anchored at one end.
+MESH_FOOTPRINTS = re.compile(r"act3_jungle_bridges/")
 STAIRS_COLLISION_NODES = 0x30  # .physics: node records start here, 32 bytes each (min xyz, max xyz, two words)
 # HD height: nodes within one subtile of the lowest top (highest base) are one landing, the stairway's full width.
 STAIRS_LANDING_SLACK = HD_PER_SUBTILE
@@ -164,7 +169,8 @@ PLACES = [
     ("FallenCamp", r"^Act 1 - Fallen Camp"),
     ("Cottage", r"^Act 1 - Cottages"),
     ("Graveyard", r"^Act 1 - Graveyard"),
-    ("Tower", r"^Act 1 - Tower"),
+    # Not the Moldy Tome's piece in the Stony Field: the tome is listed already, its ruin is no news (a tester, 2026-10-23).
+    ("Tower", r"^Act 1 - Tower(?! Tome)"),
     ("Ruin", r"^Act 1 - Ruin$|^Act 2 - Desert Valley Ruin"),
     ("Camp", r"^Act 1 - Camp$"),
     ("Temple", r"^Act 3 - (?:Temple \d|Burbs Temple|MetroTemple)"),
@@ -338,10 +344,8 @@ def prefab_footprint(e, t, hd_root, cache, stats):
     return rect
 
 
-def stairs_landings(e, t, hd_root, stats):
-    """(bottom, top) subtile rects of a stairway from its collision mesh, or None: the
-    bounding-volume nodes lowest at their top are the bottom landing, the highest at their
-    base the top one (HD y is up), each across the whole width a player may climb."""
+def collision_nodes(e, hd_root):
+    """The bounding-volume nodes of an entity's collision mesh (min xyz, max xyz), or None."""
     body = comp(e, "PhysicsBodyDefinitionComponent")
     for fixture in body.get("fixturedefs", []) if body else []:
         ref = norm_path(fixture.get("shapetype", {}).get("filename", ""))
@@ -350,30 +354,46 @@ def stairs_landings(e, t, hd_root, stats):
             continue
         data = path.read_bytes()
         count = struct.unpack_from("<I", data, 0x18)[0]  # header word 6: the node count
-        if STAIRS_COLLISION_NODES + 32 * count > len(data):
+        if not count or STAIRS_COLLISION_NODES + 32 * count > len(data):
             continue
-        nodes = [struct.unpack_from("<6f", data, STAIRS_COLLISION_NODES + 32 * i) for i in range(count)]
-        pos, q, sc = t["position"], t["orientation"], t.get("scale", {"x": 1, "y": 1, "z": 1})
-
-        def rect(node):
-            xs, zs = [], []
-            for x in (node[0], node[3]):
-                for z in (node[2], node[5]):
-                    rx, rz = quat_rotate_xz(q, x * sc["x"], 0.0, z * sc["z"])
-                    xs.append(pos["x"] + rx)
-                    zs.append(pos["z"] + rz)
-            return (clamp_subtile(math.floor(min(xs) / HD_PER_SUBTILE)), clamp_subtile(math.floor(min(zs) / HD_PER_SUBTILE)),
-                    clamp_subtile(math.ceil(max(xs) / HD_PER_SUBTILE)), clamp_subtile(math.ceil(max(zs) / HD_PER_SUBTILE)))
-        def union(group):
-            rects = [rect(node) for node in group]
-            return (min(r[0] for r in rects), min(r[1] for r in rects), max(r[2] for r in rects), max(r[3] for r in rects))
-        lowest_top = min(n[4] for n in nodes)
-        highest_base = max(n[1] for n in nodes)
-        stats["stairs_ok"] += 1
-        return (union([n for n in nodes if n[4] <= lowest_top + STAIRS_LANDING_SLACK]),
-                union([n for n in nodes if n[1] >= highest_base - STAIRS_LANDING_SLACK]))
-    stats["stairs_missing"] += 1
+        return [struct.unpack_from("<6f", data, STAIRS_COLLISION_NODES + 32 * i) for i in range(count)]
     return None
+
+
+def nodes_rect(nodes, t):
+    """Subtile rect holding a group of collision nodes, with the entity's scale and yaw applied."""
+    pos, q, sc = t["position"], t["orientation"], t.get("scale", {"x": 1, "y": 1, "z": 1})
+    xs, zs = [], []
+    for node in nodes:
+        for x in (node[0], node[3]):
+            for z in (node[2], node[5]):
+                rx, rz = quat_rotate_xz(q, x * sc["x"], 0.0, z * sc["z"])
+                xs.append(pos["x"] + rx)
+                zs.append(pos["z"] + rz)
+    return (clamp_subtile(math.floor(min(xs) / HD_PER_SUBTILE)), clamp_subtile(math.floor(min(zs) / HD_PER_SUBTILE)),
+            clamp_subtile(math.ceil(max(xs) / HD_PER_SUBTILE)), clamp_subtile(math.ceil(max(zs) / HD_PER_SUBTILE)))
+
+
+def stairs_landings(e, t, hd_root, stats):
+    """(bottom, top) subtile rects of a stairway from its collision mesh, or None: the
+    bounding-volume nodes lowest at their top are the bottom landing, the highest at their
+    base the top one (HD y is up), each across the whole width a player may climb."""
+    nodes = collision_nodes(e, hd_root)
+    if not nodes:
+        stats["stairs_missing"] += 1
+        return None
+    lowest_top = min(n[4] for n in nodes)
+    highest_base = max(n[1] for n in nodes)
+    stats["stairs_ok"] += 1
+    return (nodes_rect([n for n in nodes if n[4] <= lowest_top + STAIRS_LANDING_SLACK], t),
+            nodes_rect([n for n in nodes if n[1] >= highest_base - STAIRS_LANDING_SLACK], t))
+
+
+def collision_footprint(e, t, hd_root, stats):
+    """A model's subtile rect from its collision mesh, or None."""
+    nodes = collision_nodes(e, hd_root)
+    stats["mesh_ok" if nodes else "mesh_missing"] += 1
+    return nodes_rect(nodes, t) if nodes else None
 
 
 def centre(rect):
@@ -487,7 +507,10 @@ def scan_preset(path, rel, hd_root, cache, stats, object_seeded):
                     raw_seeds[name].append((*centre(rect), rect))
                 stats["features"][feature, kind][basename_of(e)] += 1
             elif 0 <= x <= SUBTILE_MAX and 0 <= y <= SUBTILE_MAX:
-                rect = prefab_footprint(e, t, hd_root, cache, stats) if kind == "prefab" else point_rect(x, y)
+                rect = prefab_footprint(e, t, hd_root, cache, stats) if kind == "prefab" else None
+                if not rect and any(MESH_FOOTPRINTS.search(m) for m in entity_strings(e)["model"]):
+                    rect = collision_footprint(e, t, hd_root, stats)
+                rect = rect or point_rect(x, y)
                 raw_seeds[feature].append((x, y, rect))
                 stats["features"][feature, kind][basename_of(e)] += 1
         for kind, label in (("AudioEnvironmentOverrideComponent", None), ("VisualDataBoxDefinitionComponent", None)):
@@ -603,7 +626,7 @@ def main():
     rows = load_lvlprest(args.lvlprest)
     known = lvlprest_files(rows)
     stats = {"rotated": 0, "tiny": 0, "features": defaultdict(Counter), "ignored": Counter(), "unknown": Counter(),
-             "fp_ok": 0, "fp_missing": 0, "fp_outside": 0, "fp_huge": 0, "stairs_ok": 0, "stairs_missing": 0,
+             "fp_ok": 0, "fp_missing": 0, "fp_outside": 0, "fp_huge": 0, "stairs_ok": 0, "stairs_missing": 0, "mesh_ok": 0, "mesh_missing": 0,
              "ds1_missing": 0}
     presets_dir = args.hd_root / PRESET_SUBDIR
     prefab_cache = {}
@@ -646,6 +669,7 @@ def main():
     print(f"prefab footprints: {stats['fp_ok']} ok; point fallback: {stats['fp_missing']} prefab missing, {stats['fp_outside']} rect misses anchor, {stats['fp_huge']} over {MAX_FOOTPRINT_SIDE} subtiles")
     print(f"boxes not identity-rotated: {stats['rotated']}; tiny boxes skipped: {stats['tiny']}")
     print(f"stairs from collision: {stats['stairs_ok']}; without a collision file: {stats['stairs_missing']}")
+    print(f"footprints from collision: {stats['mesh_ok']}; without a collision file: {stats['mesh_missing']}")
     print(f"DS1 files {len(ds1_files)}; presets without one: {stats['ds1_missing']}")
     print("file names:", file_names)
     print("ignored volumes:", dict(stats["ignored"]), "unclassified:", dict(stats["unknown"]))

@@ -93,6 +93,9 @@ std::vector<Doorway> Doorways(const Radar::World& world) {
 	// The open ground past a wall reaches this far beyond each edge of its gap: a single cell
 	// is the jag of a wall's collision, not a room.
 	constexpr int Widens = 2;
+	// A flank shorter than a tile still counts where it turns a building's corner: Cott3's door
+	// is two cells from its corner (a tester, 2026-10-23); a pillar has no wall running off it.
+	constexpr int CornerRun = 2;
 	const int passable = PassableWidth(world.bodyPattern);
 	struct Face { int row = 0, from = 0, to = 0, side = 0; bool used = false; };
 	std::vector<Doorway> result;
@@ -101,6 +104,20 @@ std::vector<Doorway> Doorways(const Radar::World& world) {
 		const auto state = [&](int along, int row) {
 			return columns ? world.Cell(row, along, Radar::Layer::Terrain) : world.Cell(along, row, Radar::Layer::Terrain); };
 		const auto open = [&](int along, int row) { return state(along, row) == Radar::State::Open; };
+		// The wall from `edge` outward, `step` at a time: a tile of it, or a corner.
+		const auto flanked = [&](int edge, int step, int row) {
+			int run = 0;
+			while (run < Flank && !open(edge + step * run, row)) ++run;
+			if (run == Flank) return true;
+			if (run < CornerRun) return false;
+			const int corner = edge + step * (run - 1);
+			for (const int side : {-1, 1}) {
+				int length = 1;
+				while (length < Flank && state(corner, row + side * length) == Radar::State::Blocked) ++length;
+				if (length == Flank) return true;
+			}
+			return false;
+		};
 		std::vector<Face> faces;
 		for (const auto& room : world.rooms) {
 			const int first = columns ? room.y : room.x, length = columns ? room.height : room.width;
@@ -114,9 +131,7 @@ std::vector<Doorway> Doorways(const Radar::World& world) {
 					along = to;
 					if (to - from + 1 < passable || to - from + 1 > MaxWidth) continue;
 					if (state(from - 1, row) != Radar::State::Blocked || state(to + 1, row) != Radar::State::Blocked) continue;
-					bool walled = true;
-					for (int k = 0; k < Flank && walled; ++k) walled = !open(from - 1 - k, row) && !open(to + 1 + k, row);
-					if (!walled) continue;
+					if (!flanked(from - 1, -1, row) || !flanked(to + 1, 1, row)) continue;
 					for (const int side : {-1, 1}) {
 						bool widens = true;
 						for (int at = from - Widens; at <= to + Widens && widens; ++at) widens = open(at, row + side);

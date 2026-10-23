@@ -84,6 +84,9 @@ uint64_t MapKey(int32_t def, int tileX, int tileY);
 // or one that tells the way, the Countess's cistern by her doors (2026-10-22) and
 // Tristram's fountain, a way out of its burning houses (2026-10-22).
 bool Tracked(PlaceFeature kind);
+// An interior the scanner lists whole: Lut Gholein's palace entrance, where its gate opens on the
+// square (a tester, 2026-10-23).
+bool Tracked(PlaceInterior kind);
 // The two landings of one cliff stairway: walking from one to the other is not news.
 bool Stairway(PlaceFeature kind);
 // The landmark a kind is said as: either landing of a cliff stairway is the stairs
@@ -94,9 +97,10 @@ PlaceFeature Spoken(PlaceFeature kind);
 // across. A cliff stairway is one, halfway between its landings and as wide as the
 // way from one to the other, so a route to it ends on the stairs.
 struct Listing {
-	PlaceFeature kind = PlaceFeature::Count; // as spoken
-	double       x = 0, y = 0;
-	int          side = 0;
+	PlaceFeature  kind = PlaceFeature::Count; // as spoken
+	double        x = 0, y = 0;
+	int           side = 0;
+	PlaceInterior interior = PlaceInterior::Count; // a tracked interior, said instead of the kind
 };
 std::vector<Listing> Listings(const Piece& piece);
 

@@ -174,12 +174,12 @@ inline constexpr Texts plPL{
 		"przy sobie, ale złoto w skrzyni jest bezpieczne. Po powrocie do obozu otwórz skrzynię osobistą i wpłać to, "
 		"czego nie potrzebujesz."},
 	.shop = {
-		"Sklep. Gdy tylko będziesz mieć złoto, kup: {portaltome} i {idtome}. Każda mieści do 20 zwojów w jednym "
-		"polu, a zwoje jej rodzaju, które kupisz potem, trafiają do niej. Luźne zwoje zajmują po jednym polu i "
+		"Sklep. Jeśli masz złoto, kup u Akary: {idtome} i {portaltome}. Każda mieści do 20 zwojów na miejscu szerokim "
+		"na jedną kolumnę i wysokim na dwa wiersze, a zwoje jej rodzaju, które kupisz potem, trafiają do niej. Luźne zwoje zajmują po jednym polu i "
 		"szybko zapełniają ekwipunek. Zwój identyfikacji pokazuje, czym jest niezidentyfikowany przedmiot: użyj go, "
 		"a potem wybierz przedmiot.",
-		"Sklep. Gdy tylko będziesz mieć złoto, kup: {portaltome} i {idtome}. Każda mieści do 20 zwojów w jednym "
-		"polu, a zwoje jej rodzaju, które kupisz potem, trafiają do niej. Luźne zwoje zajmują po jednym polu i "
+		"Sklep. Jeśli masz złoto, kup u Akary: {idtome} i {portaltome}. Każda mieści do 20 zwojów na miejscu szerokim "
+		"na jedną kolumnę i wysokim na dwa wiersze, a zwoje jej rodzaju, które kupisz potem, trafiają do niej. Luźne zwoje zajmują po jednym polu i "
 		"szybko zapełniają ekwipunek. Zwój identyfikacji pokazuje, czym jest niezidentyfikowany przedmiot: użyj go, "
 		"a potem wybierz przedmiot."},
 	.levelUp = {
@@ -189,7 +189,7 @@ inline constexpr Texts plPL{
 		"ekran postaci; poprowadzę cię w środku."},
 	.levelUpSheet = {
 		"Twój ekran postaci. Jesteś na plusie Siły: {dpad} w górę i w dół przechodzą przez cztery atrybuty, a "
-		"przytrzymanie {a} wydaje punkt na ten, na którym jesteś. {rs} w górę i w dół czytają twoje statystyki wiersz po wierszu, a "
+		"przytrzymanie {a} wydaje punkt na ten, na którym jesteś; przytrzymanie {x} wydaje pięć naraz. {rs} w górę i w dół czytają twoje statystyki wiersz po wierszu, a "
 		"w prawo mówi, ile punktów ci zostało.",
 		"Twój ekran postaci. Strzałki przenoszą kursor na plus każdego atrybutu, a A wydaje na niego punkt. "
 		"J czyta opis wiersza, na którym jesteś, a Shift ze strzałką w górę lub w dół przechodzi przez niego wiersz po "

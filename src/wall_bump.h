@@ -54,4 +54,12 @@ inline constexpr double ContactStep = 0.25;
 bool Contact(const Radar::World& world, Radar::Position push);
 // The push's screen-horizontal share, -1 (left) to 1 (right).
 double Pan(Radar::Position push);
+// The eight world ways a push can head, 0 along +x and each next one 45 degrees on toward +y.
+inline int Way(Radar::Position push) {
+	const long turns = std::lround(std::atan2(push.y, push.x) / (std::numbers::pi / 4));
+	return static_cast<int>((turns % 8 + 8) % 8);
+}
+// Bit `Way` for each way the player threads a passage along: terrain in Contact on both sides
+// across it, as on a stairway or in a gap a few cells wide (docs/wall-sliding.md).
+uint8_t Squeezes(const Radar::World& world);
 }

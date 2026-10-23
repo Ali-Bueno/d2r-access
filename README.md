@@ -237,6 +237,8 @@ game would otherwise choose another direction around a blocked target. Enabled
 by default; `access-movement on|off|status` controls it for the current session.
 Mouse routes retain their normal pathfinding. The hook is restricted to the
 local player's directional path and checks the game code before installation.
+Stairs and passages a few cells wide keep the game's 45-degree slide, so a stick a little off a
+diagonal stairway still climbs it (`narrow-slide`, Navigation, on).
 Controller validation is pending; see [behavior and evidence](docs/wall-sliding.md).
 Pushing the stick into a wall the game refuses to cross sounds one low **wall
 bump** thud, panned by the push; it repeats only after a step, a turn of more
@@ -391,8 +393,8 @@ area can also be written as its banner says it ("The Cave Level 1"). See [descri
 A player's town portal is listed by whose it is, "TankMan's portal", and where it leads is read
 off the portal itself on reaching it; one opened anew replaces the old ([town portals](docs/portals.md)).
 The desert's cliff stairs are one entry, "stairs", halfway up; the Countess's Gilded Cistern of
-Virgins (the basin of blood in Tower Cellar Level 5) and Tristram's fountain are listed too
-([places](docs/places.md)).
+Virgins (the basin of blood in Tower Cellar Level 5), Tristram's fountain and Lut Gholein's
+palace entrance are listed too ([places](docs/places.md)).
 
 **Target guidance (built; live validation pending):** press **BACK+LB** (L3 is the
 game's walk/run toggle) or **Ctrl+B** to follow what the scanner last named with directional pings.
@@ -601,8 +603,9 @@ Switches `corpse-cue` and `corpse-interval`; see [summons and corpses](docs/summ
 
 **Typing with the controller:** in the loader's lobby, A on a text box starts editing it (the
 mod calls the game's own begin-edit when the game does not), so a keyboard types there; while a
-box is edited, the right stick steps through letters, digits, space and a few signs (said as
-reached), right types the one reached and left deletes the last (`pad-typing`, Controller group).
+box is edited, the right stick steps up through letters, space, a few signs and capitals, and down
+through the digits 1 to 0 (said as reached); right types the one reached and left deletes the last
+(`pad-typing`, Controller group).
 The D-pad walks the form in its own order; boxes the game disables (LAN Only, Unlisted) are skipped.
 See [multiplayer](docs/multiplayer.md).
 

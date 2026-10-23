@@ -163,11 +163,11 @@ inline constexpr Texts enUS{
 		"You picked up gold; it is picked up as you walk over it. When you die, you lose part of the gold you carry, "
 		"but gold in the stash is safe. Back in the camp, open the stash and deposit what you do not need."},
 	.shop = {
-		"A shop. As soon as you have the gold, buy a {portaltome} and a {idtome}: each holds up to 20 scrolls in a "
-		"single cell, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
+		"A shop. If you have the gold, buy a {idtome} and a {portaltome} from Akara: each holds up to 20 scrolls in a "
+		"space one column wide and two rows tall, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
 		"soon fill your inventory. An identify scroll shows what an unidentified item is: use it, then choose the item.",
-		"A shop. As soon as you have the gold, buy a {portaltome} and a {idtome}: each holds up to 20 scrolls in a "
-		"single cell, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
+		"A shop. If you have the gold, buy a {idtome} and a {portaltome} from Akara: each holds up to 20 scrolls in a "
+		"space one column wide and two rows tall, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
 		"soon fill your inventory. An identify scroll shows what an unidentified item is: use it, then choose the item."},
 	.levelUp = {
 		"You have gone up a level: you have attribute points and a skill point to spend. Press {menu} to open your "
@@ -176,7 +176,7 @@ inline constexpr Texts enUS{
 		"character sheet; I will guide you inside."},
 	.levelUpSheet = {
 		"Your character sheet. You are on Strength's plus: {dpad} up and down go through the four attributes, and "
-		"holding {a} spends a point on the one you are on. {rs} up and down read your statistics line by line, and "
+		"holding {a} spends a point on the one you are on; holding {x} spends five at once. {rs} up and down read your statistics line by line, and "
 		"right says the points you have left.",
 		"Your character sheet. The arrow keys take the cursor to each attribute's plus, and A spends a point on it. "
 		"J reads the description of the line you are on, and Shift with the up or down arrow goes through it line by "

@@ -471,7 +471,9 @@ std::vector<EntityRadar::Entity> MapLandmarks() {
 			entity.category = EntityRadar::Category::Interactable;
 			entity.position = {originX + listing.x, originY + listing.y};
 			entity.placeId = NativeLevelExits::Identity(entity.position);
-			entity.name = Strings::Current().placeFeatures[static_cast<size_t>(listing.kind)];
+			const auto& words = Strings::Current();
+			entity.name = listing.interior != Places::PlaceInterior::Count ? words.placeInteriors[static_cast<size_t>(listing.interior)]
+				: words.placeFeatures[static_cast<size_t>(listing.kind)];
 			// A route ends beside it, never inside the cistern or halfway down a cliff.
 			entity.footprint = {static_cast<uint32_t>(listing.side), static_cast<uint32_t>(listing.side)};
 			entity.mapLandmark = true;
