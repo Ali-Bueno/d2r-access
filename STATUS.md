@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list on build test-2026-10-23 — 2026-10-23
+## The tester's list on build test-2026-10-23 — 2026-10-23 (released as test-2026-10-23-2 from efa1230)
+
+Release: 127/127 CTest, 29 entries, 62,976,543 bytes, SHA-256 `c82af1f5…b482a8a4e`; news
+`../tester-news-draft-2026-10-23b.txt`.
 
 From `D2R Access test build 2026-10-23 notes.7z` ([decisions](docs/decisions.md)). 127/127 CTest;
 installed by the build. **Unverified live.** Heard working by the tester: distances in steps, the
