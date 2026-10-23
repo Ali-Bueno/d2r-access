@@ -25,6 +25,7 @@
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace D2RAccess::UiMessageMonitor {
 
@@ -89,6 +90,11 @@ constexpr const char* ModalNameSuffix        = "Modal";
 constexpr const char* ConfirmationModalPanel = "ConfirmationModal";
 constexpr const char* DismissableModalPanel  = "DismissableModal";
 constexpr std::string_view RebindPanel       = "ButtonBindingModal";
+// Character select's order to delete comes just before its modal closes (a tester, 2026-10-22).
+constexpr std::string_view DeleteModalPanel       = "DeleteCharacterModal";
+constexpr const char*      CharacterSelectTarget  = "CharacterSelect";
+constexpr const char*      DeleteCharacterCommand = "DeleteCharacter";
+bool g_characterDeleted = false;
 
 // A modal's prompt (ConfirmationModalHD.json: Frame/Prompt) is set at
 // runtime; it is read natively a few updates after the modal opens, then the
@@ -256,7 +262,10 @@ void AnnouncePanel(const D2RL::SharedEvents::UiMessageEvent& event) {
 		}
 	} else if (std::strcmp(event.command, ClosePanelCommand) == 0 || std::strcmp(event.command, UnloadPanelCommand) == 0) {
 		// The rebinding window's close is said as what it bound (SkillBarService).
-		if (PanelState::Closed(panel) && IsAnnouncedPanel(panel, false, title) && panel != RebindPanel) {
+		if (panel == DeleteModalPanel && std::exchange(g_characterDeleted, false)) {
+			PanelState::Closed(panel);
+			Say("%s", Strings::Current().characterDeleted, false, PanelTitleHoldMs);
+		} else if (PanelState::Closed(panel) && IsAnnouncedPanel(panel, false, title) && panel != RebindPanel) {
 			Say(Strings::Current().panelClosed, spoken, false);
 		}
 		if (panel == SettingsPanelName) {
@@ -328,6 +337,8 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 	} else if (std::strcmp(event->target, CinematicsTarget) == 0 && std::strcmp(event->command, MovieDoneCommand) == 0) {
 		PanelState::MovieEnded();
 		AsyncLog::Info(context, "[ui] cinematic ended");
+	} else if (std::strcmp(event->target, CharacterSelectTarget) == 0 && std::strcmp(event->command, DeleteCharacterCommand) == 0) {
+		g_characterDeleted = true;
 	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {
 		FocusTracker::NoteScrollInput();
 	} else if (std::strcmp(event->target, QuestLogTarget) == 0) {

@@ -34,7 +34,7 @@ attack takes.
 
 Ctrl+S `crosshair` (on by default); `access-entity-cues crosshair-on|crosshair-off`;
 `radar.toml` `[entity_cues] crosshair = true`. `status` says it. The glossary plays it
-after the melee reach ping.
+after the melee reach ping, and the tutorial teaches it ([tutorial](tutorial.md#the-crosshair-2026-10-22)).
 
 ## Logs
 

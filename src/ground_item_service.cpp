@@ -6,6 +6,7 @@
 #include "native_ground_items.h"
 #include "native_world.h"
 #include "entity_cue_audio.h"
+#include "entity_radar.h"
 #include "item_audio.h"
 #include "doorways.h"
 #include "panel_state.h"
@@ -53,6 +54,7 @@ std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shut
 std::atomic<bool> g_shrineSounds{true}, g_doorwaySounds{true}, g_openDoorSounds{false}, g_stepClicks{false}, g_stepBeep{false};
 // Into StepCounter::Intervals: 5 units (a tester, 2026-10-21: 1 is spam, 10 too coarse indoors).
 std::atomic<int> g_stepInterval{1};
+std::atomic<bool> g_distanceSteps{false};
 StepCounter::Odometer g_odometer;
 // The Jail's secret doors, felt as a draft when walked past (docs/secret-doors.md).
 std::atomic<bool> g_secretDrafts{true};
@@ -489,6 +491,12 @@ void SetStepBeep(bool beep) { g_stepBeep = beep; }
 int StepInterval() { return g_stepInterval.load(); }
 void SetStepInterval(int interval) {
 	g_stepInterval = std::clamp(interval, 0, static_cast<int>(std::size(StepCounter::Intervals)) - 1);
+	EntityRadar::SetUnitsPerStep(g_distanceSteps ? StepCounter::Intervals[static_cast<size_t>(g_stepInterval.load())] : 0);
+}
+bool DistanceSteps() { return g_distanceSteps.load(); }
+void SetDistanceSteps(bool enabled) {
+	g_distanceSteps = enabled;
+	SetStepInterval(g_stepInterval.load());
 }
 bool PickupClick() { return g_pickupClick; }
 void SetPickupClick(bool enabled) { g_pickupClick = enabled; }

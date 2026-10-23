@@ -233,3 +233,27 @@ round it; nothing is named bath, basin or chalice. Feature `BloodCistern`, padde
 platform is about 14 across and blocks; its seed is one point), skipped in `cryptnwarpnext.ds1`,
 which keeps an unused copy of the room. It is tracked: listed in the scanner and routed to, a route
 ending beside the platform. Unverified live: that the platform is the vessel of the screenshot.
+
+## The cistern is the basin; Tristram's fountain tracked (2026-10-22, second list)
+
+**The cistern was on the wrong thing.** The tester's two layouts (`no blood bath_*`, CryptCountess1,
+and `blood_bath_off_*`, CryptCountess2) and screenshots: the route to "Gilded Cistern of Virgins" led
+to the Countess's quest chest, and near the basin nothing was said. `ritual_platform01` is the dais of
+her chest: each layout's DS1 places `PlaceUniqueChest` (Act I preset object 38) beside it, at 26,70 and
+65,20. The basin is not a layout model at all but a game object: Act I preset object 18,
+`BloodFountain` (`objpreset.txt`; objects.txt ID 31, "Fountain", 3x3, collision), at 68,71 and 71,63,
+the HD layout's candles round it (HD 135-139,140-145 in the first). `gen_places.py` now reads a
+DS1's own object list (source `object`, `objpreset.txt` for the class, `objects.txt` SizeX/SizeY for
+its footprint), and `BloodCistern` is that object, unpadded: the walk-in announcer's own reach
+covers it. The tester's note (TombPool, ID 118) does not match the tables: objects.txt 118 is
+`Fountain4`, a well. Every other seed is unchanged (two lines of `place_data.h`).
+
+**Tristram's fountain** ("fountain overflowing with blood", `fountain_gore01`) is tracked too: listed
+and routed to, as a way out of the burning houses, whose doorways do not creak (below). Its layout
+entity carries a physics box about 4 subtiles across (`fountain01`, extents 3.77 HD scaled 1.1), so
+the beacon's arrival distance of 3 from its centre is clear of it. Unverified live.
+
+**Tristram's houses** still do not creak (the tester, build test-2026-10-22-2; the cottages and the
+Tower's ruin do). Tristram's DS1 has no door objects, and its ruined walls are unlikely to be the
+gap `Rooms::Doorways` looks for (a run of 3 cells to two tiles with wall a tile past each end).
+Unchecked: it needs the collision round one house. The tester called it not essential.

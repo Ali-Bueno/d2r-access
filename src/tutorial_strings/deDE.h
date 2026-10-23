@@ -66,12 +66,16 @@ inline constexpr Texts deDE{
 			"Du bist in {moor}. Strg plus O gibt dir einen Überblick über das Gelände um dich herum. Probiere es aus."},
 		{"Hier gibt es Monster: Sie klingen so, wie du es im Lager gehört hast, und der Scanner listet sie in einer "
 			"eigenen Kategorie auf. Greife mit {a} an; deine anderen Fertigkeiten liegen auf den Tasten, die du ihnen "
-			"gegeben hast. Wenn dein Leben sinkt, trinke einen Trank mit {dpad}. Was sie fallen lassen, klingt von dort, "
+			"gegeben hast. Der Doppelton des Zielsignals sagt dir, dass dein Angriff auf ein Monster gerichtet ist: "
+			"Greife an, wenn du ihn hörst, und wenn es still bleibt, dreh dich zum Knurren, bis es piept, damit kein "
+			"Angriff an eine Wand oder ein Fass verschwendet wird. Wenn dein Leben sinkt, trinke einen Trank mit {dpad}. Was sie fallen lassen, klingt von dort, "
 			"wo es liegt: Geh hin und drücke {a}, um es aufzuheben; Gold wird beim Darüberlaufen aufgehoben. Töte ein "
 			"Monster.",
 			"Hier gibt es Monster: Sie klingen so, wie du es im Lager gehört hast, und der Scanner listet sie in einer "
 			"eigenen Kategorie auf. Tab wählt das nächste Monster; halte A, um mit deiner linken Fertigkeit anzugreifen, "
-			"und W für die rechte. Wenn dein Leben sinkt, liegen die Tränke auf den Tasten 1 bis 4. Was sie fallen "
+			"und W für die rechte. Der Doppelton des Zielsignals sagt dir, dass dein Angriff auf ein Monster gerichtet "
+			"ist: Greife an, wenn du ihn hörst, damit kein Angriff an eine Wand oder ein Fass verschwendet wird. Wenn "
+			"dein Leben sinkt, liegen die Tränke auf den Tasten 1 bis 4. Was sie fallen "
 			"lassen, klingt von dort, wo es liegt: Punkt wählt den nächsten Gegenstand am Boden, Komma den vorherigen, "
 			"und D hebt ihn auf; Gold wird beim Darüberlaufen aufgehoben. Töte ein Monster."},
 		{"Finde {den}. Die Karte wird für jedes Spiel neu erzeugt, also kann ihr Eingang nah oder fern sein. Folge "
@@ -147,7 +151,8 @@ inline constexpr Texts deDE{
 		"Monster, das aus der Ferne angreift, etwa ein Bogenschütze",
 		"Schamane, der tote Monster wieder zum Leben erweckt: Töte ihn zuerst",
 		"Elite: ein Champion, ein einzigartiges Monster oder ein Boss",
-		"In Reichweite: Ein Monster ist in die Reichweite deines Angriffs gekommen"},
+		"In Reichweite: Ein Monster ist in die Reichweite deines Angriffs gekommen",
+		"Zielsignal: Dein Angriff ist auf ein Monster gerichtet, das du siehst"},
 	.leaveTask = {
 		"Verlasse jetzt das Lager allein, mit dem, was du gelernt hast: Finde unter den Ausgängen des Scanners "
 		"{moor}, frag nach dem Weg, folge der Zielführung und überquere den Ausgang.",

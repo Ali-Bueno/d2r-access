@@ -2,6 +2,26 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build test-2026-10-22-2 — 2026-10-23
+
+From `D2R Access test build 2026-10-22-2 notes.7z` ([decisions](docs/decisions.md)). 127/127 CTest;
+installed by the build. **Unverified live.** Heard working by the tester: the aura fix, the Dry
+Hills stairs, secret drafts, cottage creaks, the crosshair, the delete count, waypoints, skill
+binding, the main menu.
+- Countess's cistern: was on her chest's dais; now the DS1's `BloodFountain` object, 3x3
+  (`gen_places.py` reads DS1 objects via `objpreset.txt`) ([places](docs/places.md)).
+- Tristram's blood fountain tracked (`Places::Tracked`); its houses still do not creak (known).
+- Delete modal: "Character deleted" after `CharacterSelect`/`DeleteCharacter` ([modal](docs/delete-character-modal.md)).
+- `route-long-legs` (on): legs under 5 units folded into a neighbour (`RouteLegs::Lengthen`);
+  `distance-steps` (off): distances in steps of the click interval (`EntityRadar::SetUnitsPerStep`)
+  ([route](docs/route-description.md)).
+- Tutorial: the crosshair's sound in step 9, its use in step 11 ([tutorial](docs/tutorial.md)).
+- Not in the archive: the "campfire_" logs the list mentions.
+
+**Next step:** live: Tower Cellar 5 in both layouts (walk-in at the basin, route ends beside it),
+a route to Tristram's fountain, a delete, routes with `route-long-legs` near doors (stuck or not),
+`distance-steps` on.
+
 ## Crosshair beep and melee contact ping — 2026-10-22 (released as test-2026-10-22-2 from 28523c9)
 
 Release: 127/127 CTest, 29 entries, 62,967,852 bytes, SHA-256 `cbe8dca3…6f170a68d`; news

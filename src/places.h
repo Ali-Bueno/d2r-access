@@ -81,7 +81,8 @@ struct Spot {
 uint64_t MapKey(int32_t def, int tileX, int tileY);
 // A landmark the scanner lists too, not only the walk-in announcer: a way across a
 // level that has no unit, such as the desert's cliff stairs (a tester, 2026-10-17),
-// or one that tells the way, the Countess's cistern by her doors (2026-10-22).
+// or one that tells the way, the Countess's cistern by her doors (2026-10-22) and
+// Tristram's fountain, a way out of its burning houses (2026-10-22).
 bool Tracked(PlaceFeature kind);
 // The two landings of one cliff stairway: walking from one to the other is not news.
 bool Stairway(PlaceFeature kind);

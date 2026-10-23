@@ -173,7 +173,8 @@ bool MoveToCrossing(EntityRadar::Entity&, const std::vector<Radar::LevelExit>&) 
 }
 namespace D2RAccess::EntityRadar { bool SameTarget(const Entity& a, const Entity& b) { return a.id == b.id; }
 bool Recreated(const Entity&, const Entity&) { return false; }
-std::string DistancePhrase(double, const Settings&, const Strings::Table&) { return {}; } }
+std::string DistancePhrase(double, const Settings&, const Strings::Table&) { return {}; }
+int SpokenCount(double units) { return static_cast<int>(units); } }
 namespace D2RAccess::NativeLevelExits { uint64_t Identity(Radar::Position) { return 1; } }
 namespace D2RAccess::RadarTrace { void Collision(const D2RL::PluginContext*, const Radar::World&, int, uint64_t) {} }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { speech.emplace_back(text); } }

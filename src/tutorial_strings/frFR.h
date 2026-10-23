@@ -66,12 +66,16 @@ inline constexpr Texts frFR{
 			"Zone actuelle : {moor}. Ctrl plus O vous donne un aperçu du terrain autour de vous. Essayez-le."},
 		{"Il y a des monstres ici : ils sonnent comme vous les avez entendus au camp, et le scanner les liste dans "
 			"leur propre catégorie. Attaquez avec {a} ; vos autres compétences sont sur les boutons que vous leur avez "
-			"donnés. Si votre vie baisse, buvez une potion avec {dpad}. Ce qu'ils laissent tomber sonne depuis l'endroit "
+			"donnés. Le double bip de visée indique que votre attaque est dirigée vers un monstre : attaquez quand vous "
+			"l'entendez, et s'il reste silencieux, tournez-vous vers le grognement jusqu'à ce qu'il retentisse, pour "
+			"ne gaspiller aucune attaque sur un mur ou un tonneau. Si votre vie baisse, buvez une potion avec {dpad}. Ce qu'ils laissent tomber sonne depuis l'endroit "
 			"où cela se trouve : approchez-vous et appuyez sur {a} pour le ramasser ; l'or se ramasse en marchant "
 			"dessus. Tuez un monstre.",
 			"Il y a des monstres ici : ils sonnent comme vous les avez entendus au camp, et le scanner les liste dans "
 			"leur propre catégorie. Tab choisit le monstre suivant ; maintenez A pour attaquer avec votre compétence "
-			"gauche, et W pour la droite. Si votre vie baisse, les potions sont sur les touches 1 à 4. Ce qu'ils "
+			"gauche, et W pour la droite. Le double bip de visée indique que votre attaque est dirigée vers un monstre : "
+			"attaquez quand vous l'entendez, pour ne gaspiller aucune attaque sur un mur ou un tonneau. Si votre vie "
+			"baisse, les potions sont sur les touches 1 à 4. Ce qu'ils "
 			"laissent tomber sonne depuis l'endroit où cela se trouve : point choisit l'objet suivant au sol, virgule le "
 			"précédent, et D le ramasse ; l'or se ramasse en marchant dessus. Tuez un monstre."},
 		{"Trouvez {den}. La carte est refaite à chaque partie, donc son entrée peut être proche ou lointaine. Suivez "
@@ -148,7 +152,8 @@ inline constexpr Texts frFR{
 		"Monstre qui attaque de loin, comme un archer",
 		"Chaman qui ressuscite les monstres morts : tuez-le en premier",
 		"Élite : un champion, un monstre unique ou un boss",
-		"À portée : un monstre est à portée de votre attaque"},
+		"À portée : un monstre est à portée de votre attaque",
+		"Visée : votre attaque est dirigée vers un monstre que vous voyez"},
 	.leaveTask = {
 		"Maintenant quittez le camp par vous-même, avec ce que vous avez appris : parmi les sorties du scanner, "
 		"trouvez {moor}, demandez l'itinéraire, suivez le guidage et franchissez la sortie.",

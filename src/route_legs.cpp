@@ -282,10 +282,38 @@ std::vector<Leg> Merge(const std::vector<Leg>& legs, SpokenDirection::Style styl
 	}
 	return merged;
 }
+
+// How nearly two legs head the same way: the cosine between them.
+double Along(const Leg& a, const Leg& b) {
+	return (a.delta.x * b.delta.x + a.delta.y * b.delta.y) / (std::hypot(a.delta.x, a.delta.y) * std::hypot(b.delta.x, b.delta.y));
+}
+
+// Legs shorter than `minLeg`, shortest first, each folded into the neighbour heading most its
+// way (never a door), which then runs straight from the one's start to the other's end.
+std::vector<Leg> Lengthen(std::vector<Leg> legs, double minLeg, SpokenDirection::Style style) {
+	for (;;) {
+		const auto foldable = [&legs](size_t i) { return i < legs.size() && !legs[i].door; };
+		size_t at = legs.size();
+		for (size_t i = 0; i < legs.size(); ++i)
+			if (!legs[i].door && legs[i].length < minLeg && ((i > 0 && foldable(i - 1)) || foldable(i + 1))
+				&& (at == legs.size() || legs[i].length < legs[at].length)) at = i;
+		if (at == legs.size()) return legs;
+		const bool before = at > 0 && foldable(at - 1), after = foldable(at + 1);
+		size_t into = !after || (before && Along(legs[at], legs[at - 1]) >= Along(legs[at], legs[at + 1])) ? at - 1 : at + 1;
+		auto& leg = legs[into];
+		leg.delta = {leg.delta.x + legs[at].delta.x, leg.delta.y + legs[at].delta.y};
+		leg.length = std::hypot(leg.delta.x, leg.delta.y);
+		legs.erase(legs.begin() + static_cast<std::ptrdiff_t>(at));
+		if (into > at) --into;
+		// Two legs that undo each other leave nothing to walk.
+		if (legs[into].length < 1) legs.erase(legs.begin() + static_cast<std::ptrdiff_t>(into));
+		legs = Merge(legs, style);
+	}
+}
 }
 
 std::vector<Leg> Describe(Position from, const std::vector<Position>& path, const std::vector<size_t>& doors,
-	const Passable& passable, SpokenDirection::Style style, const End* end) {
+	const Passable& passable, SpokenDirection::Style style, const End* end, double minLeg) {
 	std::vector<Leg> legs;
 	if (path.empty()) return legs;
 	std::vector<Cell> way{CellAt(from)};
@@ -306,7 +334,7 @@ std::vector<Leg> Describe(Position from, const std::vector<Position>& path, cons
 	}
 	// Opened from where the way already ends, a door is the last leg.
 	if (first == 0 || !Contains(goal, at)) Walk(way, first, way.size() - 1, at, goal, passable, legs);
-	return Merge(legs, style);
+	return minLeg > 0 ? Lengthen(Merge(legs, style), minLeg, style) : Merge(legs, style);
 }
 
 double Length(const std::vector<Leg>& legs) {
@@ -318,8 +346,7 @@ double Length(const std::vector<Leg>& legs) {
 std::string Say(const Leg& leg, const Strings::Table& strings) {
 	if (leg.door) return strings.routeDoor;
 	char text[160]{};
-	std::snprintf(text, sizeof text, strings.routeLeg, SpokenDirection::Of(leg.delta, strings),
-		std::max(1, static_cast<int>(std::lround(leg.length))));
+	std::snprintf(text, sizeof text, strings.routeLeg, SpokenDirection::Of(leg.delta, strings), EntityRadar::SpokenCount(leg.length));
 	return text;
 }
 

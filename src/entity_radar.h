@@ -157,6 +157,12 @@ bool LineOfSight(const Radar::World& world, Radar::Position from, const Entity& 
 // "8 units" / "1 unit" / "right here" for a distance in subtiles; shared
 // with every feature that speaks an entity distance.
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings);
+// Distances said in steps of `units` units, a step being one click of the walk (a tester,
+// 2026-10-22: "one click equals one step"); 0 says them in units. From any thread.
+void SetUnitsPerStep(int units);
+int UnitsPerStep();
+// The number a distance in units is said as: its units, or its steps; never under 1.
+int SpokenCount(double units);
 // Whether a thing this far away is under the player, spoken without distance or direction.
 bool UnderPlayer(double distance, const Settings& settings);
 }

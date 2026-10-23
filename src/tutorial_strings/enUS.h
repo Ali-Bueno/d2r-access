@@ -62,12 +62,15 @@ inline constexpr Texts enUS{
 			"{view} and {rs} up the area's description. Try the overview.",
 			"You are in {moor}. Control plus O gives you an overview of the terrain around you. Try it."},
 		{"There are monsters here: they sound as you heard in the camp, and the scanner lists them in their own "
-			"category. Attack with {a}; your other skills are on the buttons you gave them. If your life drops, drink a "
+			"category. Attack with {a}; your other skills are on the buttons you gave them. The crosshair's double beep "
+			"says your attack is aimed at a monster: attack when you hear it, and if it stays quiet, turn toward the "
+			"growl until it beeps, so no attack is spent on a wall or a barrel. If your life drops, drink a "
 			"potion with {dpad}. What they drop sounds from where it lies: walk up to it and press {a} to pick it up; "
 			"gold is picked up as you walk over it. Kill a monster.",
 			"There are monsters here: they sound as you heard in the camp, and the scanner lists them in their own "
-			"category. Tab picks the next monster; hold A to attack with your left skill, and W with your right one. If "
-			"your life drops, the potions are on keys 1 to 4. What they drop sounds from where it lies: full stop picks "
+			"category. Tab picks the next monster; hold A to attack with your left skill, and W with your right one. The "
+			"crosshair's double beep says your attack is aimed at a monster: attack when you hear it, so no attack is "
+			"spent on a wall or a barrel. If your life drops, the potions are on keys 1 to 4. What they drop sounds from where it lies: full stop picks "
 			"the next item on the ground, comma the previous one, and D picks it up; gold is picked up as you walk over "
 			"it. Kill a monster."},
 		{"Find {den}. The map is made anew for each game, so its entrance may be near or far. Follow the radar's "
@@ -131,7 +134,8 @@ inline constexpr Texts enUS{
 		"and each sound can be turned off in the settings list."},
 	.enemyCues = {"Monster: the nearest ones growl from where they are", "Monster that attacks from afar, such as an archer",
 		"Shaman that brings dead monsters back to life: kill it first", "Elite: a champion, a unique monster or a boss",
-		"In reach: a monster has come within reach of your attack"},
+		"In reach: a monster has come within reach of your attack",
+		"Crosshair: your attack is aimed at a monster you can see"},
 	.leaveTask = {
 		"Now leave the camp on your own, with what you have learned: among the scanner's exits, find {moor}, "
 		"ask for the route, follow the beacon and cross the exit.",

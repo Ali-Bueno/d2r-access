@@ -266,12 +266,21 @@ void StairwaysListedOnce() {
 	const auto alone = Places::Listings({lone, {}});
 	Check(alone.size() == 1 && alone[0].kind == PlaceFeature::Stairs && alone[0].x == 4.5, "a landing without its pair is still listed");
 
-	for (const auto* path : {"Act1/Crypt/CryptCountess1.ds1", "Act1/Crypt/CryptCountess2.ds1"}) {
-		const auto* countess = Places::Find(path);
+	// At the basin, the DS1's BloodFountain object (68,71 and 71,63), not her chest's dais
+	// (36,71 and 66,31): a tester, 2026-10-22, was led to the chest.
+	const struct { const char* path; double x, y; } basins[] = {
+		{"Act1/Crypt/CryptCountess1.ds1", 68.5, 71.5}, {"Act1/Crypt/CryptCountess2.ds1", 71.5, 63.5}};
+	for (const auto& basin : basins) {
+		const auto* countess = Places::Find(basin.path);
 		const auto cisterns = countess ? Places::Listings(Places::PieceOf(*countess)) : std::vector<Places::Listing>{};
-		Check(cisterns.size() == 1 && cisterns[0].kind == PlaceFeature::BloodCistern && cisterns[0].side > 1,
-			"the Countess's cistern is listed in both her layouts, as wide as its platform");
+		Check(cisterns.size() == 1 && cisterns[0].kind == PlaceFeature::BloodCistern && cisterns[0].side == 3,
+			"the Countess's cistern is listed in both her layouts, as wide as the basin (3x3)");
+		Check(!cisterns.empty() && cisterns[0].x == basin.x && cisterns[0].y == basin.y, "at the basin, not the chest's dais");
 	}
+	const auto* tristram = Places::Find("Act1/Tristram/Tri_Town4.ds1");
+	const auto fountains = tristram ? Places::Listings(Places::PieceOf(*tristram)) : std::vector<Places::Listing>{};
+	Check(fountains.size() == 1 && fountains[0].kind == PlaceFeature::BloodFountain,
+		"Tristram's fountain is listed, a way out of its houses (a tester, 2026-10-22)");
 	const auto* copy = Places::Find("Act1/Crypt/CryptNWarpNext.ds1");
 	Check(!copy || Places::Listings(Places::PieceOf(*copy)).empty(), "the unused copy of her room is not");
 }

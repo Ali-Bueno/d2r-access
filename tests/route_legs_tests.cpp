@@ -1,8 +1,10 @@
+#include "entity_radar.h"
 #include "route_legs.h"
 #include "test_support.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <set>
 #include <string>
@@ -201,9 +203,60 @@ void Wording() {
 	back.Go(South, 4);
 	Check(RouteLegs::Length(Legs(back, back.Corridor())) > 5, "the length adds up the legs");
 }
+
+Position EndOf(const std::vector<Leg>& legs) {
+	Position end{};
+	for (const auto& leg : legs) end = {end.x + leg.delta.x, end.y + leg.delta.y};
+	return end;
+}
+
+// With route-long-legs, turns at least MinLegUnits apart (a tester, 2026-10-22): a short leg
+// is folded into its neighbour, never across a door.
+void LongLegs() {
+	// A wall across the way with a doorway one cell wide, a cell to the side of the start.
+	Walk walk;
+	walk.Go(NorthWest, 1).Go(NorthEast, 7).Go(East, 8);
+	const RouteLegs::Passable wall = [](int x, int y) { return y != -6 || x == -1; };
+	const auto exact = RouteLegs::Describe({0, 0}, walk.path, {}, wall, Compass);
+	Check(RouteLegs::Speak("X", exact, false, {}, English) == "Route to X, 19 units: north, 1; then northeast, 6; then east, 11",
+		"without it the way lines up with the doorway");
+	const auto folded = RouteLegs::Describe({0, 0}, walk.path, {}, wall, Compass, nullptr, RouteLegs::MinLegUnits);
+	Check(RouteLegs::Speak("X", folded, false, {}, English) == "Route to X, 18 units: northeast, 7; then east, 11",
+		"with it the step into line goes into the leg heading most its way");
+	const auto [ex, ey] = EndOf(exact);
+	const auto [fx, fy] = EndOf(folded);
+	Check(ex == fx && ey == fy, "and the way still ends where it did");
+
+	// Two short legs in a row: the shorter goes first, and the rest is one leg.
+	Walk pair;
+	pair.Go(NorthWest, 3).Go(NorthEast, 7);
+	const RouteLegs::Passable gap = [](int x, int y) { return y != -6 || x == -3; };
+	const auto both = RouteLegs::Describe({0, 0}, pair.path, {}, gap, Compass, nullptr, RouteLegs::MinLegUnits);
+	Check(both.size() == 1 && both[0].length >= RouteLegs::MinLegUnits, "no leg is left under the minimum");
+
+	// A short leg beside a door goes into the leg on its other side.
+	Walk door;
+	door.Go(North, 10).Go(NorthEast, 2).Go(NorthEast, 2).Go(North, 10);
+	const auto doors = RouteLegs::Describe({0, 0}, door.path, {11, 12}, door.Corridor(), Compass, nullptr, RouteLegs::MinLegUnits);
+	Check(std::count_if(doors.begin(), doors.end(), [](const Leg& leg) { return leg.door; }) == 1, "the door stays a leg of its own");
+	Check(std::none_of(doors.begin(), doors.end(), [](const Leg& leg) { return !leg.door && leg.length < RouteLegs::MinLegUnits; }),
+		"every walked leg is at least the minimum");
+
+	// Distances in steps of five units, a click each.
+	Walk corner;
+	corner.Go(North, 20).Go(East, 15);
+	EntityRadar::SetUnitsPerStep(5);
+	Check(RouteLegs::Speak("Akara", Legs(corner, corner.Corridor()), false, {}, English) == "Route to Akara, 10 steps: north, 6; then east, 4",
+		"in steps the whole length and each leg are counted in steps");
+	Check(EntityRadar::DistancePhrase(2, {}, English) == "1 step", "a thing nearer than a step is a step away");
+	Check(EntityRadar::DistancePhrase(1, {}, English) == English.scanAdjacent, "under the player it is still right here");
+	EntityRadar::SetUnitsPerStep(0);
+	Check(EntityRadar::DistancePhrase(50, {}, English) == "50 units", "back in units");
+}
 }
 
 int main() {
+	LongLegs();
 	Corners();
 	OpenGround();
 	Doors();

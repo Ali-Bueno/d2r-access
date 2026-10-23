@@ -336,13 +336,15 @@ start await a follow-up listening check.
 **Doors:** a shut door loops `wooden door`, `metal door`, `stone door` or
 `slime door`, chosen by the sound the game itself plays when that door opens,
 and falls silent once opened, unless `open-door-sounds` (off) keeps it. In the Crypt, the
-Mausoleum and the Tower Cellar, in Tristram and in Act I's cottages and the Tower's ruin every
-doorway creaks (`doorway-sounds`, on) and is listed in the scanner with the doors
+Mausoleum and the Tower Cellar, in Tristram (not yet its burning houses) and in Act I's cottages
+and the Tower's ruin every doorway creaks (`doorway-sounds`, on) and is listed in the scanner with the doors
 (`doorways-listed`, on). Walking past a Jail secret door says "You feel a cool draft." once
 (`secret-drafts`, on; [secret doors](docs/secret-doors.md)).
 Doors and doorways have their own volumes (`door-volume`, `doorway-volume`).
 A click every 1, 5 or 10 units walked tells distance (`step-clicks`, off; `step-click-interval`,
-5; `step-beep` for the first beep instead of the click; `step-volume`). Scrolls, runes and gems on the ground have their
+5; `step-beep` for the first beep instead of the click; `step-volume`). With `distance-steps`
+(Navigation, off) every distance is said in steps, one step being one click: "10 steps" for 50
+units at the default interval. Scrolls, runes and gems on the ground have their
 own `scroll`, `rune` and `gem` loops; the Moldy Tome and Horazon's journal play
 `scroll` until read. `[doors] enabled` in the plugin config and
 `access-items doors-on|doors-off` switch the door loops. See
@@ -373,7 +375,8 @@ then east, 30". Nothing walks for you; ask again on the way for the rest. While 
 the next leg is said at each turn ("Now east, 30"), never before half the leg is walked, and
 "Off the route" once if you leave it (`route-prompts`, on); a room is arrived at anywhere in it;
 the whole length and the legs can each be left out (`route-total`,
-`route-legs`, both on).
+`route-legs`, both on). Turns come at least 5 units apart (`route-long-legs`, on): a shorter
+leg is folded into its neighbour, so the way is walked a little off its exact cells.
 In exploration mode it prefers explored ground and otherwise guesses
 across rooms never entered, and says so. See [route description](docs/route-description.md).
 
@@ -388,7 +391,8 @@ area can also be written as its banner says it ("The Cave Level 1"). See [descri
 A player's town portal is listed by whose it is, "TankMan's portal", and where it leads is read
 off the portal itself on reaching it; one opened anew replaces the old ([town portals](docs/portals.md)).
 The desert's cliff stairs are one entry, "stairs", halfway up; the Countess's Gilded Cistern of
-Virgins in Tower Cellar Level 5 is listed too ([places](docs/places.md)).
+Virgins (the basin of blood in Tower Cellar Level 5) and Tristram's fountain are listed too
+([places](docs/places.md)).
 
 **Target guidance (built; live validation pending):** press **BACK+LB** (L3 is the
 game's walk/run toggle) or **Ctrl+B** to follow what the scanner last named with directional pings.

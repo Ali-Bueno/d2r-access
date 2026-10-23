@@ -133,3 +133,12 @@ cutting the last (`ModalReader::HoldCountdown`, `DeleteHoldSeconds`); letting go
 The five seconds are the tester's count, not measured. Whether the game writes the count into the
 Confirm button is unknown: its text is logged while A is held, `[modal] delete: Confirm reads
 "..." after N ms held`, and `[modal] delete: A let go after N ms`. A keyboard's hold is not counted.
+
+## The deletion said (2026-10-22, second list)
+
+The tester's `deleted_*` log: the hold counted 5 to 1, then character select sent
+`[ui] target="CharacterSelect" command="DeleteCharacter"` and the modal closed, said "Delete
+Character Modal closed". That close is now "Character deleted" (`characterDeleted`, held 700 ms
+so the focused row's name queues behind it); a close without the command (B, or letting go)
+still says the modal closed. The log never showed `[modal] delete: Confirm reads`: the button's
+text did not change from what the modal reader first read, though the tester sees the count on it.

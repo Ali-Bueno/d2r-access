@@ -1,11 +1,14 @@
 #include "entity_radar.h"
 
+#include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 
 namespace D2RAccess::EntityRadar {
 namespace {
 int Cell(double coordinate) { return static_cast<int>(std::lround(coordinate)); }
+std::atomic<int> g_unitsPerStep{0};
 bool SightBlocked(const Radar::World& world, int x, int y, Radar::Position centre,
 	const Entity::ObjectFootprint& footprint) {
 	uint16_t flags = 0;
@@ -79,11 +82,20 @@ bool UnderPlayer(double distance, const Settings& settings) {
 }
 
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {
-	const long units = std::lround(distance * settings.unitsPerSubtile);
 	if (UnderPlayer(distance, settings)) return strings.scanAdjacent;
-	if (units == 1) return strings.scanStep;
+	const int count = SpokenCount(distance * settings.unitsPerSubtile);
+	const bool steps = UnitsPerStep() > 0;
+	if (count == 1) return steps ? strings.distanceStep : strings.scanStep;
 	char buffer[64];
-	std::snprintf(buffer, sizeof buffer, strings.scanSteps, static_cast<int>(units));
+	std::snprintf(buffer, sizeof buffer, steps ? strings.distanceSteps : strings.scanSteps, count);
 	return buffer;
+}
+
+void SetUnitsPerStep(int units) { g_unitsPerStep.store(std::max(0, units), std::memory_order_relaxed); }
+int UnitsPerStep() { return g_unitsPerStep.load(std::memory_order_relaxed); }
+
+int SpokenCount(double units) {
+	const int step = UnitsPerStep();
+	return std::max(1, static_cast<int>(std::lround(step > 0 ? units / step : units)));
 }
 }

@@ -22,6 +22,7 @@
 #include "game_text_reader.h"
 #include "generated/skill_attacks.h"
 #include "ground_item_service.h"
+#include "route_legs.h"
 #include "ground_items.h"
 #include "item_audio.h"
 #include "loop_pace.h"
@@ -1881,6 +1882,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
 		DirectionStyle(),
+		{GroundItemService::DistanceSteps, GroundItemService::SetDistanceSteps, phrase(&T::distanceStepsOn, &T::distanceStepsOff), false, "distance-steps"},
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::RaysPhrase(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
 		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},
@@ -1891,6 +1893,11 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{BeaconService::RoutePrompts, BeaconService::SetRoutePrompts, phrase(&T::routePromptsOn, &T::routePromptsOff), false, "route-prompts"},
 		{BeaconService::RouteTotal, BeaconService::SetRouteTotal, phrase(&T::routeTotalOn, &T::routeTotalOff), false, "route-total"},
 		{BeaconService::RouteLegsSaid, BeaconService::SetRouteLegsSaid, phrase(&T::routeLegsOn, &T::routeLegsOff), false, "route-legs"},
+		{BeaconService::RouteLongLegs, BeaconService::SetRouteLongLegs, [](bool on) {
+			char said[160]{};
+			std::snprintf(said, sizeof(said), on ? Strings::Current().routeLongLegsOn : Strings::Current().routeLongLegsOff,
+				static_cast<int>(RouteLegs::MinLegUnits));
+			return std::string(said); }, false, "route-long-legs"},
 		std::move(strengths[2]),
 		std::move(strengths[3]),
 		{NavigationMode::FullAssistance, BeaconService::SetFullAssistance, phrase(&T::navigationFullAssistance, &T::navigationExploration), true, "full-assistance"},

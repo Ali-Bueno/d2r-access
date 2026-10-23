@@ -63,11 +63,14 @@ inline constexpr Texts plPL{
 			"{rs} w górę opis obszaru. Wypróbuj przegląd.",
 			"Jesteś w: {moor}. Ctrl plus O daje ci przegląd terenu wokół ciebie. Wypróbuj go."},
 		{"Są tu potwory: brzmią tak, jak słyszałeś w obozie, a skaner wymienia je w osobnej kategorii. Atakuj przez "
-			"{a}; twoje inne umiejętności są na przyciskach, które im przypisałeś. Gdy twoje zdrowie spada, wypij "
+			"{a}; twoje inne umiejętności są na przyciskach, które im przypisałeś. Podwójny sygnał celownika mówi, że twój atak jest wycelowany w potwora: atakuj, gdy "
+			"go usłyszysz, a jeśli milczy, obróć się w stronę warczenia, aż zabrzmi, by nie zmarnować ataku na ścianę "
+			"czy beczkę. Gdy twoje zdrowie spada, wypij "
 			"miksturę przez {dpad}. To, co upuszczą, brzmi z miejsca, w którym leży: podejdź i naciśnij {a}, aby to "
 			"podnieść; złoto podnosi się, gdy się po nim przejdzie. Zabij potwora.",
 			"Są tu potwory: brzmią tak, jak słyszałeś w obozie, a skaner wymienia je w osobnej kategorii. Tab wybiera "
-			"następnego potwora; przytrzymaj A, aby atakować lewą umiejętnością, a W prawą. Gdy twoje zdrowie spada, "
+			"następnego potwora; przytrzymaj A, aby atakować lewą umiejętnością, a W prawą. Podwójny sygnał celownika mówi, że twój atak jest wycelowany w potwora: atakuj, gdy go "
+			"usłyszysz, by nie zmarnować ataku na ścianę czy beczkę. Gdy twoje zdrowie spada, "
 			"mikstury są na klawiszach od 1 do 4. To, co upuszczą, brzmi z miejsca, w którym leży: kropka wybiera "
 			"następny przedmiot na ziemi, przecinek poprzedni, a D go podnosi; złoto podnosi się, gdy się po nim "
 			"przejdzie. Zabij potwora."},
@@ -140,7 +143,8 @@ inline constexpr Texts plPL{
 		"Potwór atakujący z daleka, na przykład łucznik",
 		"Szaman wskrzeszający martwe potwory: zabij go jako pierwszego",
 		"Elita: czempion, unikatowy potwór lub boss",
-		"W zasięgu: potwór wszedł w zasięg twojego ataku"},
+		"W zasięgu: potwór wszedł w zasięg twojego ataku",
+		"Celownik: twój atak jest wycelowany w potwora, którego widzisz"},
 	.leaveTask = {
 		"Teraz opuść obóz sam, z tym, czego się nauczyłeś: wśród wyjść skanera znajdź: {moor}, poproś o trasę, "
 		"podążaj za prowadzeniem i przekrocz wyjście.",

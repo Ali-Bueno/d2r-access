@@ -161,3 +161,26 @@ logged `[route] shut doors noted on level L: N`), and a cell shut by OBJECT alon
 door's length of one is learnt as a door's: the route says "door" there and walks through.
 OBJECT alone anywhere else stays shut. Barrels the tester broke on the way were in open floor and
 not the cause.
+
+## Turns at least 5 units apart; distances in steps (2026-10-22)
+
+A tester: the stick does not walk exactly 1, 2 or 3 units, and routes, near doors above all,
+turned after legs that short; they asked for a 5-unit minimum between turns behind a switch, to
+learn whether it gets players stuck on geometry. `route-long-legs` (Ctrl+S Navigation, on):
+`RouteLegs::Describe` with `MinLegUnits` folds each leg under 5 units, shortest first, into the
+neighbour heading most its way (never across a door), which then runs straight from one's start
+to the other's end; neighbours said the same way merge again. "north, 1; then northeast, 6"
+becomes "northeast, 7" and ends where it did, a cell beside the doorway's line, which the wall
+slide or the doorway's width has to absorb: that is the trade being tried. A leg with only doors
+beside it stays. Off, the legs line up exactly, as before.
+
+Rejected: a minimum inside the search (a state per cells walked since the last turn). An offset
+of 1 to 3 cells needs a diagonal leg of exactly that many, so the search detoured instead: "north,
+1; then northeast, 6" (7 units) became "east, 6; then northwest, 5; then northeast, 3" (14).
+
+**Steps.** The same tester: say distances in steps, one step being one click of the walk
+(`step-click-interval`, 5 units by default), so "10 steps" is 50 units. `distance-steps` (Ctrl+S
+Navigation, off): `EntityRadar::SetUnitsPerStep` makes `DistancePhrase` and each leg's number count
+steps of that interval, at least 1 ("1 step" for 2 units); "right here" is unchanged. It covers
+every distance the mod says through `DistancePhrase` (scanner, tracker, route, NPCs, overview).
+The radar test's "units clear" stays in units.

@@ -63,12 +63,15 @@ inline constexpr Texts ptBR{
 			"e {view} e {rs} para cima, a descrição da área. Experimente a visão geral.",
 			"Você está em {moor}. Ctrl mais O dá uma visão geral do terreno ao seu redor. Experimente."},
 		{"Há monstros aqui: eles soam como você os ouviu no acampamento, e o scanner os lista em uma categoria "
-			"própria. Ataque com {a}; as suas outras habilidades estão nos botões que você deu a elas. Se a sua vida "
+			"própria. Ataque com {a}; as suas outras habilidades estão nos botões que você deu a elas. O bipe duplo de mira diz que o seu ataque está apontado para um monstro: ataque quando "
+			"o ouvir, e se ele ficar em silêncio, vire-se para o rosnado até que apite, para não gastar nenhum ataque "
+			"em uma parede ou um barril. Se a sua vida "
 			"cair, beba uma poção com {dpad}. O que eles deixam cair soa de onde está: chegue perto e pressione {a} para "
 			"pegar; o ouro é pego quando você anda sobre ele. Mate um monstro.",
 			"Há monstros aqui: eles soam como você os ouviu no acampamento, e o scanner os lista em uma categoria "
 			"própria. Tab escolhe o próximo monstro; segure A para atacar com a habilidade da esquerda, e W para a da "
-			"direita. Se a sua vida cair, as poções estão nas teclas 1 a 4. O que eles deixam cair soa de onde está: "
+			"direita. O bipe duplo de mira diz que o seu ataque está apontado para um monstro: ataque quando o ouvir, "
+			"para não gastar nenhum ataque em uma parede ou um barril. Se a sua vida cair, as poções estão nas teclas 1 a 4. O que eles deixam cair soa de onde está: "
 			"ponto escolhe o próximo item no chão, vírgula o anterior, e D o pega; o ouro é pego quando você anda sobre "
 			"ele. Mate um monstro."},
 		{"Encontre {den}. O mapa é refeito a cada jogo, então a entrada pode estar perto ou longe. Siga os sons do "
@@ -140,7 +143,8 @@ inline constexpr Texts ptBR{
 		"Monstro que ataca de longe, como um arqueiro",
 		"Xamã que traz monstros mortos de volta à vida: mate-o primeiro",
 		"Elite: um campeão, um monstro único ou um chefe",
-		"Ao alcance: um monstro entrou no alcance do seu ataque"},
+		"Ao alcance: um monstro entrou no alcance do seu ataque",
+		"Mira: o seu ataque está apontado para um monstro que você vê"},
 	.leaveTask = {
 		"Agora saia do acampamento por conta própria, com o que aprendeu: entre as saídas do scanner, encontre "
 		"{moor}, peça a rota, siga a guia e atravesse a saída.",

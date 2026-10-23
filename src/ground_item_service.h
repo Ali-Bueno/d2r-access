@@ -31,6 +31,9 @@ bool StepClicks();
 void SetStepClicks(bool enabled);
 int StepInterval();
 void SetStepInterval(int interval);
+// Every distance said in steps of the click's interval, one click a step (a tester, 2026-10-22).
+bool DistanceSteps();
+void SetDistanceSteps(bool enabled);
 // The walked distance sound: the first beep, or the click (default; a tester, 2026-10-21).
 bool StepBeep();
 void SetStepBeep(bool beep);

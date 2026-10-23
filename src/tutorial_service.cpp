@@ -279,7 +279,7 @@ std::vector<Cue> SoundsOf(Step step) {
 			ItemCue(SwordCode, B::Equipment)});
 	case Step::LeaveTown:
 		return Named(texts.enemyCues, std::array<std::function<void()>, TutorialText::EnemyCueCount>{EntityCue(E::Ordinary),
-			EntityCue(E::Ranged), EntityCue(E::Resurrector), EntityCue(E::Important), EntityCue(E::Reach)});
+			EntityCue(E::Ranged), EntityCue(E::Resurrector), EntityCue(E::Important), EntityCue(E::Reach), EntityCue(E::Sight)});
 	default: return {};
 	}
 }

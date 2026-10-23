@@ -61,12 +61,15 @@ inline constexpr Texts esES{
 			"{view} y {rs} hacia arriba, la descripción del área. Prueba el resumen.",
 			"Estás en la zona {moor}. Control más O te da un resumen del terreno que te rodea. Pruébalo."},
 		{"Aquí hay monstruos: suenan como los oíste en el campamento, y el escáner los lista en su propia categoría. "
-			"Ataca con {a}; tus otras habilidades van en los botones que les diste. Si la vida baja, bebe una poción con "
+			"Ataca con {a}; tus otras habilidades van en los botones que les diste. El doble pitido de la mira dice que tu "
+			"ataque apunta a un monstruo: ataca cuando lo oigas, y si calla, gira hacia el gruñido hasta que pite, para "
+			"no gastar ningún ataque en una pared o un barril. Si la vida baja, bebe una poción con "
 			"{dpad}. Lo que suelten suena desde donde cae: acércate y pulsa {a} para recogerlo; el oro se recoge al pasar "
 			"por encima. Mata algún monstruo.",
 			"Aquí hay monstruos: suenan como los oíste en el campamento, y el escáner los lista en su propia categoría. "
 			"Tabulador elige el monstruo siguiente; mantén A para atacar con tu habilidad izquierda, y W con la derecha. "
-			"Si la vida baja, las pociones van en las teclas del 1 al 4. Lo que suelten suena desde donde cae: Punto elige "
+			"El doble pitido de la mira dice que tu ataque apunta a un monstruo: ataca cuando lo oigas, para no gastar "
+			"ningún ataque en una pared o un barril. Si la vida baja, las pociones van en las teclas del 1 al 4. Lo que suelten suena desde donde cae: Punto elige "
 			"el objeto del suelo siguiente, Coma el anterior, y D lo recoge; el oro se recoge al pasar por encima. Mata "
 			"algún monstruo."},
 		{"Busca {den}. El mapa se genera de nuevo en cada partida, así que su entrada puede estar cerca o lejos. "
@@ -133,7 +136,8 @@ inline constexpr Texts esES{
 		"sonido se puede apagar en la lista de ajustes."},
 	.enemyCues = {"Monstruo: los más cercanos gruñen desde donde están", "Monstruo que ataca de lejos, como un arquero",
 		"Chamán que devuelve la vida a los monstruos muertos: mátalo primero", "Élite: un campeón, un monstruo único o un jefe",
-		"A tu alcance: un monstruo ha entrado en el alcance de tu ataque"},
+		"A tu alcance: un monstruo ha entrado en el alcance de tu ataque",
+		"Mira: tu ataque apunta a un monstruo que ves"},
 	.leaveTask = {
 		"Ahora sal del campamento tú solo, con lo aprendido: entre las salidas del escáner, busca {moor}, pide la "
 		"ruta, sigue la baliza y cruza la salida.",

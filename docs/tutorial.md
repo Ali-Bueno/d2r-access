@@ -147,9 +147,9 @@ default buttons (A talks and picks up, B closes).
 | 6 | Camp | the route (BACK + right stick down, or BACK+A with `pad-route-on-a` / Ctrl+E) | a route to Akara is asked |
 | 7 | Camp | the beacon (BACK+LB / Ctrl+B), walking it yourself | the beacon arrives at Akara |
 | 8 | Camp | the first quest | her menu is open with her the nearest town NPC, or the Den's quest runs |
-| 9 | Camp | the monsters' sounds (monster, ranged, resurrecting shaman, elite, in reach), each after its name; then the same tools for a way out | the player is in the Blood Moor |
+| 9 | Camp | the monsters' sounds (monster, ranged, resurrecting shaman, elite, in reach, crosshair), each after its name; then the same tools for a way out | the player is in the Blood Moor |
 | 10 | Blood Moor | terrain overview (BACK+B / Ctrl+O); the pad's also names the area's words | the overview asked |
-| 11 | Blood Moor | attacking, potions, picking up; gold comes as you walk over it | a monster killed: experience rising outside the camp |
+| 11 | Blood Moor | attacking, the crosshair's beep, potions, picking up; gold comes as you walk over it | a monster killed: experience rising outside the camp |
 | 12 | Blood Moor | finding a place not yet seen; the Den by its name among the scanner's exits | the player is in the Den of Evil |
 | 13 | Den of Evil | the ways out of this room (BACK+Y / Ctrl+Y) | asked |
 | 14 | Den of Evil | room sounds, the monster counter | the Den's quest: reward pending, goal done or completed |
@@ -279,3 +279,11 @@ The radar's sounds are audition cues (`CueSource::audition`), which no radar rea
 - A lesson for gems, runes, sockets and the stash's tabs (the tester's suggestion): the game's
   strings name no dedicated gem or rune tab, so the controls are not known; the farewell points to
   right stick down in every menu instead.
+
+## The crosshair (2026-10-22)
+
+A tester asked for the crosshair beep ([crosshair](crosshair.md)) in the fight after the camp. Its
+sound is the sixth of step 9's monster sounds ("Crosshair: your attack is aimed at a monster you
+can see"), and step 11 says what it means: attack when it beeps; with a pad, turn toward the growl
+until it does. The ten machine-translated languages got the new sentences the same way, with each
+language's own word for the crosshair from `crosshairOn`.

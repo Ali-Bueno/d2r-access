@@ -14,7 +14,7 @@ namespace D2RAccess::TutorialText {
 struct Lines { const char* pad; const char* keys; };
 // The radar's sounds in the radar step, the world's in the sounds step and the monsters' before
 // leaving the camp, each after its name.
-inline constexpr size_t CueCount = 7, WorldCueCount = 9, EnemyCueCount = 5;
+inline constexpr size_t CueCount = 7, WorldCueCount = 9, EnemyCueCount = 6;
 struct Texts {
 	Lines welcome;
 	Lines steps[Tutorial::StepCount + 1]; // Finished's is the farewell
@@ -24,7 +24,7 @@ struct Texts {
 	const char* worldCues[WorldCueCount]; // NPC, NPC with a "!", stash, stairs or portal, area border, unexplored room,
 	                                      // gold, a potion, an item to wear: the items in the player's sound set
 	Lines worldTask;                      // said after the world's sounds, as they are let in
-	const char* enemyCues[EnemyCueCount]; // monster, ranged monster, resurrecting shaman, elite, in reach
+	const char* enemyCues[EnemyCueCount]; // monster, ranged monster, resurrecting shaman, elite, in reach, crosshair
 	Lines leaveTask;                      // said after the monsters' sounds: the way out of the camp
 	Lines auditionAgain;                  // before a lesson's sounds: how to hear one again
 	Lines auditionWait;                   // the same when each sound waits for the player (tutorial-sound-wait)

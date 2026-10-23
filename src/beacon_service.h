@@ -30,4 +30,7 @@ void SetRouteTotal(bool enabled);
 // ... and its legs (the user, 2026-10-20: optional; the turn prompts have their own switch).
 bool RouteLegsSaid();
 void SetRouteLegsSaid(bool enabled);
+// No turn sooner than RouteLegs::MinLegUnits after the last (a tester, 2026-10-22: to try).
+bool RouteLongLegs();
+void SetRouteLongLegs(bool enabled);
 }

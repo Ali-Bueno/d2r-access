@@ -13,6 +13,9 @@
 // on it. Pure logic, unit-tested without the game. docs/route-description.md
 namespace D2RAccess::RouteLegs {
 using Radar::Position;
+// Policy: with the `route-long-legs` switch, turns at least this many units apart. A tester,
+// 2026-10-22: the stick does not walk exactly 1 to 3 units, and routes turned that often by doors.
+inline constexpr double MinLegUnits = 5;
 
 struct Leg {
 	Position delta;     // the way the leg heads, world subtiles
@@ -34,9 +37,11 @@ struct End {
 // as legs the player walks with the stick or the arrows: each one of their
 // eight ways, over `passable` ground near the path, with as few turns as the
 // ground allows, split at the shut doors (`doors`: indices into `path`). It
-// ends anywhere in `end`, else at the path's last cell.
+// ends anywhere in `end`, else at the path's last cell. With `minLeg`, a shorter
+// leg is folded into a neighbour, so turns are at least that far apart and the way
+// is walked a little off its cells.
 std::vector<Leg> Describe(Position from, const std::vector<Position>& path, const std::vector<size_t>& doors,
-	const Passable& passable, SpokenDirection::Style style, const End* end = nullptr);
+	const Passable& passable, SpokenDirection::Style style, const End* end = nullptr, double minLeg = 0);
 double Length(const std::vector<Leg>& legs);
 // One leg: "north, 20", or "door".
 std::string Say(const Leg& leg, const Strings::Table& strings);

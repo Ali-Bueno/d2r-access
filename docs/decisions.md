@@ -3,6 +3,24 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-22 — The tester's list on build test-2026-10-22-2
+
+From `D2R Access test build 2026-10-22-2 notes.7z` (the list, four log pairs, the basin from both
+sides). Built and unit-tested only.
+- **The cistern is the DS1's `BloodFountain` object**, not the model: the HD layout has no basin
+  model, and `ritual_platform01` is the dais of her chest. The generator reads DS1 object lists
+  (`objpreset.txt`) for it. Rejected: the tester's TombPool/ID 118 (objects.txt 118 is a well).
+- **Tristram's fountain tracked** as the tester's way out of the burning houses; the houses'
+  doorway creak is left (no collision of one to tune the gap rule against; "not essential").
+- **"Character deleted"** only when character select sent `DeleteCharacter` before the close.
+- **Turns 5 units apart by folding short legs** (`route-long-legs`, on, as the tester asked to try
+  it): the way is walked slightly off its cells. Rejected: a minimum in the leg search, which
+  detoured to twice the length to keep exact alignment.
+- **Steps are the click's interval** (`distance-steps`, off): "one click equals one step", so the
+  step follows `step-click-interval`. Off by default: it changes every distance said.
+- **The crosshair in the tutorial**: its sound in the camp's monster sounds, its meaning in the
+  fight slide, as the tester asked.
+
 ## 2026-10-22 — The tester's list on build test-2026-10-22
 
 From `d2r access test build 2026-10-22 notes.7z` (the user's Downloads: the list, five logs, the

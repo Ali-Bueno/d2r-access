@@ -561,6 +561,13 @@ struct Table {
 	const char* hintWaypointActs; // waypoint window, right stick down: %s = tab right's button, %s = tab left's
 	const char* radiantObject; // %s = the game's name of a glowing quest or reward chest
 	const char* rogueFountain; // the Outer Cloister's fountain of three Rogue statues, a landmark
+	const char* characterDeleted; // the delete modal closed after the game deleted the character
+	const char* distanceStep;  // a distance said in steps: one step, a walked click's units (EntityRadar::UnitsPerStep)
+	const char* distanceSteps; // %d = steps
+	const char* distanceStepsOn;
+	const char* distanceStepsOff;
+	const char* routeLongLegsOn; // %d = the shortest leg before a turn, units (RouteLegs::MinLegUnits)
+	const char* routeLongLegsOff;
 	const char* speechPriority; // %s = a speechPriorityKinds entry, %s = a speechPriorityLevels entry
 	std::array<const char*, SpeechPriorityKindCount> speechPriorityKinds; // SpeechPriority::Kind order
 	std::array<const char*, SpeechPriorityLevelCount> speechPriorityLevels; // SpeechPriority::Level order
@@ -627,7 +634,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.speechPriority}) visit(s);
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.speechPriority}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

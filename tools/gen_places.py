@@ -12,10 +12,15 @@ inside the prefab JSON it names.
 The Act II cliff stairs are placed by their collision mesh (the model's own
 .physics file): its bounding-volume tree gives the bottom and the top landing.
 
+A feature drawn by a game object, not a layout model, is read from the DS1's own
+object list: objpreset.txt names each act's preset object, objects.txt its size.
+
 Usage (after every game patch):
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "hd\env\preset\"
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "\pf_"
     build/casc-extract/casc_extract.exe extract "<game dir>" <root> "act2_bigcliff_stairs\"
+    build/casc-extract/casc_extract.exe extract "<game dir>" <root> ".ds1"
+    build/casc-extract/casc_extract.exe extract "<game dir>" game-data "excel\objpreset.txt" "excel\objects.txt"
     python tools/gen_places.py --hd-root <root> [--lvlprest PATH] [--out PATH]
 
 Stdlib only.
@@ -31,6 +36,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 LVLPREST = REPO / "game-data/global/excel/LvlPrest.txt"
+OBJPRESET = REPO / "game-data/global/excel/objpreset.txt"
+OBJECTS = REPO / "game-data/global/excel/objects.txt"
 OUT = REPO / "src/generated/place_data.h"
 
 HD_PER_SUBTILE = 2.0         # 10 HD units per tile, 5 subtiles per tile
@@ -42,10 +49,13 @@ FILE_COLUMNS = [f"File{i}" for i in range(1, 7)]
 MODEL_ROOT = "data/hd/env/model/"
 SKIPPED_DIRS = ("ui",)
 PRESET_SUBDIR = "hd/env/preset"
+DS1_SUBDIR = "global/tiles"
+DS1_OBJECT_TYPE = 2          # a DS1 object record of type 2 is an object (1 is a monster or NPC)
 DATA_PREFIX = "data/"
 MAX_FOOTPRINT_SIDE = 60      # subtiles; larger rects (prefab sub-entities far from the origin) fall back to a point
 
-# Feature -> (source, regex). First match in this order wins. Sources: model, audio, any.
+# Feature -> (source, regex). First match in this order wins. Sources: model, audio, any, and
+# object (the class of a DS1 preset object, objpreset.txt).
 FEATURES = [
     ("Kitchen", "model", r"table_kitchen|cutting_board|/meat\d|cleaver|hanging_food|/kiln|kettle|sharpener"),
     ("Fireplace", "any", r"fireplace(?!_top)"),
@@ -82,8 +92,9 @@ FEATURES = [
     # The sewers' round floor grate with its steam (manhole01; a tester, 2026-10-19). The flat
     # water_channel_grate01 along the channels is not it.
     ("SewerGrate", "model", r"act2_sewer_manholes/manhole"),
-    # The Countess's gilded vessel of blood, by the doors to her room (a tester, 2026-10-22).
-    ("BloodCistern", "model", r"act1_crypt_countess/ritual_platform"),
+    # The Countess's gilded basin of blood, by the doors to her room, candles round it (a tester,
+    # 2026-10-22). Not ritual_platform01: that is the dais of her chest, in her own room.
+    ("BloodCistern", "object", r"^BloodFountain$"),
 ]
 # Seeds not matched by a rule: the top landing of each cliff stairway (CliffStairs is its bottom).
 DERIVED_FEATURES = ["CliffStairsTop"]
@@ -96,7 +107,7 @@ FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.d
                          "BloodCistern": re.compile(r"^(?!act1/crypt/cryptcountess[12]\.ds1$)")}
 # Subtiles added around a feature's seeds: the Hangman's Tree is said under its whole canopy,
 # one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk).
-FEATURE_PADDING = {"HangmanTree": 5, "BloodCistern": 7}
+FEATURE_PADDING = {"HangmanTree": 5}
 STAIRS_COLLISION_NODES = 0x30  # .physics: node records start here, 32 bytes each (min xyz, max xyz, two words)
 # HD height: nodes within one subtile of the lowest top (highest base) are one landing, the stairway's full width.
 STAIRS_LANDING_SLACK = HD_PER_SUBTILE
@@ -394,9 +405,72 @@ def volume_of(e, c, stats):
     return box
 
 
-def scan_preset(path, rel, hd_root, cache, stats):
+def load_object_classes(objpreset_path, objects_path):
+    """-> ({(act, preset id): class}, {class: (size x, size y)})."""
+    with open(objpreset_path, encoding="utf-8-sig", newline="") as f:
+        presets = {(int(r["Act"]), int(r["Index"])): r["ObjectClass"]
+                   for r in csv.DictReader(f, delimiter="\t") if r["Act"].strip() and r["Index"].strip()}
+    with open(objects_path, encoding="utf-8-sig", newline="") as f:
+        sizes = {r["Class"]: (int(r["SizeX"] or 1), int(r["SizeY"] or 1)) for r in csv.DictReader(f, delimiter="\t")}
+    return presets, sizes
+
+
+def ds1_objects(path):
+    """A DS1's object records -> (act from 1, [(type, preset id, subtile x, subtile y)])."""
+    b = path.read_bytes()
+    at = 0
+
+    def word():
+        nonlocal at
+        at += 4
+        return struct.unpack_from("<i", b, at - 4)[0]
+    version, width, height = word(), word() + 1, word() + 1
+    act = word() + 1 if version >= 8 else 1
+    tag_type = word() if version >= 10 else 0
+    if version >= 3:
+        for _ in range(word()):
+            at = b.index(b"\0", at) + 1
+    if 9 <= version <= 13:
+        at += 8
+    walls = word() if version >= 4 else 1
+    floors = word() if version >= 16 else 1
+    layers = walls * 2 + floors + 1 + (1 if tag_type in (1, 2) else 0)  # walls, orientations, floors, shadow, tag
+    at += layers * width * height * 4
+    records = []
+    for _ in range(word() if version >= 2 else 0):
+        kind, index, x, y = word(), word(), word(), word()
+        if version > 5:
+            word()  # flags
+        records.append((kind, index, x, y))
+    return act, records
+
+
+def object_seeds(ds1_path, rel, classes, stats):
+    """Seeds of the object-sourced features in one preset: each object's own footprint."""
+    presets, sizes = classes
+    seeds = defaultdict(list)
+    if not ds1_path:
+        stats["ds1_missing"] += 1
+        return seeds
+    act, records = ds1_objects(ds1_path)
+    for kind, index, x, y in records:
+        cls = presets.get((act, index)) if kind == DS1_OBJECT_TYPE else None
+        for name, source, rx in FEATURE_RX:
+            if not cls or source != "object" or not rx.search(cls):
+                continue
+            if name in FEATURE_SKIPPED_FILES and FEATURE_SKIPPED_FILES[name].search(rel):
+                continue
+            sx, sy = sizes.get(cls, (1, 1))
+            rect = (clamp_subtile(x - sx // 2), clamp_subtile(y - sy // 2), clamp_subtile(x - sx // 2 + sx), clamp_subtile(y - sy // 2 + sy))
+            seeds[name].append((x, y, rect))
+            stats["features"][name, "object"][cls] += 1
+            break
+    return seeds
+
+
+def scan_preset(path, rel, hd_root, cache, stats, object_seeded):
     d = json.loads(path.read_text(encoding="utf-8"))
-    raw_seeds = defaultdict(list)
+    raw_seeds = defaultdict(list, object_seeded)
     volumes = []
     for e in d["entities"]:
         t = comp(e, "TransformDefinitionComponent")
@@ -521,15 +595,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--hd-root", required=True, type=Path, help="extraction root holding hd/env/preset and hd/env/model")
     ap.add_argument("--lvlprest", type=Path, default=LVLPREST)
+    ap.add_argument("--objpreset", type=Path, default=OBJPRESET)
+    ap.add_argument("--objects", type=Path, default=OBJECTS)
     ap.add_argument("--out", type=Path, default=OUT)
     args = ap.parse_args()
 
     rows = load_lvlprest(args.lvlprest)
     known = lvlprest_files(rows)
     stats = {"rotated": 0, "tiny": 0, "features": defaultdict(Counter), "ignored": Counter(), "unknown": Counter(),
-             "fp_ok": 0, "fp_missing": 0, "fp_outside": 0, "fp_huge": 0, "stairs_ok": 0, "stairs_missing": 0}
+             "fp_ok": 0, "fp_missing": 0, "fp_outside": 0, "fp_huge": 0, "stairs_ok": 0, "stairs_missing": 0,
+             "ds1_missing": 0}
     presets_dir = args.hd_root / PRESET_SUBDIR
     prefab_cache = {}
+    classes = load_object_classes(args.objpreset, args.objects)
+    ds1_files = {norm_path(p.relative_to(args.hd_root / DS1_SUBDIR).as_posix()): p
+                 for p in (args.hd_root / DS1_SUBDIR).rglob("*.ds1")}
 
     found = {}
     for p in sorted(presets_dir.rglob("*.json")):
@@ -545,7 +625,8 @@ def main():
     table, seeds_all, vols_all = [], [], []
     interior_presets = defaultdict(list)
     for file in sorted(set(found) & known):
-        seeds, vols = scan_preset(found[file], file, args.hd_root, prefab_cache, stats)
+        objects = object_seeds(ds1_files.get(file), file, classes, stats)
+        seeds, vols = scan_preset(found[file], file, args.hd_root, prefab_cache, stats, objects)
         if not seeds and not vols:
             continue
         table.append((file, len(seeds_all), len(seeds), len(vols_all), len(vols)))
@@ -565,10 +646,11 @@ def main():
     print(f"prefab footprints: {stats['fp_ok']} ok; point fallback: {stats['fp_missing']} prefab missing, {stats['fp_outside']} rect misses anchor, {stats['fp_huge']} over {MAX_FOOTPRINT_SIDE} subtiles")
     print(f"boxes not identity-rotated: {stats['rotated']}; tiny boxes skipped: {stats['tiny']}")
     print(f"stairs from collision: {stats['stairs_ok']}; without a collision file: {stats['stairs_missing']}")
+    print(f"DS1 files {len(ds1_files)}; presets without one: {stats['ds1_missing']}")
     print("file names:", file_names)
     print("ignored volumes:", dict(stats["ignored"]), "unclassified:", dict(stats["unknown"]))
     for f in FEATURE_NAMES:
-        for kind in ("model", "prefab"):
+        for kind in ("model", "prefab", "object"):
             c = stats["features"][f, kind]
             print(f"{f} [{kind}]: raw {sum(c.values())}, top {c.most_common(6)}")
     for i in INTERIOR_NAMES:

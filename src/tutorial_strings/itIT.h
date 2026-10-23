@@ -65,12 +65,15 @@ inline constexpr Texts itIT{
 			"e {rs} in su la descrizione dell'area. Prova la panoramica.",
 			"Sei in {moor}. Ctrl più O ti dà una panoramica del terreno intorno a te. Provala."},
 		{"Qui ci sono dei mostri: suonano come li hai sentiti al campo, e lo scanner li elenca in una categoria a "
-			"parte. Attacca con {a}; le tue altre abilità sono sui pulsanti che hai assegnato loro. Se la tua vita cala, "
+			"parte. Attacca con {a}; le tue altre abilità sono sui pulsanti che hai assegnato loro. Il doppio segnale di mira dice che il tuo attacco è puntato su un mostro: attacca "
+			"quando lo senti, e se tace, girati verso il ringhio finché non suona, così non sprechi nessun attacco su "
+			"un muro o un barile. Se la tua vita cala, "
 			"bevi una pozione con {dpad}. Ciò che lasciano cadere suona dal punto in cui si trova: avvicinati e premi "
 			"{a} per raccoglierlo; l'oro si raccoglie passandoci sopra. Uccidi un mostro.",
 			"Qui ci sono dei mostri: suonano come li hai sentiti al campo, e lo scanner li elenca in una categoria a "
 			"parte. Tab sceglie il mostro successivo; tieni premuto A per attaccare con l'abilità sinistra, e W con la "
-			"destra. Se la tua vita cala, le pozioni sono sui tasti da 1 a 4. Ciò che lasciano cadere suona dal punto in "
+			"destra. Il doppio segnale di mira dice che il tuo attacco è puntato su un mostro: attacca quando lo senti, "
+			"così non sprechi nessun attacco su un muro o un barile. Se la tua vita cala, le pozioni sono sui tasti da 1 a 4. Ciò che lasciano cadere suona dal punto in "
 			"cui si trova: punto sceglie l'oggetto successivo a terra, virgola il precedente, e D lo raccoglie; l'oro si "
 			"raccoglie passandoci sopra. Uccidi un mostro."},
 		{"Trova {den}. La mappa viene rifatta a ogni partita, quindi il suo ingresso può essere vicino o lontano. "
@@ -144,7 +147,8 @@ inline constexpr Texts itIT{
 		"Mostro che attacca da lontano, come un arciere",
 		"Sciamano che riporta in vita i mostri morti: uccidilo per primo",
 		"Élite: un campione, un mostro unico o un boss",
-		"A portata: un mostro è entrato nella portata del tuo attacco"},
+		"A portata: un mostro è entrato nella portata del tuo attacco",
+		"Mira: il tuo attacco è puntato su un mostro che vedi"},
 	.leaveTask = {
 		"Ora lascia il campo da solo, con ciò che hai imparato: tra le uscite dello scanner, trova {moor}, chiedi il "
 		"percorso, segui la guida e attraversa l'uscita.",
