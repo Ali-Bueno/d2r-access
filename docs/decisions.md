@@ -3,6 +3,23 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-24 — The tester's list on build test-2026-10-23-2
+
+From `D2R Access test build 2026-10-23-2 notes and bug list.7z` (the notes, three log pairs, two
+screenshots, the tester's Act I and II descriptions). Built and unit-tested only.
+- **The death screen says itself**: its layout name ("You Died Modal") is no longer announced on
+  open or close, so "You have died…" interrupts at once. Fixed outright, not behind a switch: a
+  layout name is not a title, and the body already says the death.
+- **The tester's descriptions come with the mod**, embedded in the DLL and read under the player's
+  own `descriptions.txt`, which still wins line by line and is never shipped. English only, keyed by
+  the game's English names. Rejected for now: moving them into the strings layer (68 long texts
+  times 13 languages); a loose shipped file (an update would overwrite a player's edits to it).
+- **The "black square" is the HUD notice list** with empty rows (see
+  [native UI](native-ui.md#hud-notice-rows-without-text-2026-10-24)). The mod only reads that list,
+  so nothing is hidden yet: the next build logs what the empty entries hold, and the tester is
+  asked whether it appears with the plugin removed. Rejected: hiding the list's background (alters
+  the game's UI before the cause is known).
+
 ## 2026-10-23 — The tester's list on build test-2026-10-23
 
 From `D2R Access test build 2026-10-23 notes.7z` (the list, five log pairs, a log bridge

@@ -16,6 +16,16 @@ lengthening every announcement.
 - Switch `descriptions` (on, Navigation group): the landmark words and the area hint. Words asked
   for with BACK + right stick up are said either way.
 
+## Words that come with the mod (2026-10-24)
+
+`data/descriptions.txt`: the tester's words for Act I and Act II (67 areas and the Hangman's Tree),
+in the player's file format, English names. CMake embeds it in the DLL as RCDATA `DESCRIPTIONS`
+(`descriptions.rc` in the build folder); `Descriptions::Load` parses it first and the player's file
+after it, so a player's line for the same name wins, and a line taken out of the player's file gives
+the mod's words back. With the game in another language the names do not match and nothing is said
+(the strings layer's `hangmanTreeDescription` still is). Names are per level name, so "Sewers Level
+1" also answers in Act III's sewers. Log: `[descriptions] N come with the mod, M with descriptions.txt`.
+
 ## The player's file
 
 `d2rloader/plugins/d2r-access/descriptions.txt`, written with notes when missing, never shipped,

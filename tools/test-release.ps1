@@ -18,7 +18,7 @@ $runtimeDlls = "msvcp140.dll", "msvcp140_atomic_wait.dll", "vcruntime140.dll", "
 $loaderFiles = "D2RLoader.exe", "D2RCore.dll", "d2rloader.mpq", "d2rloader\config\d2rloader.toml"
 $loaderDirs = "mods", "d2rloader\crashes", "d2rloader\data", "d2rloader\logs"
 # Everything the plugin binary is built from; packaging text may change without a rebuild.
-$buildInputs = "src", "cmake", "CMakeLists.txt", "plugin.rc", "sounds", "third_party", "radar.toml", "external", "LICENSE"
+$buildInputs = "src", "cmake", "CMakeLists.txt", "plugin.rc", "sounds", "third_party", "radar.toml", "data", "external", "LICENSE"
 
 function Copy-Into([string]$Source, [string]$Destination) {
 	New-Item -ItemType Directory (Split-Path $Destination) -Force | Out-Null

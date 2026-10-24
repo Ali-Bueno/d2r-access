@@ -8,6 +8,8 @@
 #include <mutex>
 #include <sstream>
 
+extern "C" IMAGE_DOS_HEADER __ImageBase; // this plugin's own module, which carries the mod's descriptions
+
 namespace D2RAccess::Descriptions {
 namespace {
 constexpr std::string_view Separator = "=";
@@ -19,6 +21,7 @@ constexpr std::string_view Template =
 	"# An area's words are read with Back and right stick up while you are there;\n"
 	"# a landmark's replace its name the first time it comes into reach.\n"
 	"# Lines starting with # are notes. Updates of the mod never replace this file.\n"
+	"# The mod comes with words for many places; a line here replaces its words.\n"
 	"# A change is read a second after you save it, while the game runs.\n"
 	"# Every name the mod answers to is in descriptions-names.txt, written as you play.\n"
 	"#\n"
@@ -48,6 +51,17 @@ std::filesystem::path g_file;
 std::filesystem::file_time_type g_written{};
 uint64_t g_checkedMs = 0;
 std::string g_banner; // the last area banner, "Entering The Cave Level 1"
+// The mod's own book (data/descriptions.txt, embedded by CMakeLists.txt), read before the player's.
+constexpr wchar_t BundledResource[] = L"DESCRIPTIONS";
+std::string g_bundled;
+
+std::string ReadBundled() {
+	const auto module = reinterpret_cast<HMODULE>(&__ImageBase);
+	const HRSRC info = FindResourceW(module, BundledResource, reinterpret_cast<LPCWSTR>(RT_RCDATA));
+	const HGLOBAL handle = info ? LoadResource(module, info) : nullptr;
+	const auto* bytes = handle ? static_cast<const char*>(LockResource(handle)) : nullptr;
+	return bytes ? std::string(bytes, SizeofResource(module, info)) : std::string{};
+}
 
 std::string ReadBook(const std::filesystem::path& file) {
 	std::ifstream input(file, std::ios::binary);
@@ -67,7 +81,7 @@ void Refresh() {
 	const auto written = std::filesystem::last_write_time(g_file, error);
 	if (error || written == g_written) return;
 	g_written = written;
-	g_book.Replace(ReadBook(g_file));
+	g_book.Replace(g_bundled + '\n' + ReadBook(g_file));
 	AsyncLog::InfoF(g_context, "[descriptions] %zu read again from %s, saved while playing", g_book.Size(),
 		g_file.filename().string().c_str());
 }
@@ -145,8 +159,12 @@ void Load(const D2RL::PluginContext* context, const std::filesystem::path& file)
 	g_written = std::filesystem::last_write_time(file, error);
 	g_checkedMs = GetTickCount64();
 	g_book = {};
+	g_bundled = ReadBundled();
+	g_book.Parse(g_bundled);
+	const size_t bundled = g_book.Size();
 	g_book.Parse(ReadBook(file));
-	AsyncLog::InfoF(context, "[descriptions] %zu read from %s", g_book.Size(), file.filename().string().c_str());
+	AsyncLog::InfoF(context, "[descriptions] %zu come with the mod, %zu with %s", bundled, g_book.Size(),
+		file.filename().string().c_str());
 }
 
 void WriteNames(const std::vector<std::string>& areas, const std::vector<std::string>& landmarks) {

@@ -6,8 +6,10 @@
 
 #include <windows.h>
 
+#include <cstdio>
 #include <cstring>
 #include <deque>
+#include <string>
 
 namespace D2RAccess::NativeWidgets {
 
@@ -47,6 +49,12 @@ constexpr uintptr_t NotificationCountRva = 0x84CC70;
 constexpr uintptr_t NotificationEntryRva = 0x84D0B0;
 constexpr size_t NotificationCountSlot = 0xC8;
 constexpr uint64_t NotificationCapacity = 19; // one unused ring slot; 0x850060
+// An entry without text draws as an empty row (a tester's "black square", 2026-10-23): its
+// start and its string's first bytes are logged once, to tell what the game pushed.
+constexpr size_t UnreadEntryBytes = 0x40;
+constexpr size_t UnreadTextBytes  = 0x20;
+uintptr_t g_unreadEntry = 0;
+const D2RL::PluginContext* g_context = nullptr;
 
 struct PendingProbe {
 	std::string              panel;
@@ -91,6 +99,31 @@ uintptr_t CallLatestNotification(uintptr_t list, uintptr_t countFunction, uintpt
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 }
 
+std::string Hex(const unsigned char* bytes, size_t size) {
+	std::string text;
+	char pair[4];
+	for (size_t i = 0; i < size; ++i) {
+		std::snprintf(pair, sizeof(pair), i % 8 == 7 && i + 1 < size ? "%02X " : "%02X", bytes[i]);
+		text += pair;
+	}
+	return text;
+}
+
+void LogUnreadEntry(uintptr_t entry) {
+	if (entry == 0 || entry == g_unreadEntry) return;
+	g_unreadEntry = entry;
+	unsigned char head[UnreadEntryBytes]{}, body[UnreadTextBytes]{};
+	if (!NativeMemory::Copy(entry, head, sizeof(head))) return;
+	uint64_t data = 0, size = 0;
+	std::memcpy(&data, head, sizeof(data));
+	std::memcpy(&size, head + sizeof(data), sizeof(size));
+	const size_t shown = static_cast<size_t>(size < sizeof(body) ? size : sizeof(body));
+	const bool read = shown != 0 && NativeMemory::Copy(static_cast<uintptr_t>(data), body, shown);
+	D2RAccess::AsyncLog::InfoF(g_context, "[notice] row without text: entry %p, string size %llu, text [%s], entry [%s]",
+		reinterpret_cast<void*>(entry), static_cast<unsigned long long>(size), read ? Hex(body, shown).c_str() : "",
+		Hex(head, sizeof(head)).c_str());
+}
+
 void RunProbe(const D2RL::PluginContext* context, const PendingProbe& probe) {
 	std::string pathText = probe.panel;
 	for (const std::string& step : probe.path) {
@@ -118,6 +151,7 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (context == nullptr) {
 		return false;
 	}
+	g_context = context;
 	const HMODULE core = GetModuleHandleW(CoreSlots::ModuleName);
 	const HMODULE exe  = GetModuleHandleW(nullptr);
 	if (core == nullptr || exe == nullptr) {
@@ -205,7 +239,7 @@ Notification ReadLatestNotification(uintptr_t list) {
 	const uintptr_t entry = CallLatestNotification(list, count, g_exeBase + NotificationEntryRva);
 	std::string text;
 	// The producer copies the localized message into the entry's first string.
-	if (!entry || !ReadEngineString(entry, text) || !LooksLikeText(text)) return {};
+	if (!entry || !ReadEngineString(entry, text) || !LooksLikeText(text)) { LogUnreadEntry(entry); return {}; }
 	return {entry, std::move(text)};
 }
 

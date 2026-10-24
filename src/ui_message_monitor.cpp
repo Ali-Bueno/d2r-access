@@ -116,6 +116,9 @@ ModalRead g_modalRead;
 constexpr std::string_view RuntimeTitlePanels[] = { "DropGoldModal" };
 const std::string  RuntimeTitlePath[] = { "Title" };
 ModalRead g_titleRead;
+// The death screen says itself, "You have died" first (ModalReader); its layout name only
+// delayed that (a tester, 2026-10-23).
+constexpr std::string_view SelfReadPanels[] = { "YouDiedModal" };
 
 // Widgets whose runtime text is still being probed natively when their panel
 // opens, to learn where their class keeps it (see native_widgets.h).
@@ -237,6 +240,7 @@ std::string PanelWords(std::string_view panel) {
 // Helper panels (tooltips layer, link bars, loading overlays) open and close
 // constantly; only screens, titled panels and modals are worth hearing.
 bool IsAnnouncedPanel(std::string_view panel, bool exclusive, const std::string& title) {
+	if (std::ranges::find(SelfReadPanels, panel) != std::end(SelfReadPanels)) return false;
 	return exclusive || !title.empty() || EndsWith(panel, ModalNameSuffix);
 }
 

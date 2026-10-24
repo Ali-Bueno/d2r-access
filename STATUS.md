@@ -2,6 +2,25 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build test-2026-10-23-2 — 2026-10-24 (not released)
+
+From `D2R Access test build 2026-10-23-2 notes and bug list.7z` ([decisions](docs/decisions.md)).
+127/127 CTest; installed by the build. **Unverified live.** Closed by the tester: NPC "!" chimes,
+the vitals readout, the Cube, the stone tombs, status effects; the Sanctuary's stairs much better.
+- Death screen: "You Died Modal" no longer said on open or close; "You have died…" interrupts
+  (`SelfReadPanels` in `ui_message_monitor.cpp`).
+- The tester's Act I and II descriptions come with the mod: `data/descriptions.txt`, embedded,
+  under the player's file ([descriptions](docs/descriptions.md#words-that-come-with-the-mod-2026-10-24)).
+- "Black square": the HUD notice list with 13 empty rows; one empty entry per loading screen,
+  not written by the mod. Diagnostic `[notice] row without text` added
+  ([native UI](docs/native-ui.md#hud-notice-rows-without-text-2026-10-24)).
+- Bridges: "bridge" said 4 times in the log (Kurast Docks, Spider Forest); no comment from the tester.
+
+News: `../tester-news-draft-2026-10-24.txt`.
+
+**Next step:** the tester: the square with the plugin removed, and a log with it on screen;
+live: a death, BACK + right stick up in an Act II area.
+
 ## The tester's list on build test-2026-10-23 — 2026-10-23 (released as test-2026-10-23-2 from efa1230)
 
 Release: 127/127 CTest, 29 entries, 62,976,543 bytes, SHA-256 `c82af1f5…b482a8a4e`; news

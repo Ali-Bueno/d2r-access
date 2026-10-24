@@ -139,3 +139,25 @@ without a focused panel (world-target tooltip, monster plate) stayed silent
 until another panel took focus (the user: open and close the inventory). The rule
 is per panel shape, not per name, so any overlay that hides its content instead of
 closing recovers the same way. `native-ui` suite; live check pending.
+
+## HUD notice rows without text (2026-10-24)
+
+A tester's "black square" (screenshot of 2026-10-23, Canyon of the Magi, 1920x1080): a dark,
+empty rectangle at 20,515–570,840. It is `HUDMessagePanel/GlobalChatListContainer`
+(`HUDMessagePanelHD.json`: rect x 40, bottom 910+770 = 1680 in the 3840x2160 layout, so 20 and 840
+at half scale; its `MessageBackground` is black at 0.7 alpha) holding 13 rows (13 x 50 = 650 = 325
+px) with no visible text.
+
+The logs of that build push one `ChatListWidgetMessage:ChatEntryPushed` after nearly every
+`LoadScreenPanel` unload (45 pushes, 43 loads, 5 readable notices in one hour; the same ratio in
+the user's log of 2026-10-20). Those entries give the reader no text, so no `[notice]` follows
+them. The mod never writes to this list: it calls only the stock count (`0x84CC70`) and entry
+(`0x84D0B0`) accessors, the ones the game's own new-entry handler calls, and sends no UI messages
+or chat commands. So the empty entries come from the game or the loader; which, and why they
+stay on screen, is open.
+
+`NativeWidgets::ReadLatestNotification` now logs an entry it cannot read, once per entry:
+`[notice] row without text: entry <address>, string size N, text [first 32 bytes], entry [first
+0x40 bytes]`. A string size of 0 means the game pushed an empty message; anything else means the
+text lives elsewhere in the entry. The tester is also asked whether the square appears with the
+plugin removed.

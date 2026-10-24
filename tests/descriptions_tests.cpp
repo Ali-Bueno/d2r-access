@@ -45,6 +45,15 @@ int main() {
 	Check(areas.FindArea("Cave Level 1", "Entering The Blood Moor").empty(), "nor is a key the current banner does not say");
 	areas.Parse("Cave Level 1 = The level's own name wins.\n");
 	Check(areas.FindArea("Cave Level 1", "Entering The Cave Level 1") == "The level's own name wins.", "the level's own name first");
+
+	// The mod's book is read first, the player's after it (a tester's words shipped, 2026-10-23).
+	Descriptions::Book shipped;
+	shipped.Parse("Blood Moor = The mod's moor.\nCold Plains = The mod's plains.");
+	shipped.Parse("Blood Moor = My moor.\n");
+	Check(shipped.Find("Blood Moor") == "My moor." && shipped.Find("Cold Plains") == "The mod's plains.",
+		"the player's line replaces the mod's, the mod's others stay");
+	shipped.Replace("Blood Moor = The mod's moor.\nCold Plains = The mod's plains.\n"); // the player's file emptied
+	Check(shipped.Find("Blood Moor") == "The mod's moor.", "the player's line taken out leaves the mod's");
 	Passed();
 	return 0;
 }

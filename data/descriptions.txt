@@ -1,0 +1,143 @@
+# D2R Access: the area and landmark descriptions that come with the mod, in English.
+# Written by BFBeast666, a tester. A line for the same name in the player's own
+# descriptions.txt replaces the one here. docs/descriptions.md
+#
+# Act I
+#
+Rogue Encampment = This camp is a ramshackle collection of tents and wagons barely offering protection from the elements. Only a few Sisters of the Sightless Eye managed to flee here from the doomed Monastery, now forced to share this forlorn place with cows and chickens.
+#
+Hangman's Tree = A tall, withered tree stands in the middle of the Burial Grounds, rotting corpses dangling from its boughs while the dead shamble beneath it.
+#
+Blood Moor = This swampy wilderness is wide open land dotted by low bushes and crippled trees. Feral Quill Rats were once the only danger here, now undead and packs of Fallen pose a serious threat to anyone foolish enough to leave the safety of the Rogue Encampment.
+#
+Den Of Evil = Akara was right to send you into this dismal place. Even from the entrance you can hear the ceaseless chittering of countless monsters preparing to ransack the Rogue Encampment. But there is something else lurking in this place. The stench of death - or undeath - hangs heavy in the air.
+#
+Burial Grounds = This forgotten cemetary has fallen into ruin, its small crypts and elaborate wrought-iron fence crumbling and rusted. The dead have risen and shamble beneath a grotesque Hangman Tree, ready to tear unwary visitors asunder.
+#
+Mausoleum = This murky catacomb is filled with the remains of nameless dead, forgotten riches and vicious undead. Treaseure-seekers, beware!
+#
+The Crypt = No light penetrates this tomb's shadow save for the fires ravaging the burning corpse of former rogues. There might be treasure, but there will most definitely be ravenous terrors waiting to rip unwary trespassers apart.
+#
+Cold Plains = The abandoned cottages of this area speak of a simpler time, of growing crops and tending livestock. Now Diablo's army has laid claim to these fields as it is swarming with demonic Rogues, undead and Fallen.
+#
+Cave Level 1 = No one has entered this forsaken hole in the ground in ages. Who knows what horrors have taken root?
+#
+Cave Level 2 = No sunlight has ever touched this part of the Cave. You wonder - who keeps the torches lit?
+#
+Stony Field = Sanctuary hides many places of power. One ancient stone circle stands tall in this rock-strewn wasteland. No one quite knows what its significance used to be or what kind of pagan rituals were once conducted here.
+#
+Tristram = All that's left of Tristram is a sorry collection of burning ruins, flooded by monsters in Diablo's wake. 
+#
+Underground Passage Level 1 = Upon entering you realize the size of this vast, maze-like cave system, it's numerous dead-ends and winding passages are teeming with restless horrors. There is no guarantee you will make it through alive.
+#
+Underground Passage Level 2 = The air in this part of the cavern is clammy and stale. You are certain there is no connection to the surface here, only more restless monsters out for your flesh.
+#
+Dark Wood = Calling this loose collection of pitiable trees a forest would be generous. Yet, it is brimming with demonic life. Somewhere, at its center, sits the elusive Tree of Inifuss, waiting to be discovered again.
+#
+Hole Level 1 = The area around Tristram is riddled with these dark, fathomless caves. What have the miners of Kanduras been digging for? And, more importantly, what did they wake when they found it?
+# 
+Hole Level 2 = How deep does this hole even go? You hope there's more down here than just unsettling rock formations, sputtering torches, and more monsters.
+#
+Pit Level 1 = Misshapen stone walls seem to close in on you from every direction as you tentatively make your way deeper into this light-forsaken maze.
+#
+Pit Level 2 = You are keenly aware of the untold tons of rock less than an arm's length above your head. All it would take is a quake, or an unintended explosion to bury you alive down here, forever locked in with the horrors which call this lightless pit their home.
+#
+Black Marsh = Biting gusts of wind caress your face like a ghost's incorporeal touch. The crumbling stump of a collapsed tower looms in the distance, beckoning you like it did all the innocent maidens the Countess lured to their demise.
+#
+The Forgotten Tower = The ravenous mob howling for the Countess's death picked this cellar clean. Only a few kicked-in barrels remain in the southeast corner. Looking around, you notice a gaping hole in the wall to the northwest. It looks very recent. And by the way the crude fieldstone chunks have fallen, you realize that someone - or something - managed to burst out of the dungeons hidden below.
+#
+Tower Cellar Level 1 = As you enter the deeper cellar levels, the metallic stench of blood assaults your nostrils. Looking down, you see your foot resting in a puddle of what looks like freshly shed blood. How is this even possible? If the sorry ruin above is any indication, the Countess must have died centuries ago. 
+#
+Tower Cellar Level 2 = You descend deeper into the Countess’s labyrinth. Ghastly liquid drips off uneven walls and candlelight glints off crimson pools - and the eyes of abominations waiting to tear you apart.
+#
+Tower Cellar Level 3 = As you drag your weary, aching body ever deeper into this nightmare, your feet strike hollow echoes off some faded marble plaques inlaid into the ground. As if the ever-worsening stench of blood wasn't bad enough, you pass the burning corpses of dead Rogues, the choking stench of burning flesh making it that much harder to find breath to scream.
+#
+Tower Cellar Level 4 = You can hardly breathe. You taste blood on your lips. Is it yours? Or some guts of the last Goatman you eviscerated to reach yet another assortment of crumbling halls and burning corridors filled with the hollow laughter of ghostly pursuers.
+#
+Tower Cellar Level 5 = Suddenly the hallways open up, disgorging you into a bizarre cacophony of luxury and atrocity. Ahead, you spot an obscene gilded basin overflowing with still liquid blood. Enormous torches cause the double row of pillars framing the Countess's bath to throw maniacally dancing shadows, writhing to the beat of her taunting laughter.
+#
+Tamoe Highland = The imposing walls of the Monastery of the Sightless Eye tower over the wind-swept highlands. Seemingly impregnable, they leave you trembling at the thought of the army that conquered them and drove the Sisters out with contemptuous ease. Then, a colder realization strikes: now you are the one tasked to assault this fortified house of worship.
+#
+Monastery Gate = Signs of battle are everywhere as you carefully enter the austere columnaedes of the Monastery Gate. Broken weapons, toppled candle racks and crimson trails tell a ghastly story.
+#
+Outer Cloister = You arrive at a magnificent courtyard, it's beauty barely disfigured by the ever-present signs of battle. A glorious fountain stands at its center, showing three Rogues back-to-back, holding invisible foes at bay with readied weapons.
+#
+Barracks = After the calm grandeur of the courtyard, the Barracks are a chaotic warren of meandering corridors, ransacked dormitories and cluttered storerooms. Racks of barrels provide perfect hiding spots for the numerous enemies who have claimed this place. 	How is anyone supposed to find the right path, let alone a small smithy holding an enchanted hammer?
+#
+Jail Level 1 = This underground vault is enormous, dark and cold. Barbaric implements of torture are in plain view. You wonder - what were the Sisters doing down here? And where are the prisoners now?
+#
+Jail Level 2 = Your footsteps throw hollow echoes from the walls. How large is this place? The cages you have walked past could easily hold the population of a small town. And the jail goes deeper still.
+#
+Jail Level 3 = An almost tangible aura of despair saturates this place. There is no light here, no hope, only the decaying remains of long-dead prisoners.
+#
+Inner Cloister = You breathe a sigh of relief as you lay eyes upon the open sky again. You've made it into the heart of the Cloister. Ahead, you spot the towering spire of the Cathedral of the Sightless Eye. 
+#
+Cathedral = No amount of warm candlelight can disguise the scenes of wanton brutality visited upon this house of worship. Dead bodies, strewn about like carelessly discarded toys, are left rotting where they fell and pools of blood have formed on the once pristine marble floors. 
+#
+Catacombs Level 1 = Amongst the hallways lined with grand caskets immortalizing the Sisters' honored dead, you are surprised to find cozy libraries, meditation chambers and other places of reflection, now utterly defiled by Andariel's marauding hordes.
+#
+Catacombs Level 2 = This level of the catacombs appears much older than the one above. Gone are the places of introspection, replaced with blank walls and empty rooms to hold the dead.
+#
+Catacombs Level 3 = The dust of centuries covers every surface here, making it that much more obvious where demonic claws have disturbed the dead who are now visiting their wrath on demons and interlopers alike. 
+#
+Catacombs Level 4 = Andariel’s presence has twisted the land itself into a vision of hell. Jagged, misshapen bone growths pierce the earth, leaving gaping, blood-soaked pits in their wake. The air thickens with the stench of brimstone and something viler still.
+#
+# Act II
+#
+Lut Gholein = Baking under the relentless desert sun sits Lut Gholein, a small harbor town surrounding a lively market. Constant monster attacks have forced the inhabitants to cower in their houses. Only brave or desperate souls dare to set foot onto its cobbled streets, let alone the Rocky Wastes outside. 
+#
+Sewers Level 1 = The moment you descend into the sewers, a thick stench hits you so hard it catches in your throat. This goes far beyond the familiar rot of refuse and waste. A heavy, sickly sweetness clings to the air—as if some unnatural plague has seeped directly into the slimy bricks and rusted grates that struggle to contain the city's filth.
+#
+Sewers Level 2 = Your sense of smell had surrendered halfway through the first level of the sewers, so it took a moment to realize the stench had changed. It was no longer just the stomach-churning mix of refuse and acidic toxins you’d grown used to. Now, the unmistakable rot of decay bled into the infernal cocktail. Gritting your teeth, you press on. Perhaps by defeating the monster lurking at the bottom of this hellish cistern, you might finally purge this rot.
+#
+Sewers Level 3 = This was surely the deepest part of the sewers. The ancient brickwork buckled under the weight of centuries, and you shuddered at the thought of what might be lurking in the murky liquid visible through the rusted, broken grates. You cursed the long-dead fools who thought burying an ancient evil beneath a living city was a good idea to begin with.
+#
+Rocky Waste = The desert had claimed far more than just the fertile land surrounding Lut Gholein. At the sight of dozens of desiccated corpses lashed to stakes—their bright red uniforms sun-bleached and caked with sand and dried blood—you realized that the wastes had taken an equally brutal toll on the city's people.
+#
+Stony Tomb Level 1 = You breathe a sigh of relief as the shadows of this half-buried tomb embrace you, the thick sandstone blocks easily shielding you from the merciless heat outside. Only after your first few tentative steps through these echoing hallways do you realize that you are not alone. Far from it. This tomb brims with unholy vigor, its occupants shuffling towards you with mindless purpose.
+#
+Stony Tomb Level 2 = The faded grandeur of ancient nobility permeates this level of the tomb. Even the undead wear regalia befitting courtiers and servants, a hollow mockery of their former lives. You can only hope that delving this deep into the Stony Tomb will reward you with at least a fraction of their lost wealth.
+#
+Dry Hills = Trekking through the burning desert of the Rocky Wastes has been arduous, but now the land slopes upward, making each step forward that much harder. Turning back is not an option. You have to find the Halls of the Dead hidden amongst these arid hillsides infested with hungry predators.
+# 
+Halls of the Dead Level 1 = You're not quite sure what is worse - the scorching heat of the desert outside or the bone-chilling, clammy air of this godforsaken mausoleum. The few sputtering torches still lit provide only sparse illumination and the shadows writhe with unliving menace.
+#
+Halls of the Dead Level 2 = The tide of horrors will not relent. You've found the steps into the deeper levels of the Halls but the undead just keep on coming, their hungry groans echoing off the faded painted walls and crumbling statues.
+#
+Halls Of The Dead Level 3 = You can feel an arcane current saturate the air. The Horadric Cube has to be here somewhere, hidden deep within this nightmare-filled maze hewn from unyielding stone.
+#
+Far Oasis = This desert area teems with life. Springs feed lush palms that offer shade from the sun—and breed swarms of bloodsucking insects. Then something orange and horse-sized stirs in the brush.
+#
+Maggot Lair Level 1 = You squeeze your body through a much-too-narrow orifice only to end up in a slime-covered, claustrophobic warren of tangled, bug-filled tunnels. Slime drips of the walls and coagulates in thick sheets covering adjoining tunnels.
+#
+Maggot Lair Level 2 = The tunnels stretch forever. Slime seeps into your clothes and boots, turning every step into a squelching nightmare. And deeper within this maddening coil of claustrophobic passages awaits the abomination which created these tunnels.
+#
+Maggot Lair Level 3 = You have penetrated the deepest part of the hive and the inhabitants' resistance stiffens noticeably. Whatever it is they're guarding, you will find and annihilate it.
+#
+Lost City = The gutted ruins of once quaint houses poke through the sand which swallowed them decades ago. Gangs of feral monsters stalk you along narrow alleyways and deserted thoroughfares.
+#
+Ancient Tunnels = Your curiosity led you into what you believed were dried-out, sand-filled tunnels but to your dismay, you have stumbled into another squalid, stench-soaked cistern inhabited by reeking brigands and rotting undead. 	
+#
+Valley of Snakes = Serpentine statues flank an elaborate temple entrance, bathed in flickering torchlight. The air carries the smell of dried leather and you hear the frenzied hiss of enraged Claw Vipers.
+#
+Claw Viper Temple Level 1 = You descend into the underground lair of the Claw Vipers, intent on disrupting their unspeakable ritual once and for all. Hissing and spitting, guards rush to stop you!
+#
+Claw Viper Temple Level 2 = A befouled altar at the heart of the temple is the source of the unnatural darkness the Claw Vipers have visited upon the land. 
+#
+Harem level 1 = You descend into a maze of lavishly decorated chambers. Wisps of exotic perfumes tickle your nostrils, a jarring contrast to the foul tombs and sewers you left behind. Diaphanous silks lie carelessly discarded on the carpets. The rooms are grand, but entirely empty... The sudden absence of life is deafening.
+#
+Harem level 2 = The headless guard still kneeling at the foot of the stairs brings no surprise, only grim confirmation. The legions of Hell beat you to this place. And looking at the pooling, sticky blood painting the floor, they left no survivors.
+#
+Palace Cellar Level 1 = The despoiled luxury of the harem gives way to utilitarian storerooms and wine cellars. To your surprise, most of the provisions remain intact. The forces of Hell are clearly not interested in dates, dried meat, or vintage wine.
+#
+Palace Cellar Level 2 = The cellars stretch into the darkness, seemingly without end. The wealth of provisions squirreled away here could sustain the entire city for years. You wonder: would Jerhyn have ever shared this bounty with his starving people, or left it to rot in the dark? 
+#
+Palace Cellar Level 3 = The air grows unnaturally cold as you descend into the third level. The heavy scent of wine and dried meat is replaced by a sterile, metallic chill. Space itself feels stretched here; a low, humming vibration echoes through the stones, drawing you toward the center of the vault where the shadows seem to warp and pull inward.
+#
+Arcane Sanctuary = The solid stone underfoot is gone, replaced by a smooth, chillingly cold substance that rings like hollow glass with every footstep. There are no walls here—only a terrifying, infinite void. When you speak or move, your sounds do not echo back; they drop off into a bottomless silence that makes your ears pop, as if the room stretches out forever in every direction. The air is completely still, yet it carries the faint, static hum of volatile magic. 
+#
+Canyon of the Magi = You step through the portal and are instantly struck by a wall of brutal, suffocating heat. The sterile silence of the void shatters. The howling desert wind slams into your ears, carrying the harsh, abrasive scent of sun-baked dust and ozone. Beneath your boots, the ringing glass is gone, replaced by the heavy, grinding crunch of coarse sand. The air is thick and heavy, pressing against your skin like a physical weight after the weightlessness of the sanctuary. You have returned to the mortal world, but the desert wants you dead.
+#
+Tal Rasha's Tomb = You have found the true tomb of Tal Rasha. It is not merely a monument to the ancient mage, but a subterranean prison for the Prime Evil he chose to bind within his own flesh. The air is thick with the scent of ancient dust, embalming fluid, and the faint, bitter tang of a trapped demon's malice.
+#
+Tal Rasha's Chamber = After defeating Duriel, you finally have a moment to take in your surroundings. This part of the tomb is much older than the already ancient stonework out front. In the northwest, you spot an almost invisible archway leading into the final resting place of Tal Rasha. What may await you within?

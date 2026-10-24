@@ -232,6 +232,12 @@ add_library(d2r-access SHARED
 )
 target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
 d2rlplugin_embed_config(TARGET d2r-access FILE "${CMAKE_CURRENT_SOURCE_DIR}/radar.toml")
+# The descriptions that come with the mod, read under the player's own file (docs/descriptions.md).
+set(D2R_DESCRIPTIONS "${CMAKE_CURRENT_SOURCE_DIR}/data/descriptions.txt")
+set(D2R_DESCRIPTIONS_RC "${CMAKE_CURRENT_BINARY_DIR}/descriptions.rc")
+file(CONFIGURE OUTPUT "${D2R_DESCRIPTIONS_RC}" CONTENT "DESCRIPTIONS RCDATA \"${D2R_DESCRIPTIONS}\"\n")
+set_property(SOURCE "${D2R_DESCRIPTIONS_RC}" APPEND PROPERTY OBJECT_DEPENDS "${D2R_DESCRIPTIONS}")
+target_sources(d2r-access PRIVATE "${D2R_DESCRIPTIONS_RC}")
 target_include_directories(d2r-access PRIVATE "${PRISM_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set_target_properties(d2r-access PROPERTIES
 	CXX_STANDARD 20
