@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list on build test-2026-10-23-2 — 2026-10-24 (not released)
+## The tester's list on build test-2026-10-23-2 — 2026-10-24 (released as test-2026-10-24 from 45fd79d)
+
+Release: 127/127 CTest, 29 entries, 62,980,665 bytes, SHA-256 `e2e0b0c4…905814a2f88`; news
+`../tester-news-draft-2026-10-24.txt`.
 
 From `D2R Access test build 2026-10-23-2 notes and bug list.7z` ([decisions](docs/decisions.md)).
 127/127 CTest; installed by the build. **Unverified live.** Closed by the tester: NPC "!" chimes,
@@ -15,8 +18,6 @@ the vitals readout, the Cube, the stone tombs, status effects; the Sanctuary's s
   not written by the mod. Diagnostic `[notice] row without text` added
   ([native UI](docs/native-ui.md#hud-notice-rows-without-text-2026-10-24)).
 - Bridges: "bridge" said 4 times in the log (Kurast Docks, Spider Forest); no comment from the tester.
-
-News: `../tester-news-draft-2026-10-24.txt`.
 
 **Next step:** the tester: the square with the plugin removed, and a log with it on screen;
 live: a death, BACK + right stick up in an Act II area.
