@@ -125,3 +125,27 @@ said again among the landmarks. The scanner's crossings (`LevelAreas::Neighbours
 areas to share some edge: areas meeting corner to corner, like the Monastery Gate against the
 Black Marsh when the Tamoe Highland joins both, have nothing to walk across. Unverified live that
 the Black Marsh case is a corner; a crossing remembered on an earlier game's map stays listed there.
+
+## The share counts the tiles the automap can draw (2026-10-25)
+
+A tester fully revealed the Tower Cellar levels and heard 43, 28 and 32 percent, and 51 in the
+Den of Evil, however much more they walked. AutoMap.txt gives a cell only to some tiles: the Crypt
+and Cave level types have no floor rows at all, so a walkable floor tile there is drawn only when a
+wall cell happens to decode onto it, and walkable tiles never fill up. The share is now the cells
+drawn over the cells the automap can draw ([drawable tiles](automap-reader.md#drawable-tiles-2026-10-25)):
+
+- `NativeAutomap::DrawableTiles` reads each streamed room's wall and floor tiles and keeps those
+  the game's own AutoMap table gives a cell (`AutomapCells::HasCell`, the first matching row
+  decides), at the tile their cell decodes to. Hidden tiles, and floors the floor pass never shows
+  (draw layer outside 1-2, orientation not 0), are left out. `TerrainService::RecordDrawable`
+  keeps them per room for the session, as the walkable tiles were.
+- A room not streamed this game counts every cell the automap kept of it as drawn, and is
+  estimated at the measured rooms' density, never below what is drawn: a map charted in an earlier
+  game reads 100 once whole.
+- With the reader's own checks failed (`DrawableChecks`), the share falls back to rooms, as the
+  scanner's unexplored areas count them.
+- The log line is `percent=P (drawn D of W drawable tiles, estimated E)`; each level type logs its
+  AutoMap row range once (`[automap] level type T: AutoMap rows F..E of N`).
+
+Unverified live. A wall the camera never shows (behind another, at the map's edge) keeps a share
+just under 100; tell us where a fully seen map stays below.

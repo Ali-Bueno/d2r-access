@@ -639,7 +639,7 @@ PlannedRoute PlanRoute(const Lifecycle& state, EntityRadar::Entity entity, uint6
 	const LevelRoute::Arrival arrival(*memory, end);
 	const RouteLegs::End reached{end.minX, end.minY, end.maxX, end.maxY, [&arrival](int x, int y) { return arrival.Contains(x, y); }};
 	route.legs = RouteLegs::Describe(world.player, way.path, doors, passable, SpokenDirection::CurrentStyle(), &reached,
-		g_routeLongLegs.load(std::memory_order_relaxed) ? RouteLegs::MinLegUnits : 0);
+		g_routeLongLegs.load(std::memory_order_relaxed) ? RouteLegs::MinLegUnits : 0, crossable);
 	route.cells = way.path.size();
 	route.doors = doors.size();
 	route.guess = way.guess;
@@ -822,7 +822,7 @@ namespace {
 // BACK + right stick up: the hand-written words of the area the player is in (a tester, 2026-10-16).
 void DescribeArea(const D2RL::PluginContext* context, int level) {
 	const auto name = level > 0 ? NativeEntities::LevelName(static_cast<uint32_t>(level)) : std::string{};
-	std::string text = name.empty() ? std::string{} : Descriptions::FindArea(name);
+	std::string text = name.empty() ? std::string{} : Descriptions::FindArea(level, name);
 	if (text.empty()) {
 		char none[300]{};
 		std::snprintf(none, sizeof none, Strings::Current().noAreaDescription, name.c_str());
@@ -853,6 +853,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		OnLifecycle(state, now);
+		Descriptions::NoteLevel(state.level, state.level > 0 ? NativeEntities::LevelName(static_cast<uint32_t>(state.level)) : std::string{});
 	}
 	if (command == Command::Exploration || command == Command::FullAssistance) {
 		Release("navigation-mode");

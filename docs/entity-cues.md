@@ -148,3 +148,13 @@ level 0.15 -> 0.28; layer RMS 0.035 -> 0.064 (1.8x, now equal to the growl's), s
 880 -> 1830 Hz, still tonal and chattering at 62 Hz, never noise. The ping test now asks for twice,
 not four times, the elite's zero-crossing rate (a buzz this bright crosses zero more often); the
 growl still sits four times below. Static modelling only (numpy replica of the synth); listen in the glossary.
+
+## Critters are no enemies (2026-10-25)
+
+After Duriel died a tester still heard growls: the larvae crawling in his lair. They are
+`larva` (monstats.txt 283), one of Duriel's Lair's critters (Levels.txt `cmon1-4`: rat, bat,
+scorpion, larva), killable and named, with a hostile `Align`, so the reader took them for enemies;
+the other critters are friendly, unkillable or unnamed. Every class a level lists as a critter is
+now left out of the scan (`Generated::CritterMonster`, generated with the level flags by
+`tools/gen_level_flags.py`): chicken, rat, bat, bug, scorpion, larva, snake, parrot, minispider,
+bunny. Cows and camels are not critters and stay listed in town.

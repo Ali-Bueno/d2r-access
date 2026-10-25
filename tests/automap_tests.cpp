@@ -267,7 +267,7 @@ void Revealed() {
 	Check(AutomapCells::RevealedRooms({}, rooms).empty(), "an empty automap reveals no room");
 }
 
-void DrawnWalkable() {
+void DrawnTiles() {
 	auto floor = [](int x, int y) { Cell c{Tree::Floor}; c.x = x; c.y = y; c.lattice = true; return c; };
 	Cell wall = floor(9, 1);
 	wall.tree = Tree::Wall;
@@ -276,13 +276,31 @@ void DrawnWalkable() {
 	Cell object{Tree::Object};
 	object.x = 3; object.y = 0;
 	const std::vector<std::vector<AutomapCells::Point>> rooms{{{0, 0}, {1, 0}, {2, 0}, {3, 0}}, {{8, 1}, {9, 1}}, {}};
-	const auto drawn = AutomapCells::DrawnWalkable({floor(0, 0), floor(1, 0), floor(5, 5), wall, off, object}, rooms);
+	const auto drawn = AutomapCells::DrawnTiles({floor(0, 0), floor(1, 0), floor(5, 5), wall, off, object}, rooms);
 	Check(drawn.size() == 3 && drawn[0] == 2 && drawn[1] == 1 && drawn[2] == 0,
-		"only drawn floor and wall cells on a walkable tile count; off-lattice, object and unwalkable cells do not");
+		"only drawn floor and wall cells on a listed tile count; off-lattice, object and unlisted cells do not");
+}
+
+// The game's AutoMap lookup (0x32BDF0): the first matching row decides, 0xFF matches anything.
+void Cells() {
+	using AutomapCells::MapRow;
+	const std::vector<MapRow> rows{
+		{1, 3, 0, 2, AutomapCells::NoCell, 0}, // wall style 3, sequences 0-2: no cell
+		{1, AutomapCells::MapAny, AutomapCells::MapAny, 0, 7, 1},
+		{0, 5, 4, 4, 12, 2},
+	};
+	Check(!AutomapCells::HasCell(rows, 1, 3, 1), "the first row that matches decides, even without a cell");
+	Check(AutomapCells::HasCell(rows, 1, 3, 3) && AutomapCells::HasCell(rows, 1, 9, 0), "past its sequences the any-style row gives one");
+	Check(AutomapCells::HasCell(rows, 0, 5, 4) && !AutomapCells::HasCell(rows, 0, 5, 5) && !AutomapCells::HasCell(rows, 0, 6, 4),
+		"a floor needs its style and a sequence in range");
+	Check(!AutomapCells::HasCell(rows, 2, 0, 0) && !AutomapCells::HasCell({}, 0, 0, 0), "an orientation without a row has no cell");
+	const std::vector<MapRow> bare{{0, AutomapCells::MapAny, AutomapCells::MapAny, 0, 40, 0}};
+	Check(AutomapCells::HasCell(bare, 0, 1, 1), "a row without its count of cels still gives its first");
 }
 
 int main() {
-	DrawnWalkable();
+	DrawnTiles();
+	Cells();
 	Conversions();
 	Walks();
 	Layers();

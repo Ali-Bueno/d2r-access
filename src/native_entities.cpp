@@ -64,6 +64,10 @@ std::mutex g_usableMutex;
 UsableCorpses g_usable;
 constexpr uint32_t NoClass = UINT32_MAX;
 std::atomic<uint32_t> g_playerClass{NoClass};
+// Each stair's LvlWarp row is logged once, so a log tells from where it was taken (a tester, 2026-10-24).
+const D2RL::PluginContext* g_logContext = nullptr;
+std::mutex g_warpsMutex;
+std::unordered_set<uint64_t> g_warpsLogged;
 struct Tables {
 	uintptr_t monsters = 0, objects = 0, levels = 0;
 	uint64_t monsterCount = 0, objectCount = 0, levelCount = 0;
@@ -166,6 +170,13 @@ const std::unordered_set<std::string>& LevelKeys(uintptr_t levels, uint64_t coun
 	cachedTable = levels; cachedCount = count;
 	return keys;
 }
+// The level an object named after one leads to: the row whose LevelName, else LevelWarp, is its key.
+uint32_t LevelNamed(const Tables& tables, const std::string& key) {
+	for (const auto offset : {LevelNameKey, LevelWarpKey})
+		for (uint64_t id = 1; id < tables.levelCount; ++id)
+			if (CString(tables.levels + id * LevelStride + offset, MaxLevelKeyBytes) == key) return static_cast<uint32_t>(id);
+	return 0;
+}
 // *hcIdx of the cow and camel rows in the game's monstats.txt (NameStr "dummy"),
 // and the string keys that name them: objects.json "cowa", monsters.json "Camel".
 const char* AnimalNameKey(uint32_t classId) {
@@ -254,6 +265,8 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 		|| !Peek(unit + UnitClass, classId) || classId >= tables.monsterCount
 		|| !Peek(unit + UnitId, entity.id) || pets.contains(entity.id) || NativePets::PlayerOwned(unit)
 		|| !DynamicPosition(unit, room, entity.position)) return false;
+	// A level's critters are scenery, hostile Align or not: the larvae of Duriel's lair (a tester, 2026-10-24).
+	if (Generated::CritterMonster(classId)) return false;
 	const uintptr_t row = tables.monsters + classId * MonStatStride;
 	uint16_t nameId = 0;
 	uint8_t align = 0, flagsA = 0;
@@ -579,12 +592,15 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	// (Duriel's portal, the Ancients' gateway) whose key is a Levels key.
 	// The sewer stairs are the way through themselves, with no OpenWarp flag (RoomWarpOperateFn).
 	const bool warp = openWarp || operate == RoomWarpOperateFn;
-	const bool exit = (subClass & SubClassExit) || warp || (tables.levelKeys && tables.levelKeys->contains(key));
+	// Listed with the exits too: Tal Rasha's Chamber behind the tomb's broken wall (a tester, 2026-10-24).
+	const bool namedExit = tables.levelKeys && tables.levelKeys->contains(key);
+	const bool exit = (subClass & SubClassExit) || warp || namedExit;
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
-	entity.category = ObjectCategory(classId, subClass, warp, key);
+	entity.category = ObjectCategory(classId, subClass, warp || namedExit, key);
+	if (namedExit) entity.destinationLevel = LevelNamed(tables, key);
 	if (EntityRadar::QuestSource(entity)) entity.category = EntityRadar::Category::Quest;
 	// Stairs, waypoints and the stash stand where the level's layout put them.
-	if (openWarp || entity.category == EntityRadar::Category::Waypoint || entity.category == EntityRadar::Category::Stash)
+	if (openWarp || namedExit || entity.category == EntityRadar::Category::Waypoint || entity.category == EntityRadar::Category::Stash)
 		entity.placeId = NativeLevelExits::Identity(entity.position);
 	uintptr_t data = 0;
 	if (door) entity.name = UiText::Clean(Localization::Text(mode == ObjectOpened ? DoorOpenText : DoorClosedText));
@@ -649,6 +665,22 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	}
 	return !entity.name.empty();
 }
+// The stair's row as the game uses it, once per unit: its ExitWalk, Offset and select box, so the
+// side a stair is taken from can be matched to its row (the `0x40 a=5 b=<unit>` action line).
+void LogWarp(const EntityRadar::Entity& entity, uint32_t warpId, uintptr_t row) {
+	{
+		std::lock_guard lock(g_warpsMutex);
+		if (!g_logContext || !g_warpsLogged.insert(entity.placeId ^ (static_cast<uint64_t>(entity.id) << 40)).second) return;
+	}
+	std::array<int32_t, 4> select{};
+	std::array<int32_t, 2> walk{}, offset{};
+	uint8_t direction = 0;
+	if (!NativeMemory::Copy(row + LvlWarpSelect, select.data(), sizeof select) || !NativeMemory::Copy(row + LvlWarpExitWalk, walk.data(), sizeof walk)
+		|| !NativeMemory::Copy(row + LvlWarpOffset, offset.data(), sizeof offset) || !Peek(row + LvlWarpDirection, direction)) return;
+	AsyncLog::InfoF(g_logContext, "[exit] unit=%u warp=%u row=%s to=%u at=%.0f,%.0f walk=%d,%d offset=%d,%d select=%d,%d,%d,%d dir=%c",
+		entity.id, warpId, CString(row + LvlWarpName, LvlWarpNameBytes).c_str(), entity.destinationLevel, entity.position.x, entity.position.y,
+		walk[0], walk[1], offset[0], offset[1], select[0], select[1], select[2], select[3], direction >= ' ' && direction < 0x7F ? direction : '?');
+}
 // A level exit: the warp unit's node in its room, named after the destination level
 // the way the game's hover label does. Walk-through warps the game marks NoInteract
 // are skipped: their click proxy is an OpenWarp object read above.
@@ -686,17 +718,19 @@ bool ReadWarp(uintptr_t unit, uintptr_t room, const Tables& tables, EntityRadar:
 	}
 	if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
 	TombSymbols::Mark(entity, Strings::Current());
+	LogWarp(entity, warpId, row);
 	return true;
 }
 }
 
 bool Initialize(const D2RL::PluginContext* context) {
-	if (!context) { g_base = 0; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = g_usableCorpsesSupported = false; g_plate.reset(); { std::lock_guard lock(g_usableMutex); g_usable = {}; } g_playerClass = NoClass; return false; }
+	if (!context) { g_base = 0; g_logContext = nullptr; g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = g_npcAlertsSupported = g_immunities = g_usableCorpsesSupported = false; g_plate.reset(); { std::lock_guard lock(g_usableMutex); g_usable = {}; } g_playerClass = NoClass; return false; }
 	if (g_base && g_base == context->exeBase) return true; // already verified for this image
 	g_base = 0;
 	g_corpsesSupported = g_playersSupported = g_rosterSupported = g_rosterCorpsesSupported = g_socketsSupported = g_unbuiltSupported = false;
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "scan", "monsters, objects and exits disabled")) return false;
 	g_base = context->exeBase;
+	g_logContext = context;
 	g_plate.reset();
 	if (MonsterPlate::Tables tables; LayoutCheck::Verify(context, context->exeBase, PlateChecks, "plate", "monster ranks and enchantments not spoken")
 		&& NativeMemory::Copy(g_base + EnchantmentNames, tables.enchantments.data(), sizeof(tables.enchantments))
@@ -930,15 +964,14 @@ std::string LevelName(uint32_t levelId) {
 	return ReadLevelTable(tables) ? LevelText(tables, levelId, LevelNameKey) : std::string{};
 }
 
-std::vector<std::string> LevelNames() {
+std::vector<std::pair<uint32_t, std::string>> LevelNames() {
 	const NativeMemory::ReadScope scope;
 	Tables tables;
-	std::vector<std::string> names;
-	if (!ReadLevelTable(tables)) return names;
+	std::vector<std::pair<uint32_t, std::string>> levels;
+	if (!ReadLevelTable(tables)) return levels;
 	for (uint32_t id = 1; id < tables.levelCount; ++id)
-		if (auto name = LevelText(tables, id, LevelNameKey); !name.empty() && std::find(names.begin(), names.end(), name) == names.end())
-			names.push_back(std::move(name));
-	return names;
+		if (auto name = LevelText(tables, id, LevelNameKey); !name.empty()) levels.emplace_back(id, std::move(name));
+	return levels;
 }
 
 std::string TownPresets() {

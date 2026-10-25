@@ -230,17 +230,35 @@ void LongLegs() {
 	// Two short legs in a row: the shorter goes first, and the rest is one leg.
 	Walk pair;
 	pair.Go(NorthWest, 3).Go(NorthEast, 7);
-	const RouteLegs::Passable gap = [](int x, int y) { return y != -6 || x == -3; };
+	const RouteLegs::Passable gap = [](int x, int y) { return y != -6 || (x >= -4 && x <= -2); };
 	const auto both = RouteLegs::Describe({0, 0}, pair.path, {}, gap, Compass, nullptr, RouteLegs::MinLegUnits);
 	Check(both.size() == 1 && both[0].length >= RouteLegs::MinLegUnits, "no leg is left under the minimum");
 
 	// A short leg beside a door goes into the leg on its other side.
 	Walk door;
 	door.Go(North, 10).Go(NorthEast, 2).Go(NorthEast, 2).Go(North, 10);
-	const auto doors = RouteLegs::Describe({0, 0}, door.path, {11, 12}, door.Corridor(), Compass, nullptr, RouteLegs::MinLegUnits);
+	// The body keeps to the way's cells; the folded line may cross the hall's floor beside them.
+	const RouteLegs::Passable hall = [cells = door.cells](int x, int y) {
+		for (int dy = -3; dy <= 3; ++dy)
+			for (int dx = -3; dx <= 3; ++dx)
+				if (cells.contains({x + dx, y + dy})) return true;
+		return false;
+	};
+	const auto doors = RouteLegs::Describe({0, 0}, door.path, {11, 12}, door.Corridor(), Compass, nullptr, RouteLegs::MinLegUnits, hall);
 	Check(std::count_if(doors.begin(), doors.end(), [](const Leg& leg) { return leg.door; }) == 1, "the door stays a leg of its own");
 	Check(std::none_of(doors.begin(), doors.end(), [](const Leg& leg) { return !leg.door && leg.length < RouteLegs::MinLegUnits; }),
 		"every walked leg is at least the minimum");
+
+	// Round a pillar (a tester, 2026-10-24, Asheara's hut): folded, the two short legs would run
+	// straight into it, so they stay; with the ground clear they fold.
+	constexpr Position West{-1, 1};
+	Walk round;
+	round.Go(West, 2).Go(North, 2);
+	const RouteLegs::Passable pillar = [](int x, int y) { return !(y == 0 && (x == -2 || x == -3)); };
+	const auto kept = RouteLegs::Describe({0, 0}, round.path, {}, round.Corridor(), Compass, nullptr, RouteLegs::MinLegUnits, pillar);
+	Check(kept.size() == 2, "short legs round a pillar are not folded into a line through it");
+	const auto clear = RouteLegs::Describe({0, 0}, round.path, {}, round.Corridor(), Compass, nullptr, RouteLegs::MinLegUnits, Everywhere());
+	Check(clear.size() == 1, "with nothing in the way they are");
 
 	// Distances in steps of five units, a click each.
 	Walk corner;

@@ -338,7 +338,7 @@ inline constexpr Table enUS {
 	.itemDropped = "Dropped on the ground",
 	.socketsNone = "No sockets",
 	.socketsCount = "Sockets: %d",
-	.socketsFree = "Free sockets: %d",
+	.socketsFree = "Open sockets: %d",
 	.socketsFull = "Sockets full",
 	.socketRefused = "Could not socket it",
 	.itemArrived = "New in inventory: %s, %s",

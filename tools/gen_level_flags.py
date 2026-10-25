@@ -3,7 +3,9 @@
 table of two Levels.txt facts the plugin needs to describe a level without
 reading game memory: DrlgType (the layout generator: maze/preset/outdoor) and
 *IsInside (whether the level has a ceiling/is indoors), read straight off the
-row so the plugin never has to guess.
+row so the plugin never has to guess. It also lists the monster classes the
+levels name as critters (cmon1-4, the ambient rats, bats and larvae), as
+monstats.txt *hcIdx, so the plugin never takes one for an enemy.
 
 Levels.txt has one non-level row, "Expansion" (all columns blank, including
 Id) -- a section separator Blizzard leaves in the sheet, not a real level; it
@@ -43,6 +45,25 @@ def load_rows(levels_txt: Path) -> list[dict[str, str]]:
     return rows
 
 
+def critter_classes(rows: list[dict[str, str]], monstats_txt: Path) -> list[tuple[int, str]]:
+    """The cmon1-4 classes of every level, as (*hcIdx, monstats Id), sorted by *hcIdx."""
+    lines = monstats_txt.read_text(encoding="utf-8-sig").splitlines()
+    header = lines[0].split("\t")
+    for column in ("Id", "*hcIdx"):
+        if column not in header:
+            raise SystemExit(f"{monstats_txt}: missing expected column {column!r}")
+    index = {}
+    for line in lines[1:]:
+        row = dict(zip(header, line.split("\t")))
+        if row.get("*hcIdx", "").strip():
+            index[row["Id"].strip()] = int(row["*hcIdx"])
+    names = {row[f"cmon{i}"].strip() for row in rows for i in range(1, 5) if row.get(f"cmon{i}", "").strip()}
+    missing = sorted(name for name in names if name not in index)
+    if missing:
+        raise SystemExit(f"{monstats_txt}: critter classes not found: {missing}")
+    return sorted((index[name], name) for name in names)
+
+
 def escape_c_string(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
@@ -54,18 +75,25 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--repo-root", type=Path, default=default_repo_root)
     ap.add_argument("--levels-txt", type=Path, default=None)
+    ap.add_argument("--monstats-txt", type=Path, default=None)
     ap.add_argument("--out-header", type=Path, default=None)
     args = ap.parse_args()
 
     repo_root: Path = args.repo_root
     levels_txt: Path = args.levels_txt or (repo_root / "game-data" / "global" / "excel" / "Levels.txt")
+    monstats_txt: Path = args.monstats_txt or (repo_root / "game-data" / "global" / "excel" / "monstats.txt")
     out_header: Path = args.out_header or (repo_root / "src" / "generated" / "level_flags.h")
 
     if not levels_txt.is_file():
         print(f"ERROR: Levels.txt not found: {levels_txt}", file=sys.stderr)
         return 1
 
+    if not monstats_txt.is_file():
+        print(f"ERROR: monstats.txt not found: {monstats_txt}", file=sys.stderr)
+        return 1
+
     rows = load_rows(levels_txt)
+    critters = critter_classes(rows, monstats_txt)
     towns = {}
     for row in rows:
         level = int(row["Id"])
@@ -131,6 +159,20 @@ def main() -> int:
     lines.append("\treturn UnknownLevel;")
     lines.append("}")
     lines.append("")
+    lines.append("// The monster classes (monstats.txt *hcIdx) a level names as its critters, Levels.txt")
+    lines.append("// cmon1-4: ambient animals that never attack, whatever their Align.")
+    lines.append("inline constexpr uint32_t CritterClasses[] = {")
+    for hc, code in critters:
+        lines.append(f"\t{hc}, // {code}")
+    lines.append("};")
+    lines.append("")
+    lines.append("inline constexpr bool CritterMonster(uint32_t classId) {")
+    lines.append("\tfor (const auto critter : CritterClasses) {")
+    lines.append("\t\tif (critter == classId) return true;")
+    lines.append("\t}")
+    lines.append("\treturn false;")
+    lines.append("}")
+    lines.append("")
     lines.append("}")
     lines.append("")
 
@@ -143,6 +185,7 @@ def main() -> int:
     print(f"[gen-level-flags] {len(entries)} levels read from {levels_txt.relative_to(repo_root)}")
     print(f"[gen-level-flags] inside: {inside_count}, outside: {len(entries) - inside_count}")
     print(f"[gen-level-flags] DrlgType counts: {dict(sorted(drlg_counts.items()))}")
+    print(f"[gen-level-flags] critters: {', '.join(code for _, code in critters)}")
     print(f"[gen-level-flags] wrote {out_header}")
 
     return 0

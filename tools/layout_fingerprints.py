@@ -36,7 +36,7 @@ import re
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-TABLES = ["src/ground_item_layout.h", "src/entity_layout.h", "src/native_world.cpp"]
+TABLES = ["src/ground_item_layout.h", "src/entity_layout.h", "src/native_world.cpp", "src/automap_layout.h"]
 ENTRY = re.compile(r"(\{\s*(0x[0-9A-Fa-f]+)\s*,\s*(\d+)\s*,\s*)0x([0-9A-Fa-f]+)ULL")
 
 FNV_BASIS, FNV_PRIME, MASK64 = 14695981039346656037, 1099511628211, (1 << 64) - 1

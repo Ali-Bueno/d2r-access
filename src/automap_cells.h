@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <vector>
 
 // The cells the native automap has drawn for its current layer, read without
@@ -69,8 +70,19 @@ LayerStatus ReadLayer(ReadMemory read, uintptr_t layer, int32_t expected, bool w
 bool InRooms(const Cell& cell, const std::vector<NativeRooms::Room>& rooms);
 // The rooms holding at least one floor or wall cell: ground the automap has drawn.
 std::vector<NativeRooms::Room> RevealedRooms(const std::vector<Cell>& cells, const std::vector<NativeRooms::Room>& rooms);
-// For each room's walkable tiles, how many the automap has drawn as a floor or wall cell.
-std::vector<size_t> DrawnWalkable(const std::vector<Cell>& cells, const std::vector<std::vector<Point>>& rooms);
+// For each room's listed tiles, how many the automap has drawn as a floor or wall cell.
+std::vector<size_t> DrawnTiles(const std::vector<Cell>& cells, const std::vector<std::vector<Point>>& rooms);
+
+inline constexpr uint8_t MapAny = 0xFF;
+inline constexpr int32_t NoCell = -1; // the lookup's answer when a tile gets none
+// An AutoMap.txt row as the game keeps it (0x32CAE0): the tiles it matches and its cells.
+struct MapRow {
+	int32_t orientation = 0;
+	uint8_t style = 0, firstSequence = 0, lastSequence = 0; // MapAny matches any
+	int32_t firstCel = NoCell, cels = 0;                     // Cel1, and how many Cels are set
+};
+// Whether the game's lookup (0x32BDF0) gives a tile a cell: the first matching row decides.
+bool HasCell(std::span<const MapRow> rows, uint32_t orientation, uint32_t style, uint32_t sequence);
 
 const char* TreeName(Tree tree);
 const char* StatusName(TreeStatus status);

@@ -263,6 +263,17 @@ void WallDoorways() {
 	Block(cottage, 24, 30, 25, 30);
 	doorways = Rooms::Doorways(Level({cottage}, {22, 35}, 2));
 	Check(doorways.size() == 1 && Near(doorways.front(), 22, 30), "a door beside a building's corner is a doorway");
+
+	// Nine cells deep, its door one cell from the side wall inside (Cott4; a tester, 2026-10-24).
+	auto shallow = Floor(0, 0, 40, 40);
+	Block(shallow, 15, 15, 25, 15);
+	Block(shallow, 15, 15, 15, 25);
+	Block(shallow, 25, 15, 25, 25);
+	Block(shallow, 15, 25, 20, 25);
+	Block(shallow, 24, 25, 25, 25);
+	doorways = Rooms::Doorways(Level({shallow}, {22, 30}, 2));
+	Check(doorways.size() == 1 && Near(doorways.front(), 22, 25) && doorways.front().width == 3,
+		"a door beside an inner corner of a shallow room is a doorway");
 }
 
 void Geometry() {

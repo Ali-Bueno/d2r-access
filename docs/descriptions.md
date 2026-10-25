@@ -50,3 +50,17 @@ Logs: `[descriptions] N read from descriptions.txt`, `[descriptions] N read agai
 descriptions.txt, saved while playing`, `[descriptions] N area and M landmark names written to
 descriptions-names.txt`, `[descriptions] hint for "<area>"`,
 `[descriptions] BACK+up in "<area>" (level N)`, and the place line of the first landmark reach.
+
+## A level by its Id; the area hint (2026-10-25)
+
+The tester: "Sewers Level 1" and "Sewers Level 2" name both Lut Gholein's sewers (Levels.txt Id 47,
+48) and Kurast's (92, 93), so one line answered in both. A name ending in a level's Id in brackets,
+`Sewers Level 1 [92] = ...`, is kept under that Id alone (`Descriptions::LevelKey`, the words before
+it are the writer's own) and wins over a line with the name only, whichever file it is in; a later
+line for the same Id replaces an earlier one, so the player's file still wins line by line. The mod's
+own file keys its four sewer lines that way, and `descriptions-names.txt` lists a name two levels
+share once per level with its Id.
+
+The hint after a described area's banner never came: it looked the banner's text ("Entering Lut
+Gholein") up as a name. It now takes the level the player is in (`Descriptions::NoteLevel`, from the
+beacon service's level change) with its name and the banner, as BACK + right stick up does.

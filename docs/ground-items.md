@@ -286,6 +286,18 @@ change finds `Cott3`/`Cott3A`'s doors and leaves `Cott1`, `Cott2`, `Cott5` and `
 `Cott4` (as narrow, shorter) still fails, on the depth rule. Unverified live: the offline mask
 leaves out objects, roofs and the neighbouring pieces.
 
+**A door by an inner corner, 2026-10-24.** The tester (`cottage_no_creak_*`): the Stony Field
+cottage `Cott4.ds1` never creaked. From the live collision dumps: a 1-cell south wall with a 3-wide
+gap, the east wall one cell past the gap's east edge inside, and the back wall 9 cells deep. The
+inner face failed the widening rule (2 open cells past each edge) because of that east wall, and
+the lone outer face was dropped as a recess, the back wall being at the depth limit. One edge of a
+face may now stop sooner when the first wall cell past it starts a wall a tile long running away
+from the gap's own: a room's inner corner, the analogue of `CornerRun` (`widens` in
+`Rooms::Doorways`). The other edge must still widen fully; flanks and the recess test are unchanged,
+so gaps between pillars stay out. A Python port on the tester's level-2, -3 and -4 dumps found
+`Cott4`'s door (width 3) and no other change; a looser "one cell each side" rule added four false
+doorways on level 2. Test: `rooms_tests.cpp`, the shallow cottage.
+
 ## Walked distance click (2026-10-20)
 
 A tester's request, to judge distances: a click every 1, 5 or 10 units walked (units as the

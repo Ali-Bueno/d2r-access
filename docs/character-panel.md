@@ -186,3 +186,86 @@ remains pending.
 
 The 2026-09-23 build passed all 71 CTest suites without compiler warnings;
 the installed plugin matches the built DLL's SHA-256.
+
+## Hit-chance tooltips (2026-10-25)
+
+Static reading of `re/D2R.rebuilt.exe` (3.3.93787, code identical on 3.3.94995); no live check
+yet. RVAs are live; fingerprints are `{rva, size, LayoutCheck::Hash}`, computed with the same
+masked FNV as `tools/layout_fingerprints.py` (the tool reproduces the shipped `0xF2B40` entry).
+The image's `.rdata` does not match the live one everywhere (`re/notes.md`), so a string named
+below from a `lea` is only trusted where its length and its neighbours agree.
+
+**Where the text is made (verified, code).** `CharacterStatsPanel` (factory `0x14E5820`, object
+`0x250` bytes, vtable live `0x1FDCEF0`) keeps the hover text in an engine string at **`+0x198`**
+(`data +0x198`, `size +0x1A0`, inline buffer `+0x1B0`) and its anchor rect at `+0x238`. Its
+message handler (`0x14E90A0`, call at `0x14E9C5A`) passes the payload's x/y (`+4`/`+8`) to
+`0x14E8300`, which clears the string, hit-tests children (`0x856220`, direct child by name) and
+fills it from one of two builders. The panel's vtable method `0x14E59B0` draws it whenever the
+size is non-zero (`0x14E5DD6`), through live `0x3E2A92A` (outside the rebuilt image), the same
+callee `FocusableWidget` uses for its own `tooltipString` (`0x875A51`).
+
+- Attack rating: `0x14E7FE0(panel, out, player, hand)`. `hand` is 1 for the first skill block, 0
+  for the second; AR from `0x28A590(player, hand)`, chance from `0x1514700(AR)` (AR 0: empty
+  text, no tooltip). Text = `charmonsterX` (10103, `"%s: %d%%"`, name, chance) + `newline` +
+  `charavghit` (4159), keys via `0x5F4B90`. Stored bottom-up like every tooltip body, so it reads
+  "Average chance to hit / Fallen: 92%". (`charmonsterX`/`charavghit`: verified by length and the
+  panel's string block; `newline`: 7-character key, hypothesis.)
+- Defense: `0x14E8220(panel, out)` = `0x15149F0()` then `0x1514CA0(chance, buf)`, which clamps
+  5..95 and uses id **10105** when the block chance (`0x347DA0`, fallback `0x1514E00`) is above 0,
+  else **10104** (both by id through `0x5F4A50`). 10105 bottom-up: "Average chance X will hit
+  you" above "Chance to Block".
+- Which widgets: the left/right skill blocks' `Rating` row and the defence row; a branch on
+  `PanelManager+0xB9` (`0x846210`, probably the controller-layout flag) tests one level deeper.
+  Exact child names are not readable from this image (hypothesis).
+- The message: its name hash is seeded with `'M'`; of the names tried, only `MouseMove` is an immediate in the image
+  (`0x681C0F1F0A501EB1`, dispatcher `0x88BBE4`) — hypothesis, strong. So the
+  keyboard cursor (`MenuMouse::Place` moves the real pointer) should produce the text; pad focus
+  alone probably does not (the `Tooltip` child shows only `CharacterStatsTooltip*`). Live check.
+
+**The monster (verified, code).** Hover array `0x2A41630` (8 × `0x10`, `native_hover.cpp`):
+int16 class at **`+0xC`** for the attack side (getter `0xF1860`) and **`+0xE`** for the defence
+side (`0xF18B0`). Both start as **19** (`fallen1`, "Fallen") — static init `0x351F0`, reset
+`0xF1BA0` — and `UpdateHover 0xF2B40` rewrites them for a hovered monster that is not an NPC
+(`MonStats+0x3D` against a mask, hypothesis), not friendly (`+0x87 != 1`) and passes two `MonStats2` mode-byte tests
+(`+5`, `+6`; `+6` keeps `+0xE` unchanged). The name is the **base** `MonStats+0x36` string
+(`0x5F4A50`), with a leading `[xx]` gender tag skipped (`0x1E1CF0`), never the unique name. There
+is always a monster, so the "level %d monster" strings (4160–4162) are dead: no code loads them.
+
+**The numbers (verified, code; a reimplementation would be fragile).** `diff` = byte 0 of
+`0x9A610`; `mlvl` = `max(MonStats.Level[diff]` at row `+0xFC+2*diff`, the current area level via
+`0x34B440 → 0x2EFC10 → 0x90BE0)`; the monster's defence/AR come from `0x3A26C0(bank, class,
+0x8B040() (player count), diff, mlvl, mask)` (3,274 bytes, MonStats/MonLvl). Attack: def at
+`out+8` (mask 2), `×10/12` when not friendly, byte 1 of `0x9A610` is 1 and `diff > 0`; AR gains
+CharStats `+0x38` (ToHitFactor, hypothesis) unless `0x34B9D0(player)`; `2·100·AR/(AR+def)·clvl/
+(clvl+mlvl)`, clamped 5..95. Defence: player def `0x347B10 + stat 33`; monster AR at `out+0xC`
+(masks 8, 0x10, 0x20 until non-zero), `×2/3` on the same condition; `2·100·AR/(AR+def)·mlvl/
+(mlvl+clvl)`. Negative values move to the other side of the ratio in both.
+
+**Recipe.** Read `panel+0x198` (bounded engine string, after checking `*(panel) == base +
+0x1FDCEF0`) while it is non-empty and walk its lines backwards like `TooltipText::Read`; this is
+the game's own text. Do not compute. For pad focus, if the live check confirms the panel never
+fills it, the read-only fallback is the class word plus the name; the percentages would need
+`0x1514700`/`0x15149F0` called on the game thread.
+
+```
+{0x14E5820, 397, 0x16BCB29E6CC3D8CBULL},  // factory: size 0x250, vtable, +0x198 string, +0x238
+{0x14E8300, 2149, 0xCC21893231598228ULL}, // hover: clears/sets +0x198, rect +0x238
+{0x14E59B0, 1258, 0x0575D8D587A85A86ULL}, // draw: +0x1A0 > 0 -> show tooltip
+{0x14E7FE0, 566, 0xDB7C39187976DAF3ULL},  // attack text
+{0x14E8220, 220, 0xFF21BA0BBC012516ULL},  // defence text
+{0x1514700, 749, 0xE556344C97C425D1ULL},  // chance to hit
+{0x15149F0, 687, 0x5265C26DBD44DD92ULL},  // chance to be hit
+{0x1514CA0, 343, 0x67BA149E4C0ADB47ULL},  // clamp + 10104/10105
+{0xF1860, 66, 0xDC510325BA7BE405ULL},     // hover +0xC
+{0xF18B0, 66, 0x36C5B8F7CE3FC793ULL},     // hover +0xE
+{0x351F0, 39, 0x1D2FB78F6F754057ULL},     // init both to 19
+{0xF1BA0, 179, 0xBB26270476FEBAB0ULL},    // reset both to 19
+{0xF2B40, 1195, 0xF11A8AE0085BFE60ULL},   // UpdateHover (already in native_hover.cpp)
+```
+
+**Shipped 2026-10-25: a diagnostic only.** The stick walks the rows without moving the game's own
+focus, so the panel's hover text belongs to wherever the game's cursor is, not to the row read.
+`CharacterStatsReader` logs that text when it changes (`[stats] hover text "..."`, after the vtable
+check), to confirm `+0x198` live and learn whether controller focus fills it. Speaking the hit
+chances on the rows needs the game's own calculators (`0x1514700`, `0x15149F0`) and the hover array's
+monster, a call into game code decided after that live check.

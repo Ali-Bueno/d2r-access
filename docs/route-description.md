@@ -184,3 +184,13 @@ Navigation, off): `EntityRadar::SetUnitsPerStep` makes `DistancePhrase` and each
 steps of that interval, at least 1 ("1 step" for 2 units); "right here" is unchanged. It covers
 every distance the mod says through `DistancePhrase` (scanner, tracker, route, NPCs, overview).
 The radar test's "units clear" stays in units.
+
+## Long legs never fold through a wall (2026-10-25)
+
+With `route-long-legs`, a leg under 5 units was folded into a neighbour without looking at the
+ground. In Asheara's hut two 3-unit legs round a pillar folded into one straight line through it,
+"northwest, 1", and the wall slide refused it (an isolated pillar is no narrow passage). A fold is
+now made only when its straight line, sampled every half cell, crosses ground cells only
+(`RouteLegs::Lengthen`, the route's `crossable` ground: walls and objects excluded, the body not
+required), else the next way is tried and then the legs are kept. The body may still brush a door
+frame, as the 2026-10-22 rule meant. Tests: `route_legs_tests.cpp`, the pillar.

@@ -3,6 +3,7 @@
 #include "native_rooms.h"
 #include <D2RLPlugin/api.h>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -41,8 +42,14 @@ const char* StatusName(Status status);
 // Of `rooms` (the current level's), those the automap has drawn in; nothing when
 // the automap cannot be read. Game thread only; cached until the floors or walls grow.
 std::optional<std::vector<NativeRooms::Room>> RevealedRooms(const std::vector<NativeRooms::Room>& rooms);
-// Per room, how many of its walkable tiles the automap has drawn; nothing when the
+// Per room, how many of its listed tiles the automap has drawn; nothing when the
 // automap cannot be read. Game thread only.
-std::optional<std::vector<size_t>> DrawnWalkable(const std::vector<std::vector<AutomapCells::Point>>& rooms);
+std::optional<std::vector<size_t>> DrawnTiles(const std::vector<std::vector<AutomapCells::Point>>& rooms);
+
+// The tiles of an active room (NativeWorld::LoadedRooms) the automap draws once they have been on
+// screen, each where its cell decodes; nothing when the room cannot be read, DrawableChecks failed
+// or `wanted`, asked with the room's level and tile, declines it. Game thread only.
+struct RoomTiles { uint32_t level = 0; int32_t tileX = 0, tileY = 0; std::vector<AutomapCells::Point> tiles; };
+std::optional<RoomTiles> DrawableTiles(uintptr_t room, const std::function<bool(const RoomTiles&)>& wanted = {});
 
 }

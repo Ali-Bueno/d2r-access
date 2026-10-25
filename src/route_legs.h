@@ -39,9 +39,12 @@ struct End {
 // ground allows, split at the shut doors (`doors`: indices into `path`). It
 // ends anywhere in `end`, else at the path's last cell. With `minLeg`, a shorter
 // leg is folded into a neighbour, so turns are at least that far apart and the way
-// is walked a little off its cells.
+// is walked a little off its cells: the body may brush a door frame, but the straight
+// line crosses only `ground` (the ground itself, without room for the body; `passable`
+// when not given).
 std::vector<Leg> Describe(Position from, const std::vector<Position>& path, const std::vector<size_t>& doors,
-	const Passable& passable, SpokenDirection::Style style, const End* end = nullptr, double minLeg = 0);
+	const Passable& passable, SpokenDirection::Style style, const End* end = nullptr, double minLeg = 0,
+	const Passable& ground = {});
 double Length(const std::vector<Leg>& legs);
 // One leg: "north, 20", or "door".
 std::string Say(const Leg& leg, const Strings::Table& strings);

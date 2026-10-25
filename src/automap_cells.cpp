@@ -178,7 +178,7 @@ std::vector<NativeRooms::Room> RevealedRooms(const std::vector<Cell>& cells, con
 	return result;
 }
 
-std::vector<size_t> DrawnWalkable(const std::vector<Cell>& cells, const std::vector<std::vector<Point>>& rooms) {
+std::vector<size_t> DrawnTiles(const std::vector<Cell>& cells, const std::vector<std::vector<Point>>& rooms) {
 	std::unordered_set<uint64_t> tiles;
 	for (const auto& cell : cells)
 		if (Tiles(cell.tree) && cell.lattice) tiles.insert(TileKey(cell.x, cell.y));
@@ -188,6 +188,16 @@ std::vector<size_t> DrawnWalkable(const std::vector<Cell>& cells, const std::vec
 		drawn.push_back(static_cast<size_t>(std::count_if(room.begin(), room.end(),
 			[&](const Point& tile) { return tiles.contains(TileKey(tile.x, tile.y)); })));
 	return drawn;
+}
+
+bool HasCell(std::span<const MapRow> rows, uint32_t orientation, uint32_t style, uint32_t sequence) {
+	for (const auto& row : rows) {
+		if (static_cast<uint32_t>(row.orientation) != orientation || (row.style != MapAny && row.style != style)) continue;
+		if (row.firstSequence != MapAny && (sequence < row.firstSequence || sequence > row.lastSequence)) continue;
+		// A row without its count of Cels gives its Cel1 as it is (0x32BDF0).
+		return row.cels >= 1 || row.firstCel != NoCell;
+	}
+	return false;
 }
 
 const char* TreeName(Tree tree) {

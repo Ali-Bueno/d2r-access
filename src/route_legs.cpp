@@ -288,18 +288,43 @@ double Along(const Leg& a, const Leg& b) {
 	return (a.delta.x * b.delta.x + a.delta.y * b.delta.y) / (std::hypot(a.delta.x, a.delta.y) * std::hypot(b.delta.x, b.delta.y));
 }
 
+// Whether walking straight from `from` by `delta` crosses `ground` cells only.
+bool Straight(Cell from, Position delta, const Passable& ground) {
+	const int steps = std::max(1, static_cast<int>(std::ceil(std::hypot(delta.x, delta.y) * 2)));
+	for (int i = 1; i <= steps; ++i) {
+		const double t = static_cast<double>(i) / steps;
+		const Cell cell = CellAt({from.x + delta.x * t, from.y + delta.y * t});
+		if (!ground(cell.x, cell.y)) return false;
+	}
+	return true;
+}
+
 // Legs shorter than `minLeg`, shortest first, each folded into the neighbour heading most its
-// way (never a door), which then runs straight from the one's start to the other's end.
-std::vector<Leg> Lengthen(std::vector<Leg> legs, double minLeg, SpokenDirection::Style style) {
+// way (never a door), which then runs straight from the one's start to the other's end. A fold
+// whose straight line would cross a wall cell is not made: a pillar in Asheara's hut (a tester, 2026-10-24).
+std::vector<Leg> Lengthen(std::vector<Leg> legs, double minLeg, SpokenDirection::Style style, Cell start, const Passable& ground) {
+	std::vector<bool> kept(legs.size());
 	for (;;) {
 		const auto foldable = [&legs](size_t i) { return i < legs.size() && !legs[i].door; };
 		size_t at = legs.size();
 		for (size_t i = 0; i < legs.size(); ++i)
-			if (!legs[i].door && legs[i].length < minLeg && ((i > 0 && foldable(i - 1)) || foldable(i + 1))
+			if (!kept[i] && !legs[i].door && legs[i].length < minLeg && ((i > 0 && foldable(i - 1)) || foldable(i + 1))
 				&& (at == legs.size() || legs[i].length < legs[at].length)) at = i;
 		if (at == legs.size()) return legs;
+		const auto fits = [&](size_t into) {
+			Cell from = start;
+			for (size_t i = 0; i < std::min(at, into); ++i)
+				from = CellAt({from.x + legs[i].delta.x, from.y + legs[i].delta.y});
+			return Straight(from, {legs[at].delta.x + legs[into].delta.x, legs[at].delta.y + legs[into].delta.y}, ground);
+		};
 		const bool before = at > 0 && foldable(at - 1), after = foldable(at + 1);
-		size_t into = !after || (before && Along(legs[at], legs[at - 1]) >= Along(legs[at], legs[at + 1])) ? at - 1 : at + 1;
+		const size_t preferred = !after || (before && Along(legs[at], legs[at - 1]) >= Along(legs[at], legs[at + 1])) ? at - 1 : at + 1;
+		const size_t other = preferred < at ? (after ? at + 1 : legs.size()) : (before ? at - 1 : legs.size());
+		size_t into = fits(preferred) ? preferred : other < legs.size() && fits(other) ? other : legs.size();
+		if (into == legs.size()) {
+			kept[at] = true;
+			continue;
+		}
 		auto& leg = legs[into];
 		leg.delta = {leg.delta.x + legs[at].delta.x, leg.delta.y + legs[at].delta.y};
 		leg.length = std::hypot(leg.delta.x, leg.delta.y);
@@ -308,12 +333,13 @@ std::vector<Leg> Lengthen(std::vector<Leg> legs, double minLeg, SpokenDirection:
 		// Two legs that undo each other leave nothing to walk.
 		if (legs[into].length < 1) legs.erase(legs.begin() + static_cast<std::ptrdiff_t>(into));
 		legs = Merge(legs, style);
+		kept.assign(legs.size(), false);
 	}
 }
 }
 
 std::vector<Leg> Describe(Position from, const std::vector<Position>& path, const std::vector<size_t>& doors,
-	const Passable& passable, SpokenDirection::Style style, const End* end, double minLeg) {
+	const Passable& passable, SpokenDirection::Style style, const End* end, double minLeg, const Passable& ground) {
 	std::vector<Leg> legs;
 	if (path.empty()) return legs;
 	std::vector<Cell> way{CellAt(from)};
@@ -334,7 +360,7 @@ std::vector<Leg> Describe(Position from, const std::vector<Position>& path, cons
 	}
 	// Opened from where the way already ends, a door is the last leg.
 	if (first == 0 || !Contains(goal, at)) Walk(way, first, way.size() - 1, at, goal, passable, legs);
-	return minLeg > 0 ? Lengthen(Merge(legs, style), minLeg, style) : Merge(legs, style);
+	return minLeg > 0 ? Lengthen(Merge(legs, style), minLeg, style, way.front(), ground ? ground : passable) : Merge(legs, style);
 }
 
 double Length(const std::vector<Leg>& legs) {

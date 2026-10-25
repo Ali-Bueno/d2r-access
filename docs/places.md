@@ -283,3 +283,18 @@ subtiles in both layouts, `lutw.ds1` and `lutn.ds1`); `Places::Tracked(PlaceInte
 (`Listing::interior`, named by the interior word, "palace entrance"), as wide as the hall, so the
 beacon's arrival distance (3 plus half the footprint) ends a route at its door. Unverified live:
 where on the hall's edge the route ends while the guards still bar the way.
+
+## Town landmarks from anywhere; dead ends that go on (2026-10-25)
+
+**The palace entrance** was listed only once its hall had been charted, and the hall behind the
+guards never is from outside, so the tester never found it in the scanner. In a town the map's
+landmarks are now listed from anywhere, as its exits and NPCs are (`Discovered` in
+`map_survey_service.cpp`; doorways excepted). Lut Gholein's palace hall is the only one so far.
+
+**Dead ends.** The tester heard "dead end" in straight corridors that go on. `Passages::Follow` walks
+the corridor along the player's own line and called any wall cell met there the end. In six logged
+samples it was the jamb of an arch off the line (four), a 5x3 object in the corridor and a slanting
+wall; none was a real dead end. A wall met ahead now closes the corridor only when the cross-section
+there, between the corridor's side walls, has no opening as wide as the body with floor one step
+further (`GoesOn`, `Settings::passable` from `Rooms::PassableWidth`). A corridor walled across, or
+plugged by stairs, is still a dead end. Tests: `passages_tests.cpp`.

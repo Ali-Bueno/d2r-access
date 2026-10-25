@@ -70,4 +70,37 @@ inline constexpr Evidence Checks[] = {
 	{0x334E00, 27, 0x1B2DB48CB7B17318ULL},  // subtile -> client pixels
 	{0x334DE0, 26, 0x946AEF40BA204C59ULL},  // dynamic path: 32nds of a subtile -> client pixels
 };
+
+// The tiles the automap would draw, for the explored share (docs/automap-reader.md, "Drawable tiles").
+// An active room's tile block (Room +0x08, built by 0x2EF340): walls and floors, each a pointer and a count.
+inline constexpr size_t RoomTileBlock = 0x08, BlockWalls = 0x00, BlockWallCount = 0x08, BlockFloors = 0x20, BlockFloorCount = 0x28;
+// Tile record (0xD5160): tile relative to the room, flags, tile-library record, tile type.
+inline constexpr size_t TileStride = 0x48, TileX = 0x08, TileY = 0x0C, TileFlags = 0x18, TileLibrary = 0x20, TileType = 0x28;
+// Flag 0x8: never drawn (0xD6550). The floor pass 0x21CB40 shows only floors of draw layer 1-2
+// (flag bits 14-16) and library orientation 0, so no other floor is ever revealed.
+inline constexpr uint32_t TileHidden = 0x8, TileLayerShift = 14, TileLayerMask = 0x7, FloorLayerFirst = 1, FloorLayerLast = 2;
+inline constexpr uint32_t FloorOrientation = 0;
+// Tile library (the DT1 header): orientation, main index (AutoMap Style), sub index (Sequence).
+inline constexpr size_t LibraryKeys = 0x14; // three uint32: orientation, style, sequence
+// LevelDefs row +0x34: Levels.txt LevelType, the AutoMap.txt key (0x3269B0).
+inline constexpr size_t LevelDefType = 0x34;
+// AutoMap.txt as loaded by 0x32CAE0 and read by 0x32BDF0: a static vector of 0x20-byte rows and,
+// per level type, the {first, end} range of its rows (end exclusive; first -1: none).
+inline constexpr uintptr_t MapRows = 0x2A9A8C8, MapRowCount = 0x2A9A8D0, MapRanges = 0x2A9A8E0;
+inline constexpr int32_t MapLevelTypes = 36;
+inline constexpr size_t MapRowStride = 0x20, MapRowOrientation = 0x04, MapRowStyle = 0x08, MapRowFirstSequence = 0x09,
+	MapRowLastSequence = 0x0A, MapRowCel = 0x0C, MapRowCels = 0x1C;
+// Bounds for a corrupt read: one active room's tile list, one level type's rows.
+inline constexpr uint64_t MaxRoomTiles = 4096, MaxTypeRows = 1024;
+
+inline constexpr Evidence DrawableChecks[] = {
+	{0x32BDF0, 871, 0xC031EEC4C5687834ULL},  // AutoMap lookup: the globals, the row match, -1 for no cell
+	{0x32CAE0, 1655, 0x6C0E84E5C4DE8690ULL}, // AutoMap loader: row fields, cel count +0x1C, 36 ranges
+	{0x2EFB70, 116, 0x709027C9B95A4DFEULL},  // floors: block +0x20 / +0x28
+	{0x2EFDF0, 81, 0xC9F6569597E11766ULL},   // walls: block +0x00 / +0x08
+	{0x1460210, 51, 0xB00F61F2FA029B02ULL},  // library orientation +0x14
+	{0x1460190, 51, 0x5C5777AD0AFC1012ULL},  // library main index +0x18
+	{0x1460150, 51, 0x2AA8A3B5F029B132ULL},  // library sub index +0x1C
+	{0x3269B0, 17, 0x0D58E1A6DEBF99A9ULL},   // LevelDefs +0x34
+};
 }

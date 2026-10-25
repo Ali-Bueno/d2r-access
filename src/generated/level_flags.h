@@ -176,4 +176,26 @@ inline constexpr const LevelFlags& FindLevelFlags(int32_t id) {
 	return UnknownLevel;
 }
 
+// The monster classes (monstats.txt *hcIdx) a level names as its critters, Levels.txt
+// cmon1-4: ambient animals that never attack, whatever their Align.
+inline constexpr uint32_t CritterClasses[] = {
+	149, // chicken
+	151, // rat
+	159, // bat
+	268, // bug
+	269, // scorpion
+	283, // larva
+	318, // snake
+	319, // parrot
+	339, // minispider
+	556, // bunny
+};
+
+inline constexpr bool CritterMonster(uint32_t classId) {
+	for (const auto critter : CritterClasses) {
+		if (critter == classId) return true;
+	}
+	return false;
+}
+
 }

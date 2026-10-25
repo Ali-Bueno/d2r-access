@@ -164,7 +164,8 @@ std::string LevelName(uint32_t) { return {}; }
 }
 namespace D2RAccess::Descriptions {
 std::string Find(std::string_view, std::string_view builtIn) { return std::string(builtIn); }
-std::string FindArea(std::string_view) { return {}; }
+std::string FindArea(int, std::string_view) { return {}; }
+void NoteLevel(int, std::string) {}
 }
 namespace D2RAccess::ZoneTransitions {
 std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::Layout&, double) { return {}; }

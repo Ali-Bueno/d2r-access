@@ -98,7 +98,10 @@ In play:
 - BACK + right stick up: the description of the area you are in, when there is
   one. Write your own in d2rloader\plugins\d2r-access\descriptions.txt, one
   line each: the area's name as the game says it, an equals sign, the words
-  ("Rogue Encampment = A ramshackle collection of tents..."). Landmarks work
+  ("Rogue Encampment = A ramshackle collection of tents..."). A name two
+  levels share takes the level's number in brackets: "Sewers Level 1 [47]"
+  is Lut Gholein's, "Sewers Level 1 [92]" Kurast's; descriptions-names.txt
+  beside the file lists them that way. Landmarks work
   the same way ("Hangman's Tree = ..."): their words are said instead of their
   name the first time they come into reach. Updates never replace that file.
   "Area and landmark descriptions" (Navigation) turns off the landmark words

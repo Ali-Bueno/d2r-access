@@ -68,6 +68,29 @@ void Corridors() {
 	}};
 	Check(Passages::Classify(unproven, 4, 1, Small).shape == Shape::None,
 		"a side not streamed yet proves nothing about the width");
+
+	// A wall met on the player's line while the floor goes on beside it (a tester, 2026-10-24:
+	// arches off the line, objects, slanting walls were all "dead ends").
+	constexpr Passages::Settings Body{.minWidth = 2, .maxWidth = 3, .minLength = 5, .slack = 1, .reach = 30, .passable = 2};
+	const Plan arch{{
+		"############",
+		"?.......####",
+		"?...........",
+		"?...........",
+		"############",
+	}};
+	const auto beside = Passages::Classify(arch, 4, 1, Body);
+	Check(beside.shape == Shape::Corridor && beside.ends[1].end == End::Opens && !beside.DeadEnd(),
+		"a corridor going on beside the wall ahead is no dead end");
+	const Plan slit{{
+		"############",
+		"?.......####",
+		"?.......####",
+		"?...........",
+		"############",
+	}};
+	Check(Passages::Classify(slit, 4, 1, Body).DeadEnd(), "an opening narrower than the body is no way on");
+	Check(Passages::Classify(closed, 4, 1, Body).DeadEnd(), "and a corridor walled across is still a dead end");
 }
 
 void Doorways() {

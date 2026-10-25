@@ -1,6 +1,7 @@
 # D2R Access: the area and landmark descriptions that come with the mod, in English.
 # Written by BFBeast666, a tester. A line for the same name in the player's own
-# descriptions.txt replaces the one here. docs/descriptions.md
+# descriptions.txt replaces the one here. A name ending in a Levels.txt Id in brackets,
+# "Sewers Level 1 [47]", answers in that level only. docs/descriptions.md
 #
 # Act I
 #
@@ -12,9 +13,9 @@ Blood Moor = This swampy wilderness is wide open land dotted by low bushes and c
 #
 Den Of Evil = Akara was right to send you into this dismal place. Even from the entrance you can hear the ceaseless chittering of countless monsters preparing to ransack the Rogue Encampment. But there is something else lurking in this place. The stench of death - or undeath - hangs heavy in the air.
 #
-Burial Grounds = This forgotten cemetary has fallen into ruin, its small crypts and elaborate wrought-iron fence crumbling and rusted. The dead have risen and shamble beneath a grotesque Hangman Tree, ready to tear unwary visitors asunder.
+Burial Grounds = This forgotten cemetery has fallen into ruin, its small crypts and elaborate wrought-iron fence crumbling and rusted. The dead have risen and shamble beneath a grotesque Hangman Tree, ready to tear unwary visitors asunder.
 #
-Mausoleum = This murky catacomb is filled with the remains of nameless dead, forgotten riches and vicious undead. Treaseure-seekers, beware!
+Mausoleum = This murky catacomb is filled with the remains of nameless dead, forgotten riches and vicious undead. Treasure-seekers, beware!
 #
 The Crypt = No light penetrates this tomb's shadow save for the fires ravaging the burning corpse of former rogues. There might be treasure, but there will most definitely be ravenous terrors waiting to rip unwary trespassers apart.
 #
@@ -28,7 +29,7 @@ Stony Field = Sanctuary hides many places of power. One ancient stone circle sta
 #
 Tristram = All that's left of Tristram is a sorry collection of burning ruins, flooded by monsters in Diablo's wake. 
 #
-Underground Passage Level 1 = Upon entering you realize the size of this vast, maze-like cave system, it's numerous dead-ends and winding passages are teeming with restless horrors. There is no guarantee you will make it through alive.
+Underground Passage Level 1 = Upon entering you realize the size of this vast, maze-like cave system, its numerous dead-ends and winding passages are teeming with restless horrors. There is no guarantee you will make it through alive.
 #
 Underground Passage Level 2 = The air in this part of the cavern is clammy and stale. You are certain there is no connection to the surface here, only more restless monsters out for your flesh.
 #
@@ -58,9 +59,9 @@ Tower Cellar Level 5 = Suddenly the hallways open up, disgorging you into a biza
 #
 Tamoe Highland = The imposing walls of the Monastery of the Sightless Eye tower over the wind-swept highlands. Seemingly impregnable, they leave you trembling at the thought of the army that conquered them and drove the Sisters out with contemptuous ease. Then, a colder realization strikes: now you are the one tasked to assault this fortified house of worship.
 #
-Monastery Gate = Signs of battle are everywhere as you carefully enter the austere columnaedes of the Monastery Gate. Broken weapons, toppled candle racks and crimson trails tell a ghastly story.
+Monastery Gate = Signs of battle are everywhere as you carefully enter the austere columnades of the Monastery Gate. Broken weapons, toppled candle racks and crimson trails tell a ghastly story.
 #
-Outer Cloister = You arrive at a magnificent courtyard, it's beauty barely disfigured by the ever-present signs of battle. A glorious fountain stands at its center, showing three Rogues back-to-back, holding invisible foes at bay with readied weapons.
+Outer Cloister = You arrive at a magnificent courtyard, its beauty barely disfigured by the ever-present signs of battle. A glorious fountain stands at its center, showing three Rogues back-to-back, holding invisible foes at bay with readied weapons.
 #
 Barracks = After the calm grandeur of the courtyard, the Barracks are a chaotic warren of meandering corridors, ransacked dormitories and cluttered storerooms. Racks of barrels provide perfect hiding spots for the numerous enemies who have claimed this place. 	How is anyone supposed to find the right path, let alone a small smithy holding an enchanted hammer?
 #
@@ -86,11 +87,11 @@ Catacombs Level 4 = Andariel’s presence has twisted the land itself into a vis
 #
 Lut Gholein = Baking under the relentless desert sun sits Lut Gholein, a small harbor town surrounding a lively market. Constant monster attacks have forced the inhabitants to cower in their houses. Only brave or desperate souls dare to set foot onto its cobbled streets, let alone the Rocky Wastes outside. 
 #
-Sewers Level 1 = The moment you descend into the sewers, a thick stench hits you so hard it catches in your throat. This goes far beyond the familiar rot of refuse and waste. A heavy, sickly sweetness clings to the air—as if some unnatural plague has seeped directly into the slimy bricks and rusted grates that struggle to contain the city's filth.
+Sewers Level 1 [47] = The moment you descend into the sewers, a thick stench hits you so hard it catches in your throat. This goes far beyond the familiar rot of refuse and waste. A heavy, sickly sweetness clings to the air—as if some unnatural plague has seeped directly into the slimy bricks and rusted grates that struggle to contain the city's filth.
 #
-Sewers Level 2 = Your sense of smell had surrendered halfway through the first level of the sewers, so it took a moment to realize the stench had changed. It was no longer just the stomach-churning mix of refuse and acidic toxins you’d grown used to. Now, the unmistakable rot of decay bled into the infernal cocktail. Gritting your teeth, you press on. Perhaps by defeating the monster lurking at the bottom of this hellish cistern, you might finally purge this rot.
+Sewers Level 2 [48] = Your sense of smell had surrendered halfway through the first level of the sewers, so it took a moment to realize the stench had changed. It was no longer just the stomach-churning mix of refuse and acidic toxins you’d grown used to. Now, the unmistakable rot of decay bled into the infernal cocktail. Gritting your teeth, you press on. Perhaps by defeating the monster lurking at the bottom of this hellish cistern, you might finally purge this rot.
 #
-Sewers Level 3 = This was surely the deepest part of the sewers. The ancient brickwork buckled under the weight of centuries, and you shuddered at the thought of what might be lurking in the murky liquid visible through the rusted, broken grates. You cursed the long-dead fools who thought burying an ancient evil beneath a living city was a good idea to begin with.
+Sewers Level 3 [49] = This was surely the deepest part of the sewers. The ancient brickwork buckled under the weight of centuries, and you shuddered at the thought of what might be lurking in the murky liquid visible through the rusted, broken grates. You cursed the long-dead fools who thought burying an ancient evil beneath a living city was a good idea to begin with.
 #
 Rocky Waste = The desert had claimed far more than just the fertile land surrounding Lut Gholein. At the sight of dozens of desiccated corpses lashed to stakes—their bright red uniforms sun-bleached and caked with sand and dried blood—you realized that the wastes had taken an equally brutal toll on the city's people.
 #
@@ -141,3 +142,9 @@ Canyon of the Magi = You step through the portal and are instantly struck by a w
 Tal Rasha's Tomb = You have found the true tomb of Tal Rasha. It is not merely a monument to the ancient mage, but a subterranean prison for the Prime Evil he chose to bind within his own flesh. The air is thick with the scent of ancient dust, embalming fluid, and the faint, bitter tang of a trapped demon's malice.
 #
 Tal Rasha's Chamber = After defeating Duriel, you finally have a moment to take in your surroundings. This part of the tomb is much older than the already ancient stonework out front. In the northwest, you spot an almost invisible archway leading into the final resting place of Tal Rasha. What may await you within?
+#
+# Act III
+#
+Kurast Docks = This ancient harbor is on the verge of being devoured by the lush Nahantu jungles. Brackish swamp water, thick with algae, sluggishly churns under rickety wooden bridges connecting several small islands and ramshackle straw huts. The heat is thick and oppressive, each breath you take feels like you're inhaling some sickly liquid.
+#
+Sewers Level 1 [92] = The sounds of running water greet you as you make your way into yet another monster-infested sewer system. Compared to the swampy, oppressive heat outside, it is almost pleasant - were it not for the ghastly stench rising from the many channels and pools.

@@ -118,6 +118,25 @@ std::vector<Doorway> Doorways(const Radar::World& world) {
 			}
 			return false;
 		};
+		// The ground on `side` of a gap: open over the gap and `Widens` cells past each edge. One
+		// edge may stop sooner where a wall runs off from the gap's own, a room's inner corner:
+		// Cott4's door, one cell from its side wall (a tester, 2026-10-24).
+		const auto widens = [&](int from, int to, int row, int side) {
+			for (int at = from; at <= to; ++at)
+				if (!open(at, row + side)) return false;
+			bool cornered = false;
+			for (const int step : {-1, 1}) {
+				const int edge = step < 0 ? from : to;
+				int reach = 0;
+				while (reach < Widens && open(edge + step * (reach + 1), row + side)) ++reach;
+				if (reach == Widens) continue;
+				if (reach == 0 || cornered) return false;
+				cornered = true;
+				for (int length = 0; length < Flank; ++length)
+					if (state(edge + step * (reach + 1), row + side * (length + 1)) != Radar::State::Blocked) return false;
+			}
+			return true;
+		};
 		std::vector<Face> faces;
 		for (const auto& room : world.rooms) {
 			const int first = columns ? room.y : room.x, length = columns ? room.height : room.width;
@@ -132,11 +151,8 @@ std::vector<Doorway> Doorways(const Radar::World& world) {
 					if (to - from + 1 < passable || to - from + 1 > MaxWidth) continue;
 					if (state(from - 1, row) != Radar::State::Blocked || state(to + 1, row) != Radar::State::Blocked) continue;
 					if (!flanked(from - 1, -1, row) || !flanked(to + 1, 1, row)) continue;
-					for (const int side : {-1, 1}) {
-						bool widens = true;
-						for (int at = from - Widens; at <= to + Widens && widens; ++at) widens = open(at, row + side);
-						if (widens) faces.push_back({row, from, to, side});
-					}
+					for (const int side : {-1, 1})
+						if (widens(from, to, row, side)) faces.push_back({row, from, to, side});
 				}
 		}
 		// Pair the two faces of one gap through a thick wall; a lone face opens on a passage that runs on.

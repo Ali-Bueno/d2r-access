@@ -178,3 +178,128 @@ After every step, `reveal_all=0` should hold. If it is not 0, a reveal cheat is 
 - **Calling `0xD2240`, `0xD6550`, `0xD6680` or `0xD5360`.** They change state; a switch does disk I/O and frees nodes. The reader calls none of them.
 - **Parsing `.ma` for the current level.** It holds only the other layers plus this session's appended cells, with coordinates cut to 16 bits. The node key (from global `0x2A233B8+4`) is still unexplained.
 - **`RoomEx+0x50`/`+0x58` and the classic room `AUTOMAP_REVEAL` flag.** The automap code does not read them (see the discovery research).
+
+## Drawable tiles (2026-10-25)
+
+Goal: count the tiles the automap *would* draw, so that the explored share is
+drawn cells ÷ drawable cells and reaches 100 on a complete map. Read offline from
+`re/D2R.rebuilt.exe` (build 3.3.93787) with the Ghidra project `re/ghidra`.
+**Verified** means read from the code. **Hypothesis** means inferred and still
+needing a live check.
+
+**Why the walkable ratio saturates.** AutoMap.txt maps only some tiles to a
+cell. `1 Crypt` (LevelType 4: the Tower Cellar levels 21–25) and `1 Cave` (Den
+of Evil) have **no `fl` rows at all**: their automap draws walls only. A
+walkable floor tile there gets a cell only by chance, when a wall cell decodes
+onto it.
+
+### Room and tile lists
+
+| Value | Meaning | Evidence |
+|---|---|---|
+| Room (the 0xB8-byte active room, built by `0x2EF340`) | What `0xD6550` gets: `0xD4310` passes each entry of the player room's near list (`+0x00` array, `+0x40` count; `0x2EFDE0`). The mod already holds these rooms: `NativeWorld::LoadedRooms`, `RoomEx+0x58`. | Verified |
+| Room `+0x08` → tile block | `= *(RoomEx+0x88) + 0x20`, passed by `0x326480` to `0x2EF340`. The room is built only if the block has walls or floors. | Verified |
+| block `+0x00`/`+0x08` | walls: pointer and `size_t` count (getter `0x2EFDF0`) | Verified |
+| block `+0x20`/`+0x28` | floors: pointer and count (getter `0x2EFB70`, null-safe). Counts are asserted to fit 32 bits. | Verified |
+| block `+0x40`/`+0x48` | a third list (getter `0x2EFD30`), never passed to `0xD6550`. Used by the collision builder `0x363A90` and the debug labels `0xB9480`. Probably roofs. | Verified unused; *roofs* is a hypothesis |
+| Room `+0x80` / `+0x90` | subtile rect / tile rect (x, y, w, h), copied from `0x326480` | Verified |
+
+**Tile record**, stride `0x48`:
+
+| Offset | Meaning | Evidence |
+|---|---|---|
+| `+0x00`/`+0x04` | pixel offsets used by the draw passes | Verified |
+| `+0x08`/`+0x0C` | tile x/y **relative to the room**. Absolute tile = RoomEx `+0x60`/`+0x64` + these. | `0xD5160`; `0x21CB40` uses `×5` + room subtile origin. Verified |
+| `+0x18` | flags. `0x8` hidden; `0x400` faded out; bits 14–16 draw layer; `0x20000` drawn on screen; `0x40000` processed by the automap | Verified |
+| `+0x20` | tile-library record (non-null: its getters dereference it) | Verified |
+| `+0x28` | int tile type/orientation. ≥16 means a lower wall (`0xD5160` drop); 15 is skipped as a roof by the debug overlay `0xB9CD0`; 0 is labelled floor by `0xBA020`. | Verified as used. That it equals library `+0x14` is a hypothesis |
+
+**Tile library**: `+0x14` orientation (`0x1460210`), `+0x18` main index =
+AutoMap *Style* (`0x1460190`), `+0x1C` sub index = AutoMap *Sequence*
+(`0x1460150`). These are the classic DT1 header positions. Verified.
+
+### `0x32BDF0` AutoMapCell(levelType, orientation, style, sequence)
+
+- **Key.** `levelType` = LevelDefs row `+0x34` (`0x3269B0` → `0x32C200`). This is
+  the Levels.txt `LevelType` column, the int that AutoMap.txt `LevelName` is
+  converted to at load. Verified.
+- **Not in the table bank.** It is a static vector in `.data`:
+
+  | RVA | Contents |
+  |---|---|
+  | `0x2A9A8C8` | rows pointer |
+  | `0x2A9A8D0` | row count (`size_t`) |
+  | `0x2A9A8D8` | capacity |
+  | `0x2A9A8E0` | `{int first, int end}` row range per level type, 36 slots (end exclusive; unused slots hold −1) |
+
+  Loaded by `0x32CAE0` (from `0x301590`), cleared by `0x32B510`. Verified.
+- **Row (0x20 bytes)**, written by `0x32CAE0`:
+
+  | Offset | Field |
+  |---|---|
+  | `+0x00` | int level type: LevelName looked up in 36 built-in names; unknown → 0 |
+  | `+0x04` | int orientation: TileName looked up in 20 built-in names |
+  | `+0x08` / `+0x09` / `+0x0A` | u8 Style / StartSequence / EndSequence |
+  | `+0x0C` | int Cel1–Cel4 |
+  | `+0x1C` | int count of leading Cels ≠ −1 |
+
+  `*Type1–4` are not loaded. The name tables (`0x1CFE110`, `0x1CFE350`) are
+  encrypted in the static image.
+- **Lookup.** It returns **−1 (no cell)** in three cases:
+  - `levelType` is 0;
+  - the range's `first` is −1;
+  - no row in `[first, end)` matches.
+
+  A row matches when all of these hold:
+  - `orientation == +0x04`;
+  - Style is `0xFF` or equal to the main index (byte zero-extended against the full u32);
+  - StartSequence is `0xFF`, or `Start ≤ sequence ≤ End`.
+
+  **The first match wins.** A count < 1 returns Cel1 as is. Otherwise a Cel is
+  picked with the global PRNG `0x2372A40`, so existence is deterministic but the
+  cel number is not. In the extracted AutoMap.txt every row except `Expansion`
+  has a Cel1. Verified.
+
+### Answers
+
+- **`0x40000`.** `0xD5160` sets it *before* the lookup, so every tile that passes
+  the `0xD6550` filter gets it, cell or not. It is a one-shot guard that lives in
+  the tile record and is not saved to `.ma`. Whether it survives a room unload is
+  unknown. Verified (the lifetime is a hypothesis).
+- **Cell position.** The cell's pixels are
+  `TilePixel(RoomEx+0x60 + tile+0x08, RoomEx+0x64 + tile+0x0C, tile+0x28)`:
+  - `0x334EF0` gives `80(tx−ty)`, `40(tx+ty)`; divided by 10; plus 24 for type ≥ 16.
+  - `PixelTile` therefore returns the tile's own `TileKey` for floors and walls of type < 16.
+  - Type ≥ 16 would decode at (+3, +3). The extracted AutoMap.txt has no lower-wall TileName (only `fl wl wr wtll wtlr wtr wbl wbr wle wre wld wrd co tr`), so no such cell is expected.
+
+  Verified; the absence of lower-wall cells is a hypothesis.
+- **Never drawn in practice:**
+  - **Flag `0x8`** is skipped by `0xD6550` and by all four client passes. `0x21E0A0` also sets it later, when a timed tile hide fires.
+  - **Flag `0x400`** stops the client passes from setting `0x20000`. `0x21D4F0` sets and clears it as a fading wall's alpha reaches 0, so it is transient.
+  - **Off-screen tiles.** `0x20000` is set only for tiles rendered inside the view clip rect (`0x21D090`), and only for the player room's near rooms (`0x21CB40`).
+  - **Floor pass limits.** `0x21CB40` draws only floors with draw layer 1–2 and library orientation 0.
+  - **No AutoMap row.** Roofs, shadows, lower walls and any style or sequence missing from AutoMap.txt get no cell; the lookup itself excludes them.
+
+  Verified.
+
+### Live checks still open
+
+- Row count `0x2A9A8D0` should be 3287, the data rows of the extracted file. Hypothesis.
+- Range slot 4 (`1 Crypt`) should be `{257, 275}` and slot 3 (`1 Cave`) `{424, 550}`, from the file's row order. Hypothesis.
+- LevelDefs `+0x34` for level 23 should be 4. Hypothesis.
+
+Fingerprints computed with `LayoutCheck::Hash` on `re/D2R.rebuilt.exe`. The
+method reproduces the stored `0xD5160`, `0xD6550`, `0x32C200`, `0x326480` and
+`0x192B20` entries.
+
+| RVA | Size | Hash | Covers |
+|---|---|---|---|
+| `0x32BDF0` | 871 | `0xC031EEC4C5687834` | lookup, globals, row match |
+| `0x32CAE0` | 1655 | `0x6C0E84E5C4DE8690` | loader: row fields, `+0x1C` count, 36 range slots |
+| `0x2EFB70` | 116 | `0x709027C9B95A4DFE` | floors `+0x20`/`+0x28` |
+| `0x2EFDF0` | 81 | `0xC9F6569597E11766` | walls `+0x00`/`+0x08` |
+| `0x1460210` | 51 | `0xB00F61F2FA029B02` | library `+0x14` |
+| `0x1460190` | 51 | `0x5C5777AD0AFC1012` | library `+0x18` |
+| `0x1460150` | 51 | `0x2AA8A3B5F029B132` | library `+0x1C` |
+| `0x3269B0` | 17 | `0x0D58E1A6DEBF99A9` | LevelDefs `+0x34` |
+| `0x21D090` | 838 | `0x9E00C0ACD0DC5697` | floor pass `0x408` → `0x20000`; only if `0x400` is used |

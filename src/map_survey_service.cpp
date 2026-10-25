@@ -331,13 +331,14 @@ std::vector<NativeRooms::Room> Here(const Lifecycle& state, const Radar::World& 
 // only at the middle of the edge.
 std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
 	const auto explored = Explored(state, world);
-	// A town is small and safe: its ways out are listed from anywhere in it, as its NPCs
-	// are (a tester, 2026-10-14: the camp's exit was missing in a fresh multiplayer game).
+	// A town is small and safe: its ways out and its map's landmarks are listed from anywhere in
+	// it, as its NPCs are (a tester, 2026-10-14: the camp's exit was missing in a fresh multiplayer
+	// game; 2026-10-24: Lut Gholein's palace entrance, whose hall is never charted from outside).
 	const bool town = g_townNpcsEverywhere.load() && Generated::FindLevelFlags(state.level).town;
 	const ZoneTransitions::Filter found = [&](const std::vector<EntityRadar::Entity>& entities) {
 		auto result = MapSurvey::Charted(world, entities, explored);
 		if (town) for (const auto& entity : entities)
-			if (entity.kind == EntityRadar::Kind::Exit && std::none_of(result.begin(), result.end(),
+			if ((entity.kind == EntityRadar::Kind::Exit || (entity.mapLandmark && !entity.doorway)) && std::none_of(result.begin(), result.end(),
 					[&](const auto& known) { return EntityRadar::SameTarget(known, entity); })) result.push_back(entity);
 		return result;
 	};

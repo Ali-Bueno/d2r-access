@@ -3,6 +3,7 @@
 #include "async_log.h"
 #include "character_stats.h"
 #include "localization.h"
+#include "native_memory.h"
 #include "native_skill_navigation.h"
 #include "native_widgets.h"
 #include "screen_reader.h"
@@ -33,6 +34,13 @@ std::atomic<bool> g_zeroPoints { true };
 // Strength button's announcement carries them (PointsFor), re-announced too
 // within PointsWaitMs; alone only if no announcement came by then.
 constexpr uint64_t PointsWaitMs = 2000;
+
+// The panel's own hover text, the hit chances the game shows over Attack Rating and Defense
+// (docs/character-panel.md, "Hit-chance tooltips"): logged when it changes, to learn live whether
+// the controller fills it before any is spoken. The object is the factory 0x14E5820's (vtable).
+constexpr uintptr_t StatsPanelVtable = 0x1FDCEF0;
+constexpr size_t HoverData = 0x198, HoverSize = 0x1A0, MaxHoverBytes = 512;
+std::string g_hover;
 
 uintptr_t g_panel = 0; // the panel the cursor belongs to
 int g_cursor = -1;
@@ -106,6 +114,19 @@ void OfferPoints(const D2RL::PluginContext* context, uintptr_t panel, uint64_t n
 	}
 	if (g_focusPoints.load()) D2RAccess::AsyncLog::InfoF(context, "[stats] could not focus %s", std::string(StrengthButton).c_str());
 	ScreenReader::Speak(points, false);
+}
+
+void LogHover(const D2RL::PluginContext* context, uintptr_t panel) {
+	uintptr_t vtable = 0, data = 0;
+	uint64_t size = 0;
+	if (!NativeMemory::Peek(panel, vtable) || vtable != context->exeBase + StatsPanelVtable || !NativeMemory::Peek(panel + HoverData, data)
+		|| !NativeMemory::Peek(panel + HoverSize, size) || size > MaxHoverBytes) return;
+	std::string text(static_cast<size_t>(size), '\0');
+	if (size && (!data || !NativeMemory::Copy(data, text.data(), text.size()))) return;
+	if (text == g_hover) return;
+	g_hover = text;
+	std::replace(text.begin(), text.end(), '\n', '|');
+	D2RAccess::AsyncLog::InfoF(context, "[stats] hover text \"%s\"", UiText::Clean(text).c_str());
 }
 
 void ForgetSpent() { g_spentButton.clear(); g_spentValue.clear(); g_spentLeftAt = 0; }
@@ -218,7 +239,10 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		ScreenReader::Speak(g_pendingPoints, false);
 		g_pendingPoints.clear();
 	}
-	if (NativeWidgets::ReadName(panel) == CharacterPanel) WatchSpent(context, panel, focus, now);
+	if (NativeWidgets::ReadName(panel) == CharacterPanel) {
+		WatchSpent(context, panel, focus, now);
+		LogHover(context, panel);
+	}
 	// A "+" with focus keeps the stick on the statistics too (a tester,
 	// 2026-10-13: the level-up sheet read controls instead); right still ends on
 	// the points left, CombinedPointsInfo being the layouts' last row.

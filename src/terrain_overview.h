@@ -19,8 +19,9 @@ namespace D2RAccess::TerrainOverview {
 using NativeLevelExits::TileRect;
 using Radar::Position;
 
-// `walkable` and `drawn` count tiles once the room's collision has been read (`measured`).
-struct Room { TileRect rect; bool explored = false; bool measured = false; size_t walkable = 0, drawn = 0; };
+// `drawable`: the tiles the automap can draw, once the room has been streamed (`measured`);
+// `drawn`: those it has drawn, or any drawn in an unmeasured room.
+struct Room { TileRect rect; bool explored = false; bool measured = false; size_t drawable = 0, drawn = 0; };
 // A room of another level that the game has already generated, so naming it
 // gives nothing away, exactly as the exit review does.
 struct Neighbour { TileRect rect; std::string name; };
@@ -51,8 +52,8 @@ static_assert(ThirdsPerAxis * ThirdsPerAxis == Strings::TerrainPlaceCount);
 struct Summary {
 	bool valid = false;
 	size_t place = 0;  // index into Strings::Table::terrainPlaces
-	int percent = 0;   // share of the level's walkable tiles drawn on the automap; rooms explored when none is measured
-	size_t drawnTiles = 0, walkableTiles = 0, estimatedTiles = 0; // walkableTiles includes the estimate
+	int percent = 0;   // share of the level's drawable tiles drawn on the automap; rooms explored when none is measured
+	size_t drawnTiles = 0, drawableTiles = 0, estimatedTiles = 0; // drawableTiles includes the estimate
 	bool byTiles = false;
 	TileRect box;      // the level's extent, the union of its rooms
 	std::array<Leg, SideCount> legs{}; // Side order

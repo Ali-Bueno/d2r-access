@@ -94,3 +94,25 @@ entity; one in the same level is still walked).
 - `Unit+0x10` and `Unit+0xC` of a type-5 unit were never read by decompiled code;
   the plugin does not use them.
 - Confirm the `+0x125` string is the "To The ..." caption on a real exit.
+
+## Objects named after a level are exits; the stairs' rows logged (2026-10-25)
+
+**Tal Rasha's Chamber.** After the Horadric Staff goes in the orifice, the way to Duriel's Lair is
+an object, `DurielPortal` (objects.txt 100, key "Duriel's Lair", SubClass 0, OperateFn 43). It was
+already an exit by its key but filed as "object", so the scanner listed it only in sight and never
+said "new exit". An object whose key is a Levels key is now `Category::Exit` too, with the level
+whose LevelName (else LevelWarp) key it is as its destination, and a place id like the stairs'. The
+same rule covers the Ancients' gateway, the Worldstone Chamber portal, Tyrael's portal to
+Harrogath, the summit door and the Throne's portal (objects 547, 563, 564, 566, 569).
+
+**Where a stair is taken from.** A tester: routes end beside a stair but not where A takes it
+(Flayer Dungeon, the Harem and Palace Cellar, Act I's Jail and Catacombs). In the four logs every
+stair taken was used with the game's interact command (`[actions] game command 0x40 a=5 b=<unit>`)
+from within about 3 subtiles of the unit, from several sides; no fixed offset fits (unit + Offset,
+unit ± ExitWalk, the select box), and the failed tries at the Flayer stair were as close. ExitWalk
+is the walk the game makes after arriving by a stair. The LvlWarp row's columns are now proven over
+all 88 rows of `LvlWarp.bin` (`game-data/global/excel/`): Name +0x00 (char[32]), UniqueId +0x28,
+Id +0x2C, SelectX/Y/DX/DY +0x30..+0x3C (pixels), ExitWalkX/Y +0x40/+0x44, OffsetX/Y +0x48/+0x4C,
+LitVersion +0x50, Tiles +0x54, NoInteract +0x58, Direction +0x5C. Each stair now logs its row once,
+`[exit] unit=U warp=W row=<name> to=L at=x,y walk=… offset=… select=… dir=…`, to be joined with the
+`0x40` line of the stair taken. No routing change until a log shows the rule.

@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Live monsters / NPCs / other players / world objects in the local player's room and its
@@ -59,8 +60,8 @@ bool ReadRosterPortals(uintptr_t head, std::vector<EntityRadar::RosterPortals>& 
 bool ReadLayout(uint32_t playerId, bool neighbours, NativeLevelExits::Layout& layout);
 // The game's own localized name of a level id; empty when the table is unreadable.
 std::string LevelName(uint32_t levelId);
-// Every level's name, in table order, each once; empty when the table is unreadable.
-std::vector<std::string> LevelNames();
+// Every named level's id and name, in table order; empty when the table is unreadable.
+std::vector<std::pair<uint32_t, std::string>> LevelNames();
 // The NPC presets of the town last read, " row x count" each, for the survey's log.
 std::string TownPresets();
 // A game string key in the language being played, cleaned as entity names are.

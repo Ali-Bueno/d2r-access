@@ -135,6 +135,10 @@ inline constexpr const char* BankNameKey = "bank";
 inline constexpr size_t RoomExtended = 0x18, RoomWarpNodes = 0x78, ExtendedLevel = 0x90, LevelId = 0x1F8;
 inline constexpr size_t WarpNodeDestination = 0, WarpNodeNext = 8, WarpNodeActive = 0x10, WarpNodeRow = 0x20;
 inline constexpr size_t LvlWarpId = 0x2C, LvlWarpNoInteract = 0x58;
+// The rest of the row, each column matched against LvlWarp.txt over all 88 rows of LvlWarp.bin
+// (game-data/global/excel): Name char[32], the select box (pixels), ExitWalk and Offset, Direction.
+inline constexpr size_t LvlWarpName = 0x00, LvlWarpNameBytes = 32, LvlWarpSelect = 0x30, LvlWarpExitWalk = 0x40,
+	LvlWarpOffset = 0x48, LvlWarpDirection = 0x5C;
 inline constexpr uint32_t WarpIdMask = 0xFF;
 inline constexpr size_t MaxWarpNodes = 64;
 // Levels table (accessor 0x32C4A0): in-memory rows are 8 bytes shorter than Levels.bin, so

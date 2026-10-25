@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build test-2026-10-24 — 2026-10-25
+
+From `d2r-access test build 2026-10-24 notes.7z` and its addendum ([decisions](docs/decisions.md)).
+127/127 CTest; installed by the build. **Unverified live.** Closed by the tester: the black square
+(the loader's; it shows with the plugin removed).
+- Percent explored: drawn cells over the cells the game's AutoMap table can draw
+  (`NativeAutomap::DrawableTiles`, 8 fingerprints) ([overview](docs/terrain-overview.md#the-share-counts-the-tiles-the-automap-can-draw-2026-10-25),
+  [RE](docs/automap-reader.md#drawable-tiles-2026-10-25)).
+- Tal Rasha's Chamber, and every object named after a level, is an exit (`ReadObject`) ([exits](docs/level-exits.md)).
+- Duriel's larvae: level critters left out of the scan (`Generated::CritterMonster`) ([cues](docs/entity-cues.md)).
+- Palace entrance listed from anywhere in town; dead ends only when walled across (`Passages::GoesOn`) ([places](docs/places.md)).
+- Asheara's pillars: long-leg folds never cross a wall cell (`RouteLegs::Lengthen`) ([route](docs/route-description.md)).
+- Cott4's door: a face may stop at an inner corner (`Rooms::Doorways`) ([doorways](docs/ground-items.md#doorways-2026-10-20)).
+- Descriptions: the tester's corrected file plus Act III; `Name [Id]` lines (sewers 47-49, 92); the
+  area hint, silent until now, fixed ([descriptions](docs/descriptions.md)). "Open sockets".
+- Diagnostics: `[exit]` (each stair's LvlWarp row), `[stats] hover text` ([character panel](docs/character-panel.md)).
+- Not in the archive: the "Kurast_" log (Lower Kurast to the Bazaar).
+
+**Next step:** live: Mod+B in a fully seen Tower Cellar level, Tal Rasha's Chamber in the exits,
+Duriel's lair quiet after the kill, a route to the palace from the square and in Asheara's hut,
+Cott4's creak; the tester: a log at the Flayer stairs with A tried from each side.
+
 ## The tester's list on build test-2026-10-23-2 — 2026-10-24 (released as test-2026-10-24 from 45fd79d)
 
 Release: 127/127 CTest, 29 entries, 62,980,665 bytes, SHA-256 `e2e0b0c4…905814a2f88`; news

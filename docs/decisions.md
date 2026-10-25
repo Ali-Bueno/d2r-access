@@ -3,6 +3,35 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-25 — The tester's list on build test-2026-10-24
+
+From `d2r-access test build 2026-10-24 notes.7z` and its addendum (the list, four log pairs, three
+Flayer screenshots, the spell-checked descriptions). The black square is the loader's, not the mod's
+(the tester, with the plugin removed). Built and unit-tested only.
+- **The explored share is drawn cells over drawable cells**, from the game's own AutoMap table and
+  each streamed room's tiles (offline RE, eight new fingerprints). Rejected: the walkable ratio
+  (saturates at 30-50 % where AutoMap.txt draws walls only); tiles within a radius of a cell (a hall's
+  middle is never near one); the tile's "processed" flag (not saved, so a new game reads 0). Fixed
+  outright: the old number was simply wrong.
+- **Objects named after a level are exits**, Tal Rasha's Chamber first. Rejected: a list of object
+  classes (the Levels key already says it, and covers the Act V portals).
+- **Level critters are left out**, not filed as NPCs: the larva is the only one that leaked, and a
+  named "NPC" crawling in Duriel's lair would confuse as much.
+- **Town landmarks from anywhere**, like exits: the palace hall is never charted from outside.
+  Rejected: a "palace gate" landmark of its own (no gate model in the layout).
+- **Folds stay off walls**: a long-legs fold whose straight line crosses a wall or object cell is not
+  made. The body may brush a door frame (the 2026-10-22 trade), so `crossable`, not the body test.
+- **Cott4's door**: one edge of a doorway face may stop at an inner corner. Rejected: one open cell
+  each side (four false doorways on level 2 offline).
+- **Dead ends need the corridor walled across**, not one cell on the player's line: all six logged
+  "dead ends" went on. Rejected: following the corridor's centre line (a slanting wall still stops it).
+- **Descriptions by Levels.txt Id**, `Name [47]`, as the tester asked; the name stays the common
+  case. The area hint, silent since it looked the banner up as a name, now uses the level.
+- **"Open sockets"**, the community's word, in English only; the other languages keep theirs.
+- **Stairs' approach**: no routing change. Eight logged uses fit "within about 3 subtiles, any side"
+  and no LvlWarp offset; the next log carries each stair's row (`[exit]`). Rejected for now: routing
+  to unit + ExitWalk or + Offset (contradicted by the samples).
+
 ## 2026-10-24 — The tester's list on build test-2026-10-23-2
 
 From `D2R Access test build 2026-10-23-2 notes and bug list.7z` (the notes, three log pairs, two

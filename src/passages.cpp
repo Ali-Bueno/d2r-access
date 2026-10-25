@@ -1,5 +1,7 @@
 #include "passages.h"
 
+#include <algorithm>
+
 namespace D2RAccess::Passages {
 namespace {
 struct Step { int dx, dy; };
@@ -32,6 +34,26 @@ bool Narrow(const Probe& probe, int x, int y, Step across, const Settings& setti
 
 Step Across(Step along) { return along.dx ? AlongY : AlongX; }
 
+// Whether the floor goes on past a wall met straight ahead of (x, y): somewhere across the
+// corridor there, an opening as wide as the body with floor one step further too. An arch
+// off the player's line, an object in the corridor or a slanting wall is no dead end (a
+// tester, 2026-10-24).
+bool GoesOn(const Probe& probe, int x, int y, Step along, int sign, const Settings& settings) {
+	const Step across = Across(along);
+	const auto open = [&](int at, int ahead) {
+		return probe(x + at * across.dx + ahead * sign * along.dx, y + at * across.dy + ahead * sign * along.dy) == Ground::Open;
+	};
+	int low = 0, high = 0;
+	while (low < settings.reach && open(-(low + 1), 0)) ++low;
+	while (high < settings.reach && open(high + 1, 0)) ++high;
+	const int wide = std::max(settings.passable, 1);
+	for (int at = -low, run = 0; at <= high; ++at) {
+		run = open(at, 1) && open(at, 2) ? run + 1 : 0;
+		if (run >= wide) return true;
+	}
+	return false;
+}
+
 // Follows the narrow floor from (x, y) along `along` in one direction.
 struct Walk { int steps = 0; Way way; };
 Walk Follow(const Probe& probe, int x, int y, Step along, int sign, const Settings& settings) {
@@ -40,7 +62,10 @@ Walk Follow(const Probe& probe, int x, int y, Step along, int sign, const Settin
 		const int cx = x + sign * i * along.dx, cy = y + sign * i * along.dy;
 		const Ground ground = probe(cx, cy);
 		if (ground == Ground::Unknown) return walk;
-		if (ground == Ground::Blocked) { walk.way.end = End::Closed; return walk; }
+		if (ground == Ground::Blocked) {
+			walk.way.end = GoesOn(probe, walk.way.x, walk.way.y, along, sign, settings) ? End::Opens : End::Closed;
+			return walk;
+		}
 		if (!Narrow(probe, cx, cy, Across(along), settings)) { walk.way.end = End::Opens; return walk; }
 		walk.steps = i;
 		walk.way.x = cx;

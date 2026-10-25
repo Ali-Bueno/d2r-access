@@ -18,6 +18,7 @@ struct Settings {
 	int minLength = 0; // shortest narrow stretch that is a corridor and not a doorway
 	int slack = 0;     // how much wider than a corridor a bend or junction may be
 	int reach = 0;     // how far a run or a corridor is followed before giving up
+	int passable = 0;  // the body's width: an opening narrower than this past a wall is no way on
 };
 
 enum class Shape : unsigned char { None, Corridor, Bend, Junction };

@@ -3,6 +3,7 @@
 #include "async_log.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 #include <fstream>
 #include <mutex>
@@ -51,6 +52,8 @@ std::filesystem::path g_file;
 std::filesystem::file_time_type g_written{};
 uint64_t g_checkedMs = 0;
 std::string g_banner; // the last area banner, "Entering The Cave Level 1"
+int g_level = 0;       // the level the player is in (NoteLevel), and its name
+std::string g_levelName;
 // The mod's own book (data/descriptions.txt, embedded by CMakeLists.txt), read before the player's.
 constexpr wchar_t BundledResource[] = L"DESCRIPTIONS";
 std::string g_bundled;
@@ -93,6 +96,20 @@ std::string Fold(std::string_view name) {
 	return folded;
 }
 
+std::string LevelKey(int level) { return "[" + std::to_string(level) + "]"; }
+
+namespace {
+// "sewers level 1 [47]" is kept as "[47]": the name before the Id is the writer's own.
+std::string Keyed(std::string folded) {
+	const auto open = folded.rfind('[');
+	if (open == std::string::npos || folded.back() != ']' || open + 2 >= folded.size()
+		|| (open > 0 && folded[open - 1] != ' ')) return folded;
+	const std::string_view digits = std::string_view(folded).substr(open + 1, folded.size() - open - 2);
+	if (digits.size() > 4 || !std::all_of(digits.begin(), digits.end(), [](char c) { return c >= '0' && c <= '9'; })) return folded;
+	return LevelKey(std::stoi(std::string(digits)));
+}
+}
+
 void Book::Parse(std::string_view text) {
 	while (!text.empty()) {
 		const auto end = text.find('\n');
@@ -101,7 +118,7 @@ void Book::Parse(std::string_view text) {
 		if (line.empty() || line.front() == Note) continue;
 		const auto split = line.find(Separator);
 		if (split == std::string_view::npos) continue;
-		const auto key = Fold(line.substr(0, split));
+		const auto key = Keyed(Fold(line.substr(0, split)));
 		const auto words = Trim(line.substr(split + Separator.size()));
 		if (!key.empty() && !words.empty()) entries_[key] = std::string(words);
 	}
@@ -127,14 +144,20 @@ bool EndsWithWords(std::string_view text, std::string_view tail) {
 }
 }
 
-std::string Book::FindArea(std::string_view name, std::string_view banner) const {
-	if (auto words = Find(name); !words.empty()) return words;
-	const auto level = Fold(name), shown = Fold(banner);
-	const std::string* best = nullptr;
-	size_t bestLength = 0;
+std::string Book::AreaKey(int level, std::string_view name, std::string_view banner) const {
+	if (level > 0 && entries_.contains(LevelKey(level))) return LevelKey(level);
+	const auto folded = Fold(name), shown = Fold(banner);
+	if (folded.empty()) return {};
+	if (entries_.contains(folded)) return folded;
+	std::string best;
 	for (const auto& [key, words] : entries_)
-		if (EndsWithWords(key, level) && EndsWithWords(shown, key) && key.size() > bestLength) { best = &words; bestLength = key.size(); }
-	return best ? *best : std::string{};
+		if (EndsWithWords(key, folded) && EndsWithWords(shown, key) && key.size() > best.size()) best = key;
+	return best;
+}
+
+std::string Book::FindArea(int level, std::string_view name, std::string_view banner) const {
+	const auto key = AreaKey(level, name, banner);
+	return key.empty() ? std::string{} : entries_.at(key);
 }
 
 std::string Book::FirstTime(std::string_view name, std::string_view builtIn) {
@@ -143,8 +166,9 @@ std::string Book::FirstTime(std::string_view name, std::string_view builtIn) {
 	return words;
 }
 
-bool Book::HintDue(std::string_view area) {
-	return !Find(area).empty() && hinted_.insert(Fold(area)).second;
+bool Book::HintDue(int level, std::string_view name, std::string_view banner) {
+	const auto key = AreaKey(level, name, banner);
+	return !key.empty() && hinted_.insert(key).second;
 }
 
 void Load(const D2RL::PluginContext* context, const std::filesystem::path& file) {
@@ -188,14 +212,19 @@ std::string Find(std::string_view name, std::string_view builtIn) {
 	Refresh();
 	return g_book.Find(name, builtIn);
 }
-std::string FindArea(std::string_view name) {
+std::string FindArea(int level, std::string_view name) {
 	std::lock_guard lock(g_mutex);
 	Refresh();
-	return g_book.FindArea(name, g_banner);
+	return g_book.FindArea(level, name, g_banner);
 }
 void NoteBanner(std::string_view banner) {
 	std::lock_guard lock(g_mutex);
 	g_banner = banner;
+}
+void NoteLevel(int level, std::string name) {
+	std::lock_guard lock(g_mutex);
+	g_level = level;
+	g_levelName = std::move(name);
 }
 std::string FirstTime(std::string_view name, std::string_view builtIn) {
 	if (!g_enabled) return {};
@@ -203,11 +232,11 @@ std::string FirstTime(std::string_view name, std::string_view builtIn) {
 	Refresh();
 	return g_book.FirstTime(name, builtIn);
 }
-bool HintDue(std::string_view area) {
+bool HintDue(std::string_view banner) {
 	if (!g_enabled) return false;
 	std::lock_guard lock(g_mutex);
 	Refresh();
-	return g_book.HintDue(area);
+	return g_book.HintDue(g_level, g_levelName, banner);
 }
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool on) { g_enabled = on; }

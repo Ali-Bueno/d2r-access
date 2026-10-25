@@ -389,7 +389,9 @@ time a described area is entered, its name is followed by how to hear them (swit
 `descriptions`, on). Your own words go in `d2rloader/plugins/d2r-access/descriptions.txt`, one
 "Name = words" line each; updates never replace it. It is read again a second after you save
 it, while the game runs, and `descriptions-names.txt` beside it lists every name it answers to; an
-area can also be written as its banner says it ("The Cave Level 1"). See [descriptions](docs/descriptions.md).
+area can also be written as its banner says it ("The Cave Level 1"), and a name two levels share
+takes the level's Levels.txt Id in brackets ("Sewers Level 1 [92]" is Kurast's alone). See
+[descriptions](docs/descriptions.md).
 A player's town portal is listed by whose it is, "TankMan's portal", and where it leads is read
 off the portal itself on reaching it; one opened anew replaces the old ([town portals](docs/portals.md)).
 The desert's cliff stairs are one entry, "stairs", halfway up; the Countess's Gilded Cistern of

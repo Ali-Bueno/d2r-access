@@ -117,7 +117,7 @@ std::optional<Passages::Settings> CorridorSettings(const Radar::World& world) {
 	const int typical = Rooms::TypicalOpeningWidth(world);
 	if (typical <= 0) return std::nullopt;
 	return Passages::Settings{.minWidth = typical / 2, .maxWidth = typical + CorridorWidthSlack, .minLength = typical,
-		.slack = typical / 2, .reach = typical * CorridorFollowWidths};
+		.slack = typical / 2, .reach = typical * CorridorFollowWidths, .passable = Rooms::PassableWidth(world.bodyPattern)};
 }
 
 // The pieces of Places::Padding named in the loaded rooms, rescanned every couple of seconds.
@@ -381,9 +381,16 @@ void WriteDescriptionNames() {
 	const uint64_t now = GetTickCount64();
 	if (g_namesFor == Strings::Selected() || now < g_namesRetry) return;
 	g_namesRetry = now + PollMs;
-	const auto areas = NativeEntities::LevelNames();
-	if (areas.empty()) return;
+	const auto levels = NativeEntities::LevelNames();
+	if (levels.empty()) return;
 	g_namesFor = Strings::Selected();
+	// A name two levels share is listed per level with its Id, the line that answers there alone.
+	std::vector<std::string> areas;
+	for (const auto& [id, name] : levels) {
+		const bool shared = std::count_if(levels.begin(), levels.end(), [&](const auto& other) { return other.second == name; }) > 1;
+		auto listed = shared ? name + " " + Descriptions::LevelKey(static_cast<int>(id)) : name;
+		if (std::find(areas.begin(), areas.end(), listed) == areas.end()) areas.push_back(std::move(listed));
+	}
 	std::vector<std::string> landmarks;
 	for (const char* name : Strings::Current().placeFeatures)
 		if (std::find(landmarks.begin(), landmarks.end(), name) == landmarks.end()) landmarks.emplace_back(name);
