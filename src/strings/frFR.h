@@ -282,6 +282,8 @@ inline constexpr Table frFR {
 	.townNpcsEverywhereOff = "PNJ et sorties de la ville listés une fois vus",
 	.unexploredSpreadOn = "Zones inexplorées listées une par direction",
 	.unexploredSpreadOff = "Zones inexplorées listées de la plus proche à la plus lointaine",
+	.unexploredEverywhereOn = "Toutes les zones inexplorées listées, même lointaines",
+	.unexploredEverywhereOff = "Seules les zones inexplorées voisines du terrain exploré listées",
 	.pickupClickOn = "Clic de portée de ramassage : activé",
 	.pickupClickOff = "Clic de portée de ramassage : désactivé",
 	.gridEdgeOn = "Choc au bord de l'inventaire : activé",

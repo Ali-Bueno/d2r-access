@@ -282,6 +282,8 @@ inline constexpr Table itIT {
 	.townNpcsEverywhereOff = "PNG e uscite della città elencati una volta visti",
 	.unexploredSpreadOn = "Aree inesplorate elencate una per direzione",
 	.unexploredSpreadOff = "Aree inesplorate elencate dalla più vicina",
+	.unexploredEverywhereOn = "Tutte le aree inesplorate elencate, anche le lontane",
+	.unexploredEverywhereOff = "Solo le aree inesplorate accanto al terreno esplorato",
 	.pickupClickOn = "Clic di portata per raccogliere: attivo",
 	.pickupClickOff = "Clic di portata per raccogliere: disattivo",
 	.gridEdgeOn = "Urto al bordo dell'inventario: attivo",

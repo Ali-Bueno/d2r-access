@@ -99,7 +99,26 @@ void LoadedNpcWithoutPresetIsIdentified() {
 	Check(guards[0].placeId == 0, "a row the presets place more than once stays unidentified");
 }
 
+// objects.txt rows of the markers and their InitFn, as tools/gen_npc_markers.py reads them.
+void MarkersGiveSpawns() {
+	constexpr uint32_t Jerhyn = 201, Natalya = 297, Placeholder1 = 121, Placeholder2 = 122, NatalyaStart = 382, Barrel = 9;
+	const std::vector<TownNpcs::Marker> markers{{Placeholder1, {147, 191}}, {Placeholder2, {71, 148}, true},
+		{NatalyaStart, {30, 40}}, {Barrel, {5, 5}}};
+	const auto second = TownNpcs::MarkerSpawns(markers, [](int initFn) -> std::optional<bool> { return initFn == 19 || initFn == 52; });
+	Check(second.size() == 2 && second[0].monster == Jerhyn && second[0].position.x == 71 && second[0].aroundPlayer
+		&& second[1].monster == Natalya && second[1].position.y == 40,
+		"each marker whose test passes spawns its NPC there; the other placeholder and other objects give none");
+	Check(TownNpcs::MarkerSpawns(markers, [](int) { return std::optional<bool>{}; }).empty(), "a test that cannot be told spawns nothing");
+	std::vector<EntityRadar::Entity> entities;
+	const auto names = [](uint32_t monster) { return monster == Jerhyn ? std::string("Jerhyn") : std::string("Natalya"); };
+	auto spawns = TownNpcs::MarkerSpawns(markers, [](int initFn) -> std::optional<bool> { return initFn == 18 || initFn == 52; });
+	TownNpcs::Merge(spawns, {}, names, entities);
+	Check(entities.size() == 2 && Find(entities, "Jerhyn") && Find(entities, "Jerhyn")->position.x == 147
+		&& Find(entities, "Jerhyn")->placeId == TownNpcs::Identity(Jerhyn), "a marker's NPC is listed from afar with its row's identity");
+}
+
 int main() {
+	MarkersGiveSpawns();
 	LoadedNpcWithoutPresetIsIdentified();
 	FarNpcsGetStandIns();
 	LiveUnitSupersedesItsStandIn();

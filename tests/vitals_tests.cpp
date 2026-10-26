@@ -70,6 +70,9 @@ void SimultaneousAlerts() {
 		"readings resume against the last known baseline");
 	alerts.Reset();
 	Check(!alerts.Update(2, 2).Any(), "a new game takes fresh critical baselines");
+	alert = alerts.Update(0, 1);
+	Check(!alert.Any() && !alert.interrupt, "death says nothing over the game's death screen");
+	Check(alerts.Update(100, 100).life == 100, "the respawn is measured from the death");
 }
 
 void ManaVerbosity() {

@@ -73,7 +73,15 @@ void UnbuiltRoomPresets() {
 	pending.At<int>(PresetX, 1012);
 	pending.At<uint32_t>(PresetType, WarpType);
 	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true) && monsters.size() == 1, "map presets other than monsters are skipped");
-	pending.At<uint32_t>(PresetType, MonsterType);
+	pending.At<uint32_t>(PresetType, ObjectType); pending.At<uint32_t>(PresetClass, 382);
+	built.At<uint32_t>(PresetType, ObjectType); built.At<uint32_t>(PresetClass, 121);
+	std::vector<NativeLevelExits::ObjectPreset> objects;
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true, &objects) && monsters.empty() && objects.size() == 2
+		&& objects[0].object == 121 && objects[0].position.x == 503 && objects[1].object == 382 && objects[1].position.y == 1507
+		&& objects[1].room == f.farRoom.Address(), "object presets are read when asked, built and still on the map alike");
+	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true) && monsters.empty(), "and are never taken for monsters");
+	built.At<uint32_t>(PresetType, MonsterType); built.At<uint32_t>(PresetClass, 154);
+	pending.At<uint32_t>(PresetType, MonsterType); pending.At<uint32_t>(PresetClass, 148);
 	pending.At(PresetNext, pending.Address());
 	Check(NativeLevelExits::ReadMonsters(f.active.Address(), monsters, true) && monsters.size() == 1 && monsters[0].monster == 154,
 		"a cyclic map list adds nothing and keeps the built rooms' presets");

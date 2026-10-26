@@ -61,10 +61,13 @@ Up to eight nearest items have independent continuous XAudio2 voices. X3DAudio
 supplies the stereo speaker matrix. Fixed screen axes derive from native
 projection `0x334DB0`: right = `(dx-dy)/sqrt(2)`, front = `-(dx+dy)/sqrt(2)`.
 X3DAudio puts a source straight to the side fully in one ear; **Item and place
-panning** (`item-pan-25`, Ctrl+S, Sounds; 0 to 400 percent, 100 as X3DAudio has
-it) scales the matrix's left-right balance at constant power, the enemies' pan
-law (`ItemSpatial::ScalePan`), for every item, place and room sound. A tester
-heard items too far left and right (2026-10-19).
+panning** (`item-pan-half-25`, Ctrl+S, Sounds; 0 to 400 percent) scales the
+matrix's left-right balance at constant power, the enemies' pan law
+(`ItemSpatial::ScalePan`), for every item, place and room sound. A tester
+heard items too far left and right (2026-10-19). Since 2026-10-25 its 100 is half
+of X3DAudio's balance (`ItemSpatial::NeutralPanScale`): the testers found 50 natural
+and asked for it as the default. The key changed from `item-pan-25` with it, so a
+saved 50 is not halved again.
 Ordinary sources fade to silence at 30 subtiles; quest sources reach 45. Rear sources smoothly
 lower pitch to 94% across the first subtile behind the listener. Voices keep
 their loop position across updates. The summed gain is limited to 0.5 for

@@ -65,6 +65,10 @@ three values (`Vitals::ManaAlerts`): every change (as life, the default), low ma
   25 points while the resource is comfortable, 10 points below half, single
   points at the end. A resource above the first step is one band, so ordinary
   chip damage stays silent.
+- **Life 0 says nothing** (`Vitals::Alerts::Update`): it is death, and the game's
+  death screen ("You have died...", interrupting) says it. "Life 0 percent", interrupting
+  60 ms later, cut that screen off (a tester's log, 2026-10-25). The meters still take the
+  0, so the respawn's full life is measured from it.
 - Crossing a step speaks the **real percentage**, not the step: falling past 75
   at 74 % says 74, not 75. Percentages are floored, never rounded up into a
   safer number.

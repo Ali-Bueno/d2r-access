@@ -282,6 +282,8 @@ inline constexpr Table deDE {
 	.townNpcsEverywhereOff = "Stadt-NPCs und Ausgänge erst gelistet, wenn gesehen",
 	.unexploredSpreadOn = "Unerkundete Gebiete abwechselnd nach Richtung aufgelistet",
 	.unexploredSpreadOff = "Unerkundete Gebiete nach Entfernung aufgelistet",
+	.unexploredEverywhereOn = "Alle unerkundeten Gebiete aufgelistet, auch entfernte",
+	.unexploredEverywhereOff = "Nur unerkundete Gebiete neben erkundetem Gelände aufgelistet",
 	.pickupClickOn = "Klick bei Aufheb-Reichweite an",
 	.pickupClickOff = "Klick bei Aufheb-Reichweite aus",
 	.gridEdgeOn = "Anschlag am Inventarrand an",

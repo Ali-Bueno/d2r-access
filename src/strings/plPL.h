@@ -282,6 +282,8 @@ inline constexpr Table plPL {
 	.townNpcsEverywhereOff = "Postacie i wyjścia w mieście widoczne po zobaczeniu",
 	.unexploredSpreadOn = "Niezbadane obszary wymieniane po jednym w każdym kierunku",
 	.unexploredSpreadOff = "Niezbadane obszary wymieniane od najbliższego",
+	.unexploredEverywhereOn = "Wszystkie niezbadane obszary wymieniane, także dalekie",
+	.unexploredEverywhereOff = "Tylko niezbadane obszary przy zbadanym terenie",
 	.pickupClickOn = "Kliknięcie w zasięgu podnoszenia: włączone",
 	.pickupClickOff = "Kliknięcie w zasięgu podnoszenia: wyłączone",
 	.gridEdgeOn = "Uderzenie o krawędź ekwipunku: włączone",

@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,6 +25,15 @@ using NameOf = std::function<std::string(uint32_t)>;
 
 // One identity for a row's live unit and its stand-in: the row + 1, as zero means none.
 uint64_t Identity(uint32_t monster);
+
+// A marker object preset (objects.txt row) and whether its room is around the player.
+struct Marker { uint32_t object = 0; Radar::Position position; bool aroundPlayer = false; };
+// Whether the game's InitFn of a marker spawns its NPC now; nothing when that cannot be told.
+using SpawnTest = std::function<std::optional<bool>(int initFn)>;
+
+// The spawns of the NPCs placed by marker objects (Generated::NpcMarkers) rather than by
+// monster presets: one for each marker whose test passes; none for one that cannot be told.
+std::vector<Spawn> MarkerSpawns(const std::vector<Marker>& markers, const SpawnTest& spawns);
 
 // Gives the live units of every NPC row the presets place exactly once, and the only
 // loaded unit of an NPC row they never place, that row's identity. Appends a stand-in

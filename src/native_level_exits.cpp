@@ -95,22 +95,27 @@ uintptr_t MapOf(uintptr_t room) {
 
 using Room = std::pair<uintptr_t, TileRect>;
 
-// The monster presets `map` still holds, already in level subtiles. Each goes to
-// the room whose rectangle holds it, as building that room will (0x3DE420).
-bool ReadUnbuilt(uintptr_t map, const std::vector<Room>& rooms, std::vector<MonsterPreset>& output) {
+// The monster presets `map` still holds, and its object presets when `objects` is
+// given, already in level subtiles. Each goes to the room whose rectangle holds it,
+// as building that room will (0x3DE420).
+bool ReadUnbuilt(uintptr_t map, const std::vector<Room>& rooms, std::vector<MonsterPreset>& output,
+	std::vector<ObjectPreset>* objects) {
 	std::unordered_set<uintptr_t> presets;
 	uintptr_t preset = 0;
 	if (!Peek(map + PresetMapLayout::MapPendingPresets, preset)) return false;
 	while (preset) {
 		if (presets.size() >= MaxPresets || !presets.insert(preset).second) return false;
-		uint32_t type = 0, monster = 0;
+		uint32_t type = 0, row = 0;
 		int x = 0, y = 0;
 		if (!Peek(preset + PresetType, type)) return false;
-		if (type == MonsterType && Peek(preset + PresetClass, monster) && Peek(preset + PresetX, x) && Peek(preset + PresetY, y)) {
+		if ((type == MonsterType || (objects && type == ObjectType))
+			&& Peek(preset + PresetClass, row) && Peek(preset + PresetX, x) && Peek(preset + PresetY, y)) {
 			for (const auto& [room, rect] : rooms)
 				if (x >= rect.x * SubtilesPerTile && y >= rect.y * SubtilesPerTile
 					&& x < (rect.x + rect.width) * SubtilesPerTile && y < (rect.y + rect.height) * SubtilesPerTile) {
-					output.push_back({monster, {static_cast<double>(x), static_cast<double>(y)}, room});
+					const Radar::Position position{static_cast<double>(x), static_cast<double>(y)};
+					if (type == MonsterType) output.push_back({row, position, room});
+					else objects->push_back({row, position, room});
 					break;
 				}
 		}
@@ -168,26 +173,34 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output) {
 	return true;
 }
 
-bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool unbuilt) {
+bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool unbuilt, std::vector<ObjectPreset>* objects) {
 	const NativeMemory::ReadScope scope;
 	output.clear();
+	if (objects) objects->clear();
 	std::vector<MonsterPreset> monsters;
+	std::vector<ObjectPreset> markers;
 	std::vector<Room> rooms;
 	std::vector<uintptr_t> maps;
 	if (!WalkPresets(activeRoom, [&](uintptr_t room, const TileRect& rect, uint32_t, uintptr_t preset, uint32_t type) {
 		MonsterPreset monster{0, {}, room};
 		if (type == MonsterType && Peek(preset + PresetClass, monster.monster) && InRoom(preset, rect, monster.position))
 			monsters.push_back(monster);
+		ObjectPreset object{0, {}, room};
+		if (objects && type == ObjectType && Peek(preset + PresetClass, object.object) && InRoom(preset, rect, object.position))
+			markers.push_back(object);
 	}, [&](uintptr_t room, const TileRect& rect) {
 		rooms.push_back({room, rect});
 		const uintptr_t map = unbuilt ? MapOf(room) : 0;
 		if (map && std::find(maps.begin(), maps.end(), map) == maps.end()) maps.push_back(map);
 	})) return false;
 	std::vector<MonsterPreset> pending;
+	std::vector<ObjectPreset> pendingObjects;
 	for (const uintptr_t map : maps)
-		if (!ReadUnbuilt(map, rooms, pending)) { pending.clear(); break; }
+		if (!ReadUnbuilt(map, rooms, pending, objects ? &pendingObjects : nullptr)) { pending.clear(); pendingObjects.clear(); break; }
 	monsters.insert(monsters.end(), pending.begin(), pending.end());
+	markers.insert(markers.end(), pendingObjects.begin(), pendingObjects.end());
 	output = std::move(monsters);
+	if (objects) *objects = std::move(markers);
 	return true;
 }
 

@@ -282,6 +282,8 @@ inline constexpr Table koKR {
 	.townNpcsEverywhereOff = "마을 NPC와 출구는 본 뒤에 표시",
 	.unexploredSpreadOn = "미탐험 지역을 방향마다 하나씩 나열",
 	.unexploredSpreadOff = "미탐험 지역을 가까운 순으로 나열",
+	.unexploredEverywhereOn = "먼 곳을 포함한 모든 미탐험 지역 나열",
+	.unexploredEverywhereOff = "탐험한 곳에 인접한 미탐험 지역만 나열",
 	.pickupClickOn = "줍기 범위 클릭 켜짐",
 	.pickupClickOff = "줍기 범위 클릭 꺼짐",
 	.gridEdgeOn = "인벤토리 가장자리 충돌음 켜짐",

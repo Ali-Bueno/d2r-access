@@ -2,6 +2,24 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's roundup of older issues on build test-2026-10-25-2 — 2026-10-26
+
+From `D2R Access, older issues revisited.7z` ([decisions](docs/decisions.md)). 128/128 CTest;
+installed by the build. **Unverified live.** Closed by the tester: the walked-distance click, the
+low-life alert, the Forgotten Tower's exits, the trade gold window, the tower ruin, stables, the Lut
+Gholein sewer grate.
+- Buy confirmation: the shop's name no longer repeats; a dialogue panel over an open shop is a
+  pop-up (`PopupOverInventory` in `interaction_reader.cpp`).
+- Death screen: no "Life 0 percent" over it (`Vitals::Alerts`) ([vitals](docs/vitals.md)).
+- Town NPCs at marker objects (Jerhyn, Hratli, Natalya, Anya): `ReadMonsters` objects,
+  `generated/npc_markers.h`, `NpcSpawnRules` from the game's InitFns (RE'd); loaded town NPCs count
+  as seen ([entity scan](docs/entity-scan.md#npcs-at-marker-objects-2026-10-25)).
+- Item panning: 100 = the old 50 (`item-pan-half-25`) ([ground items](docs/ground-items.md)).
+- `unexplored-everywhere` (Ctrl+S, off): every unexplored area listed ([entity scan](docs/entity-scan.md)).
+
+**Next step:** live: buy potions at Ormus, a death, `[survey] town NPCs` at Atma's and the Kurast
+stash (Jerhyn/Natalya `/spawn`, `201x1`, `297x1`), `unexplored-everywhere` with a far route.
+
 ## The tester's list on build test-2026-10-25 — 2026-10-25 (released as test-2026-10-25-2 from 1cf739e)
 
 Release: 127/127 CTest, 29 entries, 63,000,828 bytes, SHA-256 `43d48f45…cc90b44fe`; news

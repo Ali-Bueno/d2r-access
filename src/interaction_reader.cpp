@@ -73,6 +73,16 @@ InventoryContext g_inventoryContext;
 // from, nothing is new, so the panel and its tab are not said again (a tester, 2026-10-17).
 uintptr_t g_modalReturnPanel = 0;
 std::string g_modalReturnKey, g_lastInventoryKey;
+constexpr std::string_view NpcDialogPanel = "NpcDialogPanel";
+
+// A pop-up over the inventory: a "...Modal", or the shop's buy confirmation, which
+// is a list in the NPC's dialogue panel while the shop stays open (a tester, 2026-10-25).
+bool PopupOverInventory(uintptr_t panel) {
+	const auto name = NativeWidgets::ReadName(panel);
+	if (name.ends_with("Modal")) return true;
+	const auto& open = PanelState::OpenPanels();
+	return name == NpcDialogPanel && std::find(open.begin(), open.end(), g_inventoryContext.name) != open.end();
+}
 struct StatValue { uintptr_t widget = 0; std::string value, points; };
 StatValue g_stat;
 std::string g_help, g_spokenHelp, g_helpContext;
@@ -1456,7 +1466,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		// queued at .397, in the same poll as the first focus off the inventory,
 		// and the user heard both cut to silence. The title interrupts an item
 		// readout on its own.
-		const bool toModal = g_inventory && focus.panel && NativeWidgets::ReadName(focus.panel).ends_with("Modal");
+		const bool toModal = g_inventory && focus.panel && PopupOverInventory(focus.panel);
 		if (toModal) {
 			g_modalReturnPanel = g_inventoryContext.panel;
 			g_modalReturnKey = g_lastInventoryKey;

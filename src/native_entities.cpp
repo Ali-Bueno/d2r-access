@@ -12,6 +12,7 @@
 #include "native_level_exits.h"
 #include "preset_map_layout.h"
 #include "town_npcs.h"
+#include "npc_spawn_rules.h"
 #include "cairn_stones.h"
 #include "tomb_symbols.h"
 #include "quest_seals.h"
@@ -352,14 +353,20 @@ void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& 
 	const std::vector<TownNpcs::Live>& liveNpcs, std::vector<EntityRadar::Entity>& entities) {
 	uint32_t levelId = 0;
 	std::vector<NativeLevelExits::MonsterPreset> presets;
+	std::vector<NativeLevelExits::ObjectPreset> objects;
 	if (!Peek(level + LevelId, levelId) || !Generated::FindLevelFlags(static_cast<int32_t>(levelId)).town
-		|| !NativeLevelExits::ReadMonsters(room, presets, g_unbuiltSupported)) return;
+		|| !NativeLevelExits::ReadMonsters(room, presets, g_unbuiltSupported, &objects)) return;
 	std::unordered_set<uintptr_t> aroundRooms;
 	for (const auto aroundRoom : around)
 		if (uintptr_t extended = 0; Peek(aroundRoom + RoomExtended, extended) && extended) aroundRooms.insert(extended);
 	std::vector<TownNpcs::Spawn> spawns;
 	spawns.reserve(presets.size());
 	for (const auto& preset : presets) spawns.push_back({preset.monster, preset.position, aroundRooms.contains(preset.room)});
+	// NPCs a marker object places, where the game's own test for it would spawn them (Jerhyn, Natalya).
+	std::vector<TownNpcs::Marker> markers;
+	for (const auto& object : objects) markers.push_back({object.object, object.position, aroundRooms.contains(object.room)});
+	const auto placed = TownNpcs::MarkerSpawns(markers, [](int initFn) { return NpcSpawnRules::Spawns(initFn, NativeQuestFlags::Read); });
+	spawns.insert(spawns.end(), placed.begin(), placed.end());
 	// A row placed twice is not listed: the log tells which NPC that was (a tester, 2026-10-20: Natalya).
 	std::map<uint32_t, int> counts;
 	for (const auto& spawn : spawns) ++counts[spawn.monster];

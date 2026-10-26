@@ -13,8 +13,11 @@ bool Read(uintptr_t activeRoom, std::vector<Exit>& output);
 // `room` is the logical room (RoomEx) holding the preset. `unbuilt` adds the
 // presets the level's maps still hold for rooms the game has not built; a
 // malformed map list adds none of them and fails nothing else.
+// `objects`, when given, takes the object presets (objects.txt rows) of the same walk.
 struct MonsterPreset { uint32_t monster = 0; Radar::Position position; uintptr_t room = 0; };
-bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool unbuilt = false);
+struct ObjectPreset { uint32_t object = 0; Radar::Position position; uintptr_t room = 0; };
+bool ReadMonsters(uintptr_t activeRoom, std::vector<MonsterPreset>& output, bool unbuilt = false,
+	std::vector<ObjectPreset>* objects = nullptr);
 // Coordinate identity survives native warp-unit unloading/recreation. Zero is
 // reserved for entities that are not fixed level exits.
 uint64_t Identity(Radar::Position position);

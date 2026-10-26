@@ -282,6 +282,8 @@ inline constexpr Table ruRU {
 	.townNpcsEverywhereOff = "Жители и выходы города в списке после встречи",
 	.unexploredSpreadOn = "Неисследованные области по одной в каждом направлении",
 	.unexploredSpreadOff = "Неисследованные области от ближайшей",
+	.unexploredEverywhereOn = "Все неисследованные области, включая дальние",
+	.unexploredEverywhereOff = "Только неисследованные области рядом с исследованными",
 	.pickupClickOn = "Щелчок в радиусе подбора: включено",
 	.pickupClickOff = "Щелчок в радиусе подбора: выключено",
 	.gridEdgeOn = "Удар о край инвентаря: включено",

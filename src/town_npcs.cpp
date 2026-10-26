@@ -1,9 +1,20 @@
 #include "town_npcs.h"
 
+#include "generated/npc_markers.h"
+
 #include <algorithm>
 
 namespace D2RAccess::TownNpcs {
 uint64_t Identity(uint32_t monster) { return static_cast<uint64_t>(monster) + 1; }
+
+std::vector<Spawn> MarkerSpawns(const std::vector<Marker>& markers, const SpawnTest& spawns) {
+	std::vector<Spawn> result;
+	for (const auto& marker : markers)
+		for (const auto& known : Generated::NpcMarkers)
+			if (known.object == marker.object && spawns(known.initFn).value_or(false))
+				result.push_back({known.monster, marker.position, marker.aroundPlayer});
+	return result;
+}
 
 void Merge(const std::vector<Spawn>& spawns, const std::vector<Live>& live, const NameOf& name,
 	std::vector<EntityRadar::Entity>& entities) {

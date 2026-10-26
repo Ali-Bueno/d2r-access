@@ -282,6 +282,8 @@ inline constexpr Table zhTW {
 	.townNpcsEverywhereOff = "城鎮NPC和出口見到後才列出",
 	.unexploredSpreadOn = "未探索區域按方向輪流列出",
 	.unexploredSpreadOff = "未探索區域按距離由近到遠列出",
+	.unexploredEverywhereOn = "列出所有未探索區域，包括遠處的",
+	.unexploredEverywhereOff = "只列出與已探索區域相鄰的未探索區域",
 	.pickupClickOn = "拾取範圍提示音已開啟",
 	.pickupClickOff = "拾取範圍提示音已關閉",
 	.gridEdgeOn = "物品欄邊緣碰撞音已開啟",

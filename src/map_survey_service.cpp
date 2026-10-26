@@ -131,6 +131,7 @@ bool                 g_fullAssistance = true;
 std::atomic<bool>    g_reachFilter{ false };
 std::atomic<bool>    g_townNpcsEverywhere{ true };
 std::atomic<bool>    g_unexploredSpread{ true }; // unexplored areas one per direction in turn
+std::atomic<bool>    g_unexploredEverywhere{ false }; // every unexplored area, not only those at the edge
 std::atomic<bool>    g_doorwaysListed{ true }; // doorways in the scanner with the doors
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
@@ -375,6 +376,17 @@ std::vector<EntityRadar::Entity> LoadedItems(const Lifecycle& state) {
 	return items;
 }
 
+// The town NPCs found this pass: those on charted ground and, while a town lists all its
+// NPCs, every loaded one wherever it stands, so one no preset places stays listed once it
+// unloads (a tester, 2026-10-25: Jerhyn, loaded on arrival, gone a few steps later).
+std::vector<EntityRadar::Entity> TownNpcsFound(const Lifecycle& state, const Radar::World& world, const Scene& scene) {
+	auto found = MapSurvey::Charted(world, scene.townNpcs, Explored(state, world));
+	if (!g_fullAssistance && !g_townNpcsEverywhere) return found;
+	for (const auto& npc : scene.townNpcs)
+		if (npc.id != npc.placeId) found.push_back(npc);
+	return found;
+}
+
 // Full assistance lists everything loaded. Only what was discovered is kept
 // for this map's later games, in either mode.
 // Enemies and items are remembered as every other thing is (the user,
@@ -385,7 +397,7 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	const auto& rooms = CurrentRooms(state.level, state.session);
 	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
 	const auto discovered = Discovered(state, world, scene);
-	g_townNpcs.Found(state.level, MapSurvey::Charted(world, scene.townNpcs, Explored(state, world)));
+	g_townNpcs.Found(state.level, TownNpcsFound(state, world, scene));
 	const auto items = LoadedItems(state);
 	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
 	const auto here = Here(state, world);
@@ -489,7 +501,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	if (!g_fullAssistance) {
 		const auto& levelRooms = CurrentRooms(state.level, state.session);
 		entries = RoomCatalogue::Exploration(entries, TerrainService::VisitedRooms(state.level, levelRooms),
-			TerrainService::ExploredRooms(state.level, levelRooms, world.player), &grid);
+			TerrainService::ExploredRooms(state.level, levelRooms, world.player), &grid, g_unexploredEverywhere.load());
 	}
 	const Strings::Table& strings = Strings::Current();
 	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
@@ -623,6 +635,8 @@ bool UnexploredSpread() { return g_unexploredSpread.load(); }
 bool DoorwaysListed() { return g_doorwaysListed.load(); }
 void SetDoorwaysListed(bool on) { g_doorwaysListed = on; }
 void SetUnexploredSpread(bool on) { g_unexploredSpread = on; }
+bool UnexploredEverywhere() { return g_unexploredEverywhere.load(); }
+void SetUnexploredEverywhere(bool on) { g_unexploredEverywhere = on; }
 void SetReachFilter(bool on) { g_reachFilter = on; }
 
 bool Register(const D2RL::PluginContext* context) {

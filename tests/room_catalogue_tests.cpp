@@ -105,6 +105,10 @@ int main() {
 	pair.Observe(11, Seed, Level, {5, 5});
 	Check(RoomCatalogue::Exploration(pair.Entries(), {}, {}, &walled).size() == 1, "a neighbour behind a known wall is not the edge");
 	Check(RoomCatalogue::Exploration(pair.Entries(), {}, {}).size() == 2, "without collision a shared edge is still the edge");
+	listed = RoomCatalogue::Exploration(row.Entries(), {}, {}, nullptr, true);
+	Check(listed.size() == 4 && listed[0].explored && !listed[3].explored && listed[3].number == 4,
+		"every unexplored room is listed when asked, the far ones included");
+	Check(RoomCatalogue::Exploration(pair.Entries(), {}, {}, &walled, true).size() == 2, "even one behind a known wall");
 
 	// The remembered set is bounded, and bounded by dropping the oldest.
 	RoomCatalogue::Registry bounded;

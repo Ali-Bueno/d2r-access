@@ -83,7 +83,7 @@ void Registry::Clear() {
 
 std::vector<Entry> Exploration(const std::vector<Entry>& entries,
 	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored,
-	const Navigation::Grid* grid) {
+	const Navigation::Grid* grid, bool everyUnexplored) {
 	const auto listed = [](const std::vector<NativeRooms::Room>& rooms, const NativeRooms::Room& room) {
 		return std::any_of(rooms.begin(), rooms.end(), [&](const NativeRooms::Room& other) { return other.id == room.id; });
 	};
@@ -95,11 +95,11 @@ std::vector<Entry> Exploration(const std::vector<Entry>& entries,
 	}
 	std::vector<Entry> result;
 	for (const Entry& entry : stood) {
-		const bool frontier = !listed(known, entry.room) && std::any_of(known.begin(), known.end(),
+		const bool frontier = !listed(known, entry.room) && (everyUnexplored || std::any_of(known.begin(), known.end(),
 			[&](const NativeRooms::Room& room) {
 				return RoomGraph::Touching(room, entry.room)
 					&& (!grid || RoomGraph::Border(*grid, room, entry.room) != RoomGraph::Passage::Closed);
-			});
+			}));
 		if (entry.explored || frontier) result.push_back(entry);
 	}
 	return result;

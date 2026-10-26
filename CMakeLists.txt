@@ -120,6 +120,7 @@ add_library(d2r-access SHARED
 	src/native_entities.cpp
 	src/native_pets.cpp
 	src/town_npcs.cpp
+	src/npc_spawn_rules.cpp
 	src/monster_plate.cpp
 	src/monster_names.cpp
 	src/native_cairn.cpp
@@ -428,13 +429,15 @@ if(BUILD_TESTING)
 	add_test(NAME entity-radar COMMAND entity-radar-tests)
 	d2r_test(town-npcs-tests tests/town_npcs_tests.cpp src/town_npcs.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME town-npcs COMMAND town-npcs-tests)
+	d2r_test(npc-spawn-rules-tests tests/npc_spawn_rules_tests.cpp src/npc_spawn_rules.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
+	add_test(NAME npc-spawn-rules COMMAND npc-spawn-rules-tests)
 	d2r_test(map-survey-tests tests/map_survey_tests.cpp src/map_survey.cpp src/npc_proximity.cpp src/spoken_direction.cpp src/entity_radar.cpp src/navigation_grid.cpp src/radar_grid.cpp src/speech_strings.cpp src/native_rooms.cpp src/native_memory.cpp)
 	add_test(NAME map-survey COMMAND map-survey-tests)
 	d2r_test(npc-proximity-tests tests/npc_proximity_tests.cpp src/npc_proximity.cpp src/spoken_direction.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME npc-proximity COMMAND npc-proximity-tests)
 	d2r_test(target-sight-tests tests/target_sight_tests.cpp src/target_sight.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME target-sight COMMAND target-sight-tests)
-	d2r_test(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_pets.cpp src/town_npcs.cpp src/quest_seals.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp src/native_quest_flags.cpp)
+	d2r_test(native-entities-tests tests/native_entities_tests.cpp src/native_entities.cpp src/native_pets.cpp src/town_npcs.cpp src/npc_spawn_rules.cpp src/quest_seals.cpp src/monster_plate.cpp src/native_level_exits.cpp src/native_level_areas.cpp src/level_areas.cpp src/room_graph.cpp src/native_rooms.cpp src/native_drlg.cpp src/navigation_grid.cpp src/native_ground_items.cpp src/ground_items.cpp src/ground_item_text.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp src/async_log.cpp src/entity_radar.cpp src/radar_grid.cpp src/native_quest_flags.cpp)
 	target_link_libraries(native-entities-tests PRIVATE D2RLPlugin::D2RLPlugin version)
 	add_test(NAME native-entities COMMAND native-entities-tests)
 	d2r_test(radar-ui-tests tests/radar_ui_tests.cpp src/radar_ui.cpp src/panel_state.cpp)

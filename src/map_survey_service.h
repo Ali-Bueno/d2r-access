@@ -24,6 +24,10 @@ bool TownNpcsEverywhere();
 void SetTownNpcsEverywhere(bool on);
 bool UnexploredSpread();
 void SetUnexploredSpread(bool on);
+// Every unexplored area of the level listed in exploration mode, not only those at the
+// edge of known ground; off by default (a tester's wish, 2026-10-25). docs/entity-scan.md
+bool UnexploredEverywhere();
+void SetUnexploredEverywhere(bool on);
 // Doorways listed with the doors, on by default (docs/ground-items.md#doorways-2026-10-20).
 bool DoorwaysListed();
 void SetDoorwaysListed(bool on);

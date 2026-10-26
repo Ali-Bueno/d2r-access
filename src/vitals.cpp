@@ -82,6 +82,8 @@ Alert Alerts::Update(int life, int mana, ManaAlerts manaAlerts) {
 		alert.interrupt = alert.interrupt
 			|| (alert.mana >= 0 && mana <= CriticalPercent && previous > mana);
 	}
+	// Life 0 is death: the game's death screen says it, and an alert cut that off (a tester, 2026-10-25).
+	if (life == 0) return {};
 	return alert;
 }
 

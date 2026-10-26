@@ -282,6 +282,8 @@ inline constexpr Table enUS {
 	.townNpcsEverywhereOff = "Town NPCs and exits listed once seen",
 	.unexploredSpreadOn = "Unexplored areas listed one per direction in turn",
 	.unexploredSpreadOff = "Unexplored areas listed nearest first",
+	.unexploredEverywhereOn = "Every unexplored area listed, far ones included",
+	.unexploredEverywhereOff = "Only unexplored areas next to explored ground listed",
 	.pickupClickOn = "Pickup range click on",
 	.pickupClickOff = "Pickup range click off",
 	.gridEdgeOn = "Inventory edge bump on",

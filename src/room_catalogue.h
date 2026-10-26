@@ -90,10 +90,11 @@ private:
 
 // Exploration mode's rooms: those stood in (`visited`, or the entry's own flag)
 // and the unexplored ones sharing an edge with `explored` ground that `grid`, when
-// given, does not prove walled off -- the edge of the known map. `docs/entity-scan.md`
+// given, does not prove walled off -- the edge of the known map; with `everyUnexplored`,
+// every room not explored yet. `docs/entity-scan.md`
 std::vector<Entry> Exploration(const std::vector<Entry>& entries,
 	const std::vector<NativeRooms::Room>& visited, const std::vector<NativeRooms::Room>& explored,
-	const Navigation::Grid* grid = nullptr);
+	const Navigation::Grid* grid = nullptr, bool everyUnexplored = false);
 
 // One catalogue entity per room. `explored` and `unexplored` are printf
 // formats taking the room number; unexplored rooms get their own category.

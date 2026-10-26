@@ -282,6 +282,8 @@ inline constexpr Table ptBR {
 	.townNpcsEverywhereOff = "NPCs e saídas da cidade listados depois de vistos",
 	.unexploredSpreadOn = "Áreas inexploradas listadas uma por direção",
 	.unexploredSpreadOff = "Áreas inexploradas listadas da mais próxima",
+	.unexploredEverywhereOn = "Todas as áreas inexploradas listadas, inclusive as distantes",
+	.unexploredEverywhereOff = "Só áreas inexploradas ao lado do terreno explorado",
 	.pickupClickOn = "Clique de alcance para pegar: ligado",
 	.pickupClickOff = "Clique de alcance para pegar: desligado",
 	.gridEdgeOn = "Batida na borda do inventário: ligado",

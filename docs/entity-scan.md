@@ -78,6 +78,10 @@ automap; enemies are the one live category.
   on; a tester, 2026-10-21) the list takes one per screen direction in turn,
   nearest first in each round (`MapSurvey::SpreadByDirection`): the same areas,
   only the order changes, so a player picks a way rather than three neighbours.
+  `unexplored-everywhere` (Ctrl+S, Navigation, off; a tester, 2026-10-25) lists
+  every unexplored room of the level in exploration mode, far ones included; a
+  route to one guesses across ground not seen yet (`docs/beacon.md`). Off keeps
+  the user's rule of 2026-09-24. Percent explored keeps its own edge either way.
 - **Ground loot and ordinary chests are not listed.** They are not on the
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them
@@ -123,14 +127,46 @@ all; off, only those seen (`TownNpcSightings::Listed`). NPCs that wander
 (Warriv, Gheed, Ormus) are found near their spawn. Code: `src/town_npcs.{h,cpp}`,
 `NativeEntities::AddTownNpcs`.
 
-An NPC the presets never place (Jerhyn, MonStats row 201: no `201xN` in the
-`[survey] town NPCs on level 40` presets list, yet loaded at 5152,5200 in the
-2026-10-21 explo log) takes the row's identity while it is the only loaded unit of
-that row. `TownNpcSightings` keeps the last seen entity per identity, so once seen
-it stays listed from anywhere, at its last place, as a stand-in with no unit; the
-live unit takes over when loaded again. Unseen, it cannot be listed: no preset
-says where it is. Live check: stand at Atma, `[survey] town NPCs` should name
-Jerhyn as `Jerhyn@x,y/spawn` once he was met and is out of range.
+An NPC the presets never place takes the row's identity while it is the only
+loaded unit of that row. `TownNpcSightings` keeps the last seen entity per
+identity, so once seen it stays listed from anywhere, at its last place, as a
+stand-in with no unit; the live unit takes over when loaded again. While a town
+lists all its NPCs, every loaded one counts as seen wherever it stands
+(`TownNpcsFound`, 2026-10-25): Jerhyn, loaded on arrival at the waypoint, used to
+drop out a few steps later because his spot was not charted.
+
+### NPCs at marker objects (2026-10-25)
+
+Jerhyn, Kaelan, Hratli, Natalya, Anya, Nihlathak and Larzuk are no monster preset
+(Lut Gholein's list holds no 201, Kurast Docks' no 253 or 297). The town's DS1 places
+an invisible marker object whose objects.txt `InitFn` spawns the NPC when the
+marker's room is built (`tools/gen_npc_markers.py`: the object's Class starts with
+the NPC's MonStats Id; `src/generated/npc_markers.h`). `ReadMonsters` also returns
+the object presets; `TownNpcs::MarkerSpawns` turns a marker into a spawn when
+`NpcSpawnRules::Spawns` says its InitFn would spawn now, from the player's quest
+flags (`NativeQuestFlags`), and Merge lists it as any preset.
+
+The init functions, decompiled from `re/D2R_live.exe` (D2R 3.3.93787). The dispatcher
+`0x510CB4` indexes a table at `0x239B980` filled at run time, so slots were matched by
+content (MEASURED tests, INFERRED slot numbers). Each tests the **game's** quest record
+through `0x514FD0(game, row, bit)` (`game+0x21D8 -> +0x10`, bit 13 primary goal done);
+the mod reads the player's, and also takes bit 0 or 15 for done.
+
+| InitFn (row) | Function | Spawns while | Mod's rule |
+|---|---|---|---|
+| 18 JerhynPlaceholder1 (121) | `0x5161B0` -> `0x59E5A0` | rows 8 and 12 bit 13 clear, Seven Tombs (row 14) not begun | rows 8, 9, 12 not done, row 14 neither begun nor done |
+| 19 JerhynPlaceholder2 (122) | `0x5161F0` -> `0x59E6D0` | Jerhyn unless rows 8 and 9 clear and Seven Tombs not begun (at x+15, or x-10 before it, y-3); Kaelan at x+1 while row 14:13 clear | the opposite of 18 |
+| 49 HratliStart (378) | `0x5EB9E0` | row 16 (Act III intro):13 clear | row 16 not done |
+| 50 HratliEnd (379) | `0x5EB870` | row 16:13 set | row 16 done |
+| 52 NatalyaStart (382) | `0x5EBC20` | row 22 (The Guardian):13 clear | row 22 not done |
+| 66 DrehyaInTown (459) | `0x547A40` | quest data `+0xA4 == 2`: after the thaw, on talking to Malah | row 37 bit 0 or 15 |
+| 68 NihlathakInTown (461) | `0x548EE0` | quest data `+0xA8 == 0`; set on entering levels 112-114 or 121-124 | none: no flag tells it |
+| 70/71 Larzuk (542/543) | `0x548A40` (one slot) | once, Siege data `+0x3D == 0` | none: slot unknown |
+
+A marker with no rule gives no spawn: that NPC is listed once seen, as before. Kaelan
+is not placed from the marker (one NPC per marker); he too is listed once seen. Live
+check: stand at Atma and at the Kurast stash; `[survey] town NPCs` should name
+`Jerhyn@x,y/spawn` and `Natalya@x,y/spawn`, with `201x1` and `297x1` in the presets list.
 
 ### Presets of rooms not built yet (fixed 2026-10-12)
 

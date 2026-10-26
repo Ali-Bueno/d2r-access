@@ -3,6 +3,30 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-26 — The tester's roundup of older issues (build test-2026-10-25-2)
+
+From `D2R Access, older issues revisited.7z` (the notes, five log pairs: death and trading, npcs,
+storytime, trade, dungeon). Closed by the tester: the walked-distance click, the low-life alert with
+its heartbeat, the Forgotten Tower's quest exits, the trade gold window, the tower ruin, stables, Lut
+Gholein's sewer grate, the sewer descriptions. Built and unit-tested only.
+- **A shop's buy confirmation is a pop-up too**: it is a list in `NpcDialogPanel` while the shop
+  stays open, not a "...Modal", so the 2026-10-17 rule missed it and every buy said "Ormus. Misc."
+  again. A dialogue panel over a shop still open counts; closing the shop does not (its panel is gone
+  first). Rejected: every `NpcDialogPanel` focus (leaving the shop and coming back to the same cell
+  would then say nothing).
+- **Life 0 says nothing**: "Life 0 percent" interrupted "You have died..." 60 ms after it. Death is
+  the death screen's to say. Rejected: queueing the alert (a dead character's life is no news).
+- **Jerhyn and Natalya from anywhere in town**: they are no monster preset but marker objects whose
+  InitFn spawns them; the mod lists them at the marker the game's own test picks, read from the
+  player's quest flags (Jerhyn has two places, Hratli two). Nihlathak and Larzuk keep "once seen": no
+  flag tells their test. In a town every loaded NPC now counts as seen, wherever it stands. Rejected:
+  remembering their places between games (Jerhyn moves with the quests).
+- **Item panning's 100 is the old 50**, the testers' choice; the setting's key changed so a saved 50
+  is not halved again.
+- **Every unexplored area, optionally** (`unexplored-everywhere`, off): the tester wants to head for
+  far unexplored ground on purpose. Off keeps the user's 2026-09-24 rule (only the edge of the known
+  map, so the list does not lay out the level).
+
 ## 2026-10-25 — The tester's list on build test-2026-10-25
 
 From `d2r access test build 2026-10-25 notes.7z` (the notes, six log pairs, two Flayer screenshots;

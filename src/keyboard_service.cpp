@@ -1578,7 +1578,8 @@ std::vector<SettingsList::Entry> Strengths() {
 			[](double scale) { BeaconAudio::SetStrength(scale, BeaconAudio::PitchScale()); }),
 		Strength("beacon-pitch-25", &Strings::Table::beaconPitchStrength, BeaconAudio::PitchScale,
 			[](double scale) { BeaconAudio::SetStrength(BeaconAudio::PanScale(), scale); }),
-		Strength("item-pan-25", &Strings::Table::itemPanStrength, ItemAudio::PanScale, ItemAudio::SetPanScale),
+		// "-half": 100 became half the old spread, so an old step is not read as one of these.
+		Strength("item-pan-half-25", &Strings::Table::itemPanStrength, ItemAudio::PanScale, ItemAudio::SetPanScale),
 	};
 }
 
@@ -1910,6 +1911,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
 		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
 		{MapSurveyService::UnexploredSpread, MapSurveyService::SetUnexploredSpread, phrase(&T::unexploredSpreadOn, &T::unexploredSpreadOff), false, "unexplored-spread"},
+		{MapSurveyService::UnexploredEverywhere, MapSurveyService::SetUnexploredEverywhere, phrase(&T::unexploredEverywhereOn, &T::unexploredEverywhereOff), false, "unexplored-everywhere"},
 		{MapSurveyService::DoorwaysListed, MapSurveyService::SetDoorwaysListed, phrase(&T::doorwaysListedOn, &T::doorwaysListedOff), false, "doorways-listed"},
 	}});
 	groups.push_back({GroupName(G::Items), {

@@ -282,6 +282,8 @@ inline constexpr Table jaJP {
 	.townNpcsEverywhereOff = "町のNPCと出口は見つけてから表示",
 	.unexploredSpreadOn = "未探索のエリアを方向ごとに一つずつ表示",
 	.unexploredSpreadOff = "未探索のエリアを近い順に表示",
+	.unexploredEverywhereOn = "遠くも含め、すべての未探索エリアを表示",
+	.unexploredEverywhereOff = "探索済みの場所に隣接する未探索エリアのみ表示",
 	.pickupClickOn = "拾える距離のクリック音 オン",
 	.pickupClickOff = "拾える距離のクリック音 オフ",
 	.gridEdgeOn = "インベントリ端の衝突音 オン",

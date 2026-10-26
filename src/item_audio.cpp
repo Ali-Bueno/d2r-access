@@ -110,7 +110,7 @@ float OwnVolume(Sound sound) {
 }
 void ApplySpatial(Playing& active, IXAudio2MasteringVoice* master, const D2RL::PluginContext* context) {
 	const auto& target = active.target;
-	const auto matrix = ItemSpatial::ScalePan(ItemSpatial::StereoMatrix(target), g_panScale.load());
+	const auto matrix = ItemSpatial::ScalePan(ItemSpatial::StereoMatrix(target), g_panScale.load() * ItemSpatial::NeutralPanScale);
 	active.gain += (target.gain - active.gain) * GainSmoothing;
 	HRESULT applied = active.source->SetOutputMatrix(master, 1, 2, matrix.data());
 	if (SUCCEEDED(applied)) applied = active.source->SetFrequencyRatio(target.pitch);
