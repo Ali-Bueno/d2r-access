@@ -6,25 +6,9 @@
 
 namespace D2RAccess::ExploredStore {
 namespace {
-std::vector<ExploredRooms::Room> UnionRooms(const std::vector<ExploredRooms::Room>& a,
-	const std::vector<ExploredRooms::Room>& b) {
-	std::map<std::pair<int, int>, bool> rooms;
-	for (const auto& room : a) rooms[{room.tileX, room.tileY}] |= room.visited;
-	for (const auto& room : b) rooms[{room.tileX, room.tileY}] |= room.visited;
-	std::vector<ExploredRooms::Room> result;
-	result.reserve(rooms.size());
-	for (const auto& [point, visited] : rooms) result.push_back({point.first, point.second, visited});
-	return result;
-}
-bool SameRooms(const std::vector<ExploredRooms::Room>& a, const std::vector<ExploredRooms::Room>& b) {
-	if (a.size() != b.size()) return false;
-	for (size_t i = 0; i < a.size(); ++i)
-		if (a[i].tileX != b[i].tileX || a[i].tileY != b[i].tileY || a[i].visited != b[i].visited) return false;
-	return true;
-}
 // The record's size in the archive (explored_store.cpp Encode).
 size_t Bytes(const Store::Record& record) {
-	size_t bytes = 30 + 9 * record.rooms.size();
+	size_t bytes = 30 + RoomBytes * record.rooms.size();
 	for (const auto& place : record.places) bytes += 35 + place.name.size();
 	return bytes;
 }
@@ -84,7 +68,7 @@ void Store::Submit(std::vector<Update> updates) {
 	if (stopping_) return;
 	for (auto& update : updates) {
 		if (update.rooms.empty() && update.places.empty()) continue;
-		if (update.rooms.size() > (MaxArchiveBytes - 48) / 9) { failed_ = true; continue; }
+		if (update.rooms.size() > (MaxArchiveBytes - 48) / RoomBytes) { failed_ = true; continue; }
 		auto& record = table_[update.key];
 		auto merged = UnionRooms(record.rooms, update.rooms);
 		auto places = record.places;

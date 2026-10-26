@@ -35,6 +35,11 @@ bool Names(std::string_view label, std::string_view name) {
 Bearer Find(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities,
 	std::string_view label, const Settings& settings, const std::optional<Aim>& aim) {
 	if (!settings.enabled || label.empty()) return {};
+	// A label carrying a level exit's whole name is the exit's, never a monster's that shares a word:
+	// a Flayer behind a wall silenced "To The Flayer Dungeon Level 1" at its stairs (a tester, 2026-10-25).
+	for (const auto& entity : entities)
+		if (entity.kind == EntityRadar::Kind::Exit && Names(label, WorldName(entity))
+			&& std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y) <= settings.reach) return {};
 	bool bearer = false;
 	Bearer nearest;
 	const EntityRadar::Entity* named = nullptr;

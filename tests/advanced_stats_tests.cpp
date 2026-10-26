@@ -1,5 +1,6 @@
 #include "advanced_stats_reader.h"
 #include "mercenary_stats.h"
+#include "native_hit_chance.h"
 #include "native_memory.h"
 #include "speech_strings.h"
 #include "test_support.h"
@@ -158,6 +159,10 @@ void Info(const D2RL::PluginContext*, const char*) noexcept {}
 void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
 namespace D2RAccess::NativeSkillNavigation { bool Select(NativeUi::Focus) { return true; } }
+namespace D2RAccess::NativeHitChance {
+std::string Attack(bool left) { return left ? "Caído: 95% Probabilidad media de golpear" : "Caído: 80% Probabilidad media de golpear"; }
+std::string Defense() { return "Probabilidad media de que Caído te golpee: 5%"; }
+}
 namespace D2RAccess::InputDirection {
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (pending != wanted) return false;

@@ -66,6 +66,56 @@ void WriteText(const std::filesystem::path& path, const std::string& text) {
 	std::ofstream out(path, std::ios::binary);
 	out << text;
 }
+
+// The tiles the automap can draw in a room are kept with it, across games and archive versions.
+void Drawable() {
+	ExploredRooms::Memory memory;
+	memory.Mark(6, 10, 10);
+	memory.Visit(6, 14, 10);
+	Check(memory.Drawable(6, 10, 10) == 0, "a room never measured has no count");
+	Check(memory.SetDrawable(6, 10, 10, 120) && !memory.SetDrawable(6, 10, 10, 120), "a count is news once");
+	const auto snapshot = memory.Snapshot(6);
+	Check(snapshot.size() == 2 && snapshot[0].drawable == 120 && snapshot[1].drawable == 0, "the snapshot carries the counts");
+	ExploredRooms::Memory later;
+	later.SetDrawable(6, 10, 10, 90);
+	later.Merge(6, {{10, 10, false, 120}, {14, 10, true, 64}});
+	Check(later.Drawable(6, 10, 10) == 90 && later.Drawable(6, 14, 10) == 64, "a merge fills unknown counts and keeps a measured one");
+	const auto kept = ExploredStore::UnionRooms({{1, 1, false, 0}, {2, 2, false, 50}}, {{1, 1, true, 70}, {2, 2, false, 40}});
+	Check(kept.size() == 2 && kept[0].visited && kept[0].drawable == 70 && kept[1].drawable == 50,
+		"a known count beats an unknown one, the larger of two wins");
+
+	const auto directory = Directory("drawable");
+	const ExploredStore::Key map{0xABCD1234u, 6, 0x2222};
+	ExploredStore::Store::Table table;
+	table[map] = {{{10, 10, true, 120}, {14, 10, false, 0}}, 1};
+	Check(ExploredStore::WriteTable(directory, table), "counts save");
+	ExploredRooms::Memory read;
+	Check(ExploredStore::ReadArchive(directory, map, read) && read.Drawable(6, 10, 10) == 120 && read.Drawable(6, 14, 10) == 0,
+		"a version 4 archive keeps the counts");
+	std::ifstream in(ExploredStore::ArchiveFile(directory), std::ios::binary);
+	char magic[8]{};
+	in.read(magic, sizeof magic);
+	in.close();
+	Check(std::string(magic, sizeof magic) == "D2REXP04", "the archive is version 4");
+
+	// A version 3 archive: nine bytes a room, no count.
+	std::vector<uint8_t> bytes{'D', '2', 'R', 'E', 'X', 'P', '0', '3'};
+	const auto put = [&bytes](uint64_t value, int count) {
+		for (int i = 0; i < count; ++i) bytes.push_back(static_cast<uint8_t>(value >> (i * 8)));
+	};
+	put(1, 4); put(0xABCD1234u, 4); put(6, 4); put(0x2222, 8); put(5, 8); put(1, 4); put(20, 4); put(20, 4); put(2, 1); put(0, 2);
+	uint64_t hash = 14695981039346656037ull;
+	for (const uint8_t byte : bytes) { hash ^= byte; hash *= 1099511628211ull; }
+	put(hash, 8);
+	{
+		std::ofstream out(ExploredStore::ArchiveFile(directory), std::ios::binary | std::ios::trunc);
+		out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+	}
+	ExploredRooms::Memory old;
+	Check(ExploredStore::ReadArchive(directory, map, old) && old.Visited(6, 20, 20) && old.Drawable(6, 20, 20) == 0,
+		"a version 3 archive still reads, its counts unknown");
+	std::filesystem::remove_all(directory);
+}
 // Distinct generated maps, including layouts of the same level, stay separate.
 void Store() {
 	const std::vector<NativeLevelExits::LevelRoom> rooms{{{10, 10, 8, 8}, true}, {{18, 10, 8, 8}, false}};
@@ -256,7 +306,7 @@ void Places() {
 	in.read(magic, sizeof magic);
 	in.close();
 	read.clear();
-	Check(std::string(magic, sizeof magic) == "D2REXP03" && ExploredStore::ReadArchive(directory, map, old, &read)
+	Check(std::string(magic, sizeof magic) == "D2REXP04" && ExploredStore::ReadArchive(directory, map, old, &read)
 		&& read.size() == 1 && read[0] == stairs, "shutdown writes the places, upgrading the archive");
 
 	// An archive written before name keys were kept reads its places without one.
@@ -327,6 +377,7 @@ void Quadrants() {
 int main() {
 	TwoMemories();
 	RoundTrip();
+	Drawable();
 	Store();
 	Migration();
 	FailureAndBounds();

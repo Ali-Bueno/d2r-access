@@ -43,6 +43,22 @@ size_t Memory::VisitedCount(uint32_t level) const {
 	return found == levels_.end() ? 0 : found->second.visited.size();
 }
 
+bool Memory::SetDrawable(uint32_t level, int tileX, int tileY, uint32_t count) {
+	if (count == 0) return false;
+	auto& stored = levels_[level].drawable[{tileX, tileY}];
+	const bool changed = stored != count;
+	stored = count;
+	dirty_ = dirty_ || changed;
+	return changed;
+}
+
+uint32_t Memory::Drawable(uint32_t level, int tileX, int tileY) const {
+	const auto found = levels_.find(level);
+	if (found == levels_.end()) return 0;
+	const auto count = found->second.drawable.find({tileX, tileY});
+	return count == found->second.drawable.end() ? 0 : count->second;
+}
+
 void Memory::Forget() { levels_.clear(); dirty_ = false; }
 
 std::string Memory::Serialize(std::optional<uint32_t> only) const {
@@ -65,7 +81,7 @@ std::vector<Room> Memory::Snapshot(uint32_t level) const {
 	if (found == levels_.end()) return result;
 	result.reserve(found->second.seen.size());
 	for (const auto& [x, y] : found->second.seen)
-		result.push_back({x, y, found->second.visited.count({x, y}) != 0});
+		result.push_back({x, y, found->second.visited.count({x, y}) != 0, Drawable(level, x, y)});
 	return result;
 }
 
@@ -74,6 +90,8 @@ void Memory::Merge(uint32_t level, const std::vector<Room>& rooms) {
 	for (const auto& room : rooms) {
 		if (room.visited) Visit(level, room.tileX, room.tileY);
 		else Mark(level, room.tileX, room.tileY);
+		// A count already measured this game wins over the stored one.
+		if (room.drawable && !Drawable(level, room.tileX, room.tileY)) SetDrawable(level, room.tileX, room.tileY, room.drawable);
 	}
 	dirty_ = wasDirty;
 }

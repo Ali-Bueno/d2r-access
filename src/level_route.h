@@ -43,7 +43,10 @@ struct Area {
 	// it. 2026-10-19, the Den of Evil: a route "arrived" 7 units from the mouth,
 	// which rocks close on three sides (a tester).
 	bool walked = false;
-	static Area Around(Position place, int margin); // walked
+	// With `walked`, only cells whose centre is within this many units of the centre count; 0: all.
+	// The game takes a stair from within a reach that the square's corners pass (a tester, 2026-10-25).
+	double reach = 0;
+	static Area Around(Position place, int margin, double reach = 0); // walked
 	static Area Of(const NativeRooms::Room& room);
 	bool Contains(Position at) const; // within the bounds
 	Position Centre() const;

@@ -166,7 +166,18 @@ void Tiles() {
 
 	auto half = Level({});
 	for (auto& room : half.rooms) { room.explored = true; room.measured = true; room.drawable = RoomArea; room.drawn = RoomArea / 2; }
-	Check(TerrainOverview::Describe(half, At(Origin, Origin)).percent == 50, "rooms all visited but half drawn read about half");
+	half.rooms.back().explored = false;
+	Check(TerrainOverview::Describe(half, At(Origin, Origin)).percent == 50, "rooms mostly visited but half drawn read about half");
+	half.rooms.back().frontier = false;
+	Check(TerrainOverview::Describe(half, At(Origin, Origin)).percent == 100, "an unexplored room the scanner does not list leaves nothing to find");
+	half.rooms.back().explored = true;
+	half.rooms.back().frontier = true;
+	Check(TerrainOverview::Describe(half, At(Origin, Origin)).percent == 100, "every room explored is 100 percent even with half the tiles drawn");
+	auto byRooms = Level({});
+	for (auto& room : byRooms.rooms) room.explored = true;
+	Check(TerrainOverview::Describe(byRooms, At(Origin, Origin)).percent == 100, "every room explored is 100 percent by rooms too");
+	for (auto& room : byRooms.rooms) { room.explored = false; room.frontier = false; }
+	Check(TerrainOverview::Describe(byRooms, At(Origin, Origin)).percent == 0, "a level not explored at all is not 100 for want of a frontier");
 
 	auto sparse = half;
 	for (auto& room : sparse.rooms) room.drawable = RoomArea / 2;

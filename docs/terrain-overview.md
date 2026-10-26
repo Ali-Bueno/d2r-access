@@ -149,3 +149,18 @@ drawn over the cells the automap can draw ([drawable tiles](automap-reader.md#dr
 
 Unverified live. A wall the camera never shows (behind another, at the map's edge) keeps a share
 just under 100; tell us where a fully seen map stays below.
+
+### Nothing left to explore reads 100, and counts survive a reload (2026-10-25b)
+
+A tester heard 98 with the scanner's unexplored areas empty, and 88 then 81 after reloading the same
+map (Black Marsh, 94 of 94 rooms), because rooms not streamed again were estimated at the mean density.
+
+- The share is 100 when the scanner would list no unexplored room: every room explored, or the
+  unexplored ones touch no explored room (`TerrainOverview::Room::frontier`, adjacency as
+  `RoomCatalogue::Exploration`; the scanner also drops borders the grid shows closed, which the
+  overview does not read).
+- `RecordDrawable` stores each measured room's drawable count in the exploration memory
+  (`ExploredRooms::Room::drawable`). Archive version 4 (`D2REXP04`) writes it as a u32 after each
+  room's state byte; versions 1-3 still read, count unknown. A room not streamed this game with a
+  stored count is measured at it (drawn capped at the count); only rooms with none are estimated.
+  When two counts for a room meet, the larger wins.

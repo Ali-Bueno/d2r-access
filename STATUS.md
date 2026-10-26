@@ -2,6 +2,28 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list on build test-2026-10-25 — 2026-10-25 (not released)
+
+From `d2r access test build 2026-10-25 notes.7z` ([decisions](docs/decisions.md)); news draft
+`../tester-news-draft-2026-10-25b.txt`. 127/127 CTest; installed by the build. **Unverified live.**
+Closed by the tester: the black square (the game's "chat background" option), sewer descriptions,
+the palace entrance, "Open sockets".
+- Stairs: the pad takes a warp within 4 subtiles, any side (`controllersettings.json` RoomTile);
+  routes to one end within reach and "Arrived" waits for it (`TakenWithinReach`, `Area::reach`,
+  `RouteFollow` goal); exit labels no longer hidden by a monster sharing a word (`TargetSight::Find`)
+  ([exits](docs/level-exits.md#a-stair-is-taken-within-4-subtiles-of-it-routes-end-there-2026-10-25b)).
+- Hit chances on Attack Rating and Defense from the game's own builders (`NativeHitChance`, 8
+  fingerprints); the sheet's hover text spoken too ([character panel](docs/character-panel.md#hit-chance-tooltips-2026-10-25)).
+- Percent explored: 100 with no unexplored room listed; drawable counts kept, archive v4
+  ([overview](docs/terrain-overview.md)).
+- Kurast sewer stairs: "new exit" once a game when the lever opens them (`[terrain] exit revealed`).
+- Trade grids say whose offer alone ([trade](docs/trade.md#whose-offer-said-alone-2026-10-25b)).
+- Not in the archive: the "sewers_2" log.
+
+**Next step:** live: route to the Flayer Dungeon stairs from each side and press A at "Arrived";
+the character sheet's Attack Rating rows (`[hit-chance] Verified; hand 1 is left`); Mod+B in Black
+Marsh after a reload; the sewer lever; a trade with Raine.
+
 ## The tester's list on build test-2026-10-24 — 2026-10-25 (released as test-2026-10-25 from f876659)
 
 Release: 127/127 CTest, 29 entries, 62,999,158 bytes, SHA-256 `a974bc93…aad4e75f1bf`; news

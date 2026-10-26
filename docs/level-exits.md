@@ -116,3 +116,40 @@ Id +0x2C, SelectX/Y/DX/DY +0x30..+0x3C (pixels), ExitWalkX/Y +0x40/+0x44, Offset
 LitVersion +0x50, Tiles +0x54, NoInteract +0x58, Direction +0x5C. Each stair now logs its row once,
 `[exit] unit=U warp=W row=<name> to=L at=x,y walk=… offset=… select=… dir=…`, to be joined with the
 `0x40` line of the stair taken. No routing change until a log shows the rule.
+
+## A stair is taken within 4 subtiles of it; routes end there (2026-10-25b)
+
+**The rule (data + log).** The pad's auto-target files a warp tile under the room-tile category,
+`controllersettings.json` `primaryTargetingData.RoomTile`: 360°, distance 4.0, distance only
+([controller targeting](controller-targeting.md)). A stair becomes the game's target, and A takes it,
+whenever the player stands within 4 subtiles of the warp unit's position, from any side. The tester's
+`flay_me_2` log, Flayer Dungeon stair `warp=54` at 5376,3169 (`offset=-4,-6 select=-130,-10,170,100`):
+targeted at 5379,3167 (3.61), 5378,3167 (2.83), 5374,3167 (2.83), 5372.5,3169.5 (3.54); not at
+5380,3169 (4.0), 5380,3168 (4.12), 5382,3168 (6.08). In the `flay me_` log the player never came nearer
+than 5.1 and was never offered it. The walls on three sides matter only because they keep the body
+outside the 4 units there; the unit stands near the stairs' open top.
+
+**What was wrong.** A route ended in a square of ±3 round the stair (`ArrivalMargin`), whose corners
+are 4.24 away, and "Arrived" came within 3 units of the way's last cell (`RouteFollow::EndUnits`),
+so up to about 6 from the stair: every failed try in the log heard "Arrived" at 4 or more.
+
+**Now.** For an exit taken with the game's own command (`TakenWithinReach` in `beacon_service.cpp`:
+Kind::Exit, no area border, no object footprint, not a pad or doorway), the way ends on cells whose
+centre is within 4 − √2/2 of the stair (`LevelRoute::Area::reach`), so any point of the cell is within
+reach, and the follower says "Arrived" only within 3.5 of the stair (`RouteFollow` goal). With no
+known floor within reach the way falls back to the square. The beacon's own arrival (3 units) was
+already inside the reach.
+
+**The name that was not said.** At 5372,3170 the game targeted the stair and the mod logged
+`behind a wall, not spoken -> "To The Flayer Dungeon Level 1"`: a Flayer behind a wall bore the
+word "Flayer", and exits are skipped by the sight gate, so the monster stood for the label.
+`TargetSight::Find` now gives a label carrying an exit's whole name to the exit
+([target sight](target-sight.md)).
+
+## The Kurast sewer stairs say "new exit" when the lever opens them (2026-10-25b)
+
+`BeneathTheCityStairs` (objects.txt 366, OperateFn 44) is listed only once open (Selectable in mode
+2) and has no place id on purpose: a new game shuts it until the lever is pulled again, so it is not
+stored for later games. It never reached the "new exit" line, which only stored places get. Now an
+object exit with no place id is told once a game when it first appears
+(`[terrain] exit revealed level=L name=N (this game only)`, `TerrainService::RememberPlaces`).

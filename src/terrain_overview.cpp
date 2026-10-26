@@ -95,11 +95,13 @@ Summary Describe(const Layout& layout, Position player) {
 	summary.box = Bounds(layout.rooms);
 	summary.place = Place(summary.box, player);
 	size_t explored = 0, known = 0, measuredArea = 0;
+	bool unexploredListed = false;
 	const auto area = [](const Room& room) {
 		return static_cast<size_t>(std::max(room.rect.width, 0)) * static_cast<size_t>(std::max(room.rect.height, 0));
 	};
 	for (const auto& room : layout.rooms) {
 		explored += room.explored ? 1 : 0;
+		unexploredListed = unexploredListed || (!room.explored && room.frontier);
 		if (!room.measured) continue;
 		known += room.drawable;
 		summary.drawnTiles += room.drawn;
@@ -118,6 +120,8 @@ Summary Describe(const Layout& layout, Position player) {
 	summary.percent = summary.byTiles
 		? static_cast<int>(std::min<size_t>(summary.drawnTiles * 100 / summary.drawableTiles, 100))
 		: static_cast<int>(explored * 100 / layout.rooms.size());
+	// Nothing left for the scanner's unexplored list means nothing left to explore (a tester, 2026-10-25).
+	if (!unexploredListed && explored > 0) summary.percent = 100;
 	for (size_t d = 0; d < SideCount; ++d)
 		summary.legs[d] = Walk(layout, summary.box, tileX, tileY, static_cast<Side>(d));
 	summary.valid = true;

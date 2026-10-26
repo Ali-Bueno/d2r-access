@@ -3,6 +3,29 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-25 — The tester's list on build test-2026-10-25
+
+From `d2r access test build 2026-10-25 notes.7z` (the notes, six log pairs, two Flayer screenshots;
+the "sewers_2" log it names is not in it). Closed by the tester: the black square (the game's chat
+background), the sewer descriptions, the palace entrance, "Open sockets". Built and unit-tested only.
+- **A stair is taken within 4 subtiles of it, from any side**: the pad's room-tile target
+  (`controllersettings.json` RoomTile, distance only). Five positions in the log fit it; the route's
+  end box (corners at 4.2) and "Arrived" within 3 of the way's end (up to about 6) did not. Routes to
+  a stair now end on cells wholly within reach and "Arrived" waits for it. Rejected: per-tileset
+  "open side" tables (the walls only matter because they keep the body out of reach).
+- **A label that carries an exit's whole name is the exit's**: a Flayer behind a wall hid "To The
+  Flayer Dungeon Level 1" at its stairs. Rejected: dropping the wall gate for labels (it stays right
+  for monsters).
+- **Hit chances from the game's own builders**, called as its hover does, not reimplemented (the
+  monster, the difficulty and MonLvl make a copy fragile). Rejected: moving the game's focus with the
+  stick (it would change what the pad's own navigation does next).
+- **No unexplored room the scanner lists means 100**, as the tester asked; each room's drawable count
+  is kept in the archive (v4), so a reload no longer drops 98 to 88.
+- **The sewer stairs are told when they open, once a game**, and still not stored: a new game shuts
+  them until the lever is pulled again.
+- **Trade grids say whose offer alone**; the window's title before it was cut off by the next step.
+  Kept: "Your offer" rather than the player's own name.
+
 ## 2026-10-25 — The tester's list on build test-2026-10-24
 
 From `d2r-access test build 2026-10-24 notes.7z` and its addendum (the list, four log pairs, three

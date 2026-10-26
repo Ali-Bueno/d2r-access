@@ -38,6 +38,11 @@ struct Place {
 };
 struct Update { Key key; std::vector<ExploredRooms::Room> rooms; std::vector<Place> places; };
 inline constexpr size_t MaxEntries = 400, MaxArchiveBytes = 4 * 1024 * 1024;
+// A room in the archive: x, y, state, drawable count (versions 1-3 stop before the count).
+inline constexpr size_t RoomBytes = 13, RoomBytesNoCount = 9;
+// The union of two room lists; a known drawable count beats an unknown one, the larger of two wins.
+std::vector<ExploredRooms::Room> UnionRooms(const std::vector<ExploredRooms::Room>& a, const std::vector<ExploredRooms::Room>& b);
+bool SameRooms(const std::vector<ExploredRooms::Room>& a, const std::vector<ExploredRooms::Room>& b);
 // A level has a handful of fixed places; the bounds only keep a damaged record small.
 inline constexpr size_t MaxPlaces = 64, MaxPlaceName = 255;
 // Adds the places of `found` new to `known`; one already known at the same

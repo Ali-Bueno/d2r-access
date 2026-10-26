@@ -91,6 +91,11 @@ void ReachAndKinds() {
 	Check(Of(world, item, "Gold") == Sight::Unknown, "ground items keep their own proximity rules");
 	const std::vector<EntityRadar::Entity> exit{Make(1, 30, 38, "Cold Plains", EntityRadar::Kind::Exit)};
 	Check(Of(world, exit, "Cold Plains") == Sight::Unknown, "level exits are landmarks walls never hide");
+	const std::vector<EntityRadar::Entity> stairs{Make(1, 30, 38, "Flayer"),
+		Make(2, 31, 38, "To The Flayer Dungeon Level 1", EntityRadar::Kind::Exit)};
+	Check(Of(world, stairs, "To The Flayer Dungeon Level 1") == Sight::Unknown,
+		"a monster sharing a word with the stairs' label does not hide the stairs");
+	Check(Of(world, stairs, "Flayer. Demon") == Sight::Hidden, "the monster's own label is still hidden behind the wall");
 	Settings off;
 	off.enabled = false;
 	const std::vector<EntityRadar::Entity> behind{Make(1, 30, 38, "Zombie")};

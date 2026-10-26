@@ -10,6 +10,7 @@
 #include "item_audio.h"
 #include "level_exit_layout.h"
 #include "map_survey.h"
+#include "native_actions.h"
 #include "native_automap.h"
 #include "native_drlg.h"
 #include "native_entities.h"
@@ -20,6 +21,7 @@
 #include "radar.h"
 #include "radar_config.h"
 #include "radar_ui.h"
+#include "room_graph.h"
 #include "room_service.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
@@ -34,6 +36,7 @@
 #include <filesystem>
 #include <map>
 #include <mutex>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -75,6 +78,9 @@ int g_surveyedLevel = 0, g_cameFrom = 0;
 constexpr uint64_t ArrivalHoldMs = 2500;
 uint64_t g_arrivedAt = 0;
 std::vector<std::string> g_heldFinds;
+// Exits with no place of their own, the Kurast sewer stairs a new game shuts again: told once a game
+// when they open, never stored (a tester, 2026-10-25: the lever's stairs logged no new exit).
+std::set<std::pair<int, uint64_t>> g_revealedExits;
 // The store worker owns archive I/O; gameplay only submits room snapshots.
 std::filesystem::path g_directory;
 // Explicit Unregister stops/flushes the store; forced process exit must not
@@ -104,8 +110,10 @@ void RecordDrawable() {
 			const auto level = g_drawable.find(found.level);
 			return level == g_drawable.end() || !level->second.contains(NativeRooms::Identity(found.tileX, found.tileY));
 		};
-		if (auto found = NativeAutomap::DrawableTiles(room, unmeasured))
+		if (auto found = NativeAutomap::DrawableTiles(room, unmeasured)) {
+			g_explored.SetDrawable(found->level, found->tileX, found->tileY, static_cast<uint32_t>(found->tiles.size()));
 			g_drawable[found->level].emplace(NativeRooms::Identity(found->tileX, found->tileY), std::move(found->tiles));
+		}
 	}
 }
 // Caller holds g_mutex.
@@ -166,6 +174,7 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 		g_drawable.clear();
 		g_surveyedLevel = g_cameFrom = 0;
 		g_heldFinds.clear();
+		g_revealedExits.clear();
 		g_loggedLevel = 0;
 		g_loggedRooms = 0;
 	}
@@ -247,6 +256,8 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 			for (int x = room.tileX; x < room.tileX + room.tileWidth; ++x) area.push_back({x, y});
 		listed.push_back(std::move(area));
 	}
+	// A room not streamed this game keeps the count measured in an earlier one.
+	const auto stored = [&](const NativeRooms::Room& room) { return g_explored.Drawable(native.level, room.tileX, room.tileY); };
 	const auto drawn = NativeAutomap::DrawnTiles(listed);
 	TerrainOverview::Layout layout;
 	layout.rooms.reserve(native.rooms.size());
@@ -258,7 +269,14 @@ void Overview(const D2RL::PluginContext* context, const Lifecycle& state) {
 			entry.measured = measured.contains(room.id);
 			entry.drawable = entry.measured ? listed[i].size() : 0;
 			entry.drawn = (*drawn)[i];
+			if (!entry.measured && stored(room)) {
+				entry.measured = true;
+				entry.drawable = stored(room);
+				entry.drawn = std::min(entry.drawn, entry.drawable);
+			}
 		}
+		entry.frontier = std::any_of(explored.begin(), explored.end(),
+			[&](const NativeRooms::Room& known) { return RoomGraph::Touching(known, room); });
 		layout.rooms.push_back(entry);
 	}
 	for (const auto& neighbour : native.neighbours)
@@ -528,9 +546,15 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 	// Stored by its plain name, said by the scanner's (a tomb with its symbol: a tester, 2026-10-20).
 	struct Found { ExploredStore::Place place; bool quest; std::string label; };
 	std::vector<Found> fixed;
+	std::vector<std::pair<uint64_t, std::string>> opened; // revealed exits with no place: identity, label
 	for (const auto& entity : found) {
 		const bool quest = EntityRadar::QuestSource(entity);
-		if (!quest && !MapSurvey::Fixed(entity)) continue;
+		if (!quest && !MapSurvey::Fixed(entity)) {
+			if (entity.kind == EntityRadar::Kind::Exit && entity.category == EntityRadar::Category::Exit && !entity.placeId
+				&& entity.unit == static_cast<uint8_t>(NativeActions::Unit::Object))
+				opened.emplace_back(NativeLevelExits::Identity(entity.position), entity.name);
+			continue;
+		}
 		// A quest object is known by where it stands; a Cairn Stone by its name without the symbol.
 		fixed.push_back({{entity.id, entity.placeId ? entity.placeId : NativeLevelExits::Identity(entity.position),
 			entity.position.x, entity.position.y, entity.destinationLevel, entity.worldName.empty() ? entity.name : entity.worldName,
@@ -562,6 +586,14 @@ void RememberPlaces(int level, const std::vector<NativeRooms::Room>& rooms, cons
 			char phrase[200]{};
 			std::snprintf(phrase, sizeof(phrase), quest ? strings.placeFoundQuest : exit ? strings.placeFoundExit : strings.placeFound,
 				label.c_str());
+			finds.emplace_back(phrase);
+		}
+		for (const auto& [identity, label] : opened) {
+			if (!g_revealedExits.emplace(level, identity).second) continue;
+			AsyncLog::InfoF(g_context, "[terrain] exit revealed level=%d name=%s (this game only)", level, label.c_str());
+			if (!g_placeAlerts) continue;
+			char phrase[200]{};
+			std::snprintf(phrase, sizeof(phrase), Strings::Current().placeFoundExit, label.c_str());
 			finds.emplace_back(phrase);
 		}
 		// They wait for the tutorial's words too, which they had broken into (the user, 2026-10-21).
@@ -630,6 +662,7 @@ void Unregister() {
 	g_placeAlerts = true;
 	g_surveyedLevel = g_cameFrom = 0;
 	g_heldFinds.clear();
+	g_revealedExits.clear();
 	g_nextPoll = 0;
 	g_nextSave = 0;
 	g_loadedLevel = 0;

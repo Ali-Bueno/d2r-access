@@ -647,10 +647,11 @@ UiText::Readout Inventory(const D2RL::PluginContext* context, NativeUi::Focus fo
 	else if (g_inventoryContext.name == StashPanel) result.body = CubeState::WithStashStatus(context, result.body, focus.panel);
 	if (type.kind == UiText::Kind::InventorySlot) Append(result.body, Strings::Current().equipment);
 	else if (type.name == "BeltWidget") Append(result.body, Strings::Current().belt);
-	else if (const auto grid = NativeWidgets::ReadName(focus.widget); grid == TradeGridUs) Append(result.body, Strings::Current().tradeYourOffer);
+	// Whose offer alone, without the window's title: said after it, the next step cut it off (a tester, 2026-10-25).
+	else if (const auto grid = NativeWidgets::ReadName(focus.widget); grid == TradeGridUs) result.body = Strings::Current().tradeYourOffer;
 	else if (grid == TradeGridThem) {
 		const auto partner = TradePartner(focus.panel);
-		Append(result.body, Formatted(Strings::Current().tradeTheirOffer, partner.empty() ? Strings::Current().tradePartnerUnknown : partner));
+		result.body = Formatted(Strings::Current().tradeTheirOffer, partner.empty() ? Strings::Current().tradePartnerUnknown : partner);
 	}
 	result.focusKey = std::to_string(focus.widget) + ":" + std::to_string(NativeUi::FocusSelection(focus.widget));
 	const auto cell = NativeUi::GridCell(focus.widget);

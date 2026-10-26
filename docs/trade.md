@@ -85,3 +85,12 @@ sets the shown one as it opens. The announcer now reads the live `Title` 120 ms 
 opens (`UiMessageMonitor`, `RuntimeTitlePanels`) and says that, the layout's only when it reads
 empty. Log: `[modal] DropGoldModal title: "..."`. Unverified live: what said "Deposit" the
 first time is unknown, so the title may be heard twice.
+
+## Whose offer, said alone (2026-10-25b)
+
+Live (tester, `trade_` log, partner "Bronwyn"): the grids were named, as "Trade with Bronwyn. Your
+offer. Row 1, column 1" and "Trade with Bronwyn. Bronwyn's offer. Row 4, column 6", but the next step
+came within 0.3 s and interrupted them after the window's title, so the tester never heard whose offer
+it was. A trade grid's body is now the side alone ("Bronwyn's offer", "Your offer"), said when the
+focus enters that grid; the trade itself is named when its window opens and in the partner's
+messages. `Inventory()` in `interaction_reader.cpp`.

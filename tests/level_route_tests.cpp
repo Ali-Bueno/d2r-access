@@ -179,6 +179,11 @@ int main() {
 		auto bounds = around;
 		bounds.walked = false;
 		Check(LevelRoute::Arrival(memory, bounds).Contains(Left + 50, Top + 22), "without walking, every cell of the bounds is");
+		// A stair is taken within the game's reach of it: a corner of the square is past it (a tester, 2026-10-25).
+		const auto reach = LevelRoute::Area::Around(place, 4, 3.3);
+		const LevelRoute::Arrival near(memory, reach);
+		Check(near.Contains(Left + 50, Top + 15) && near.Contains(Left + 53, Top + 17), "a cell within the reach is at it");
+		Check(arrival.Contains(Left + 54, Top + 14) && !near.Contains(Left + 54, Top + 14), "a corner of the square is not");
 	}
 	{
 		// A way all seen is taken before a shorter one that is part guess.

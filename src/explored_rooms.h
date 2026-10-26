@@ -16,7 +16,8 @@
 // the terrain service can keep it across sessions like the game's own .ma0.
 // `docs/exploration.md`
 namespace D2RAccess::ExploredRooms {
-struct Room { int tileX = 0, tileY = 0; bool visited = false; };
+// `drawable`: the tiles the automap can draw in the room, once measured; 0 when unknown.
+struct Room { int tileX = 0, tileY = 0; bool visited = false; uint32_t drawable = 0; };
 class Memory {
 public:
 	// True when this room was not already known, so the caller can log changes.
@@ -27,6 +28,8 @@ public:
 	bool Known(uint32_t level) const; // at least one room of the level seen
 	size_t Count(uint32_t level) const;
 	size_t VisitedCount(uint32_t level) const;
+	bool SetDrawable(uint32_t level, int tileX, int tileY, uint32_t count); // true when it changed
+	uint32_t Drawable(uint32_t level, int tileX, int tileY) const; // 0 when never measured
 	void Forget(); // a new game starts from an unexplored map
 	// One room per line: `level tileX tileY s|v`, one level or all of them.
 	// Merge adds to what is known.
@@ -36,7 +39,7 @@ public:
 	void Merge(uint32_t level, const std::vector<Room>& rooms);
 	bool Dirty() const { return dirty_; } // serialization alone does not persist changes
 private:
-	struct Level { std::set<std::pair<int, int>> seen, visited; };
+	struct Level { std::set<std::pair<int, int>> seen, visited; std::map<std::pair<int, int>, uint32_t> drawable; };
 	std::map<uint32_t, Level> levels_;
 	bool dirty_ = false;
 };

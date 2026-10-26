@@ -16,8 +16,8 @@ namespace D2RAccess::ExploredStore {
 namespace {
 constexpr uint64_t FnvOffset = 14695981039346656037ull, FnvPrime = 1099511628211ull;
 // Version 2 adds each map's fixed places after its rooms, version 3 each place's
-// name key; version 1 and 2 archives still read.
-constexpr char Magic[] = "D2REXP03", MagicNoKeys[] = "D2REXP02", MagicRoomsOnly[] = "D2REXP01";
+// name key, version 4 each room's drawable-tile count; versions 1-3 still read.
+constexpr char Magic[] = "D2REXP04", MagicNoCounts[] = "D2REXP03", MagicNoKeys[] = "D2REXP02", MagicRoomsOnly[] = "D2REXP01";
 using Table = Store::Table;
 using Room = ExploredRooms::Room;
 void Fnv(uint64_t& hash, uint8_t byte) { hash ^= byte; hash *= FnvPrime; }
@@ -35,21 +35,27 @@ uint64_t Checksum(const std::vector<uint8_t>& bytes, size_t end) {
 	for (size_t i = 0; i < end; ++i) Fnv(hash, bytes[i]);
 	return hash;
 }
+}
 bool SameRooms(const std::vector<Room>& a, const std::vector<Room>& b) {
 	if (a.size() != b.size()) return false;
 	for (size_t i = 0; i < a.size(); ++i)
-		if (a[i].tileX != b[i].tileX || a[i].tileY != b[i].tileY || a[i].visited != b[i].visited) return false;
+		if (a[i].tileX != b[i].tileX || a[i].tileY != b[i].tileY || a[i].visited != b[i].visited || a[i].drawable != b[i].drawable) return false;
 	return true;
 }
 std::vector<Room> UnionRooms(const std::vector<Room>& a, const std::vector<Room>& b) {
-	std::map<std::pair<int, int>, bool> rooms;
-	for (const auto& room : a) rooms[{room.tileX, room.tileY}] |= room.visited;
-	for (const auto& room : b) rooms[{room.tileX, room.tileY}] |= room.visited;
+	std::map<std::pair<int, int>, Room> rooms;
+	for (const auto* list : {&a, &b})
+		for (const auto& room : *list) {
+			auto& merged = rooms.try_emplace({room.tileX, room.tileY}, room).first->second;
+			merged.visited = merged.visited || room.visited;
+			merged.drawable = std::max(merged.drawable, room.drawable);
+		}
 	std::vector<Room> result;
 	result.reserve(rooms.size());
-	for (const auto& [position, visited] : rooms) result.push_back({position.first, position.second, visited});
+	for (const auto& entry : rooms) result.push_back(entry.second);
 	return result;
 }
+namespace {
 bool Placeable(const Place& place) {
 	return place.identity && place.name.size() <= MaxPlaceName && place.nameKey.size() <= MaxPlaceName
 		&& std::isfinite(place.x) && std::isfinite(place.y);
@@ -58,13 +64,14 @@ bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 	bytes.assign(Magic, Magic + 8);
 	Put(bytes, table.size(), 4);
 	for (const auto& [key, entry] : table) {
-		if (entry.rooms.size() > (MaxArchiveBytes - 20) / 9) return false;
+		if (entry.rooms.size() > (MaxArchiveBytes - 20) / RoomBytes) return false;
 		Put(bytes, key.seed, 4); Put(bytes, key.level, 4); Put(bytes, key.digest, 8);
 		Put(bytes, entry.touched, 8); Put(bytes, entry.rooms.size(), 4);
 		for (const auto& room : entry.rooms) {
 			Put(bytes, static_cast<uint32_t>(room.tileX), 4);
 			Put(bytes, static_cast<uint32_t>(room.tileY), 4);
 			bytes.push_back(room.visited ? 2 : 1);
+			Put(bytes, room.drawable, 4);
 		}
 		if (entry.places.size() > MaxPlaces) return false;
 		Put(bytes, entry.places.size(), 2);
@@ -85,12 +92,14 @@ bool Encode(const Table& table, std::vector<uint8_t>& bytes) {
 }
 bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
 	if (bytes.size() < 20 || bytes.size() > MaxArchiveBytes) return false;
-	const bool withKeys = std::equal(Magic, Magic + 8, bytes.begin());
+	const bool withCounts = std::equal(Magic, Magic + 8, bytes.begin());
+	const bool withKeys = withCounts || std::equal(MagicNoCounts, MagicNoCounts + 8, bytes.begin());
 	const bool withPlaces = withKeys || std::equal(MagicNoKeys, MagicNoKeys + 8, bytes.begin());
 	if (!withPlaces && !std::equal(MagicRoomsOnly, MagicRoomsOnly + 8, bytes.begin())) return false;
 	size_t at = 8;
 	uint64_t count = 0, word = 0;
 	if (!Get(bytes, at, count, 4) || count > MaxEntries) return false;
+	const size_t roomBytes = withCounts ? RoomBytes : RoomBytesNoCount;
 	Table decoded;
 	for (uint64_t i = 0; i < count; ++i) {
 		Key key;
@@ -100,13 +109,15 @@ bool Decode(const std::vector<uint8_t>& bytes, Table& table) {
 		if (!Get(bytes, at, word, 4)) return false;
 		key.level = static_cast<uint32_t>(word);
 		if (!Get(bytes, at, key.digest, 8) || !Get(bytes, at, record.touched, 8)
-			|| !Get(bytes, at, word, 4) || word > (MaxArchiveBytes - 20) / 9
-			|| at + 8 > bytes.size() || word > (bytes.size() - at - 8) / 9) return false;
+			|| !Get(bytes, at, word, 4) || word > (MaxArchiveBytes - 20) / roomBytes
+			|| at + 8 > bytes.size() || word > (bytes.size() - at - 8) / roomBytes) return false;
 		record.rooms.reserve(static_cast<size_t>(word));
 		for (uint64_t j = 0; j < word; ++j) {
 			uint64_t x = 0, y = 0, flag = 0;
 			if (!Get(bytes, at, x, 4) || !Get(bytes, at, y, 4) || !Get(bytes, at, flag, 1) || (flag != 1 && flag != 2)) return false;
-			record.rooms.push_back({static_cast<int32_t>(x), static_cast<int32_t>(y), flag == 2});
+			uint64_t drawable = 0;
+			if (withCounts && !Get(bytes, at, drawable, 4)) return false;
+			record.rooms.push_back({static_cast<int32_t>(x), static_cast<int32_t>(y), flag == 2, static_cast<uint32_t>(drawable)});
 		}
 		if (withPlaces) {
 			if (!Get(bytes, at, word, 2) || word > MaxPlaces) return false;

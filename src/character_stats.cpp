@@ -27,7 +27,7 @@ struct Row {
 	const char* current;
 	const char* maximum; // null when the row shows a single number
 };
-constexpr Row Rows[] = {
+constexpr Row ValueRows[] = {
 	{"ArmorClassTitle", "ArmorClass", nullptr},
 	{"StaminaTitle", "CurrentStamina", "MaxStamina"},
 	{"HPTitle", "CurrentHP", "MaxHP"},
@@ -71,7 +71,7 @@ std::string Value(uintptr_t panel, std::string_view title, std::string_view pane
 	// The hireling layout uses HPStat, while the character panel splits life
 	// into CurrentHP and MaxHP. Its other rows use the shared naming rules.
 	if (panelName == HirelingPanel && title == "HPTitle") return ChildText(panel, "HPStat");
-	for (const auto& row : Rows) {
+	for (const auto& row : ValueRows) {
 		if (title != row.title) continue;
 		const auto current = ChildText(panel, row.current);
 		if (!row.maximum || current.empty()) return current;
@@ -99,7 +99,7 @@ std::string SiblingText(const UiText::Snapshot& snapshot, int parent, std::strin
 
 // Value of a row, by the same rules as Value() above but scoped to siblings.
 std::string SiblingValue(const UiText::Snapshot& snapshot, int parent, std::string_view title) {
-	for (const auto& row : Rows) {
+	for (const auto& row : ValueRows) {
 		if (title != row.title) continue;
 		const auto current = SiblingText(snapshot, parent, row.current);
 		if (!row.maximum || current.empty()) return current;
@@ -166,17 +166,33 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	return result;
 }
 
+namespace {
+// The tooltip a row titled `title` carries, in the skill block `block` (its grandparent) when it has one.
+Chance ChanceOf(std::string_view panel, std::string_view title, std::string_view block) {
+	if (panel != CharacterPanel) return Chance::None; // the hireling's would be the player's numbers
+	if (title == "ArmorClassTitle") return Chance::Defense;
+	if (title != "AttackRatingTitle") return Chance::None;
+	return block == "LeftSkillStats" ? Chance::LeftAttack : block == "RightSkillStats" ? Chance::RightAttack : Chance::None;
+}
+}
+
 std::vector<std::string> Lines(uintptr_t panel) {
 	std::vector<std::string> lines;
+	for (auto& row : Rows(panel)) lines.push_back(std::move(row.text));
+	return lines;
+}
+
+std::vector<Line> Rows(uintptr_t panel) {
+	std::vector<Line> lines;
 	if (!panel || !NativeUi::Visible(panel)) return lines;
 	// Who the character is leads the list: the name, then the level and class.
-	if (auto name = Name(panel); !name.empty()) lines.push_back(std::move(name));
+	if (auto name = Name(panel); !name.empty()) lines.push_back({std::move(name)});
 	const auto panelName = NativeWidgets::ReadName(panel);
 	if (auto level = panelName == HirelingPanel ? ChildText(panel, "HireTypeText") : LevelAndClass(panel); !level.empty())
-		lines.push_back(std::move(level));
+		lines.push_back({std::move(level)});
 	if (panelName == HirelingPanel) {
-		if (auto experience = MercenaryStats::Experience(panel); !experience.empty()) lines.push_back(std::move(experience));
-		for (auto& skill : MercenaryStats::SkillLines(panel)) lines.push_back(std::move(skill));
+		if (auto experience = MercenaryStats::Experience(panel); !experience.empty()) lines.push_back({std::move(experience)});
+		for (auto& skill : MercenaryStats::SkillLines(panel)) lines.push_back({std::move(skill)});
 	}
 	// Snapshot walks the visible tree in declaration order and omits hidden
 	// subtrees, so a row the game is not showing never reaches the list.
@@ -190,14 +206,19 @@ std::vector<std::string> Lines(uintptr_t panel) {
 				? Value(panel, node.name, panelName)
 				: SiblingValue(snapshot, node.parent, node.name);
 			Append(line, value);
-			lines.push_back(std::move(line));
+			const auto grandparent = [&]() -> std::string_view {
+				if (node.parent < 0) return {};
+				const int up = snapshot.nodes[static_cast<size_t>(node.parent)].parent;
+				return up < 0 ? std::string_view{} : std::string_view(snapshot.nodes[static_cast<size_t>(up)].name);
+			};
+			lines.push_back({std::move(line), ChanceOf(panelName, node.name, grandparent())});
 			continue;
 		}
 		for (const auto& standalone : StandaloneLines) {
 			if (node.name != standalone.widget) continue;
 			std::string line = standalone.labelKey ? UiText::Clean(Localization::Text(standalone.labelKey)) : std::string{};
 			Append(line, text);
-			lines.push_back(std::move(line));
+			lines.push_back({std::move(line)});
 			break;
 		}
 	}

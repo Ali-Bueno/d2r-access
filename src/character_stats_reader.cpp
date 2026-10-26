@@ -3,6 +3,7 @@
 #include "async_log.h"
 #include "character_stats.h"
 #include "localization.h"
+#include "native_hit_chance.h"
 #include "native_memory.h"
 #include "native_skill_navigation.h"
 #include "native_widgets.h"
@@ -36,8 +37,8 @@ std::atomic<bool> g_zeroPoints { true };
 constexpr uint64_t PointsWaitMs = 2000;
 
 // The panel's own hover text, the hit chances the game shows over Attack Rating and Defense
-// (docs/character-panel.md, "Hit-chance tooltips"): logged when it changes, to learn live whether
-// the controller fills it before any is spoken. The object is the factory 0x14E5820's (vtable).
+// (docs/character-panel.md, "Hit-chance tooltips"): said when the game's focus or pointer brings it
+// up. The object is the factory 0x14E5820's (vtable).
 constexpr uintptr_t StatsPanelVtable = 0x1FDCEF0;
 constexpr size_t HoverData = 0x198, HoverSize = 0x1A0, MaxHoverBytes = 512;
 std::string g_hover;
@@ -116,7 +117,7 @@ void OfferPoints(const D2RL::PluginContext* context, uintptr_t panel, uint64_t n
 	ScreenReader::Speak(points, false);
 }
 
-void LogHover(const D2RL::PluginContext* context, uintptr_t panel) {
+void SayHover(const D2RL::PluginContext* context, uintptr_t panel) {
 	uintptr_t vtable = 0, data = 0;
 	uint64_t size = 0;
 	if (!NativeMemory::Peek(panel, vtable) || vtable != context->exeBase + StatsPanelVtable || !NativeMemory::Peek(panel + HoverData, data)
@@ -125,8 +126,21 @@ void LogHover(const D2RL::PluginContext* context, uintptr_t panel) {
 	if (size && (!data || !NativeMemory::Copy(data, text.data(), text.size()))) return;
 	if (text == g_hover) return;
 	g_hover = text;
-	std::replace(text.begin(), text.end(), '\n', '|');
-	D2RAccess::AsyncLog::InfoF(context, "[stats] hover text \"%s\"", UiText::Clean(text).c_str());
+	std::replace(text.begin(), text.end(), '\n', ' ');
+	const auto spoken = UiText::Clean(text);
+	D2RAccess::AsyncLog::InfoF(context, "[stats] hover text \"%s\"", spoken.c_str());
+	if (!spoken.empty()) ScreenReader::Speak(spoken, false);
+}
+
+// The game's own hit chance over a row: the stick reads the rows without moving the cursor that
+// shows it (a tester, 2026-10-25).
+std::string WithChance(std::string text, CharacterStats::Chance chance) {
+	using CharacterStats::Chance;
+	const auto said = chance == Chance::Defense ? NativeHitChance::Defense()
+		: chance == Chance::None ? std::string{} : NativeHitChance::Attack(chance == Chance::LeftAttack);
+	if (said.empty()) return text;
+	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
+	return text + said;
 }
 
 void ForgetSpent() { g_spentButton.clear(); g_spentValue.clear(); g_spentLeftAt = 0; }
@@ -241,7 +255,7 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 	}
 	if (NativeWidgets::ReadName(panel) == CharacterPanel) {
 		WatchSpent(context, panel, focus, now);
-		LogHover(context, panel);
+		SayHover(context, panel);
 	}
 	// A "+" with focus keeps the stick on the statistics too (a tester,
 	// 2026-10-13: the level-up sheet read controls instead); right still ends on
@@ -256,9 +270,10 @@ bool Tick(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		if (InputDirection::TakeRightStickPushIf(wanted, "stats")) { push = wanted; break; }
 	}
 	if (push == StickPush::None) return false;
-	const auto lines = CharacterStats::Lines(panel);
+	const auto lines = CharacterStats::Rows(panel);
 	g_cursor = Advance(g_cursor, push, static_cast<int>(lines.size()));
-	const std::string text = g_cursor < 0 ? Strings::Current().detailNone : lines[static_cast<size_t>(g_cursor)];
+	const std::string text = g_cursor < 0 ? Strings::Current().detailNone
+		: WithChance(lines[static_cast<size_t>(g_cursor)].text, lines[static_cast<size_t>(g_cursor)].chance);
 	D2RAccess::AsyncLog::InfoF(context, "[stats] %d of %zu -> \"%s\"", g_cursor + 1, lines.size(), text.c_str());
 	ScreenReader::Speak(text, true);
 	return true;

@@ -1,5 +1,6 @@
 #include "character_stats.h"
 #include "character_stats_reader.h"
+#include "native_hit_chance.h"
 #include "speech_strings.h"
 #include "test_support.h"
 
@@ -83,6 +84,10 @@ void Info(const D2RL::PluginContext*, const char*) noexcept {}
 void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {}
 }
 namespace D2RAccess::NativeSkillNavigation { bool Select(NativeUi::Focus) { return true; } }
+namespace D2RAccess::NativeHitChance {
+std::string Attack(bool left) { return left ? "Caído: 95% Probabilidad media de golpear" : "Caído: 80% Probabilidad media de golpear"; }
+std::string Defense() { return "Probabilidad media de que Caído te golpee: 5%"; }
+}
 namespace D2RAccess::InputDirection {
 bool TakeRightStickPushIf(StickPush wanted, const char*) {
 	if (pending != wanted) return false;
@@ -336,6 +341,23 @@ int main() {
 	panelVisible = true;
 	widgets.erase(Overlay);
 	widgets.erase(SwitcherTabs);
+
+	// The game's hit chances ride on the Attack Rating and Defense rows (a tester, 2026-10-25).
+	Add(75, "Rating", "", 70);
+	Add(76, "AttackRatingTitle", "Índice de ataque", 75);
+	Add(77, "AttackRatingStat", "300", 75);
+	const auto rows = CharacterStats::Rows(Panel);
+	const auto chanceOf = [&](std::string_view text) {
+		for (const auto& row : rows) if (row.text == text) return row.chance;
+		return CharacterStats::Chance::None;
+	};
+	Check(chanceOf("Índice de ataque. 300") == CharacterStats::Chance::LeftAttack, "the left skill block's rating carries its chance to hit");
+	Check(chanceOf("Defensa. 88") == CharacterStats::Chance::Defense, "the defence row carries the chance to be hit");
+	Check(chanceOf("Índice de ataque. 214") == CharacterStats::Chance::None, "a rating outside a skill block carries none");
+	CharacterStatsReader::Reset();
+	pending = Push::Right;
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Índice de ataque. 300. Caído: 95% Probabilidad media de golpear",
+		"the stick reads the game's own chance after the rating");
 
 	// The hireling panel reuses the same title/value row archetype. Its life
 	// value is HPStat, and the controller can leave the panel with no focused

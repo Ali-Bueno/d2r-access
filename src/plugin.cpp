@@ -28,6 +28,7 @@
 #include "native_cairn.h"
 #include "native_memory.h"
 #include "descriptions.h"
+#include "native_hit_chance.h"
 #include "native_hover.h"
 #include "native_ui.h"
 #include "native_waypoints.h"
@@ -420,6 +421,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::MultiplayerReader::Initialize(context);
 	D2RAccess::MenuNavigation::Initialize(context);
 	(void)D2RAccess::NativeHover::Initialize(context);
+	(void)D2RAccess::NativeHitChance::Initialize(context);
 	if (D2RAccess::NativeWaypoints::Initialize(context)) D2RAccess::NativeUi::SetFocusState(&D2RAccess::NativeWaypoints::FocusWords);
 	(void)D2RAccess::NativeQuestFlags::Initialize(context);
 	// The native switch disables code hooks and input filtering together;

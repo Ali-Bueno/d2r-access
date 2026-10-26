@@ -263,9 +263,20 @@ fills it, the read-only fallback is the class word plus the name; the percentage
 {0xF2B40, 1195, 0xF11A8AE0085BFE60ULL},   // UpdateHover (already in native_hover.cpp)
 ```
 
-**Shipped 2026-10-25: a diagnostic only.** The stick walks the rows without moving the game's own
-focus, so the panel's hover text belongs to wherever the game's cursor is, not to the row read.
-`CharacterStatsReader` logs that text when it changes (`[stats] hover text "..."`, after the vtable
-check), to confirm `+0x198` live and learn whether controller focus fills it. Speaking the hit
-chances on the rows needs the game's own calculators (`0x1514700`, `0x15149F0`) and the hover array's
-monster, a call into game code decided after that live check.
+**Live 2026-10-25 (tester, `hover_` log).** With the game's own focus moved by the left stick onto
+the rows, `+0x198` read `"Fallen: 95% Average chance to hit"` and `"Chance to Block: 20% Average
+chance Fallen will hit you: 5%"` (no `\n` survived: the lines arrive joined by a space). The pad's
+focus does fill it; the mod's right stick, which never moves that focus, cannot.
+
+**Spoken since 2026-10-25b.** `NativeHitChance` (`src/native_hit_chance.cpp`, tag `[hit-chance]`)
+calls the builders exactly as `0x14E8300` does, on the UI thread: `AttackText(0, &out, player,
+hand)` into a local engine string (`data +0`, `size +8`, `capacity +0x10` whose top bit means the
+inline buffer at `+0x18`, else the data is returned through the allocator `0x12063C0`'s vtable
+`+0x20`, as the handler does at `0x14E8505`), and `DefenseText(DefenseChance(), buffer)` (at most
+0x80 bytes; the panel passes 0x100). The handler tests the block named at `.rdata 0x1FDD080` with
+hand 1 and the one at `0x1FDD090` with hand 0; the module reads that name live and logs it
+(`hand 1 is left ("LeftSkillStats")`), assuming left when it cannot. `CharacterStats::Rows` marks the
+`AttackRatingTitle` under `LeftSkillStats`/`RightSkillStats` and `ArmorClassTitle` (character sheet
+only: the builders use the player), and the right stick says the row then the game's text. The
+panel's own hover text is now spoken too when it appears (left stick, pointer). Fingerprints: the
+table above plus `{0x9A480, 165, 0x754EA91CD47DAFC1}` and `{0x12063C0, 110, 0x5E29724DA34B440A}`.

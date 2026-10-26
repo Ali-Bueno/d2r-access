@@ -573,11 +573,25 @@ void Update(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t
 		}
 	}
 }
+// controllersettings.json primaryTargetingData.RoomTile.targetAcquisitionDistance: the pad's A takes a
+// stair, a warp tile, from within this many subtiles of it, from any side (docs/controller-targeting.md).
+constexpr double StairTakeUnits = 4;
+// A way to a stair ends on cells wholly within that reach: their centres half a diagonal nearer.
+constexpr double StairEndCellUnits = StairTakeUnits - std::numbers::sqrt2 / 2;
+// Policy: "Arrived" at a stair within its reach less half a unit, the drift of letting go of the stick.
+constexpr double StairArrivedUnits = StairTakeUnits - 0.5;
+// A stair or a cave mouth: an exit the game takes with its own command once within StairTakeUnits,
+// not an area border walked across, nor an object with a footprint, a pad or a doorway.
+// The Flayer Dungeon's stairs have walls on three sides (a tester, 2026-10-25). docs/beacon.md
+bool TakenWithinReach(const EntityRadar::Entity& entity, const Border& border) {
+	return entity.kind == EntityRadar::Kind::Exit && border.kind == Border::Kind::None && !entity.footprint.width
+		&& !entity.footprint.height && !entity.padClass && !entity.doorway && !entity.mapLandmark;
+}
 // Where a way to `entity` ends: where guidance would say it has arrived, at the
 // first step into a room, or near a border whose crossing is not known yet.
 LevelRoute::Area WayEnd(const Lifecycle& state, const EntityRadar::Entity& entity, const Border& border) {
 	if (const auto area = GoalArea(state, entity, border)) return *area;
-	return LevelRoute::Area::Around(entity.position, ArrivalMargin(entity));
+	return LevelRoute::Area::Around(entity.position, ArrivalMargin(entity), TakenWithinReach(entity, border) ? StairEndCellUnits : 0);
 }
 // The way to `entity` from where the player stands, as legs: what a sighted
 // player plans off the map. docs/route-description.md
@@ -588,13 +602,14 @@ struct PlannedRoute {
 	std::vector<RouteLegs::Leg> legs; // none: no way, or already there (`here`)
 	size_t cells = 0, doors = 0;
 	bool here = false, map = false, restricted = false, guess = false;
+	std::optional<Radar::Position> takeAt; // a stair the way ends within reach of: arrived there, not at the way's end
 };
 PlannedRoute PlanRoute(const Lifecycle& state, EntityRadar::Entity entity, uint64_t now) {
 	PlannedRoute route;
 	if (!NativeWorld::Read(state.player, state.session, state.level, route.world)) return route;
 	route.read = true;
 	const auto& world = route.world;
-	const auto end = WayEnd(state, entity, ToCrossing(state, world, entity));
+	auto end = WayEnd(state, entity, ToCrossing(state, world, entity));
 	route.place = end.Centre();
 	const auto* memory = KeyboardService::RememberedMap(world);
 	const auto* graph = Rooms(state);
@@ -606,7 +621,14 @@ PlannedRoute PlanRoute(const Lifecycle& state, EntityRadar::Entity entity, uint6
 	if (memory && (!route.restricted || explored)) {
 		BeaconNavigation::RememberedWay planner;
 		way = planner.From(*memory, explored ? &*explored : nullptr, world.player, end, world.bodyPattern, now);
+		// No floor known within a stair's reach: the way ends beside it, as for anything else.
+		if (way.path.empty() && end.reach > 0 && !LevelRoute::Arrival(*memory, end).Contains(static_cast<int>(std::lround(world.player.x)),
+			static_cast<int>(std::lround(world.player.y)))) {
+			end.reach = 0;
+			way = BeaconNavigation::RememberedWay{}.From(*memory, explored ? &*explored : nullptr, world.player, end, world.bodyPattern, now);
+		}
 	}
+	if (end.reach > 0) route.takeAt = entity.position;
 	if (way.path.empty()) {
 		route.here = memory ? LevelRoute::Arrival(*memory, end).Contains(static_cast<int>(std::lround(world.player.x)),
 			static_cast<int>(std::lround(world.player.y))) : end.Contains(world.player);
@@ -683,7 +705,7 @@ void DescribeRoute(const Lifecycle& state, uint64_t now) {
 	RadarTrace::Collision(g_context, route.world, RouteCollisionRadius, now);
 	if (!g_routePrompts.load(std::memory_order_relaxed)) return;
 	g_followed = {entity, state.level, state.session, now, now + MovedCheckMs, g_tracker.Locked()};
-	g_follower.Start(route.world.player, route.legs);
+	g_follower.Start(route.world.player, route.legs, route.takeAt, StairArrivedUnits);
 }
 // "Now east, 21"; a shut door is said with the leg past it: "Now door; then north, 16".
 std::string NowText(const std::vector<RouteLegs::Leg>& legs, size_t leg, const Strings::Table& strings) {
@@ -724,7 +746,7 @@ void FollowMovedTarget(const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
 	const auto text = same ? std::string{} : NowText(route.legs, 0, strings);
 	g_followed.entity = target.entity;
-	g_follower.Start(route.world.player, route.legs);
+	g_follower.Start(route.world.player, route.legs, route.takeAt, StairArrivedUnits);
 	AsyncLog::InfoF(g_context, "[route] follow moved name=%s to=%.0f,%.0f legs=%zu -> %s", target.entity.name.c_str(), is.x, is.y,
 		route.legs.size(), same ? "(same leg)" : text.c_str());
 	if (!same) ScreenReader::Speak(text, true);

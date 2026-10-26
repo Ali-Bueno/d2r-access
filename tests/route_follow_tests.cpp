@@ -74,6 +74,15 @@ void OffTheRoute() {
 	follower.Start({0, 0}, {});
 	Check(!follower.Active(), "no legs, nothing to follow");
 }
+
+// A stair is taken within the game's reach of it, not near the way's last cell: the Flayer
+// Dungeon's stairs "arrived" four units off, where A did nothing (a tester, 2026-10-25).
+void StairReach() {
+	RouteFollow::Follower follower;
+	follower.Start({0, 0}, {Walk(0, -20)}, RouteFollow::Position{2, -22}, 3.5);
+	Check(follower.Tick({0, -18}, 0).event == Event::None, "within three units of the way's end but beyond the stair's reach");
+	Check(follower.Tick({1, -19}, 250).event == Event::End, "arrived once within the stair's reach");
+}
 }
 
 int main() {
@@ -83,6 +92,7 @@ int main() {
 	ShortLegs();
 	CutCorners();
 	OffTheRoute();
+	StairReach();
 	Passed();
 	return 0;
 }

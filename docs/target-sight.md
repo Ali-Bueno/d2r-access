@@ -28,7 +28,10 @@ NPC or object is named only when a ray from the player reaches it.
   to today's behaviour rather than to silence.
 - Ground items are skipped (their proximity service decides on distance, and
   already owns those labels) and so are level exits, which the scan itself
-  exempts from walls as fixed landmarks.
+  exempts from walls as fixed landmarks. A label that carries an exit's whole
+  name within `reach` is the exit's and is never dropped: a Flayer behind a
+  wall, matched on the word "Flayer", silenced "To The Flayer Dungeon Level 1"
+  at its stairs (a tester, 2026-10-25).
 - A dropped label leaves the reader with nothing to say, so the entity
   announces itself as soon as it really comes into sight — it is not swallowed
   once and forgotten.

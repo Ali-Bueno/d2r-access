@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 // A described route followed on foot: the leg to walk is said as the player
@@ -22,8 +23,9 @@ struct Step {
 
 class Follower {
 public:
-	// `legs` as RouteLegs::Describe gave them for a way walked from `from`.
-	void Start(Position from, const std::vector<RouteLegs::Leg>& legs);
+	// `legs` as RouteLegs::Describe gave them for a way walked from `from`. With `goal`, the end is
+	// reached within `goalUnits` of it rather than near the way's last cell: a stair is taken from its reach.
+	void Start(Position from, const std::vector<RouteLegs::Leg>& legs, std::optional<Position> goal = std::nullopt, double goalUnits = 0);
 	void Stop() { *this = {}; }
 	bool Active() const { return active_; }
 	const std::vector<RouteLegs::Leg>& Legs() const { return legs_; }
@@ -40,6 +42,8 @@ private:
 	Position last_{};               // where the last tick saw the player, at lastMs_
 	uint64_t lastMs_ = 0;
 	double pace_ = -1;              // units a second, smoothed; -1 until two ticks have measured it
+	std::optional<Position> goal_;  // where the end is reached, when not at the way's last cell
+	double goalUnits_ = 0;
 	bool active_ = false, timed_ = false;
 };
 }

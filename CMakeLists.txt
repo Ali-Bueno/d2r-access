@@ -217,6 +217,7 @@ add_library(d2r-access SHARED
 	src/native_skill_icons.cpp
 	src/native_swap.cpp
 	src/native_hover.cpp
+	src/native_hit_chance.cpp
 	src/native_waypoints.cpp
 	src/native_quest_flags.cpp
 	src/descriptions.cpp

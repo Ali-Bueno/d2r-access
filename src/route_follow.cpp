@@ -30,10 +30,12 @@ double ToSegment(Position point, Position a, Position b) {
 }
 }
 
-void Follower::Start(Position from, const std::vector<RouteLegs::Leg>& legs) {
+void Follower::Start(Position from, const std::vector<RouteLegs::Leg>& legs, std::optional<Position> goal, double goalUnits) {
 	*this = {};
 	if (legs.empty()) return;
 	legs_ = legs;
+	goal_ = goal;
+	goalUnits_ = goalUnits;
 	corners_.push_back(from);
 	for (const auto& leg : legs) corners_.push_back({corners_.back().x + leg.delta.x, corners_.back().y + leg.delta.y});
 	active_ = true;
@@ -48,7 +50,7 @@ Step Follower::Tick(Position player, uint64_t now) {
 	timed_ = true;
 	last_ = player;
 	lastMs_ = now;
-	if (Distance(player, corners_.back()) <= EndUnits) {
+	if (goal_ ? Distance(player, *goal_) <= goalUnits_ : Distance(player, corners_.back()) <= EndUnits) {
 		Stop();
 		return {Event::End};
 	}

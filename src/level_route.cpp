@@ -175,9 +175,9 @@ bool Memory::NearDoor(int x, int y) const {
 		[&](const NotedDoor& door) { return std::abs(x - door.x) <= door.reach && std::abs(y - door.y) <= door.reach; });
 }
 
-Area Area::Around(Position place, int margin) {
+Area Area::Around(Position place, int margin, double reach) {
 	const int x = Cell(place.x), y = Cell(place.y);
-	return {x - margin, y - margin, x + margin, y + margin, true};
+	return {x - margin, y - margin, x + margin, y + margin, true, reach};
 }
 
 Area Area::Of(const NativeRooms::Room& room) {
@@ -197,12 +197,13 @@ Arrival::Arrival(const Memory& memory, const Area& area) : area_(area) {
 	const int width = area.maxX - area.minX + 1, height = area.maxY - area.minY + 1;
 	counts_.assign(static_cast<size_t>(width) * height, 0);
 	const auto at = [&](int x, int y) { return static_cast<size_t>(y - area.minY) * width + static_cast<size_t>(x - area.minX); };
+	const int cx = (area.minX + area.maxX) / 2, cy = (area.minY + area.maxY) / 2;
 	const auto walkable = [&](int x, int y) {
 		if (x < area.minX || y < area.minY || x > area.maxX || y > area.maxY) return false;
+		if (area.reach > 0 && std::hypot(x - cx, y - cy) > area.reach) return false;
 		const Ground ground = memory.At(x, y);
 		return ground == Ground::Open || ground == Ground::Unseen;
 	};
-	const int cx = (area.minX + area.maxX) / 2, cy = (area.minY + area.maxY) / 2;
 	const int reach = std::min(std::min(cx - area.minX, area.maxX - cx), std::min(cy - area.minY, area.maxY - cy));
 	std::vector<std::pair<int, int>> ring, next;
 	for (int radius = 0; ring.empty() && radius <= reach; ++radius)
