@@ -2,10 +2,12 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's list on build test-2026-10-25 — 2026-10-25 (not released)
+## The tester's list on build test-2026-10-25 — 2026-10-25 (released as test-2026-10-25-2 from 1cf739e)
 
-From `d2r access test build 2026-10-25 notes.7z` ([decisions](docs/decisions.md)); news draft
-`../tester-news-draft-2026-10-25b.txt`. 127/127 CTest; installed by the build. **Unverified live.**
+Release: 127/127 CTest, 29 entries, 63,000,828 bytes, SHA-256 `43d48f45…cc90b44fe`; news
+`../tester-news-draft-2026-10-25b.txt`.
+
+From `d2r access test build 2026-10-25 notes.7z` ([decisions](docs/decisions.md)). 127/127 CTest; installed by the build. **Unverified live.**
 Closed by the tester: the black square (the game's "chat background" option), sewer descriptions,
 the palace entrance, "Open sockets".
 - Stairs: the pad takes a warp within 4 subtiles, any side (`controllersettings.json` RoomTile);
