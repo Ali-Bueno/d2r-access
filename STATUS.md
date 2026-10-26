@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's roundup of older issues on build test-2026-10-25-2 — 2026-10-26
+## The tester's roundup of older issues on build test-2026-10-25-2 — 2026-10-26 (released as test-2026-10-26 from 847c660)
+
+Release: 128/128 CTest, 29 entries, 63,002,084 bytes, SHA-256 `486e44ea…f0ac6b073e`; news
+`../tester-news-draft-2026-10-26.txt`.
 
 From `D2R Access, older issues revisited.7z` ([decisions](docs/decisions.md)). 128/128 CTest;
 installed by the build. **Unverified live.** Closed by the tester: the walked-distance click, the
