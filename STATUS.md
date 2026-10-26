@@ -2,6 +2,23 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's notes on build test-2026-10-25-2 — 2026-10-26 (not released)
+
+From `D2R access test build 2026-10-25-2 notes.txt` and a new `descriptions.txt`, no logs
+([decisions](docs/decisions.md)). 128/128 CTest; installed by the build; **not committed, unverified
+live.** Confirmed by the tester: Jerhyn and Natalya from anywhere in town, far unexplored areas, the
+speech priority menu, routes in Act III's jungles.
+- Area hint: switch `description-hint`, off; `descriptions` now the landmark words only; BACK + right
+  stick up unchanged ([descriptions](docs/descriptions.md#the-area-hint-off-by-default-act-iii-and-the-fortress-2026-10-26)).
+- Words for Act III and the Pandemonium Fortress in `data/descriptions.txt`, Kurast sewers `[92]`/`[93]`.
+- Hit chance: a comma after the row's number (`WithChance`) ([character panel](docs/character-panel.md)).
+- Kurast temple stairs: an opened OpenWarp object is named after its room's walk-through warp
+  (`WalkThroughDestination`, `[exit] ... opened: to=L`) ([exits](docs/level-exits.md#unfolded-stairs-are-named-after-their-temple-2026-10-26)).
+
+**Next step:** commit and release when the user says; live: unfold a Kurast Bazaar temple's stairs
+(`[exit] ... opened: to=94` or `95`; `to=0` means the warp is in another room), the character sheet's
+Attack Rating with the right stick, a described area's banner with no hint.
+
 ## The tester's roundup of older issues on build test-2026-10-25-2 — 2026-10-26 (released as test-2026-10-26 from 847c660, then test-2026-10-26-2 from 9af6aaf)
 
 Release: 128/128 CTest, 29 entries, 63,002,084 bytes, SHA-256 `486e44ea…f0ac6b073e`; news

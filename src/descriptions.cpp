@@ -47,6 +47,7 @@ constexpr uint64_t RecheckMs = 1000;
 std::mutex g_mutex;
 Book g_book;
 std::atomic<bool> g_enabled{true};
+std::atomic<bool> g_hint{false};
 const D2RL::PluginContext* g_context = nullptr;
 std::filesystem::path g_file;
 std::filesystem::file_time_type g_written{};
@@ -233,11 +234,13 @@ std::string FirstTime(std::string_view name, std::string_view builtIn) {
 	return g_book.FirstTime(name, builtIn);
 }
 bool HintDue(std::string_view banner) {
-	if (!g_enabled) return false;
+	if (!g_hint) return false;
 	std::lock_guard lock(g_mutex);
 	Refresh();
 	return g_book.HintDue(g_level, g_levelName, banner);
 }
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool on) { g_enabled = on; }
+bool HintEnabled() { return g_hint; }
+void SetHintEnabled(bool on) { g_hint = on; }
 }

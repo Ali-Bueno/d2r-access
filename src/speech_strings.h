@@ -545,8 +545,10 @@ struct Table {
 	const char* padTypingOn; // typing into a text box with the right stick (pad_typing.h)
 	const char* padTypingOff;
 	const char* hangmanTreeDescription; // the Hangman's Tree the first time it comes into reach (descriptions.h)
-	const char* descriptionsOn; // area and landmark descriptions (descriptions.h)
+	const char* descriptionsOn; // landmark descriptions (descriptions.h)
 	const char* descriptionsOff;
+	const char* descriptionHintOn; // the hint after a described area's banner (descriptions.h)
+	const char* descriptionHintOff;
 	const char* areaDescriptionHint; // %s = the button held with the right stick for an area's description
 	const char* noAreaDescription; // %s = the area that has no description
 	const char* portalOwned; // %s = the player who cast a town portal; where it leads is read on reaching it
@@ -637,7 +639,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
-		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
+		t.hangmanTreeDescription, t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
 		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);

@@ -356,8 +356,8 @@ int main() {
 	Check(chanceOf("Índice de ataque. 214") == CharacterStats::Chance::None, "a rating outside a skill block carries none");
 	CharacterStatsReader::Reset();
 	pending = Push::Right;
-	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Índice de ataque. 300. Caído: 95% Probabilidad media de golpear",
-		"the stick reads the game's own chance after the rating");
+	Check(CharacterStatsReader::Tick(nullptr, On(11)) && speech.back() == "Índice de ataque. 300, Caído: 95% Probabilidad media de golpear",
+		"the stick reads the game's own chance after the rating, a comma after its number");
 
 	// The hireling panel reuses the same title/value row archetype. Its life
 	// value is HPStat, and the controller can leave the panel with no focused

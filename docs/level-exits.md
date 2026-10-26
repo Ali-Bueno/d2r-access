@@ -153,3 +153,19 @@ word "Flayer", and exits are skipped by the sight gate, so the monster stood for
 stored for later games. It never reached the "new exit" line, which only stored places get. Now an
 object exit with no place id is told once a game when it first appears
 (`[terrain] exit revealed level=L name=N (this game only)`, `TerrainService::RememberPlaces`).
+
+## Unfolded stairs are named after their temple (2026-10-26)
+
+A tester: Kurast's temples (Bazaar, Upper Kurast, Causeway) were all "Stairs" in the scanner. Their
+entrances are the OpenWarp objects `UnfoldingStairLeft`/`Right` (objects.txt 194, 195, key
+"stair", OperateFn 47; Selectable in modes 0 and 2): unfolded in the first use, then taken through
+their room's walk-through warp, LvlWarp row 61 "Act 3 Kurast to Temple" (NoInteract 1, skipped as a
+warp since 2026-09-16). An OpenWarp object in mode 2 (`ObjectOpened`) is now named like a warp after
+the level that warp leads to (`WalkThroughDestination`: the room's active NoInteract node whose
+destination room is in another level; LevelWarp text, "To The Disused Fane"), with that level as its
+destination. Every OpenWarp object follows the rule: Lut Gholein's trapdoor (row 74) reads "To The
+Sewers Level 1" once open. Folded, they stay "Stairs": the game names the temple only then. The
+remembered exit takes each name as the object shows it, so a new game, which folds them again, says
+"Stairs" once the object loads. Log, once per object: `[exit] unit=U object=C opened: to=L "name"
+at=x,y`, `to=0` when the object's room holds no linked warp (then the name stays "Stairs": the warp
+may sit in a neighbouring room, unconfirmed).

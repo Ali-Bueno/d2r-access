@@ -13,8 +13,9 @@ lengthening every announcement.
   description for <area>". The first time a described area's name is announced in a run, a hint
   follows it: "Press View and right stick up for an area description" (the button named as the
   connected controller names it).
-- Switch `descriptions` (on, Navigation group): the landmark words and the area hint. Words asked
-  for with BACK + right stick up are said either way.
+- Switch `descriptions` (on, Navigation group): the landmark words and the area hint (the hint has
+  its own switch, off, since 2026-10-26: below). Words asked for with BACK + right stick up are
+  said either way.
 
 ## Words that come with the mod (2026-10-24)
 
@@ -64,3 +65,14 @@ share once per level with its Id.
 The hint after a described area's banner never came: it looked the banner's text ("Entering Lut
 Gholein") up as a name. It now takes the level the player is in (`Descriptions::NoteLevel`, from the
 beacon service's level change) with its name and the banner, as BACK + right stick up does.
+
+## The area hint off by default; Act III and the Fortress (2026-10-26)
+
+The tester wants the lore met at the player's own pace: the hint after a described area's banner is
+now its own switch, `description-hint` (Navigation group, "Area description reminders", **off**);
+`descriptions` ("Landmark descriptions", on) keeps the landmark words. BACK + right stick up says an
+area's words with both off: the manual tells of it, and the tutorial teaches it.
+
+`data/descriptions.txt` now holds the tester's words for Acts I to III and the Pandemonium Fortress
+(96 areas and the Hangman's Tree). The tester writes the sewers by name only; the mod's file adds the
+Ids, `[47]` to `[49]` for Lut Gholein's and `[92]`, `[93]` for Kurast's.

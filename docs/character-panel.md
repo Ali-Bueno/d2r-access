@@ -280,3 +280,9 @@ hand 1 and the one at `0x1FDD090` with hand 0; the module reads that name live a
 only: the builders use the player), and the right stick says the row then the game's text. The
 panel's own hover text is now spoken too when it appears (left stick, pointer). Fingerprints: the
 table above plus `{0x9A480, 165, 0x754EA91CD47DAFC1}` and `{0x12063C0, 110, 0x5E29724DA34B440A}`.
+
+**A comma before the chance (2026-10-26).** The tester heard "Attack Rating: 602 Fallen..." with no
+stop after the number, though the right stick said "Attack Rating. 602. Fallen: 95% Average chance to
+hit": the stop after "Rating" came, the one after "602." did not. A row ending in a digit is now
+followed by a comma ("Attack Rating. 602, Fallen: 95%..."), any other by a period as before
+(`WithChance`, `character_stats_reader.cpp`).

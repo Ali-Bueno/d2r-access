@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cctype>
 #include <span>
 #include <string>
 #include <string_view>
@@ -139,7 +140,8 @@ std::string WithChance(std::string text, CharacterStats::Chance chance) {
 	const auto said = chance == Chance::Defense ? NativeHitChance::Defense()
 		: chance == Chance::None ? std::string{} : NativeHitChance::Attack(chance == Chance::LeftAttack);
 	if (said.empty()) return text;
-	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
+	// Some voices make no stop at a period after a number: "602. Fallen" ran on (a tester, 2026-10-26).
+	if (!text.empty()) text += std::isdigit(static_cast<unsigned char>(text.back())) ? ", " : text.ends_with('.') ? " " : ". ";
 	return text + said;
 }
 

@@ -549,6 +549,34 @@ std::string PortalOwner(uintptr_t data, uint32_t portalId) {
 		}
 	return UiText::Clean(CString(data + ObjPortalOwner, PlayerNameBytes));
 }
+// The other level a room's walk-through (NoInteract) warp leads to, once the game has linked it;
+// zero otherwise. The OpenWarp stairs and trapdoors take the player through that warp.
+uint32_t WalkThroughDestination(uintptr_t room) {
+	uintptr_t roomEx = 0, node = 0, here = 0;
+	uint32_t from = 0;
+	if (!Peek(room + RoomExtended, roomEx) || !roomEx || !Peek(roomEx + RoomWarpNodes, node)) return 0;
+	if (Peek(roomEx + ExtendedLevel, here) && here) (void)Peek(here + LevelId, from);
+	for (size_t i = 0; node && i < MaxWarpNodes; ++i) {
+		uintptr_t row = 0, destination = 0, level = 0;
+		int32_t active = 0;
+		uint32_t noInteract = 0, levelId = 0;
+		if (!Peek(node + WarpNodeRow, row) || !row) return 0;
+		if (Peek(row + LvlWarpNoInteract, noInteract) && noInteract && Peek(node + WarpNodeActive, active) && active
+			&& Peek(node + WarpNodeDestination, destination) && destination && Peek(destination + ExtendedLevel, level) && level
+			&& Peek(level + LevelId, levelId) && levelId && levelId != from) return levelId;
+		if (!Peek(node + WarpNodeNext, node)) return 0;
+	}
+	return 0;
+}
+// Once per opened stair or trapdoor; to=0 when its room holds no linked walk-through warp.
+void LogUnfolded(const EntityRadar::Entity& entity, uint32_t classId) {
+	{
+		std::lock_guard lock(g_warpsMutex);
+		if (!g_logContext || !g_warpsLogged.insert(entity.placeId ^ (static_cast<uint64_t>(entity.id) << 40)).second) return;
+	}
+	AsyncLog::InfoF(g_logContext, "[exit] unit=%u object=%u opened: to=%u \"%s\" at=%.0f,%.0f",
+		entity.id, classId, entity.destinationLevel, entity.name.c_str(), entity.position.x, entity.position.y);
+}
 bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t session, EntityRadar::Entity& entity) {
 	uint32_t mode = 0, classId = 0;
 	if (!Peek(unit + UnitMode, mode) || mode >= ObjectModeCount || !Peek(unit + UnitClass, classId) || classId >= tables.objectCount
@@ -637,6 +665,16 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 		}
 		// Its objects.txt key is "Portal to ", a prefix: no name without the level.
 		if (entity.name.empty()) entity.name = Strings::Current().exitUnnamed;
+	}
+	// Unfolded or opened, stairs and trapdoors are named after where they lead, as a warp is: each
+	// Kurast temple its own instead of "Stairs" (a tester, 2026-10-26).
+	if (openWarp && mode == ObjectOpened) {
+		if (const uint32_t levelId = WalkThroughDestination(room)) {
+			entity.name = LevelText(tables, levelId, LevelWarpKey);
+			entity.nameKey = LevelKey(tables, levelId, LevelWarpKey);
+			entity.destinationLevel = levelId;
+		}
+		LogUnfolded(entity, classId);
 	}
 	if (entity.name.empty() && !key.empty()) {
 		entity.name = UiText::Clean(Localization::Text(key));

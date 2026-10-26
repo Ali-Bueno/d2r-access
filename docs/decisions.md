@@ -3,6 +3,29 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-26 — The tester's notes on build test-2026-10-25-2
+
+From `D2R access test build 2026-10-25-2 notes.txt` and a new `descriptions.txt` (no logs).
+Confirmed by the tester: Jerhyn and Natalya from anywhere in town, far unexplored areas with "parts
+of it crosses ground not seen yet", the speech priority menu, routes through Act III's jungles.
+Built and unit-tested only.
+- **The area hint is a switch of its own, off** (`description-hint`): the tester wants the lore met
+  at the player's pace, and the manual will tell of BACK + right stick up, which stays on. The
+  `descriptions` switch keeps the landmark words. Rejected: turning `descriptions` off by default (it
+  would take the Hangman's Tree's words with it, and a saved "on" would keep the hint).
+- **A comma after the number before the hit chance**: the right stick already said "Attack Rating.
+  602. Fallen: 95%...", and the tester heard the stop after "Rating" but none after "602", so the
+  voice reads a period after a number without one (ordinal or decimal, unconfirmed). Rejected:
+  speaking the chance as a second phrase (queued phrases run together just as much).
+- **Unfolded stairs take their temple's name**: the Kurast temples' entrances are the OpenWarp
+  objects `UnfoldingStairLeft`/`Right` (objects.txt 194, 195, key "stair"), all "Stairs". Once in
+  mode 2, the object is named like a warp after the level its room's walk-through warp leads to (row
+  61, "Act 3 Kurast to Temple"), and the remembered exit takes the name. The rule is every OpenWarp
+  object's, so Lut Gholein's trapdoor, once open, reads "To The Sewers Level 1". Rejected: naming them
+  before they unfold (the game hides which temple until then) and a per-row special case.
+- **Words for Act III and the Pandemonium Fortress** ship in `data/descriptions.txt` (96 areas and the
+  Hangman's Tree); Kurast's sewers keyed by Id 92 and 93 like Lut Gholein's 47–49.
+
 ## 2026-10-26 — The tester's roundup of older issues (build test-2026-10-25-2)
 
 From `D2R Access, older issues revisited.7z` (the notes, five log pairs: death and trading, npcs,

@@ -57,7 +57,11 @@ void NoteLevel(int level, std::string name);
 std::string FirstTime(std::string_view name, std::string_view builtIn);
 // Book::HintDue for the noted level and the banner just shown.
 bool HintDue(std::string_view banner);
-// The switch: landmark words on first reach and the area hint. Asked-for words are said either way.
+// The switch: landmark words on first reach. Asked-for words are said either way.
 bool Enabled();
 void SetEnabled(bool on);
+// The area hint after a described area's banner; off by default, so the lore waits to be asked for
+// (a tester, 2026-10-26).
+bool HintEnabled();
+void SetHintEnabled(bool on);
 }
