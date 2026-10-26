@@ -68,8 +68,9 @@ automap; enemies are the one live category.
 - **Rooms** are logical rooms of the level, read whether or not the game has
   them loaded (`NativeRooms::Read`). *Area* lists the areas stood in.
   *Unexplored area* comes right after the ways out. In exploration mode it
-  lists only the rooms sharing an edge with explored ground that loaded
-  collision does not prove walled off (`RoomCatalogue::Exploration`,
+  lists every unexplored room of the level (`unexplored-everywhere`, below);
+  with that switch off, only the rooms sharing an edge with explored ground
+  that loaded collision does not prove walled off (`RoomCatalogue::Exploration`,
   `RoomGraph::Touching`/`Border`, `docs/room-routing.md`). Explored ground is a room stood in, drawn on the automap,
   or underfoot (`TerrainService::ExploredRooms`). This is the edge of the known
   map, so a lost player can head somewhere new. Nothing inside an unexplored
@@ -78,10 +79,11 @@ automap; enemies are the one live category.
   on; a tester, 2026-10-21) the list takes one per screen direction in turn,
   nearest first in each round (`MapSurvey::SpreadByDirection`): the same areas,
   only the order changes, so a player picks a way rather than three neighbours.
-  `unexplored-everywhere` (Ctrl+S, Navigation, off; a tester, 2026-10-25) lists
-  every unexplored room of the level in exploration mode, far ones included; a
-  route to one guesses across ground not seen yet (`docs/beacon.md`). Off keeps
-  the user's rule of 2026-09-24. Percent explored keeps its own edge either way.
+  `unexplored-everywhere` (Ctrl+S, Navigation, on; a tester, 2026-10-25, made
+  the default by the user, 2026-10-26) lists every unexplored room of the level
+  in exploration mode, far ones included; a route to one guesses across ground
+  not seen yet (`docs/beacon.md`). Off restores the user's rule of 2026-09-24,
+  the edge only. Percent explored keeps its own edge either way.
 - **Ground loot and ordinary chests are not listed.** They are not on the
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them

@@ -18,10 +18,12 @@ Gholein sewer grate.
   `generated/npc_markers.h`, `NpcSpawnRules` from the game's InitFns (RE'd); loaded town NPCs count
   as seen ([entity scan](docs/entity-scan.md#npcs-at-marker-objects-2026-10-25)).
 - Item panning: 100 = the old 50 (`item-pan-half-25`) ([ground items](docs/ground-items.md)).
-- `unexplored-everywhere` (Ctrl+S, off): every unexplored area listed ([entity scan](docs/entity-scan.md)).
+- `unexplored-everywhere` (Ctrl+S): every unexplored area listed ([entity scan](docs/entity-scan.md));
+  released off, then on by default at the user's call as test-2026-10-26-2 (news
+  `../tester-news-draft-2026-10-26b.txt`, which supersedes the first).
 
 **Next step:** live: buy potions at Ormus, a death, `[survey] town NPCs` at Atma's and the Kurast
-stash (Jerhyn/Natalya `/spawn`, `201x1`, `297x1`), `unexplored-everywhere` with a far route.
+stash (Jerhyn/Natalya `/spawn`, `201x1`, `297x1`), a route to a far unexplored area.
 
 ## The tester's list on build test-2026-10-25 — 2026-10-25 (released as test-2026-10-25-2 from 1cf739e)
 

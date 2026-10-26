@@ -23,9 +23,10 @@ Gholein's sewer grate, the sewer descriptions. Built and unit-tested only.
   remembering their places between games (Jerhyn moves with the quests).
 - **Item panning's 100 is the old 50**, the testers' choice; the setting's key changed so a saved 50
   is not halved again.
-- **Every unexplored area, optionally** (`unexplored-everywhere`, off): the tester wants to head for
-  far unexplored ground on purpose. Off keeps the user's 2026-09-24 rule (only the edge of the known
-  map, so the list does not lay out the level).
+- **Every unexplored area** (`unexplored-everywhere`, on): the tester wants to head for far
+  unexplored ground on purpose, and the user wants it the default (2026-10-26), replacing the
+  2026-09-24 rule (only the edge of the known map, so the list does not lay out the level). Off
+  brings that rule back. Released first off as test-2026-10-26, then on as test-2026-10-26-2.
 
 ## 2026-10-25 — The tester's list on build test-2026-10-25
 

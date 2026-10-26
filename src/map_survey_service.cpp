@@ -131,7 +131,7 @@ bool                 g_fullAssistance = true;
 std::atomic<bool>    g_reachFilter{ false };
 std::atomic<bool>    g_townNpcsEverywhere{ true };
 std::atomic<bool>    g_unexploredSpread{ true }; // unexplored areas one per direction in turn
-std::atomic<bool>    g_unexploredEverywhere{ false }; // every unexplored area, not only those at the edge
+std::atomic<bool>    g_unexploredEverywhere{ true }; // every unexplored area, not only those at the edge
 std::atomic<bool>    g_doorwaysListed{ true }; // doorways in the scanner with the doors
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
