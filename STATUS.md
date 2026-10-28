@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's notes on build test-2026-10-26-3 and the "no route" logs — 2026-10-28
+## The tester's notes on build test-2026-10-26-3 and the "no route" logs — 2026-10-28 (released as test-2026-10-28 from a013697)
+
+Release: 128/128 CTest, 29 entries, 63,013,800 bytes, SHA-256 `e83e11d6…2570f8d6f8`; news
+`../tester-news-draft-2026-10-28.txt`.
 
 From `no route_d2r-access.log` and `D2R Access 2026-10-26-3 notes, descriptions and Act V fix
 requests.7z` ([decisions](docs/decisions.md)). Tests pass; installed by the build. **Unverified live.**
