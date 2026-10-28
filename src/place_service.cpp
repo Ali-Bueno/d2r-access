@@ -244,6 +244,15 @@ std::vector<std::string> Towards(const Lifecycle& state, const Reading& reading)
 	return targets;
 }
 
+// The words a landmark comes with, said the first time it comes into reach.
+const char* LandmarkWords(PlaceFeature feature, const Strings::Table& strings) {
+	switch (feature) {
+	case PlaceFeature::HangmanTree: return strings.hangmanTreeDescription;
+	case PlaceFeature::Hellforge: return strings.hellforgeDescription;
+	default: return "";
+	}
+}
+
 // The spoken line; one piece per change, never the same word twice in a row
 // (a forge piece holding an anvil is one "forge").
 std::string Phrase(const Reading& reading, const Places::Change& change, const std::vector<std::string>& towards) {
@@ -263,7 +272,7 @@ std::string Phrase(const Reading& reading, const Places::Change& change, const s
 	}
 	if (change.feature) {
 		const std::string_view name = strings.placeFeatures[static_cast<size_t>(Places::Spoken(spot.feature))];
-		told = Descriptions::FirstTime(name, spot.feature == Places::PlaceFeature::HangmanTree ? strings.hangmanTreeDescription : "");
+		told = Descriptions::FirstTime(name, LandmarkWords(spot.feature, strings));
 		add(told.empty() ? name : std::string_view(told));
 	}
 	std::string line;

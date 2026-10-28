@@ -2,6 +2,29 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's notes on build test-2026-10-26-3 and the "no route" logs — 2026-10-28
+
+From `no route_d2r-access.log` and `D2R Access 2026-10-26-3 notes, descriptions and Act V fix
+requests.7z` ([decisions](docs/decisions.md)). Tests pass; installed by the build. **Unverified live.**
+Confirmed by the tester: the hit-chance comma (NVDA, SAPI 5 Zira), the Cott4 creak.
+- Unexplored areas with no way in (Outer Cloister's roofed blocks) left out: `LeaveOutShutRooms`
+  ([entity scan](docs/entity-scan.md)).
+- Fortress interior: HD layout offset 22,22 in `tools/gen_places.py`; Hellforge (`SoulStoneForge`,
+  words `hellforgeDescription`) and pentagram (`DiabloStart`, listed) landmarks
+  ([places](docs/places.md#the-fortresss-hall-the-hellforge-the-pentagram-2026-10-27)).
+- Portals never moved to a border (`Crosses`); portal-art objects are portals (Tyrael's)
+  ([portals](docs/portals.md)).
+- Durance door: opened warp looked for in neighbouring rooms ([exits](docs/level-exits.md)).
+- Catapults ranged, combatants "Barbarian" ([cues](docs/entity-cues.md)); Act IV and Harrogath words.
+- Nihlathak from anywhere in Harrogath: InitFn 68 rule from the RE of `0x548EE0`, levels entered
+  this game (`GameLevels`) ([entity scan](docs/entity-scan.md#npcs-at-marker-objects-2026-10-25)).
+Known issues (from the log, not reported): a room target can say "Arrived" one cell short of the
+room (`route_follow.cpp` `EndUnits`), and keeps its "unexplored area" name once explored.
+
+**Next step:** live: Outer Cloister unexplored areas (`[survey] ... no way in`), Fortress waypoint
+to stash (`[places]`), a Harrogath town portal, Nihlathak from Malah's (`[survey] town NPCs`,
+`Nihlathak@...`), the Durance door (`[exit] ... opened: to=100`).
+
 ## The tester's notes on build test-2026-10-25-2 — 2026-10-26 (released as test-2026-10-26-3 from a954dfe)
 
 Release: 128/128 CTest, 29 entries, 63,007,156 bytes, SHA-256 `a181d76c…5dc50e69f41b69266672fd840c9ffd26`; news

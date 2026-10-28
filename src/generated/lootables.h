@@ -144,6 +144,17 @@ constexpr bool RadiantObject(uint32_t classId) {
 		static_cast<uint16_t>(classId));
 }
 
+// Drawn as a portal with no portal SubClass: CainPortal, PermanentPortal2, GuildPortal, ReallyTheLastPortal, NotKiddingLastPortal.
+inline constexpr std::array<uint16_t, 5> PortalArtObjects{
+	189, 321, 377, 565, 566
+};
+
+constexpr bool PortalArtObject(uint32_t classId) {
+	if (classId > UINT16_MAX) return false;
+	return std::binary_search(PortalArtObjects.begin(), PortalArtObjects.end(),
+		static_cast<uint16_t>(classId));
+}
+
 // Quest mechanisms, by OperateFn: Gibbet, TaintedSunShrine,
 //     SevenTombsReceptacle, GidBInnDecoy, BeneathTheCityLever,
 //     SoulStoneForge, DiabloSeal1, DiabloSeal2, DiabloSeal3, DiabloSeal4,

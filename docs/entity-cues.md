@@ -158,3 +158,16 @@ the other critters are friendly, unkillable or unnamed. Every class a level list
 now left out of the scan (`Generated::CritterMonster`, generated with the level flags by
 `tools/gen_level_flags.py`): chicken, rat, bat, bug, scorpion, larva, snake, parrot, minispider,
 bunny. Cows and camels are not critters and stay listed in town.
+
+## Catapults sound as archers; the battlefield's barbarians (2026-10-27)
+
+A tester in Act V: the catapults (monstats `catapult1`-`4`, *hcIdx 497-500, AI `Catapult`, MissA1
+`catapultchargedball`) are enemies that shoot from afar, but their `rangedtype` column is empty, so
+the ranged flag (`MonStats+0x3F` bit 4) was never set and they had the plain enemy cue. They are now
+ranged by class (`CatapultClasses` in `native_entities.cpp`), as the shamans are. Their spotters
+(516-519) are not killable and stay out.
+
+The same tester: the allied fighters on the battlefields were announced "Combatant", the game's own
+name (`act5barb1`/`2`, 522-523, NameStr "Act 5 Combatant", AI `NpcBarb`). They are now named with
+the game's "Barbarian" (ui.json, the class name, so every language has it), the way cows and camels
+take a name from another table (`AllyNameKey`).

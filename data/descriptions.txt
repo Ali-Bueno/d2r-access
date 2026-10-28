@@ -149,11 +149,11 @@ Kurast Docks = This ancient harbor is on the verge of being devoured by the lush
 #
 Spider Forest = What little refreshment the sea breeze at the docks provided is gone the moment you dive into the almost impenetrable jungle. Only small strips of passable land flank a murky river and you are immediately beset by the primal forest's vicious inhabitants, be they two-, four or many-legged.
 #
-Spider Cavern = The walls of this claustrophobic hole in the groound are draped in thick sheets of spider silk. Far from smooth, you spot thick, tightly wound cocoons on the walls and floor, some of them desperately writhing and wriggling as you creep past.
+Spider Cavern = The walls of this claustrophobic hole in the ground are draped in thick sheets of spider silk. Far from smooth, you spot thick, tightly wound cocoons on the walls and floor, some of them desperately writhing and wriggling as you creep past.
 #
 Arachnid Lair = This cavern is virtually indistinguishable from the other spider-infested hellhole, yet sneaking through its muffled, silk-laced hallways, your heart skips a beat every time a cocoon you pass twitches violently. Is that a poor victim trying to break free? Or a fresh eight-legged horror waiting to be disgorged into this world?
 #
-Great Marsh = The rivers splinters and flows into a marshy lowland of narrow channels and swampy islands. The shrill chatter of birds is a constant reminder of danger. Every rustling bush, every cracking twig might be the prelude to yet another deluge of frantic assaults.
+Great Marsh = The river splinters and flows into a marshy lowland of narrow channels and swampy islands. The shrill chatter of birds is a constant reminder of danger. Every rustling bush, every cracking twig might be the prelude to yet another deluge of frantic assaults.
 #
 Flayer Jungle = As if to prove the wrongness of this place, you keep noticing the shallow ruins of a fallen civilization peeking through the choking foliage, now utterly swarmed by the crazed diminutive Flayers who give this stretch of the jungle its name. Old stone foundations are overtaken by flimsy straw huts and the blowgun darts just won't stop coming.
 #
@@ -165,7 +165,7 @@ Swampy Pit Level 3 = The descent ends in total, suffocating darkness. The ankle-
 #
 Lower Kurast = The outskirts of Kurast fare only a little better than the docks. Everywhere you look, you spot signs of life brusquely disrupted - half-eaten meals covered in mold, toppled vases and baskets, their contents carelessly scattered and bodies left to rot where they were slain.
 #
-Kurast Bazaar = The overgrown remains of Kurasts market district are a battlefield in more ways than one. The jungle's assault on civilization is still ongoing, with vicious monsters and swarms of insects poignantly making their presence known. But sanity itself is under attack, evidenced by the roving gangs of madly howling cultists.
+Kurast Bazaar = The overgrown remains of Kurast's market district are a battlefield in more ways than one. The jungle's assault on civilization is still ongoing, with vicious monsters and swarms of insects poignantly making their presence known. But sanity itself is under attack, evidenced by the roving gangs of madly howling cultists.
 #
 Sewers Level 1 [92] = The sounds of running water greet you as you make your way into yet another monster-infested sewer system. Compared to the swampy, oppressive heat outside, it is almost pleasant - were it not for the ghastly stench rising from the many channels and pools.
 #
@@ -204,3 +204,19 @@ Durance Of Hate Level 3 = A gurgling moat of writhing blood bisects this enormou
 # Act IV
 #
 The Pandemonium Fortress = You step through the portal and stumble into a bleak hall carved from slate-gray stone and metals no mortal has a name for. The only sources of warmth are a roaring fireplace and several large fire bowls. Without them, the Pandemonium Fortress would be as inhospitable as the ashen wastes beyond.
+#
+Outer Steppes = A vast plain covered in fine gray ash stretches towards the horizon. Broken spires and arches wrapped in enormous chains are the only features breaking up the mind-numbing monotony while lost souls are chained to rocks and stumps of broken pillars. The occasional rift in the ground disgorges sulphuric vapors.
+#
+Plains of Despair = The shifts in scenery are very gradual - the ground rises and falls in strict geometric stair-like patterns and the haphazardly strewn about arches are replaced with what look like ruins of some titanic buildings. What remains the same is the oppressive sense of unchanging, eternal misery permeating every inch of this plain.
+#
+City Of The Damned = Nothing remains of the city but the decapitated foundations of rigidly arranged buildings. You wonder - who built these structures and to what end? Who would be mad enough to try and settle this godforsaken wasteland?
+#
+River of Flame = This has to be the purest vision of Hell you've encountered thus far. Broken chunks of obsidian form treacherous islands swimming in an ocean of lava. Enormous fireballs rise up from the molten matter surrounding you. The heat is inhuman, threatening to roast you alive in your armor. And yet, your will prevails. You press on. Diablo has to be stopped!
+#
+Hellforge = Two gigantic suits of armor guard this ancient forge. This is the only place known in all of creation powerful enough to shatter a Soulstone.
+#
+The Chaos Sanctuary = Diablo's lair is like a cross-shaped, twisted mockery of a grand cathedral in the heart of Hell. Piles of skulls have been stacked near every wall and pillar, the arches are blackened and warped and at the center of it all, surrounded by five unholy seals, sits an enormous pentagram.
+#
+# Act V - Lord Of Destruction
+#
+Harrogath = The cool, crisp mountain air soothes your soul after the ordeal you just went through. Harrogath is an impressive fortress-town, stout stone houses with snow-covered roofs promise warmth and safety. Even behind its massive walls you do hear the din of battle. The war against Baal is closer than you think.

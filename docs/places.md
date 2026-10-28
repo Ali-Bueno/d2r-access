@@ -298,3 +298,28 @@ wall; none was a real dead end. A wall met ahead now closes the corridor only wh
 there, between the corridor's side walls, has no opening as wide as the body with floor one step
 further (`GoesOn`, `Settings::passable` from `Rooms::PassableWidth`). A corridor walled across, or
 plugged by stairs, is still a dead end. Tests: `passages_tests.cpp`.
+
+## The Fortress's hall, the Hellforge, the pentagram (2026-10-27)
+
+**The Pandemonium Fortress said "outside" on the way to the stash** (a tester; the log's `[places]`
+lines: local 48,43 by the waypoint `interior=0`, local 26,41 `interior=-1`). Its HD layout is drawn
+22 subtiles right of and below its DS1: the hall's walls (`int_wall*` at HD x 36.9, y 36.4–91.6;
+`ext_wall*` at 57.9) are the DS1's west wall at x 15 and colonnade at x 35, y 14–70 (the log's
+`[radar-collision]` dumps stitched), its fireplace lands on the DS1's two `Hellfire1` objects at
+23,7, and its brazier mounts on the `PandemoniumBrazier2` objects at x 17 and 37. The generator now
+takes `HD_LAYOUT_OFFSETS` off every entity of that file before reading it, so the fortress is the
+hall west of the colonnade (volume 6,0–35,115): the stash and Tyrael are inside, the waypoint's
+courtyard outside. Walking into the hall says "fortress", out of it "outside", as every interior.
+Other layouts were not measured this way; no other report places an interior wrong.
+
+**The Hellforge** (a tester): feature `Hellforge`, the River of Flame's `SoulStoneForge` object in
+`act4/lava/forgee.ds1` and `forgew.ds1`, named with the game's own word (objects.json "Hellforge").
+The first time it comes into reach its words are said instead, as the Hangman's Tree's
+(`hellforgeDescription`, translated; also in `data/descriptions.txt`). Not a tracker entry: the
+object itself is already listed.
+
+**The pentagram** (a tester): feature `Pentagram`, a tracker entry like the cliff stairs, at the
+Chaos Sanctuary heart's `DiabloStart` object (53,53 of `act4/diab/heart.ds1`), where Diablo
+appears, padded 10 subtiles: it is said within the star's inner pentagon and a route to it ends
+there. The HD star model (`act4_diab_cathedral/pentagram01`) sits 7 subtiles off that object, so the
+object is the anchor. Tests: `places_tests.cpp` (`FortressHall`, the heart and both forges).

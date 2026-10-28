@@ -169,3 +169,14 @@ remembered exit takes each name as the object shows it, so a new game, which fol
 "Stairs" once the object loads. Log, once per object: `[exit] unit=U object=C opened: to=L "name"
 at=x,y`, `to=0` when the object's room holds no linked warp (then the name stays "Stairs": the warp
 may sit in a neighbouring room, unconfirmed).
+
+## Travincal's door to the Durance of Hate (2026-10-27)
+
+A tester: smashing the Compelling Orb revealed an exit called "an evil force". It is the OpenWarp
+object `MephistoDoor` (objects.txt 386, Selectable in mode 2 only, name key "Dummy", whose text is
+that placeholder), taken through the walk-through warp "Act 3 Travincal to Mephisto" (LvlWarp row
+64, NoInteract 1), as the Kurast temples' stairs. No log of it came with the report. An opened
+OpenWarp object now looks for that warp in the rooms beside its own when its room holds none
+(`OpenedWarpDestination`), which the 2026-10-26 note left open; then it reads "To The Durance of
+Hate Level 1". Log: `[exit] unit=U object=386 opened: to=100 ...`; `to=0` still means no linked warp
+in reach.

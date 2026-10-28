@@ -3,6 +3,32 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-28 — The tester's notes on build test-2026-10-26-3, "no route" in the Outer Cloister
+
+From `no route_d2r-access.log` and `D2R Access 2026-10-26-3 notes, descriptions and Act V fix
+requests.7z` (notes, `descriptions.txt`, the `act-v` and `portal confusion` logs). Confirmed by the
+tester: the comma before the hit chance (NVDA, SAPI 5, Zira), the Cott4 cottage's creak. Built and
+unit-tested only.
+- **Unexplored areas with no way in are not listed** (`LeaveOutShutRooms`): the "no route through
+  explored areas" refusals were right, the listing was wrong. Eight Outer Cloister rooms were solid
+  roof. Left out by the kept map's whole-level reach, in every mode, rather than by the Ctrl+U reach
+  filter (which also drops things not walled off) or by a special route message. Rejected: letting
+  the route guess through known walls.
+- **The Fortress's interior follows its walls**: its HD layout is 22 subtiles off its DS1, measured
+  from walls, fireplace and braziers against the log's collision; a per-file offset in the generator.
+  Rejected: redrawing the volume by hand.
+- **The Hellforge and the pentagram are map landmarks**, from the DS1 objects that mark them
+  (`SoulStoneForge`, `DiabloStart`), not from HD models (the star's model sits 7 subtiles off). The
+  pentagram is listed; the Hellforge, already listed as its object, only gets its words.
+- **A portal never moves to an area border** (`Crosses`), and objects drawn with a portal's art
+  are portals (`PortalArtObject`, from objects.txt Tokens). Rejected: a list of class names.
+- **Nihlathak is listed from the game's own rule**, decompiled: the Prison of Ice data is reset each
+  game, so the mod keeps the levels entered this game itself; level 112 counts as gone even when
+  the game would keep him (never a phantom NPC), and multiplayer gives no answer. Rejected: the
+  Betrayal of Harrogath row (the game never tests it).
+- **Travincal's revealed door is named from a warp beside its room**; catapults are ranged by class
+  (their `rangedtype` is empty); the battlefield's combatants take the game's "Barbarian".
+
 ## 2026-10-26 — The tester's notes on build test-2026-10-25-2
 
 From `D2R access test build 2026-10-25-2 notes.txt` and a new `descriptions.txt` (no logs).

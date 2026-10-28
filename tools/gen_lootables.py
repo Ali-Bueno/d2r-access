@@ -102,6 +102,8 @@ QUEST_MECHANISM_FNS = {
 # The Chaos Sanctuary seals, all five of which open the way to Diablo. Their
 # objects.txt rows share one label, so the plugin numbers them by this order.
 SEAL_FNS = {52, 54, 55, 56}
+# objects.txt SubClass bits of a portal and a gate (entity_layout.h SubClassPortal, SubClassGate).
+PORTAL_SUBCLASSES = 0x04 | 0x10
 
 # Quest books a player reads rather than loots; the automap draws both with the
 # tome cell (427) it gives Lam Esen's Tome. They loop the scroll cue until read.
@@ -174,6 +176,14 @@ def main():
     by_fn = collections.defaultdict(list)
     skipped_unselectable = 0
     lit = index["Lit0"]
+    # Objects drawn with a portal's own art but no portal SubClass: Tyrael's portal to
+    # Harrogath borrows the red portal's (a tester, 2026-10-27).
+    token, sub_class = index["Token"], index["SubClass"]
+    portal_tokens = {row[token].strip().lower() for row in rows
+                     if len(row) > max(token, sub_class) and int(row[sub_class] or 0) & PORTAL_SUBCLASSES}
+    portal_art = sorted((int(row[ident]), row[klass]) for row in rows
+                        if len(row) > max(ident, token, sub_class) and row[ident].strip()
+                        and not int(row[sub_class] or 0) & PORTAL_SUBCLASSES and row[token].strip().lower() in portal_tokens)
     for row in rows:
         # A chest lit from within: the purple glow of the quest and reward chests (a tester, 2026-10-17).
         if row[name].strip().lower() == "chest" and row[lit].strip() not in ("", "0"):
@@ -324,6 +334,17 @@ def main():
     out.append("\tif (classId > UINT16_MAX) return false;")
     out.append("\treturn std::binary_search(RadiantObjects.begin(), RadiantObjects.end(),")
     out.append("\t\tstatic_cast<uint16_t>(classId));")
+    out.append("}")
+    out.append("")
+    out.append("// Drawn as a portal with no portal SubClass: %s." % ", ".join(class_name for _, class_name in portal_art))
+    out.append("inline constexpr std::array<uint16_t, %d> PortalArtObjects{" % len(portal_art))
+    out.append("	" + ", ".join(str(class_id) for class_id, _ in portal_art))
+    out.append("};")
+    out.append("")
+    out.append("constexpr bool PortalArtObject(uint32_t classId) {")
+    out.append("	if (classId > UINT16_MAX) return false;")
+    out.append("	return std::binary_search(PortalArtObjects.begin(), PortalArtObjects.end(),")
+    out.append("		static_cast<uint16_t>(classId));")
     out.append("}")
     out.append("")
     mechanisms.sort()

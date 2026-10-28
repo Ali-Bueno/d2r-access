@@ -76,3 +76,13 @@ area's words with both off: the manual tells of it, and the tutorial teaches it.
 `data/descriptions.txt` now holds the tester's words for Acts I to III and the Pandemonium Fortress
 (96 areas and the Hangman's Tree). The tester writes the sewers by name only; the mod's file adds the
 Ids, `[47]` to `[49]` for Lut Gholein's and `[92]`, `[93]` for Kurast's.
+
+## The Hellforge; Act IV and Harrogath (2026-10-27)
+
+The tester's new file: Act IV's areas (Outer Steppes, Plains of Despair, City of the Damned, River
+of Flame, The Chaos Sanctuary) and Harrogath, plus their spelling fixes ("ground", "The river
+splinters", "Kurast's"). `data/descriptions.txt` takes it with the mod's own header: 102 areas, the
+Hangman's Tree and the Hellforge. The Hellforge is the second landmark with words: a `PlaceFeature`
+at the River of Flame's `SoulStoneForge` object ([places](places.md#the-fortresss-hall-the-hellforge-the-pentagram-2026-10-27)),
+said with `hellforgeDescription` (translated) the first time it comes into reach
+(`LandmarkWords` in `place_service.cpp`).

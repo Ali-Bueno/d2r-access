@@ -84,6 +84,15 @@ automap; enemies are the one live category.
   in exploration mode, far ones included; a route to one guesses across ground
   not seen yet (`docs/beacon.md`). Off restores the user's rule of 2026-09-24,
   the edge only. Percent explored keeps its own edge either way.
+  **Either way, and in full assistance, an unexplored room the kept map shows no
+  way into is left out** (`LeaveOutShutRooms` in `map_survey_service.cpp`:
+  `KeyboardService::CutOff`, the whole-level `LevelRoute::Reach`, unseen ground
+  and doors passable, teleport pads too). A tester's log, 2026-10-27: in the
+  Outer Cloister eight of the listed areas, rows 0-1 of its 7x5 grid of rooms,
+  were the monastery's roofed blocks, every cell wall (`0x0005`), so each answered
+  "No route through explored areas" and none could ever be explored. What the
+  map cannot tell, a room past ground not seen yet, stays listed. Log, on a
+  change: `[survey] level L: N unexplored rooms with no way in from x,y left out: ...`.
 - **Ground loot and ordinary chests are not listed.** They are not on the
   automap, and their loops and step-on speech already cover them
   (`docs/ground-items.md`). Quest containers stay, as the automap draws them
@@ -162,8 +171,21 @@ the mod reads the player's, and also takes bit 0 or 15 for done.
 | 50 HratliEnd (379) | `0x5EB870` | row 16:13 set | row 16 done |
 | 52 NatalyaStart (382) | `0x5EBC20` | row 22 (The Guardian):13 clear | row 22 not done |
 | 66 DrehyaInTown (459) | `0x547A40` | quest data `+0xA4 == 2`: after the thaw, on talking to Malah | row 37 bit 0 or 15 |
-| 68 NihlathakInTown (461) | `0x548EE0` | quest data `+0xA8 == 0`; set on entering levels 112-114 or 121-124 | none: no flag tells it |
+| 68 NihlathakInTown (461) | `0x548EE0` | Prison of Ice data `+0xA8 == 0` (below) | row 37 without bit 0 or 15, none of levels 112-114, 121-124 entered this game, no other player |
 | 70/71 Larzuk (542/543) | `0x548A40` (one slot) | once, Siege data `+0x3D == 0` | none: slot unknown |
+
+**Nihlathak (2026-10-27, `re/` decompile by an agent, MEASURED unless noted).** Harrogath's
+`expansion/Town/townWest.ds1` places him as monster preset 514 at subtile 76,126; the map loader
+`0x3DFAE0` turns it into object 461, so the mod reads marker 461 (and Natalya's 297 likewise
+becomes 382). The Prison of Ice's quest data (one 0x318-byte object per quest off `game+0x21D8`,
+set up by `0x5483E0`) is zeroed every game. `+0xA8` becomes 1 when the game's first player joins
+with row 37 bit 0 or 15 (`0x54D280`), on entering 121-124, on entering 113 or 114, on entering 112
+while the quest has not begun (`0x54CB40`), and on finding Anya (`0x54A2D0`, which also removes his
+town unit). The Betrayal of Harrogath (row 38) never touches it. The mod's rule
+(`NpcSpawnRules::NihlathakHome`) takes 112 as always taking him (it may hide him when he is there,
+never the reverse), counts the levels its own reads have been in this game (`GameLevels`, by
+session), and gives no answer when other players are in the game, whose creator and walks it cannot
+see. InitFn 69 (462) is in the Halls of Vaught's `wildtemple/Nihl*.ds1`, never in town.
 
 A marker with no rule gives no spawn: that NPC is listed once seen, as before. Kaelan
 is not placed from the marker (one NPC per marker); he too is listed once seen. Live

@@ -302,6 +302,32 @@ void StairwaysListedOnce() {
 		Check(listed.size() == 1 && palace != listed.end() && palace->side >= 20,
 			"Lut Gholein's palace entrance is listed in both layouts, as wide as its hall (a tester, 2026-10-23)");
 	}
+
+	// The Chaos Sanctuary's pentagram, centred where Diablo appears (the DS1's DiabloStart at 53,53).
+	const auto* heart = Places::Find("Act4/Diab/Heart.ds1");
+	const auto stars = heart ? Places::Listings(Places::PieceOf(*heart)) : std::vector<Places::Listing>{};
+	Check(stars.size() == 1 && stars[0].kind == PlaceFeature::Pentagram && stars[0].x == 53 && stars[0].y == 53,
+		"the pentagram at the Chaos Sanctuary's heart is listed where Diablo appears (a tester, 2026-10-27)");
+	for (const char* forge : {"Act4/Lava/ForgeE.ds1", "Act4/Lava/ForgeW.ds1"}) {
+		const auto* lava = Places::Find(forge);
+		const auto piece = lava ? Places::PieceOf(*lava) : Places::Piece{};
+		Check(std::any_of(piece.seeds.begin(), piece.seeds.end(), [](const auto& seed) { return seed.feature == PlaceFeature::Hellforge; })
+			&& Places::Listings(piece).empty(), "the Hellforge is a landmark in both its layouts, listed by its own object only");
+	}
+}
+
+// The Pandemonium Fortress's hall, where the stash and Tyrael are, is inside; the courtyard
+// of the waypoint east of its colonnade is not (a tester's log, 2026-10-27: local 26,41 was "outside").
+void FortressHall() {
+	const auto* fortress = Places::Find("Act4/Fort/Fortress.ds1");
+	Check(fortress != nullptr, "the Fortress has places");
+	if (!fortress) return;
+	const auto piece = Places::PieceOf(*fortress);
+	const int stash = Places::InteriorAt(piece, 19, 40);
+	Check(stash != Places::None && piece.volumes[static_cast<size_t>(stash)].interior == PlaceInterior::Fortress,
+		"the stash stands inside the fortress");
+	Check(Places::InteriorAt(piece, 26, 41) != Places::None, "so does the nave on the way to it");
+	Check(Places::InteriorAt(piece, 48, 43) == Places::None, "the courtyard by the waypoint is outside");
 }
 
 void CarryAndHysteresis() {
@@ -330,5 +356,6 @@ int main() {
 	StairwaysListedOnce();
 	CorridorsSpoken();
 	CarryAndHysteresis();
+	FortressHall();
 	Passed();
 }

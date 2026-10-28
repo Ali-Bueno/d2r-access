@@ -86,6 +86,9 @@ int main() {
 		"an area border is placed at its walkable crossing and keeps its identity");
 	EntityRadar::Entity stairs{3, EntityRadar::Kind::Exit, {10, 50}, "Cave", 98, false, EntityRadar::Category::Exit, 9};
 	Check(!ZoneTransitions::MoveToCrossing(stairs, found) && stairs.position.y == 50, "an exit to a level with no crossing stays put");
+	EntityRadar::Entity portal{5, EntityRadar::Kind::Exit, {10, 50}, "Blood Moor", 97, false, EntityRadar::Category::Portal, 2};
+	Check(!ZoneTransitions::MoveToCrossing(portal, found) && portal.position.y == 50,
+		"a portal to the level across the border stays where it stands");
 	EntityRadar::Entity chest{4, EntityRadar::Kind::Object, {10, 50}, "Chest"};
 	Check(!ZoneTransitions::MoveToCrossing(chest, found) && chest.position.y == 50, "anything but an exit stays put");
 

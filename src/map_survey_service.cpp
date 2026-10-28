@@ -137,6 +137,8 @@ std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
 size_t               g_cutLogged = 0;
 int                  g_cutLevel = 0;
+std::vector<uint32_t> g_shutRooms; // the unexplored rooms last left out, by number
+int                  g_shutRoomsLevel = 0;
 
 bool Playing(const Lifecycle& state) { return state.ready && state.level != 0; }
 
@@ -459,6 +461,29 @@ void LeaveOutCutOff(const Radar::World& world, std::vector<MapSurvey::Landmark>&
 	landmarks = std::move(listed);
 }
 
+// Unexplored rooms the level's map shows no way into, walled off or with no floor
+// at all: no route ends in one and it is never explored (a tester's log, 2026-10-27:
+// the Outer Cloister's roofed blocks). What cannot be told stays listed. docs/entity-scan.md
+void LeaveOutShutRooms(const Radar::World& world, std::vector<EntityRadar::Entity>& rooms) {
+	std::vector<const EntityRadar::Entity*> unexplored;
+	for (const auto& room : rooms)
+		if (room.category == EntityRadar::Category::UnexploredRoom) unexplored.push_back(&room);
+	if (unexplored.empty()) return;
+	const auto cut = KeyboardService::CutOff(world, unexplored);
+	std::vector<uint32_t> shut;
+	for (size_t i = 0; i < unexplored.size(); ++i)
+		if (cut[i]) shut.push_back(unexplored[i]->id);
+	std::erase_if(rooms, [&](const EntityRadar::Entity& room) {
+		return room.category == EntityRadar::Category::UnexploredRoom && std::find(shut.begin(), shut.end(), room.id) != shut.end(); });
+	if (shut == g_shutRooms && world.level == g_shutRoomsLevel) return;
+	g_shutRooms = shut;
+	g_shutRoomsLevel = world.level;
+	std::string numbers;
+	for (const auto number : shut) numbers += Format(" %u", number);
+	AsyncLog::InfoF(g_context, "[survey] level %d: %zu unexplored rooms with no way in from %.0f,%.0f left out:%s", world.level,
+		shut.size(), world.player.x, world.player.y, numbers.c_str());
+}
+
 // Reads the world fresh: the answer must reflect where the player is standing
 // now, not where they were when the registry was last fed.
 bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
@@ -504,7 +529,8 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 			TerrainService::ExploredRooms(state.level, levelRooms, world.player), &grid, g_unexploredEverywhere.load());
 	}
 	const Strings::Table& strings = Strings::Current();
-	const auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
+	auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
+	LeaveOutShutRooms(world, rooms);
 	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
 	// An area border is measured to where it is walked across, where the beacon
 	// leads: the crossing loaded now, else one seen this game.

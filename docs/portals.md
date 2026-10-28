@@ -68,3 +68,18 @@ the target reader). A portal with no owner (Andariel's, a Portal shrine's, the r
 destination as its name. `EntityRadar::Recreated` takes another portal of the same owner for the
 same one, so the registry's entry and the beacon's lock move to the new unit as soon as the client
 loads it. Not changed: whether the client can know of the new portal before loading it.
+
+## A portal stays where it stands; Tyrael's portal is a portal (2026-10-27)
+
+**Harrogath** (a tester's `portal confusion` log): with a town portal open, the scanner and the
+route both put it at the town's west edge, 23 steps northwest of the waypoint, the Bloody Foothills
+exit's place. A town portal carries the level it leads to (`ObjPortalLevel`, 110), and an exit with a
+destination was moved to the area border crossing into that level (`ZoneTransitions::Crosses`,
+`MoveToCrossing`, used by the scanner and `ToCrossing`). A portal is now never moved: `Crosses` is
+false for the Portal category. Test: `zone_transitions_tests.cpp`.
+
+**Tyrael's portal to Act V** was listed with the exits: `NotKiddingLastPortal` (objects.txt 566) has
+no portal SubClass and is named after a level ("Harrogath"). It is drawn with the red portal's own
+art (Token `pp`, `PortalPermanent`'s), and so are `ReallyTheLastPortal`, `GuildPortal`,
+`PermanentPortal2` and `CainPortal`: `tools/gen_lootables.py` lists every object sharing a portal
+row's Token (`Generated::PortalArtObject`), and those are portals. It keeps leading to Harrogath.

@@ -180,8 +180,11 @@ uint32_t LevelNamed(const Tables& tables, const std::string& key) {
 }
 // *hcIdx of the cow and camel rows in the game's monstats.txt (NameStr "dummy"),
 // and the string keys that name them: objects.json "cowa", monsters.json "Camel".
-const char* AnimalNameKey(uint32_t classId) {
-	constexpr uint32_t CowClass = 179, CamelClass = 185;
+// The Act V battlefields' allied fighters (act5barb1/2, NameStr "Act 5 Combatant") are
+// barbarians, ui.json "Barbarian" (a tester, 2026-10-27).
+const char* AllyNameKey(uint32_t classId) {
+	constexpr uint32_t CowClass = 179, CamelClass = 185, CombatantClass1 = 522, CombatantClass2 = 523;
+	if (classId == CombatantClass1 || classId == CombatantClass2) return "Barbarian";
 	return classId == CowClass ? "cowa" : classId == CamelClass ? "Camel" : nullptr;
 }
 // The placeholder label every unnamed MonStats row shares, in the player's
@@ -295,6 +298,10 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 			entity.enemy.boss = (bossFlags & (FlagBoss | FlagPrimeEvil)) != 0;
 		}
 		if (Peek(row + MonFlagsRanged, rangedFlags)) entity.enemy.ranged = (rangedFlags & FlagRanged) != 0;
+		// The catapults (monstats AI Catapult, *hcIdx 497-500) lob their charged balls from afar, but
+		// leave rangedtype empty: the archer's cue too (a tester, 2026-10-27).
+		constexpr std::array<uint32_t, 4> CatapultClasses{497, 498, 499, 500};
+		entity.enemy.ranged |= std::find(CatapultClasses.begin(), CatapultClasses.end(), classId) != CatapultClasses.end();
 		// *hcIdx values of the FallenShaman, FetishShaman, GreaterMummy and MummyGenerator (the
 		// Sarcophagus, which spawns mummies) AI rows in the game's monstats.txt.
 		constexpr std::array<uint32_t, 27> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
@@ -323,7 +330,7 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 	if (entity.name.empty()) return false;
 	// Town animals share that unnamed row name, but the game names a cow and a
 	// camel in other tables (a tester liked the camp's tents and wagons and asked for its cows).
-	if (const char* key = AnimalNameKey(classId); key && !hostile) {
+	if (const char* key = AllyNameKey(classId); key && !hostile) {
 		if (auto animal = UiText::Clean(Localization::Text(key)); !animal.empty()) {
 			entity.name = std::move(animal);
 			return true;
@@ -346,11 +353,13 @@ std::string NpcName(const Tables& tables, uint32_t classId) {
 }
 std::mutex g_townPresetsMutex;
 std::string g_townPresets;
+std::mutex g_gameLevelsMutex;
+NpcSpawnRules::GameLevels g_gameLevels; // every level the player's reads have been in, this game
 // In a town, every NPC its presets place once is listed from anywhere in it,
 // rooms not built yet included. `around` are the player's room and its
 // neighbours: other loaded rooms may lack units still there (docs/entity-scan.md#town-npcs).
 void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& around, const Tables& tables,
-	const std::vector<TownNpcs::Live>& liveNpcs, std::vector<EntityRadar::Entity>& entities) {
+	const std::vector<TownNpcs::Live>& liveNpcs, uint64_t session, bool shared, std::vector<EntityRadar::Entity>& entities) {
 	uint32_t levelId = 0;
 	std::vector<NativeLevelExits::MonsterPreset> presets;
 	std::vector<NativeLevelExits::ObjectPreset> objects;
@@ -365,7 +374,11 @@ void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& 
 	// NPCs a marker object places, where the game's own test for it would spawn them (Jerhyn, Natalya).
 	std::vector<TownNpcs::Marker> markers;
 	for (const auto& object : objects) markers.push_back({object.object, object.position, aroundRooms.contains(object.room)});
-	const auto placed = TownNpcs::MarkerSpawns(markers, [](int initFn) { return NpcSpawnRules::Spawns(initFn, NativeQuestFlags::Read); });
+	const NpcSpawnRules::ThisGame game{[session](int entered) {
+		std::lock_guard lock(g_gameLevelsMutex);
+		return g_gameLevels.Entered(session, entered);
+	}, shared};
+	const auto placed = TownNpcs::MarkerSpawns(markers, [&game](int initFn) { return NpcSpawnRules::Spawns(initFn, NativeQuestFlags::Read, game); });
 	spawns.insert(spawns.end(), placed.begin(), placed.end());
 	// A row placed twice is not listed: the log tells which NPC that was (a tester, 2026-10-20: Natalya).
 	std::map<uint32_t, int> counts;
@@ -504,7 +517,7 @@ void ReadLoadedPlayers(std::vector<uintptr_t> rooms, uintptr_t level, uint32_t p
 // are tested before the general one.
 EntityRadar::Category ObjectCategory(uint32_t classId, uint8_t subClass, bool openWarp, const std::string& key) {
 	if (subClass & SubClassWaypoint) return EntityRadar::Category::Waypoint;
-	if (subClass & (SubClassPortal | SubClassGate)) return EntityRadar::Category::Portal;
+	if ((subClass & (SubClassPortal | SubClassGate)) || Generated::PortalArtObject(classId)) return EntityRadar::Category::Portal;
 	// Wells and obelisks restore or alter the player the way shrines do, and a
 	// player looking for "a shrine" means any of them.
 	if (subClass & (SubClassShrine | SubClassWell | SubClassObelisk)) return EntityRadar::Category::Shrine;
@@ -568,7 +581,21 @@ uint32_t WalkThroughDestination(uintptr_t room) {
 	}
 	return 0;
 }
-// Once per opened stair or trapdoor; to=0 when its room holds no linked walk-through warp.
+// The walk-through warp an opened stair or door leads on through: in its own room, else in a
+// room beside it, as Travincal's door to the Durance of Hate may be (a tester, 2026-10-27).
+uint32_t OpenedWarpDestination(uintptr_t room) {
+	if (const uint32_t levelId = WalkThroughDestination(room)) return levelId;
+	uintptr_t neighbors = 0;
+	uint32_t count = 0;
+	std::array<uintptr_t, MaxRooms> adjacent{};
+	if (!Peek(room + RoomNeighbors, neighbors) || !Peek(room + RoomNeighborCount, count) || count > MaxRooms
+		|| (count && !NativeMemory::Copy(neighbors, adjacent.data(), count * sizeof(uintptr_t)))) return 0;
+	for (size_t n = 0; n < count; ++n)
+		if (adjacent[n] && adjacent[n] != room)
+			if (const uint32_t levelId = WalkThroughDestination(adjacent[n])) return levelId;
+	return 0;
+}
+// Once per opened stair or trapdoor; to=0 when neither its room nor one beside it holds a linked walk-through warp.
 void LogUnfolded(const EntityRadar::Entity& entity, uint32_t classId) {
 	{
 		std::lock_guard lock(g_warpsMutex);
@@ -669,7 +696,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	// Unfolded or opened, stairs and trapdoors are named after where they lead, as a warp is: each
 	// Kurast temple its own instead of "Stairs" (a tester, 2026-10-26).
 	if (openWarp && mode == ObjectOpened) {
-		if (const uint32_t levelId = WalkThroughDestination(room)) {
+		if (const uint32_t levelId = OpenedWarpDestination(room)) {
 			entity.name = LevelText(tables, levelId, LevelWarpKey);
 			entity.nameKey = LevelKey(tables, levelId, LevelWarpKey);
 			entity.destinationLevel = levelId;
@@ -849,6 +876,10 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	// offered here, thousands of subtiles away behind solid ground. Without a
 	// readable level the walk stays as it was.
 	const uintptr_t level = RoomLevel(room);
+	if (uint32_t levelId = 0; level && Peek(level + LevelId, levelId)) {
+		std::lock_guard lock(g_gameLevelsMutex);
+		g_gameLevels.Note(session, static_cast<int>(levelId));
+	}
 	for (size_t i = 0; i < count; ++i) {
 		if (!adjacent[i] || std::find(rooms.begin(), rooms.end(), adjacent[i]) != rooms.end()) continue;
 		if (level && RoomLevel(adjacent[i]) != level) continue;
@@ -950,7 +981,8 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 		}
 	}
 	if (townNpcs && levelStruct)
-		AddTownNpcs(room, levelStruct, std::vector<uintptr_t>(rooms.begin(), rooms.begin() + ring), tables, liveNpcs, entities);
+		AddTownNpcs(room, levelStruct, std::vector<uintptr_t>(rooms.begin(), rooms.begin() + ring), tables, liveNpcs, session,
+			roster && OthersInGame(roster, playerId), entities);
 	if (includePlayers && roster && OthersInGame(roster, playerId)) ReadLoadedPlayers(rooms, level, playerId, loadedPlayers, entities);
 	if (uint32_t levelId = 0; includePlayers && roster && level && Peek(level + LevelId, levelId))
 		ReadRoster(roster, playerId, levelId, loadedPlayers, entities);

@@ -98,6 +98,11 @@ FEATURES = [
     # The Countess's gilded basin of blood, by the doors to her room, candles round it (a tester,
     # 2026-10-22). Not ritual_platform01: that is the dais of her chest, in her own room.
     ("BloodCistern", "object", r"^BloodFountain$"),
+    # The River of Flame's Hellforge, said with its own words the first time (a tester, 2026-10-27).
+    ("Hellforge", "object", r"^SoulStoneForge$"),
+    # The great pentagram at the heart of the Chaos Sanctuary (a tester, 2026-10-27): also a tracker
+    # entry. Its centre is the DS1's DiabloStart, where Diablo appears; the HD star sits 7 subtiles off.
+    ("Pentagram", "object", r"^DiabloStart$"),
 ]
 # Seeds not matched by a rule: the top landing of each cliff stairway (CliffStairs is its bottom).
 DERIVED_FEATURES = ["CliffStairsTop"]
@@ -109,8 +114,13 @@ FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.d
                          # cryptnwarpnext.ds1 keeps an unused copy of the Countess's room.
                          "BloodCistern": re.compile(r"^(?!act1/crypt/cryptcountess[12]\.ds1$)")}
 # Subtiles added around a feature's seeds: the Hangman's Tree is said under its whole canopy,
-# one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk).
-FEATURE_PADDING = {"HangmanTree": 5}
+# one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk); the
+# pentagram over its inner pentagon, two tiles round where Diablo appears, where a route to it ends.
+FEATURE_PADDING = {"HangmanTree": 5, "Pentagram": 10}
+# HD layouts drawn off their DS1's origin: (x, y) subtiles to take off every entity. The Pandemonium
+# Fortress's hall walls (int_wall*, ext_wall*) and brazier mounts sit 22 right and 22 down of the
+# DS1's hall (west wall at x 15, colonnade at x 35, braziers at y 25-55; a tester's log, 2026-10-27).
+HD_LAYOUT_OFFSETS = {"act4/fort/fortress.ds1": (22, 22)}
 # Models whose footprint is their collision mesh: a log over a river is anchored at one end.
 MESH_FOOTPRINTS = re.compile(r"act3_jungle_bridges/")
 STAIRS_COLLISION_NODES = 0x30  # .physics: node records start here, 32 bytes each (min xyz, max xyz, two words)
@@ -492,10 +502,13 @@ def scan_preset(path, rel, hd_root, cache, stats, object_seeded):
     d = json.loads(path.read_text(encoding="utf-8"))
     raw_seeds = defaultdict(list, object_seeded)
     volumes = []
+    offset_x, offset_y = HD_LAYOUT_OFFSETS.get(rel, (0, 0))
     for e in d["entities"]:
         t = comp(e, "TransformDefinitionComponent")
         if not t:
             continue
+        t["position"]["x"] -= offset_x * HD_PER_SUBTILE
+        t["position"]["z"] -= offset_y * HD_PER_SUBTILE
         feature, kind = classify_feature(e)
         if feature in FEATURE_SKIPPED_FILES and FEATURE_SKIPPED_FILES[feature].search(rel):
             feature = None
