@@ -85,7 +85,8 @@ Set `[multiplayer] enabled = false` in `d2rloader/config/d2r-access.toml` to
 disable those passive announcements; normal focused-control speech remains.
 
 The loader's forms now use one D-pad press per control, following the visible
-rows and columns. Release before moving again; A/cross keeps its native action.
+rows and columns ([the list, 2026-10-28](#the-form-as-a-list-2026-10-28)). Release
+before moving again; A/cross keeps its native action.
 The shared cursor adapter places the real cursor over the chosen control and
 updates native hover and focus together. Disabled controls and controls behind
 the direct-join modal are excluded. Native text editing and horizontal dropdown
@@ -268,3 +269,39 @@ it, B finishes"). The stick steps forward with up (most games' pickers), and A t
 reached as right does. **Not done:** Enter (or A) ending the edit. The game ends it on B through
 its text entry panel; no end-edit counterpart of begin-edit (`0x88C810`) is known, and a synthetic
 Esc risks closing Direct Join. LAN Only and Unlisted on at start are the loader's, not the mod's.
+
+## The form as a list (2026-10-28)
+
+The user: the options were a nightmare to move through, and down sometimes went down and to the
+right. Two presses fell through to the stock travelling cursor, which then moved freely: a D-pad
+read as a diagonal at the start of the press (`InputDirection::Dpad` reports no direction for
+one), and left or right with no control on that side (the old nearest-rectangle `Move` found none
+and the hold was released). The left stick always drove that cursor.
+
+Now, in `D2RLoaderMultiplayerPanel` (`menu_navigation.cpp`):
+
+- **Up and down** step one control in the form's order, wrapping (`MenuNavigationPolicy::Step`).
+  A diagonal counts as its up or down (`DpadInput::diagonalY`).
+- **Left and right** only move within the selected control's row, rectangles overlapping
+  vertically (`MenuNavigationPolicy::Beside`): difficulties, the player count's buttons. Nothing
+  beside: the selection stays. Another column is no longer reached sideways.
+- **The left stick** steps the same list: its dominant axis once past `StickPushFraction`, one
+  step a push, back within XInput's dead zone (`XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE`) to push again.
+- The stock cursor is held for the whole press, moved or not. It is left to the game for a
+  dropdown's left and right, a box's caret while typing, an unknown editing state, and a failed
+  native selection.
+
+`[menu-navigation] boxes:` now ends with `list:`, the stops in the order up and down take them.
+Unverified live.
+
+## The QWERTY keyboard on the right stick (2026-10-28)
+
+The user asked for stick typing laid out like a QWERTY keyboard. With `pad-typing-qwerty` (on;
+Controller group) the right stick walks `PadTyping::QwertyRows`: the digits, `q`-`p`, `a`-`l`,
+`z`-`m`, then Caps Lock, space, `-_.:` and Backspace, the two named keys as control characters
+(`CapsLockKey`, `BackspaceKey`). Up and down change row keeping the column, or a shorter row's last
+key; left and right change key; both wrap (`PadTyping::Move`). Each key is said as reached; A
+types it, toggles Caps Lock ("upper case" / "lower case", letters said and typed so), or sends
+Backspace. Each edit starts on `q` in lower case and says so (`typingStartedQwerty`). No `ñ`: the
+character list never had one, and a loader game name travels to the other player. Off, the old
+character list is used. Unit-tested (`tests/pad_typing_tests.cpp`), unverified live.

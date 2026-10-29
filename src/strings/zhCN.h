@@ -521,6 +521,13 @@ inline constexpr Table zhCN {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"状态开始", "状态结束", "生命和法力警报", "首领生命", "敌人名称", "游戏消息", "任务进展", "地点", "地上的物品", "教程", "到达目标"},
 	.speechPriorityLevels = {"排队等候", "紧急时打断", "打断", "打断且不可被打断"},
+	.padQwertyOn = "右摇杆 QWERTY 键盘 开",
+	.padQwertyOff = "右摇杆 QWERTY 键盘 关",
+	.typingStartedQwerty = "编辑中，QWERTY 键盘位于 Q。右摇杆上下换行，左右换键，A输入，B结束",
+	.capsLockKey = "大写锁定",
+	.backspaceKey = "退格",
+	.upperCase = "大写",
+	.lowerCase = "小写",
 };
 
 }

@@ -10,15 +10,24 @@
 #include "skill_navigation.h"
 #include "async_log.h"
 #include <windows.h>
+#include <xinput.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
+#include <limits>
 #include <string>
 #include <vector>
 
 namespace D2RAccess::MenuNavigation {
 namespace {
-bool g_enabled = true, g_gesture = false;
+bool g_enabled = true;
+// Whose a D-pad or left-stick press is until it is released: the list's moves, or the game's.
+enum class Press { None, List, Game };
+Press g_press = Press::None;
 uintptr_t g_panel = 0, g_selected = 0, g_restore = 0;
+int g_stickX = 0, g_stickY = 0;
+// XInput's recommended left-stick dead zone: past it the stock cursor travels, so the list holds it.
+constexpr float StickDriftFraction = float(XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) / std::numeric_limits<SHORT>::max();
 // Diagnosis of the boxes the D-pad does not reach (the user, 2026-10-17): the form's
 // text boxes and why each is or is not a D-pad stop, and whose box is being edited.
 constexpr uint64_t InventoryEveryMs = 500;
@@ -53,6 +62,23 @@ std::vector<MenuNavigationPolicy::Node> Nodes(const UiText::Snapshot& snapshot) 
 	}
 	return nodes;
 }
+
+// The press moving through the list: the D-pad's, a diagonal counting as up or down, else the
+// left stick's dominant axis once pushed past StickPushFraction.
+InputDirection::DpadInput ListInput() {
+	auto pad = InputDirection::Dpad();
+	if (pad.held && !pad.x && !pad.y) pad.y = pad.diagonalY;
+	const auto stick = InputDirection::LeftStick();
+	const float across = std::abs(stick.x), along = std::abs(stick.y);
+	int x = 0, y = 0;
+	if (along >= across && along >= InputDirection::StickPushFraction) y = stick.y > 0 ? 1 : -1;
+	else if (across > along && across >= InputDirection::StickPushFraction) x = stick.x > 0 ? 1 : -1;
+	const bool fresh = (x || y) && (x != g_stickX || y != g_stickY);
+	g_stickX = x;
+	g_stickY = y;
+	if (pad.held) return pad;
+	return {x, y, fresh, std::max(across, along) > StickDriftFraction};
+}
 }
 
 namespace {
@@ -75,8 +101,10 @@ void LogBoxes(const D2RL::PluginContext* context, NativeUi::Focus focus, uint64_
 		text += " " + node.name + (stop ? "" : !node.enabled ? "(disabled)" : !NativeSkillNavigation::FocusRect(node.id) ? "(no rect)" : "(outside the modal)");
 	}
 	char counts[64]{};
-	std::snprintf(counts, sizeof counts, " | %zu stops of %zu nodes", reachable.size(), snapshot.nodes.size());
+	std::snprintf(counts, sizeof counts, " | %zu stops of %zu nodes, list:", reachable.size(), snapshot.nodes.size());
 	text += counts;
+	for (const auto& stop : reachable)
+		for (const auto& node : snapshot.nodes) if (node.id == stop.widget) text += " " + node.name;
 	if (text == g_inventory) return;
 	g_inventory = text;
 	AsyncLog::InfoF(context, "[menu-navigation] boxes:%s", text.c_str());
@@ -87,8 +115,9 @@ void Reset() {
 	if (g_panel) NativeSkillNavigation::HoldCursor(false);
 	PadTyping::Reset();
 	g_panel = g_selected = g_restore = g_editor = 0;
+	g_stickX = g_stickY = 0;
 	g_inventory.clear();
-	g_gesture = false;
+	g_press = Press::None;
 }
 void Initialize(const D2RL::PluginContext* context) {
 	Reset();
@@ -125,7 +154,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	auto editing = NativeSkillNavigation::TextEditing();
 	if (editing && *editing) editing = NativeSkillNavigation::ActiveTextInput(focus.panel) == focus.widget;
 	PadTyping::Tick(context, focus, editing, GetTickCount64());
-	const auto input = InputDirection::Dpad();
+	const auto input = ListInput();
 	if (const auto restore = g_restore) {
 		g_restore = 0;
 		// Updating a form value can reset loader focus to the first input.
@@ -143,32 +172,37 @@ bool Tick(const D2RL::PluginContext* context) {
 	}
 	// In the box being typed in, left and right stay with its caret; up and down leave it.
 	if (!editing || (*editing && input.x) || !input.held) {
-		g_gesture = false;
+		g_press = Press::None;
 		g_selected = focus.widget;
 		NativeSkillNavigation::HoldCursor(false);
 		return true;
 	}
-	if (input.pressed && !g_gesture) {
-		const auto kind = NativeUi::Classify(focus.widget).kind;
-		// Let dropdowns handle their own horizontal value changes.
-		if (input.x && kind == UiText::Kind::ValueControl) return true;
+	// Let dropdowns handle their own horizontal value changes.
+	if (input.pressed && g_press == Press::None && input.x
+		&& NativeUi::Classify(focus.widget).kind == UiText::Kind::ValueControl) g_press = Press::Game;
+	if (input.pressed && g_press == Press::None && (input.x || input.y)) {
+		g_press = Press::List;
 		const NativeMemory::ReadScope scope;
 		const auto nodes = Nodes(NativeUi::Snapshot(focus.panel, focus.widget));
-		// Up and down walk the form in its own order; left and right stay within a row of controls.
+		// Up and down walk the form in its own order, one control a press; left and right stay
+		// within a row of controls, and nothing moves past its ends.
 		const auto next = input.y ? MenuNavigationPolicy::Step(nodes, g_selected, input.y)
-			: MenuNavigationPolicy::Move(nodes, g_selected, input.x, 0);
-		if (next && next != g_selected) {
+			: MenuNavigationPolicy::Beside(nodes, g_selected, input.x);
+		if (!next) g_press = Press::Game;
+		else if (next != g_selected) {
 			NativeSkillNavigation::HoldCursor(true);
 			if (NativeSkillNavigation::Select({focus.panel, next})) {
 				g_selected = next;
-				g_gesture = true;
 				AsyncLog::InfoF(context, "[menu-navigation] Selected %s", NativeWidgets::ReadName(next).c_str());
 			} else {
+				g_press = Press::Game;
 				AsyncLog::Warn(context, "[menu-navigation] Native selection unavailable; cursor navigation retained.");
 			}
 		}
 	}
-	NativeSkillNavigation::HoldCursor(g_gesture);
+	// Even a press that moved nothing, or a stick not yet pushed far enough, keeps the stock
+	// cursor still: it would travel off the list.
+	NativeSkillNavigation::HoldCursor(g_press != Press::Game);
 	return true;
 }
 void NoteAction(std::string_view target, std::string_view command) {

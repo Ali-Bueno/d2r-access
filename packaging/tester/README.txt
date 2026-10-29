@@ -129,12 +129,16 @@ In play:
   diamonds on screen) with how far it reaches, where unexplored ground
   starts or the area beyond it, then the places the radar has logged here,
   nearest first ("Waypoint, 40 units, northeast").
-- Lobby (host game, direct join): A on a text box starts typing there, for a
-  keyboard, and the mod says "Editing". With the controller alone, while a
-  box is being typed into, the right stick up steps forward through the
-  letters, digits, space and a few signs and down steps back (each one said),
-  A or right types the one reached and left deletes the last one; B ends as
-  before. "Typing with the right stick" (Controller) turns the stick part off.
+- Lobby (host game, direct join): a list. D-pad or left stick down and up
+  step one control at a time; left and right only along the same row.
+  A on a text box starts typing there, for a keyboard, and the mod says
+  "Editing". With the controller alone, while a box is being typed into, the
+  right stick walks a QWERTY keyboard: up and down change row (digits, q to
+  p, a to l, z to m, then Caps Lock, space, - _ . : and Backspace), left and
+  right change key, each said; A types it; B ends as before. "QWERTY keyboard
+  on the right stick" (Controller) off: up steps through the letters, down
+  through the digits, right types, left deletes. "Typing with the right
+  stick" turns the stick part off.
 - LB (alone, in play): the audible loot filter on or off ("Loot filter on").
   While it is on, only the drop loops you keep in the Loot filter group of
   the settings sound (see SETTINGS); the game still plays each item's own

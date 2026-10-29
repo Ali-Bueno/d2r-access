@@ -521,6 +521,13 @@ inline constexpr Table jaJP {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"状態異常の開始", "状態異常の終了", "ライフとマナの警告", "ボスのライフ", "敵の名前", "ゲームのメッセージ", "クエストの進行", "場所", "地面のアイテム", "チュートリアル", "目標への到着"},
 	.speechPriorityLevels = {"順番を待つ", "緊急時のみ割り込む", "割り込む", "割り込み、中断されない"},
+	.padQwertyOn = "右スティックのQWERTYキーボード オン",
+	.padQwertyOff = "右スティックのQWERTYキーボード オフ",
+	.typingStartedQwerty = "編集中、QWERTYキーボードのQ。右スティックの上下で行、左右でキーを移動し、Aで入力、Bで終了",
+	.capsLockKey = "Caps Lock",
+	.backspaceKey = "バックスペース",
+	.upperCase = "大文字",
+	.lowerCase = "小文字",
 };
 
 }

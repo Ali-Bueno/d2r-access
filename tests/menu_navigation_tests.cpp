@@ -19,6 +19,7 @@ using namespace D2RAccess;
 NativeUi::Focus focus{1, 10};
 UiText::Snapshot snapshot;
 InputDirection::DpadInput dpad;
+InputDirection::Stick stick;
 std::map<uintptr_t, NativeUi::Rect> rectangles;
 std::optional<bool> editing = false;
 uintptr_t editor = 10; // the box holding the game's editor while editing
@@ -46,7 +47,10 @@ void Press(int dx, int dy) {
 }
 }
 
-namespace D2RAccess::InputDirection { DpadInput Dpad() { return dpad; } }
+namespace D2RAccess::InputDirection {
+DpadInput Dpad() { return dpad; }
+Stick LeftStick() { return stick; }
+}
 namespace D2RAccess::PadTyping {
 void Tick(const D2RL::PluginContext*, NativeUi::Focus, std::optional<bool>, uint64_t) {}
 void Reset() {}
@@ -223,6 +227,59 @@ int main() {
 	focus.widget = 10;
 	Press(0, 1);
 	Check(focus.widget == 31, "new D-pad press takes precedence over pending focus restoration");
+	Release();
+
+	// The form is a list: the stock cursor never travels off it (the user, 2026-10-28).
+	focus.widget = 10;
+	MenuNavigation::Tick(nullptr);
+	dpad = {0, 0, true, true, 1};
+	MenuNavigation::Tick(nullptr);
+	Check(focus.widget == 30 && cursorHeld, "a diagonal press steps down the list");
+	dpad = {0, 1, true, true};
+	MenuNavigation::Tick(nullptr);
+	Check(focus.widget == 30 && cursorHeld, "settling from the diagonal to down is the same press");
+	Release();
+	Press(1, 0);
+	Check(focus.widget == 30 && cursorHeld, "nothing beside on the row: the selection stays and the stock cursor is held");
+	Release();
+	dpad = {0, 0, true, true};
+	MenuNavigation::Tick(nullptr);
+	Check(focus.widget == 30 && cursorHeld, "left and right together move nothing and hold the stock cursor");
+	Release();
+	Check(!cursorHeld, "release lets the stock cursor go");
+
+	focus.widget = 10;
+	MenuNavigation::Tick(nullptr);
+	stick = {0.0f, 0.3f, true};
+	MenuNavigation::Tick(nullptr);
+	Check(focus.widget == 10 && cursorHeld, "a stick past its dead zone holds the stock cursor before it is a push");
+	stick.y = 0.8f;
+	MenuNavigation::Tick(nullptr);
+	Check(focus.widget == 30 && cursorHeld, "the left stick pushed down steps down the list");
+	stick = {0.8f, 0.2f, true};
+	MenuNavigation::Tick(nullptr);
+	Check(focus.widget == 30, "rolling the stick to the side is the same push");
+	stick = {0.0f, 0.1f, true};
+	MenuNavigation::Tick(nullptr);
+	Check(!cursorHeld, "back within its dead zone, the stick lets go");
+	stick.y = -0.9f;
+	MenuNavigation::Tick(nullptr);
+	Check(focus.widget == 10, "a new push up steps up");
+	stick = {};
+	MenuNavigation::Tick(nullptr);
+
+	selectionWorks = false;
+	Press(0, 1);
+	Check(focus.widget == 10 && !cursorHeld, "a failed native selection leaves the press to the stock cursor");
+	Release();
+	selectionWorks = true;
+	snapshot.nodes.push_back(Node(32, 0, UiText::Kind::ValueControl, "DifficultyFilter"));
+	rectangles[32] = {20, 170, 120, 30};
+	focus.widget = 32;
+	MenuNavigation::Tick(nullptr);
+	const int beforeValue = selections;
+	Press(1, 0);
+	Check(focus.widget == 32 && selections == beforeValue && !cursorHeld, "a dropdown keeps its own left and right");
 	Release();
 	Passed();
 }

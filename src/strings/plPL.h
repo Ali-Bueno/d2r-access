@@ -521,6 +521,13 @@ inline constexpr Table plPL {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"Początek stanów", "Koniec stanów", "Ostrzeżenia o życiu i manie", "Życie bossów", "Nazwy wrogów", "Komunikaty gry", "Postęp zadań", "Miejsca", "Przedmioty na ziemi", "Samouczek", "Dotarcie do celu"},
 	.speechPriorityLevels = {"czeka na swoją kolej", "przerywa, gdy pilne", "przerywa", "przerywa i nie da się go przerwać"},
+	.padQwertyOn = "Klawiatura QWERTY na prawej gałce włączona",
+	.padQwertyOff = "Klawiatura QWERTY na prawej gałce wyłączona",
+	.typingStartedQwerty = "Edycja, klawiatura QWERTY na Q. Prawa gałka: góra i dół zmieniają rząd, lewo i prawo klawisz; A wpisuje, B kończy",
+	.capsLockKey = "Caps Lock",
+	.backspaceKey = "Backspace",
+	.upperCase = "wielkie litery",
+	.lowerCase = "małe litery",
 };
 
 }

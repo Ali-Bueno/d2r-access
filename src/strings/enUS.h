@@ -521,6 +521,13 @@ inline constexpr Table enUS {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"Status effects beginning", "Status effects ending", "Life and mana alerts", "Boss life", "Enemy names", "Game messages", "Quest updates", "Places", "Items on the ground", "Tutorial", "Arrivals at a target"},
 	.speechPriorityLevels = {"waits its turn", "cuts in when urgent", "cuts in", "cuts in and cannot be cut off"},
+	.padQwertyOn = "QWERTY keyboard on the right stick on",
+	.padQwertyOff = "QWERTY keyboard on the right stick off",
+	.typingStartedQwerty = "Editing, QWERTY keyboard on Q. Right stick: up and down change row, left and right change key; A types, B finishes",
+	.capsLockKey = "caps lock",
+	.backspaceKey = "backspace",
+	.upperCase = "upper case",
+	.lowerCase = "lower case",
 };
 
 }

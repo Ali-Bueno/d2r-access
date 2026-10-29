@@ -521,6 +521,13 @@ inline constexpr Table deDE {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"Beginnende Zustände", "Endende Zustände", "Lebens- und Manawarnungen", "Bossleben", "Gegnernamen", "Spielmeldungen", "Questfortschritt", "Orte", "Gegenstände am Boden", "Tutorial", "Ankunft am Ziel"},
 	.speechPriorityLevels = {"wartet, bis es dran ist", "unterbricht, wenn dringend", "unterbricht", "unterbricht und wird nicht unterbrochen"},
+	.padQwertyOn = "QWERTY-Tastatur am rechten Stick an",
+	.padQwertyOff = "QWERTY-Tastatur am rechten Stick aus",
+	.typingStartedQwerty = "Bearbeiten, QWERTY-Tastatur auf Q. Rechter Stick: oben und unten wechseln die Reihe, links und rechts die Taste; A tippt, B beendet",
+	.capsLockKey = "Feststelltaste",
+	.backspaceKey = "Rücktaste",
+	.upperCase = "Großbuchstaben",
+	.lowerCase = "Kleinbuchstaben",
 };
 
 }

@@ -521,6 +521,13 @@ inline constexpr Table zhTW {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"狀態開始", "狀態結束", "生命和法力警報", "首領生命", "敵人名稱", "遊戲訊息", "任務進度", "地點", "地上的物品", "教學", "抵達目標"},
 	.speechPriorityLevels = {"排隊等候", "緊急時打斷", "打斷", "打斷且不可被打斷"},
+	.padQwertyOn = "右搖桿 QWERTY 鍵盤 開",
+	.padQwertyOff = "右搖桿 QWERTY 鍵盤 關",
+	.typingStartedQwerty = "編輯中，QWERTY 鍵盤位於 Q。右搖桿上下換列，左右換鍵，A輸入，B結束",
+	.capsLockKey = "大寫鎖定",
+	.backspaceKey = "退格",
+	.upperCase = "大寫",
+	.lowerCase = "小寫",
 };
 
 }

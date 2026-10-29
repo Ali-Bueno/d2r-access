@@ -521,6 +521,13 @@ inline constexpr Table ptBR {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"Início de estados", "Fim de estados", "Alertas de vida e mana", "Vida dos chefes", "Nomes de inimigos", "Mensagens do jogo", "Progresso de missões", "Lugares", "Itens no chão", "Tutorial", "Chegadas ao destino"},
 	.speechPriorityLevels = {"espera a vez", "interrompe se for urgente", "interrompe", "interrompe e não pode ser cortado"},
+	.padQwertyOn = "Teclado QWERTY no analógico direito ligado",
+	.padQwertyOff = "Teclado QWERTY no analógico direito desligado",
+	.typingStartedQwerty = "Editando, teclado QWERTY no Q. Analógico direito: cima e baixo mudam de fileira, esquerda e direita de tecla; A digita, B termina",
+	.capsLockKey = "Caps Lock",
+	.backspaceKey = "apagar",
+	.upperCase = "maiúsculas",
+	.lowerCase = "minúsculas",
 };
 
 }

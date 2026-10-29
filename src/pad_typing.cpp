@@ -8,6 +8,7 @@
 #include "speech_strings.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 #include <string>
 
@@ -18,11 +19,13 @@ namespace {
 // event switches every panel to its mouse layout, closing Direct Join (the user, 2026-10-17).
 constexpr uint64_t EditWaitMs = 250;
 
-std::atomic<bool> g_enabled{true};
+std::atomic<bool> g_enabled{true}, g_qwerty{true};
 uintptr_t g_box = 0;       // the box A was pressed on while nothing was being edited
 uint64_t  g_pressedAt = 0;
 bool      g_editing = false;
 int       g_index = 0;     // the character the stick stands on
+Key       g_key;           // the same on the QWERTY keyboard
+bool      g_capsLock = false;
 
 // A keystroke to the game as the keyboard's: a character, or Backspace.
 bool SendKey(wchar_t character) {
@@ -43,17 +46,33 @@ bool SendKey(wchar_t character) {
 }
 
 std::string Word(char character) {
-	return character == ' ' ? std::string(Strings::Current().spaceKey) : std::string(1, character);
-}
+	const auto& strings = Strings::Current();
+	if (character == CapsLockKey) return strings.capsLockKey;
+	if (character == BackspaceKey) return strings.backspaceKey;
+	return character == ' ' ? std::string(strings.spaceKey) : std::string(1, character);
 }
 
-int Step(int index, int delta) {
-	const int count = static_cast<int>(Charset.size());
-	return ((index + delta) % count + count) % count;
+int Wrap(int index, int delta, int count) { return ((index + delta) % count + count) % count; }
+}
+
+int Step(int index, int delta) { return Wrap(index, delta, static_cast<int>(Charset.size())); }
+
+Key Move(Key key, int dx, int dy) {
+	key.row = Wrap(key.row, dy, static_cast<int>(QwertyRows.size()));
+	const int count = static_cast<int>(QwertyRows[static_cast<size_t>(key.row)].size());
+	key.column = Wrap(std::min(key.column, count - 1), dx, count);
+	return key;
+}
+
+char KeyAt(Key key, bool capsLock) {
+	const char character = QwertyRows[static_cast<size_t>(key.row)][static_cast<size_t>(key.column)];
+	return capsLock && character >= 'a' && character <= 'z' ? static_cast<char>(character - 'a' + 'A') : character;
 }
 
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool on) { g_enabled = on; }
+bool Qwerty() { return g_qwerty; }
+void SetQwerty(bool on) { g_qwerty = on; }
 
 void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::optional<bool> editing, uint64_t now) {
 	using InputDirection::FaceButton;
@@ -81,18 +100,35 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 	if (!g_editing) {
 		g_editing = true;
 		g_index = 0;
+		g_key = {};
+		g_capsLock = false;
 		AsyncLog::InfoF(context, "[typing] editing %s: the right stick picks characters", NativeWidgets::ReadName(focus.widget).c_str());
-		ScreenReader::Speak(Strings::Current().typingStarted, true);
+		ScreenReader::Speak(g_qwerty ? Strings::Current().typingStartedQwerty : Strings::Current().typingStarted, true);
 		return; // the A that began the edit is not a character
 	}
+	const auto send = [&](char character) {
+		const bool sent = SendKey(character == BackspaceKey ? 0 : static_cast<wchar_t>(character));
+		const char* outcome = sent ? "sent" : "not sent: the game is not in front";
+		if (character == BackspaceKey) AsyncLog::InfoF(context, "[typing] backspace %s", outcome);
+		else AsyncLog::InfoF(context, "[typing] '%c' %s", character, outcome);
+	};
 	const auto type = [&] {
-		const char character = Charset[static_cast<size_t>(g_index)];
-		const bool sent = SendKey(static_cast<wchar_t>(character));
-		AsyncLog::InfoF(context, "[typing] '%c' %s", character, sent ? "sent" : "not sent: the game is not in front");
+		if (!g_qwerty) return send(Charset[static_cast<size_t>(g_index)]);
+		const char character = KeyAt(g_key, g_capsLock);
+		if (character != CapsLockKey) return send(character);
+		g_capsLock = !g_capsLock;
+		ScreenReader::Speak(g_capsLock ? Strings::Current().upperCase : Strings::Current().lowerCase, true);
 	};
 	if (pressedA) type();
 	if (InputDirection::PeekRightStickPush() == StickPush::None) return;
 	const StickPush push = InputDirection::TakeRightStickPush("typing");
+	if (g_qwerty) {
+		const int dx = push == StickPush::Right ? 1 : push == StickPush::Left ? -1 : 0;
+		const int dy = push == StickPush::Down ? 1 : push == StickPush::Up ? -1 : 0;
+		g_key = Move(g_key, dx, dy);
+		ScreenReader::Speak(Word(KeyAt(g_key, g_capsLock)), true);
+		return;
+	}
 	switch (push) {
 	case StickPush::Up:
 	case StickPush::Down: {
@@ -102,11 +138,7 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 		break;
 	}
 	case StickPush::Right: type(); break;
-	case StickPush::Left: {
-		const bool sent = SendKey(0);
-		AsyncLog::InfoF(context, "[typing] backspace %s", sent ? "sent" : "not sent: the game is not in front");
-		break;
-	}
+	case StickPush::Left: send(BackspaceKey); break;
 	default: break;
 	}
 }
@@ -118,5 +150,7 @@ void Reset() {
 	g_pressedAt = 0;
 	g_editing = false;
 	g_index = 0;
+	g_key = {};
+	g_capsLock = false;
 }
 }

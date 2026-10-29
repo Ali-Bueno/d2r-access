@@ -27,8 +27,9 @@ enum class Vertical {
 void Poll();
 
 // Cardinal D-pad input only; independent of sticks/keyboard and sampled once
-// per UI tick. Diagonals remain held but do not choose an arbitrary direction.
-struct DpadInput { int x = 0, y = 0; bool pressed = false, held = false; };
+// per UI tick. Diagonals remain held but do not choose an arbitrary direction;
+// `diagonalY` keeps a diagonal's up (-1) or down (1) for a list, whose only axis that is.
+struct DpadInput { int x = 0, y = 0; bool pressed = false, held = false; int diagonalY = 0; };
 DpadInput Dpad();
 
 // The arrow keys, as sampled by the last Poll(): one direction held, with no Ctrl or

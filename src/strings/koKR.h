@@ -521,6 +521,13 @@ inline constexpr Table koKR {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"상태 이상 시작", "상태 이상 종료", "생명력과 마나 경고", "보스 생명력", "적 이름", "게임 메시지", "퀘스트 진행", "장소", "바닥의 아이템", "튜토리얼", "목표 도착"},
 	.speechPriorityLevels = {"차례를 기다림", "긴급할 때만 끼어듦", "끼어듦", "끼어들고 끊기지 않음"},
+	.padQwertyOn = "오른쪽 스틱 QWERTY 키보드 켬",
+	.padQwertyOff = "오른쪽 스틱 QWERTY 키보드 끔",
+	.typingStartedQwerty = "편집 중, QWERTY 키보드 Q. 오른쪽 스틱 위아래로 줄, 좌우로 키를 옮기고 A로 입력, B로 마칩니다",
+	.capsLockKey = "Caps Lock",
+	.backspaceKey = "백스페이스",
+	.upperCase = "대문자",
+	.lowerCase = "소문자",
 };
 
 }

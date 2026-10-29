@@ -1971,6 +1971,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},
 		{InputDirection::RouteOnA, InputDirection::SetRouteOnA, phrase(&T::routeOnAOn, &T::routeOnAOff), false, "pad-route-on-a"},
 		{PadTyping::Enabled, PadTyping::SetEnabled, phrase(&T::padTypingOn, &T::padTypingOff), false, "pad-typing"},
+		{PadTyping::Qwerty, PadTyping::SetQwerty, phrase(&T::padQwertyOn, &T::padQwertyOff), false, "pad-typing-qwerty"},
 	}});
 	// The list's own behaviour, in a group of its own (a tester, 2026-10-14).
 	groups.push_back({GroupName(G::SettingsMenu), {

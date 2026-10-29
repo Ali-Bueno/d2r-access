@@ -521,6 +521,13 @@ inline constexpr Table frFR {
 	.speechPriority = "%s : %s",
 	.speechPriorityKinds = {"Début des états", "Fin des états", "Alertes de vie et de mana", "Vie des boss", "Noms des ennemis", "Messages du jeu", "Progression des quêtes", "Lieux", "Objets au sol", "Tutoriel", "Arrivées à destination"},
 	.speechPriorityLevels = {"attend son tour", "interrompt si urgent", "interrompt", "interrompt et ne peut pas être coupé"},
+	.padQwertyOn = "Clavier QWERTY au stick droit activé",
+	.padQwertyOff = "Clavier QWERTY au stick droit désactivé",
+	.typingStartedQwerty = "Édition, clavier QWERTY sur Q. Stick droit : haut et bas changent de rangée, gauche et droite de touche ; A saisit, B termine",
+	.capsLockKey = "verrouillage majuscules",
+	.backspaceKey = "retour arrière",
+	.upperCase = "majuscules",
+	.lowerCase = "minuscules",
 };
 
 }

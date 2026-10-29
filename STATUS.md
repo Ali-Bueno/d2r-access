@@ -2,6 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The multiplayer form as a list, QWERTY stick typing — 2026-10-28
+
+News `../tester-news-draft-2026-10-28b.txt`. The user: the lobby's options were a nightmare to move
+through, down sometimes going down and to the right. A D-pad diagonal, a side press with nothing
+there, and the left stick reached the stock travelling cursor. Now up/down (and the left stick) step
+one control in the form's order, left/right stay within a row, and the stock cursor never travels
+([multiplayer](docs/multiplayer.md#the-form-as-a-list-2026-10-28)). Stick typing walks a QWERTY
+keyboard, switch `pad-typing-qwerty`, on
+([multiplayer](docs/multiplayer.md#the-qwerty-keyboard-on-the-right-stick-2026-10-28)).
+129/129 CTest; installed by the build. **Unverified live.**
+
+**Next step:** live: the Host Game form with the D-pad and the left stick (the log's
+`[menu-navigation] boxes: ... list:` gives the order heard); a game name typed on the QWERTY keyboard.
+
 ## The tester's notes on build test-2026-10-26-3 and the "no route" logs — 2026-10-28 (released as test-2026-10-28 from a013697)
 
 Release: 128/128 CTest, 29 entries, 63,013,800 bytes, SHA-256 `e83e11d6…2570f8d6f8`; news

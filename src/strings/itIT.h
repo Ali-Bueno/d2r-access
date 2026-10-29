@@ -521,6 +521,13 @@ inline constexpr Table itIT {
 	.speechPriority = "%s: %s",
 	.speechPriorityKinds = {"Inizio degli stati", "Fine degli stati", "Avvisi di vita e mana", "Vita dei boss", "Nomi dei nemici", "Messaggi del gioco", "Avanzamento delle missioni", "Luoghi", "Oggetti a terra", "Tutorial", "Arrivi a destinazione"},
 	.speechPriorityLevels = {"aspetta il suo turno", "interrompe se urgente", "interrompe", "interrompe e non può essere interrotto"},
+	.padQwertyOn = "Tastiera QWERTY con lo stick destro attiva",
+	.padQwertyOff = "Tastiera QWERTY con lo stick destro disattiva",
+	.typingStartedQwerty = "Modifica, tastiera QWERTY sulla Q. Stick destro: su e giù cambiano riga, sinistra e destra tasto; A scrive, B termina",
+	.capsLockKey = "blocco maiuscole",
+	.backspaceKey = "cancella",
+	.upperCase = "maiuscole",
+	.lowerCase = "minuscole",
 };
 
 }

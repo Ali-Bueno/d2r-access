@@ -605,10 +605,13 @@ Switches `corpse-cue` and `corpse-interval`; see [summons and corpses](docs/summ
 
 **Typing with the controller:** in the loader's lobby, A on a text box starts editing it (the
 mod calls the game's own begin-edit when the game does not), so a keyboard types there; while a
-box is edited, the right stick steps up through letters, space, a few signs and capitals, and down
-through the digits 1 to 0 (said as reached); right types the one reached and left deletes the last
+box is edited, the right stick walks a QWERTY keyboard (digits, three letter rows, then Caps Lock,
+space, `-_.:` and Backspace): up and down change row, left and right key, each said, A types it
+(`pad-typing-qwerty`). With that off, the stick steps up through letters, space, a few signs and
+capitals, and down through the digits 1 to 0; right types the one reached and left deletes the last
 (`pad-typing`, Controller group).
-The D-pad walks the form in its own order; boxes the game disables (LAN Only, Unlisted) are skipped.
+The form is a list: the D-pad and the left stick step one control at a time in its own order, left
+and right only along a row; boxes the game disables (LAN Only, Unlisted) are skipped.
 See [multiplayer](docs/multiplayer.md).
 
 **Audible loot filter:** **LB** in play turns it on and off ("Loot filter on"), as sighted players
