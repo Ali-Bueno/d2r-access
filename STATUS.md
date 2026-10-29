@@ -2,9 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The multiplayer form as a list, QWERTY stick typing — 2026-10-28
+## The multiplayer form as a list, QWERTY stick typing — 2026-10-28 (released as test-2026-10-28-2 from 19ebfef)
 
-News `../tester-news-draft-2026-10-28b.txt`. The user: the lobby's options were a nightmare to move
+Release: 129/129 CTest, 29 entries, 63,015,807 bytes, SHA-256 `9c20221a…53de9b2d368ef`; news
+`../tester-news-draft-2026-10-28b.txt`. The user: the lobby's options were a nightmare to move
 through, down sometimes going down and to the right. A D-pad diagonal, a side press with nothing
 there, and the left stick reached the stock travelling cursor. Now up/down (and the left stick) step
 one control in the form's order, left/right stay within a row, and the stock cursor never travels
