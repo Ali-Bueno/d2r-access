@@ -128,11 +128,11 @@ constexpr uint64_t SettleMs = 4000, ListenMs = 8000;
 // In a fight speech may never pause that long: a message waits PatienceMs at most, then goes in
 // line behind it (a tester, 2026-10-21: the Den's messages never came).
 constexpr uint64_t ArrivalMs = 3000;
-using SpeechPriority::QuietMs, SpeechPriority::PatienceMs;
-// What the tutorial says lasts about a screen reader's default pace, which news waits out. A
+using SpeechPriority::QuietMs, SpeechPriority::PatienceMs, SpeechPriority::MsPerCharacter;
+// What the tutorial says lasts MsPerCharacter, which news waits out. A
 // lesson's sounds wait for the words before them guessed a little faster (the user, 2026-10-21:
 // the wait before the radar's sounds was long), at least CueAfterNameMs; then CueGapMs to the next.
-constexpr uint64_t MsPerCharacter = 60, ReadMsPerCharacter = 45, CueAfterNameMs = 1200, CueGapMs = 1400;
+constexpr uint64_t ReadMsPerCharacter = 45, CueAfterNameMs = 1200, CueGapMs = 1400;
 uint64_t ReadMs(std::string_view text) { return std::max<uint64_t>(CueAfterNameMs, text.size() * ReadMsPerCharacter); }
 
 std::mutex g_mutex;

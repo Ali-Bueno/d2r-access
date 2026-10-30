@@ -220,3 +220,49 @@ The Chaos Sanctuary = Diablo's lair is like a cross-shaped, twisted mockery of a
 # Act V - Lord Of Destruction
 #
 Harrogath = The cool, crisp mountain air soothes your soul after the ordeal you just went through. Harrogath is an impressive fortress-town, stout stone houses with snow-covered roofs promise warmth and safety. Even behind its massive walls you do hear the din of battle. The war against Baal is closer than you think.
+#
+Bloody Foothills = Mere steps outside Harrogath's fortified walls, you are hit by the brutal chaos of war. Hastily dug trenches mar the scarred earth as catapults rain explosive magical missiles down on friend and foe alike, while stalwart Barbarians fight a desperate rearguard action to halt Baal's relentless hordes.
+#
+Frigid Highlands = This frozen no man's land is a deadly maze of ancient stone fortifications, repurposed and repaired by Baal’s hordes. Crumbling walls and barricades cut through the icy landscape to create blind corners and dead ends, where packs of monsters lie in wait to ambush you from the shadows.
+#
+Arreat Plateau = The Frigid Highlands give way to a sprawling, wind-swept alpine tundra, once pristine but now deeply scarred by war. The biting mountain air is choked with the sulfurous stench of Hell. Across the rocky, snow-dusted expanses, demonic portals rip through the frozen earth, and chittering Imps have erected crude, burning hovels, swarming the land in marauding packs.
+#
+Pit Of Acheron = The wide open skies vanish, replaced by the oppressive corridors of a hellish siege workshop. Heavy walls of pitch-black obsidian and scorched bone form a claustrophobic maze over lakes of fire. Scorched iron siege wagons and massive catapults bake in the intense heat, radiating a blistering warmth that makes every metallic surface dangerous to the touch.
+#
+Abaddon = Stepping through the portal plunges you into a subterranean mustering ground for Hell's armies. Cramped corridors of volcanic stone and dark iron cages form infernal barracks drifting on an ocean of lava. The blistering air echoes with the heavy clank of armor and the manic screeching of demonic cohorts awaiting their march onto the mountain.
+#
+Crystalline Passage = Cool, crisp air has been a constant companion during your ascent of Mount Arreat. But the moment you enter this cavern, the cold sinks its teeth into every exposed inch of your skin. Scattered torchlight refracts off the ice-covered walls and floors. Every sound echoes much too loud for comfort, alerting every predator in earshot of your presence.
+#
+Frozen River = This deep in the caverns, standing still is a death sentence. Your bone-chilled body shivers uncontrollably as you place one foot in front of the other, always keenly aware of the murky liquid gurgling right alongside the narrow, icy walkways you fight along.
+#
+Glacial Trail = These frosty caves seem to go on forever. Ice-encrusted walls as far as the eye can see. Frozen corpses lie carelessly strewn about and demonic horrors are on the march.
+#
+Nihlathak's Temple = A profound sense of wrongness engulfs you as you exit the portal leading to the traitor's hidden refuge. You arrive in a cold, enclosed stone courtyard. Ahead lies the austere stone facade of the temple, hiding a terrible secret. The frozen  ground around you is disturbingly quiet, littered with motionless, unburied corpses.
+#
+Halls of Anguish = You enter the sacred Barbarian burial ground and are awestruck by the sheer size of this vault. The walls are a curious mix of rough-hewn stone surfaces and beautifully carved pillars. Wide passages disappear in dim twilight and strange herbal scents fill the air. It is obvious this once used to be a place of ancestral worship but it is now utterly defiled.
+#
+Halls of Pain = Descending deeper, the sacred silence of the tombs gives way to a suffocating weight. The air here is noticeably warmer, thick with the metallic tang of fresh blood and the faint, echoing wails of the damned. While the stone pillars remain the same, the wide passages feel tighter, choked by an aggressive, chattering presence lurking in the dark. The desecration here is no longer old—it is actively happening.
+#
+Halls of Vaught = You have reached the rotting heart of the traitor's refuge, standing at the center of a grand, four-pointed cross, with a long corridor stretching out in each cardinal direction. At the end of one of these dark wings, the traitorous bastard awaits his due judgment!
+#
+Drifter Cavern = Your breath comes in quick white puffs as you lower your weapons after the first ambush. The biting cold gathers as hoarfrost on your armor, and what little light the few torches provide glitters off ancient, ice-encrusted walls. Beneath the frozen crust of the floor, the deep, hollow roar of sub-glacial waterways echoes through the dark, carving the cavern into a precarious web of icy bridges.
+#
+Frozen Tundra = After slogging through frozen, cramped tunnels for what felt like hours, the sudden vastness of the Frozen Tundra hits you with unnatural force. Fresh snow fails to cover the brutality Baal's armies have inflicted upon sacred Mount Arreat and its people. You grit your teeth and prepare to storm the scattered fortifications the demonic horde have claimed as their own.
+#
+Infernal Pit = These islands of obsidian floating in an infinite sea of lava are some kind of infernal command center. Roaring Slug Bosses whip their subordinates into a blood-frothing frenzy. Decimating these hellish taskmasters will surely put a dent into Baal's invasion plans.
+#
+The Ancients' Way = The summit can't be far now. Once more, you enter a cavernous tunnel system, walls and floor covered in glittering ice. It is cold, yes, but there is something else too, a barely perceptible hum of barely contained magic. Whatever may be ahead, it surely is a source of tremendous power.
+#
+Icy Cellar = As you delve into another bottomless icy crevice, unending hordes of yetis, undead and demons assault you. What riches they must be guarding!
+#
+Arreat Summit = The vast, endless sky surrounds you as you emerge upon the summit. Ahead looms the strange, alien Worldstone keep, its primordial architecture unlike anything you have seen on your long travels. Three towering statues depicting the legendary Ancients Talic, Korlic and Madawc surround what is clearly meant to be a ritualistic arena. To enter the Keep, you'll have to prove yourself to these Ancients!
+#
+Worldstone Keep Level 1 = Now that you are within its sacred hall it is painfully obvious that no mortal hand has built this keep. If anything, it looks more grown than built, with titanic pillars shaped from singular pieces of stone and no visible gaps where stones have been joined together.
+#
+Worldstone Keep Level 2 = The signs of Baal's incursion are visible everywhere. No hallway without brutally defiled Barbarians sacrificed in horrific rituals, no chamber without signs of demonic presence. And suffusing the air is the pulsating heartbeat of some enormous power source.
+#
+Worldstone Keep Level 3 = Jagged crystal formations burst from the floor, pulsating with an innate fire. Baal's taunting laughter is accompanied by ever more brutal assaults from his demonic minions.
+#
+Throne of Destruction = The strange fire-like glow you've seen in the crystal formations earlier suffuses every surface now and you can feel the Worldstone pulsate through the soles of your boots. Baal's presence hangs like a nauseating stench in the air.
+#
+The Worldstone Chamber = The unfettered magic of the Worldstone crawls along your skin as you enter this vast vault. To the northeast, the size of a small keep, is the Worldstone itself, a glorious red crystal. You notice dark, oily tendrils snake through its natural facets, a clear sign of Baal's corruption.

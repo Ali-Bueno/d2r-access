@@ -86,3 +86,10 @@ Hangman's Tree and the Hellforge. The Hellforge is the second landmark with word
 at the River of Flame's `SoulStoneForge` object ([places](places.md#the-fortresss-hall-the-hellforge-the-pentagram-2026-10-27)),
 said with `hellforgeDescription` (translated) the first time it comes into reach
 (`LandmarkWords` in `place_service.cpp`).
+
+## Act V (2026-10-30)
+
+The tester's new file adds Act V's 23 areas, Bloody Foothills to The Worldstone Chamber (Harrogath
+was already in; 125 areas and two landmarks now). Names checked against the game's English level names: "The Arreat Summit" is
+"Arreat Summit"; typos fixed: "it is painfully", "its primordial", "Mount Arreat", a double space.
+`data/descriptions.txt` keeps its own header and the Hellforge, which the tester's file lacks.

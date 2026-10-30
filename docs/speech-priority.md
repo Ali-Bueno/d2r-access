@@ -54,3 +54,8 @@ tell whether it was said. It now waits until speech has paused `SpeechPriority::
 most, `PatienceMs`, the tutorial's wait, now shared as `SpeechPriority::Pause`), then is said as
 Quest updates are. A player who wants quest news never cut off sets Quest updates to "cuts in and
 cannot be cut off". Log: `[quest] eclipse said`.
+
+**The eclipse is never cut off (2026-10-30).** In a fight speech never paused, the wait ran out and
+the next enemy's name cut the eclipse off. Once due it is said by `SpeechPriority::SayWhole`: it
+cuts in (queues, if Quest updates "waits its turn") and holds later speech for `SpokenMs` of its
+text, 60 ms a character, `HoldMs` at least.

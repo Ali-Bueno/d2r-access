@@ -71,7 +71,7 @@ constexpr int LostCityLevel = 44;
 std::atomic<int> g_level{0};
 std::optional<bool> g_eclipse; // whether the quest ran at the last read; empty until this game's first
 // The eclipse waits for the area's name and the quest's own news to be said: they cut it off
-// (a tester, 2026-10-21).
+// (a tester, 2026-10-21). Then nothing may cut it off: in a fight the enemies' names did (2026-10-28).
 bool g_eclipsePending = false;
 SpeechPriority::Pause g_eclipsePause;
 uint64_t g_session = 0, g_nextWatch = 0;
@@ -239,7 +239,7 @@ void TickEclipse(const D2RL::PluginContext* context, bool canSpeak) {
 	if (!g_eclipsePending || !canSpeak || !g_eclipsePause.Due(GetTickCount64(), ScreenReader::LastSpoken(), &waited)) return;
 	g_eclipsePending = false;
 	AsyncLog::InfoF(context, "[quest] eclipse said%s", waited ? " without a pause in speech" : "");
-	SpeechPriority::Say(SpeechPriority::Kind::QuestAlerts, Strings::Current().questEclipse);
+	SpeechPriority::SayWhole(SpeechPriority::Kind::QuestAlerts, Strings::Current().questEclipse);
 }
 
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {

@@ -7,6 +7,7 @@
 #include "panel_state.h"
 #include "radar_ui.h"
 #include "screen_reader.h"
+#include "speech_priority.h"
 #include "speech_strings.h"
 #include "test_support.h"
 
@@ -20,6 +21,7 @@ std::vector<D2RL::Lifecycle::GameplayEventListener> listeners;
 D2RL::ConsoleCommandCallback console = nullptr;
 std::vector<std::string> speech, panels;
 bool interrupted = false, ownsSpeech = false, available = true, visible = false;
+unsigned long long heldUntil = 0;
 bool serviceAvailable = true;
 int removed = 0, failRegistration = -1;
 uint16_t taintedSun = 0; // the Tainted Sun's quest word (row 11)
@@ -98,7 +100,8 @@ void Reset() {}
 }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; }
-void Urge(std::string_view text, unsigned long long) { Speak(text, true); }
+void Urge(std::string_view text, unsigned long long untilMs) { Speak(text, true); heldUntil = untilMs; }
+void Lead(std::string_view text, unsigned long long untilMs) { Speak(text, false); heldUntil = untilMs; }
 unsigned long long LastSpoken() { return 0; }
 }
 namespace D2RAccess::AsyncLog {
@@ -143,8 +146,10 @@ int main() {
 	speech.clear(); Tick(); Check(speech.empty(), "one opening is said once");
 	Level(40); taintedSun = 0x0004; Tick(); // Lut Gholein: a game joined while the quest runs
 	Check(speech.empty(), "quest flags arriving in a town are not the eclipse");
-	taintedSun = 0; Tick(); Level(44); taintedSun = 0x0004; Tick(); // the Lost City
+	taintedSun = 0; Tick(); Level(44); taintedSun = 0x0004; const auto before = GetTickCount64(); Tick(); // the Lost City
 	Check(speech.size() == 1 && speech.back() == Strings::Current().questEclipse, "the Tainted Sun beginning in the Lost City is said");
+	Check(interrupted && heldUntil >= before + SpeechPriority::SpokenMs(Strings::Current().questEclipse),
+		"the eclipse cuts in and nothing cuts it off while it is said (a tester, 2026-10-28)");
 	speech.clear(); taintedSun = 0x0008; Tick(); Check(speech.empty(), "the eclipse is said once");
 	QuestService::Note("QuestUpdate"); Event(K::GameLeft); Wait(); Check(speech.empty(), "leaving the game discards pending announcements");
 	QuestService::Unregister(); Check(removed == 5, "all lifecycle subscriptions are released");

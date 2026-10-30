@@ -3,6 +3,7 @@
 #include "screen_reader.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 
 namespace D2RAccess::SpeechPriority {
@@ -24,6 +25,12 @@ void Say(Kind kind, std::string_view text, bool urgent) {
 	const auto delivery = For(Get(kind), urgent);
 	if (delivery.holdMs) ScreenReader::Urge(text, GetTickCount64() + delivery.holdMs);
 	else ScreenReader::Speak(text, delivery.interrupt);
+}
+
+void SayWhole(Kind kind, std::string_view text) {
+	const auto until = GetTickCount64() + std::max(HoldMs, SpokenMs(text));
+	if (Get(kind) == Level::Queued) ScreenReader::Lead(text, until);
+	else ScreenReader::Urge(text, until);
 }
 
 }

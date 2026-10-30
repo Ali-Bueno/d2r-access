@@ -3,6 +3,23 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-30 — The tester's notes on build test-2026-10-28
+
+From `D2R Access 2026-10-28 notes.txt` and a new `descriptions.txt`. Confirmed by the tester: the
+Pandemonium Fortress's inside and outside, a Harrogath town portal and the route to it, Nihlathak
+from anywhere in town, the combatants as "Barbarian", Terror Zones in the waypoint menu. Built and
+unit-tested only.
+- **The eclipse is never cut off** (`SpeechPriority::SayWhole`): after its wait for a pause it cuts
+  in and holds for as long as its words take (`SpokenMs`, the tutorial's pace), whatever the Quest
+  updates level but "waits its turn", which still queues it. In a fight the wait ran out and the
+  enemies' names cut it off; it cannot be had again without a new character. Rejected: a new
+  priority kind for it, saying it again on entering each area.
+- **Anya not found from the town portal by a second player: not changed**; the tester struck it
+  as a hiccup until a new log. The rule takes her rescue's reward (row 37 bit 0 or 15) from the
+  player's own flags.
+- **The tester's Act V words are taken** with "Arreat Summit" as the game names it, and four typos
+  fixed.
+
 ## 2026-10-28 — The tester's notes on build test-2026-10-26-3, "no route" in the Outer Cloister
 
 From `no route_d2r-access.log` and `D2R Access 2026-10-26-3 notes, descriptions and Act V fix

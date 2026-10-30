@@ -26,6 +26,10 @@ inline constexpr std::array<Level, KindCount> Defaults{
 // effect's beginning, "with increased priority over other notifications").
 inline constexpr uint64_t HoldMs = 1500;
 
+// About a screen reader's default pace, which the tutorial's words are timed by (docs/tutorial.md).
+inline constexpr uint64_t MsPerCharacter = 60;
+constexpr uint64_t SpokenMs(std::string_view text) { return text.size() * MsPerCharacter; }
+
 struct Delivery { bool interrupt = false; uint64_t holdMs = 0; };
 
 // A pause in speech that news has waited out, and how long a message waits for one at most: in
@@ -62,5 +66,8 @@ Level Get(Kind kind);
 void Set(Kind kind, Level level);
 // Speaks `text` as its kind's level says.
 void Say(Kind kind, std::string_view text, bool urgent = false);
+// Speaks `text` so that nothing cuts it off while it is said, cutting in unless its kind waits its
+// turn: for news said once that the player cannot have again.
+void SayWhole(Kind kind, std::string_view text);
 
 }
