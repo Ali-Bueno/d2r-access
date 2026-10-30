@@ -2,8 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's notes on build test-2026-10-28 — 2026-10-30 (not released)
+## The tester's notes on build test-2026-10-28 — 2026-10-30 (released as test-2026-10-30 from e81a47a)
 
+Release: 129/129 CTest, 29 entries, 63,016,422 bytes, SHA-256 `25ad6d3b…52ecff6e6`.
 From `D2R Access 2026-10-28 notes.txt` and a new `descriptions.txt` ([decisions](docs/decisions.md)).
 129/129 CTest; installed by the build. **Unverified live.** News draft
 `../tester-news-draft-2026-10-30.txt`. Confirmed by the tester: the Fortress's inside/outside, the
