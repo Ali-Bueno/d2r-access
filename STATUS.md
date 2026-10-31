@@ -12,13 +12,16 @@ build. **Unverified live.**
 - BACK+RT: party members first, switch `party-first` (on) (`VitalsService::PartyMembers`).
 - Act V wells loop: OperateFn 22 is a well (`WellOperateFn`) ([ground items](docs/ground-items.md)).
 - BACK+Y on an inside preset level (Throne of Destruction): released as a sentence (`roomPreset`),
-  now the chamber's passages (`Rooms::Chamber`) ([rooms](docs/rooms.md)).
+  then the chamber's passages (`Rooms::Chamber`) ([rooms](docs/rooms.md)), released as
+  test-2026-10-30-3 from 0db0fa6: 129/129 CTest, 29 entries, 63,020,677 bytes, SHA-256
+  `a83037ba…7dec987`; news `../tester-news-draft-2026-10-30c.txt`.
 - End screen read whole (`SelfReadScreens`, `[modal] EndScreenPanelExpansion ->`); character rows
   with their title (`Titled` in `focus_tracker.cpp`).
 - Descriptions: 5 areas missing (cows, Pandemonium x3, Colossal Summit) ([descriptions](docs/descriptions.md#act-v-2026-10-30)).
 
-**Next step:** live: a Worldstone Keep well, the end screen (Normal beaten on a new character, or
-Nightmare), the character select over a Slayer, BACK+RT in a party with summons.
+**Next step:** live: BACK+Y in the Throne of Destruction and Mephisto's level (`[room] chamber:`),
+a Worldstone Keep well, the end screen (Normal beaten on a new character, or Nightmare), the
+character select over a Slayer, BACK+RT in a party with summons.
 
 ## The tester's notes on build test-2026-10-28 — 2026-10-30 (released as test-2026-10-30 from e81a47a)
 
