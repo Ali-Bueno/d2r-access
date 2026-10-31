@@ -2,10 +2,13 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's notes on build test-2026-10-30 — 2026-10-30 (not released)
+## The tester's notes on build test-2026-10-30 — 2026-10-30 (released as test-2026-10-30-2 from 45af590)
+
+Release: 129/129 CTest, 29 entries, 63,021,084 bytes, SHA-256 `feb0ee47…ef944a58a2`; news
+`../tester-news-draft-2026-10-30b.txt` (sent).
 
 From `D2R access-2026-10-30.7z` ([decisions](docs/decisions.md)). 129/129 CTest; installed by the
-build. **Unverified live.** News draft `../tester-news-draft-2026-10-30b.txt`.
+build. **Unverified live.**
 - BACK+RT: party members first, switch `party-first` (on) (`VitalsService::PartyMembers`).
 - Act V wells loop: OperateFn 22 is a well (`WellOperateFn`) ([ground items](docs/ground-items.md)).
 - BACK+Y on an inside preset level (Throne of Destruction): `roomPreset` ([rooms](docs/rooms.md)).
