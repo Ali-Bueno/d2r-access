@@ -2,8 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## A pad plugged in late; the game-version dropdown — 2026-10-31
+## A pad plugged in late; the game-version dropdown — 2026-10-31 (released as test-2026-10-31-3 from 304028a)
 
+Release: 129/129 CTest, 27 entries, 63,013,469 bytes, SHA-256 `49fedb1e…bb4dd3372`; news
+`../tester-news-draft-2026-10-31c.txt`.
 The user: a controller connected with the game running read nothing, and character creation's
 game-version dropdown said no version without being opened ([decisions](docs/decisions.md)).
 - Any pad press releases the keyboard's menu cursor (`InputDirection::TakePadUse`,
