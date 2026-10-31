@@ -2,6 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Comparing explained in the READMEs — 2026-10-31 (released as test-2026-10-31-4 from 2a30322)
+
+Release: 129/129 CTest, 27 entries, 63,013,497 bytes, SHA-256 `34bd14e7…215bf72c`; news
+`../tester-news-draft-2026-10-31d.txt`. The user pressed Y and used the right stick; compare is Y
+held + the left stick. `README.md` and the tester README now say so (triangle, left stick, the
+`compare-aloud` switch, the keyboard's Shift+Page Up/Down). No code change.
+
+**Next step:** none.
+
 ## A pad plugged in late; the game-version dropdown — 2026-10-31 (released as test-2026-10-31-3 from 304028a)
 
 Release: 129/129 CTest, 27 entries, 63,013,469 bytes, SHA-256 `49fedb1e…bb4dd3372`; news
