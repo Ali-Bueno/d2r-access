@@ -66,10 +66,22 @@ announce one name and its quality, such as `Crimson Spear. magic`, or
 full tooltip name. The stock 400 ms controller tooltip delay is removed everywhere
 (`TooltipDelay`), so an item is named from the game's own tooltip at once.
 Prices and properties are available with right-stick up, or automatically with
-autodetail (in the Ctrl+S settings list). Activating the game's **Compare** action reads the selected item's full
-visible description followed by **Currently Equipped** and the displayed equipment
-statistics. Right-stick up repeats the comparison while it is visible; closing
-the comparison restores ordinary item detail. Unidentified items expose only the text
+autodetail (in the Ctrl+S settings list).
+
+To compare an item with what is equipped, **hold Y** on it (triangle on a
+PlayStation controller) and keep it held: the game shows the comparison only
+while Y is down, and holding it reads nothing by itself. While Y is held the
+**left stick** reads, and stops moving the cursor:
+
+- right: the equipped item the game compares with;
+- left: the highlighted item again;
+- up: its detail; down: the controls.
+
+The right stick is unchanged (detail up, controls down), so it does not read the
+comparison. Releasing Y ends it. With **Equipped item comparison read aloud**
+turned on in the Ctrl+S settings list (off by default) the equipped item is read
+as soon as Y shows the comparison. From the keyboard, Shift+Page Up reads the
+whole item and Shift+Page Down the equipped one. Unidentified items expose only the text
 the game renders: basic damage/defense and requirements, with magic properties
 remaining hidden until identification. Empty grid cells retain coordinate feedback. See
 [native tooltip evidence](docs/native-tooltips.md).

@@ -170,8 +170,10 @@ In menus:
   skill's text). Right stick down: the buttons this screen offers (the game's
   own button legend). Right stick right: extra text; on a skill, left opens
   its lines one by one (B or left again closes them).
-- On an inventory item, hold Y and move the left stick: left reads the item,
-  right the equipped one it compares with, up detail, down controls. To hear
+- On an inventory item, hold Y (triangle on a PlayStation controller) and,
+  without letting go, move the LEFT stick: left reads the item, right the
+  equipped one it compares with, up detail, down controls. The right stick
+  keeps its usual reading and does not compare; releasing Y ends it. To hear
   the equipped one as soon as Y shows it, turn on "Equipped item comparison
   read aloud" in the settings list (Items and menus).
 - In the skill tree the D-pad moves one skill at a time.
