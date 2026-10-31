@@ -181,7 +181,8 @@ bookshelves loop the chest cue.
 ## Shrine and well loops (2026-10-12)
 
 A tester noticed shrines and wells only through the scanner. Every one the player can still use
-(objects.txt SubClass shrine or well; a used one is no longer selectable) loops while in reach:
+(objects.txt SubClass shrine or well, or OperateFn 22, the well handler: only five of the 14
+wells carry the SubClass bit, none of Act V's; a used one is no longer selectable) loops while in reach:
 `exploration/shrine.ogg` and `exploration/well.ogg`, the two nearest at most (`MaxShrineVoices`),
 behind `shrine-sounds` (Ctrl+S, on). 2026-10-13, the tester: the shrine sounded like a monster.
 The shrine now loops the Diablo IV healing well's activation (padded to 1.8 s), the old well

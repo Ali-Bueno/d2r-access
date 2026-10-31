@@ -3,7 +3,23 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
-## 2026-10-30 — The tester's notes on build test-2026-10-28
+## 2026-10-30 — The tester's notes on build test-2026-10-30
+
+From `D2R access-2026-10-30.7z` (notes, the `no-slayer` logs). Confirmed by the tester: the Secret
+Cow Level's portal in the scanner as it opens. Built and unit-tested only.
+- **BACK+RT says the other players first** (`party-first`, on): Raine's ask, for summoners in
+  multiplayer. Alone it changes nothing. Rejected: a separate key for the party.
+- **Act V's wells loop** (`WellOperateFn`): the well handler, OperateFn 22, marks all 14 wells; the
+  SubClass bit only five. Rejected: matching the Name column "well".
+- **The Throne of Destruction is not made a maze** ([rooms](rooms.md)): a preset level's rooms are
+  the generator's chunks and cut across open floor. BACK+Y now says the area is one hand-made map
+  instead of "Not in a dungeon room" on every inside preset level. Rejected for now: rooms from
+  the walls' gaps (`Rooms::Doorways`), a new segmentation.
+- **The end screen reads itself** like the death screen (`SelfReadScreens` in `modal_reader.cpp`),
+  its boxes in order; the expansion's has no "Vanquished". **Character rows say their title**
+  (the row's `Title` box, "Slayer Tank"). Neither seen live: the log never reached the end screen.
+- **"The Arreat Summit" answering too is by design** (the banner's form, [descriptions](descriptions.md)).
+  Five areas have no words yet; the live reading of `descriptions.txt` stays until the user says.
 
 From `D2R Access 2026-10-28 notes.txt` and a new `descriptions.txt`. Confirmed by the tester: the
 Pandemonium Fortress's inside and outside, a Harrogath town portal and the route to it, Nihlathak

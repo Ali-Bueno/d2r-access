@@ -19,6 +19,9 @@ the [architecture guide](docs/architecture.md).
 - Screen changes and panels are announced with the game's own localized titles (title screen,
   main menu, character select/create, options tabs, cinematics, calibration, modals). The main
   menu's news ("Reign of the Warlock available now!") is read as it opens (`main-menu-news`, on).
+  The death screen and the end screen after the last boss read themselves whole ("Congratulations!
+  Tank Will Henceforth Be Known As Slayer Tank"), and a character row says the title the game
+  shows above the name ("Slayer Tank, Level 39 Paladin").
 - **Controller focus is read on every menu**: the focused button, checkbox, dropdown, carousel,
   slider or text field is spoken with its label, its role and the game's own tooltip text.
   Catalog controls now resolve from native focus identity first, fixing silent main-menu
@@ -595,7 +598,7 @@ notices queue behind the life alerts.
 The vitals report can say the skills running on the player (`skill-report`, on: "Prayer aura
 active. Bone Armor active", every class skill whose skills.txt `aurastate` stays on its caster,
 `tools/gen_skill_states.py`), the mercenary (`mercenary-report`, off: BACK+RT says it, with its
-level) and the player's summons (`minion-report`, off), read from the game's own pet
+level; BACK+RT says the other players first, `party-first`, on) and the player's summons (`minion-report`, off), read from the game's own pet
 list and grouped as its party portraits show them (a count per counted type,
 life for single summons, the Warlock's demons one by one), and for a
 Necromancer the usable corpses nearby; a short bone rattle sounds toward the nearest as usable

@@ -20,6 +20,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace D2RAccess::ModalReader {
 
@@ -71,38 +72,63 @@ void PassTitle(const D2RL::PluginContext* context, uint64_t now) {
 		static_cast<unsigned long long>(TitlePadAnswerMs), sent);
 }
 
-// The death screen fills its two boxes after it opens (YouDiedModalHD.json):
-// "You have died / Press <button> to continue." and "Death takes its toll of N
-// Gold". Its Continue button holds the focus, so it is read here, not left to
-// the focus reader, and polled like the title prompt.
 // The game's news and links over the main menu; a tester who owns the expansion asked to silence it (2026-10-20).
 constexpr std::string_view MenuLinksPanel = "MainMenuLinks";
 std::atomic<bool> g_menuNews{true};
-constexpr std::string_view DeathPanel = "YouDiedModal";
-constexpr std::string_view DeathBoxes[] = {"MainText", "SubText", "ContinueButton"};
-bool g_deathSpoken = false;
-uint64_t g_deathPolled = 0;
 
-void PollDeath(const D2RL::PluginContext* context, const std::string& active) {
+// Screens that fill their boxes after they open while their one button holds the
+// focus: read here, not left to the focus reader, and polled like the title prompt
+// until the box filled last has its text. Each sentence's boxes are joined by spaces.
+struct SelfReadScreen {
+	std::string_view panel;
+	std::string_view filledLast;
+	std::vector<std::vector<std::string_view>> sentences;
+};
+const SelfReadScreen SelfReadScreens[] = {
+	// YouDiedModalHD.json: "You have died / Press <button> to continue." and "Death takes its toll of N Gold".
+	{"YouDiedModal", "MainText", {{"MainText"}, {"SubText"}, {"ContinueButton"}}},
+	// EndScreenPanelHD.json, after the last boss: "Congratulations! Tank Will Henceforth Be Known
+	// As Slayer Tank" (a tester, 2026-10-30). The expansion's evens out four boxes, no Vanquished.
+	{"EndScreenPanel", "Title", {{"Congratulations"}, {"Vanquished"}, {"Name", "Henceforth", "Title"}, {"Ok"}}},
+	{"EndScreenPanelExpansion", "Title", {{"Congratulations"}, {"Name", "Henceforth", "Title"}, {"Ok"}}},
+};
+bool g_selfReadSpoken = false;
+uint64_t g_selfReadPolled = 0;
+
+const SelfReadScreen* SelfRead(std::string_view panel) {
+	const auto screen = std::ranges::find(SelfReadScreens, panel, &SelfReadScreen::panel);
+	return screen == std::end(SelfReadScreens) ? nullptr : &*screen;
+}
+
+void PollSelfRead(const D2RL::PluginContext* context, const SelfReadScreen& screen) {
 	const uint64_t now = GetTickCount64();
-	if (now - g_deathPolled < TitlePollMs) return;
-	g_deathPolled = now;
-	const uintptr_t panel = NativeWidgets::FindPanel(active);
+	if (now - g_selfReadPolled < TitlePollMs) return;
+	g_selfReadPolled = now;
+	const uintptr_t panel = NativeWidgets::FindPanel(screen.panel);
 	if (!panel) return;
-	std::string text;
-	for (const auto box : DeathBoxes) {
+	const auto read = [panel](std::string_view box) {
 		const uintptr_t child = NativeWidgets::FindChild(panel, box);
 		std::string raw = child ? NativeWidgets::ReadText(child) : std::string{};
 		for (size_t at = raw.find('\n'); at != std::string::npos; at = raw.find('\n', at + 2)) raw.replace(at, 1, ". ");
-		const auto part = ControllerText::Read(raw);
-		if (box == DeathBoxes[0] && part.empty()) return; // not filled in yet
-		if (part.empty()) continue;
-		if (!text.empty() && text.back() != '.') text += '.';
+		return ControllerText::Read(raw);
+	};
+	if (read(screen.filledLast).empty()) return;
+	std::string text;
+	for (const auto& sentence : screen.sentences) {
+		std::string words;
+		for (const auto box : sentence) {
+			const auto part = read(box);
+			if (part.empty()) continue;
+			if (!words.empty()) words += ' ';
+			words += part;
+		}
+		if (words.empty()) continue;
+		if (!text.empty() && text.back() != '.' && text.back() != '!' && text.back() != '?') text += '.';
 		if (!text.empty()) text += ' ';
-		text += part;
+		text += words;
 	}
-	g_deathSpoken = true;
-	AsyncLog::InfoF(context, "[modal] %s -> \"%s\"", active.c_str(), text.c_str());
+	g_selfReadSpoken = true;
+	AsyncLog::InfoF(context, "[modal] %s -> \"%s\"", std::string(screen.panel).c_str(), text.c_str());
 	ScreenReader::Speak(text, true);
 }
 
@@ -223,7 +249,7 @@ int HoldCountdown(uint64_t heldMs) {
 	return whole >= static_cast<uint64_t>(DeleteHoldSeconds) ? 0 : DeleteHoldSeconds - static_cast<int>(whole);
 }
 
-void Reset() { g_lastPanel.clear(); g_titleSpoken = g_deathSpoken = false; }
+void Reset() { g_lastPanel.clear(); g_titleSpoken = g_selfReadSpoken = false; }
 
 void SetTitleAnnouncement(std::string text) { g_titleAnnouncement = std::move(text); }
 
@@ -235,7 +261,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (active == g_lastPanel) {
 		if (active == TitlePanel && !g_titleSpoken) PollTitlePrompt(context, active);
 		if (active == TitlePanel) PassTitle(context, GetTickCount64());
-		if (active == DeathPanel && !g_deathSpoken) PollDeath(context, active);
+		if (const auto* screen = SelfRead(active); screen && !g_selfReadSpoken) PollSelfRead(context, *screen);
 		if (active == DeletePanel) PollDeleteHold(context);
 		return;
 	}
@@ -246,8 +272,8 @@ void Tick(const D2RL::PluginContext* context) {
 		AsyncLog::InfoF(context, "[modal] title: the game took the pad press in %llu ms (now %s)",
 			static_cast<unsigned long long>(GetTickCount64() - g_titlePadPress), active.c_str());
 	g_lastPanel = active;
-	g_titleSpoken = g_deathSpoken = false;
-	g_deathPolled = g_titlePadPress = 0;
+	g_titleSpoken = g_selfReadSpoken = false;
+	g_selfReadPolled = g_titlePadPress = 0;
 	if (active.empty()) return;
 	if (active == MenuLinksPanel && !g_menuNews.load()) {
 		AsyncLog::InfoF(context, "[modal] %s: main menu news off", active.c_str());
@@ -257,8 +283,8 @@ void Tick(const D2RL::PluginContext* context) {
 		AsyncLog::InfoF(context, "[modal] title: plugin announcement \"%s\"", g_titleAnnouncement.c_str());
 		ScreenReader::Speak(std::exchange(g_titleAnnouncement, {}), false);
 	}
-	if (active == DeathPanel) {
-		PollDeath(context, active);
+	if (const auto* screen = SelfRead(active)) {
+		PollSelfRead(context, *screen);
 		return;
 	}
 

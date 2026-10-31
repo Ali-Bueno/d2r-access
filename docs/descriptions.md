@@ -93,3 +93,11 @@ The tester's new file adds Act V's 23 areas, Bloody Foothills to The Worldstone 
 was already in; 125 areas and two landmarks now). Names checked against the game's English level names: "The Arreat Summit" is
 "Arreat Summit"; typos fixed: "it is painfully", "its primordial", "Mount Arreat", a double space.
 `data/descriptions.txt` keeps its own header and the Hellforge, which the tester's file lacks.
+Both "Arreat Summit" and "The Arreat Summit" answer: the second by the banner's form above.
+
+**Coverage (2026-10-30)**, every level's English name (`LevelName` through `levels.json`) against
+the file by the rule above: all answered but The Secret Cow Level (39), the three Pandemonium
+areas Matron's Den, Forgotten Sands and Furnace of Pain (133-135) and Colossal Summit (137).
+Uber Tristram (136) shares the name "Tristram" with the ruins (38): `Tristram [136]` would part
+them. Duriel's Lair is "Tal Rasha's Chamber" and Kurast Docktown "Kurast Docks" in the game's
+own words, as the file has them.

@@ -78,6 +78,9 @@ inline constexpr uint8_t CairnStoneOperateFn = 9; // objects.txt StoneAlpha thro
 // Sanctuary's pads, and no other row. The handler (0x14058EAD0 in 3.3.93787)
 // sends the player to the other object of the pad's class in its room.
 inline constexpr uint8_t TeleportPadOperateFn = 27;
+// objects.txt OperateFn of all 14 wells and no other row. Only five carry the SubClass
+// well bit; Act V's (WellBaal, WellSnowy, WellTemple...) do not (a tester, 2026-10-30).
+inline constexpr uint8_t WellOperateFn = 22;
 // objects.txt *ID 12, "RogueFountain": the Outer Cloister's fountain of three Rogue statues, a
 // target in no mode, named as a landmark (a tester, 2026-10-20).
 inline constexpr uint32_t RogueFountainClass = 12;

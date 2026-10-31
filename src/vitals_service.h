@@ -35,6 +35,9 @@ void SetSkillsReported(bool enabled);
 // The mercenary's life and level in the life report; off, BACK+RT says them.
 bool MercenaryReported();
 void SetMercenaryReported(bool enabled);
+// BACK+RT's party members before the mercenary and the summons.
+bool PartyFirst();
+void SetPartyFirst(bool enabled);
 // The heartbeat under a share of life, and that share: a Vitals::LowLifeThresholds level.
 bool LowLifeSound();
 void SetLowLifeSound(bool enabled);

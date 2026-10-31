@@ -25,7 +25,9 @@ nothing stable to bake — but it also does not need one:
 - Other level types are excluded. `DrlgType 2` is a hand-built preset area (a
   town, a quest area) and `DrlgType 3` is open ground; in both the room
   partition is the generator's own bookkeeping and cuts across open floor,
-  where announcing a boundary would be noise.
+  where announcing a boundary would be noise. Asked there, BACK+Y says "Not in a dungeon room"
+  outside and, on an inside one (the Throne of Destruction, Andariel's and Mephisto's levels, the
+  Kurast temples), that the area is one hand-made map with no rooms to list (2026-10-30).
 
 `src/generated/level_flags.h` carries the per-level flags, generated from the
 game's own `Levels.txt` by `tools/gen_level_flags.py` and committed like the

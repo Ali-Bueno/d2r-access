@@ -2,6 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's notes on build test-2026-10-30 — 2026-10-30 (not released)
+
+From `D2R access-2026-10-30.7z` ([decisions](docs/decisions.md)). 129/129 CTest; installed by the
+build. **Unverified live.** News draft `../tester-news-draft-2026-10-30b.txt`.
+- BACK+RT: party members first, switch `party-first` (on) (`VitalsService::PartyMembers`).
+- Act V wells loop: OperateFn 22 is a well (`WellOperateFn`) ([ground items](docs/ground-items.md)).
+- BACK+Y on an inside preset level (Throne of Destruction): `roomPreset` ([rooms](docs/rooms.md)).
+- End screen read whole (`SelfReadScreens`, `[modal] EndScreenPanelExpansion ->`); character rows
+  with their title (`Titled` in `focus_tracker.cpp`).
+- Descriptions: 5 areas missing (cows, Pandemonium x3, Colossal Summit) ([descriptions](docs/descriptions.md#act-v-2026-10-30)).
+
+**Next step:** live: a Worldstone Keep well, the end screen (Normal beaten on a new character, or
+Nightmare), the character select over a Slayer, BACK+RT in a party with summons.
+
 ## The tester's notes on build test-2026-10-28 — 2026-10-30 (released as test-2026-10-30 from e81a47a)
 
 Release: 129/129 CTest, 29 entries, 63,016,422 bytes, SHA-256 `25ad6d3b…52ecff6e6`.

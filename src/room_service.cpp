@@ -138,7 +138,10 @@ void Layout(const Lifecycle& state) {
 	}
 	Rooms::Room room;
 	if (!Maze(state.level) || !Rooms::Describe(world, world.player, room)) {
-		ScreenReader::Speak(strings.roomOutside, true);
+		// An inside level built as one map (the Throne of Destruction) has no rooms to
+		// list, though it looks like the maze before it (a tester, 2026-10-30).
+		const bool oneMap = !Maze(state.level) && Generated::FindLevelFlags(static_cast<int32_t>(state.level)).inside;
+		ScreenReader::Speak(oneMap ? strings.roomPreset : strings.roomOutside, true);
 		AsyncLog::InfoF(g_context, "[room] layout asked: not in a dungeon room level=%d maze=%u",
 			state.level, Maze(state.level) ? 1u : 0u);
 		return;

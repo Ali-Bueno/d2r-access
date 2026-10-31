@@ -125,6 +125,8 @@ constexpr const char* PopupSlotTextBox       = "TextBox";
 constexpr const char* CharacterListWidget    = "CharacterList";
 constexpr const char* CharacterRowName       = "Name";
 constexpr const char* CharacterRowDetail     = "Level&Class";
+// Above the name once a difficulty is beaten ("Slayer"; a tester, 2026-10-30).
+constexpr const char* CharacterRowTitle      = "Title";
 
 // CharacterSelectPanelHD.json: the character list's rows are clones of one
 // ListItemWidget template whose texts are set at runtime. Native focus supplies
@@ -750,10 +752,18 @@ int CharacterRowIndex(const Match& match, const Widgets::Rect& indicator) {
 	return std::max(0, static_cast<int>(std::lround(static_cast<double>(indicator.y - row->y) / static_cast<double>(row->height))));
 }
 
+// "Slayer TankMan", or the title alone when it already holds the name.
+std::string Titled(std::string name, const std::string& title) {
+	if (title.empty()) return name;
+	if (title.find(name) != std::string::npos) return title;
+	return title + " " + name;
+}
+
 std::string CharacterRowText(uintptr_t row) {
 	if (row == 0) return {};
 	std::string name = NativeWidgets::ReadText(NativeWidgets::FindChild(row, CharacterRowName));
 	if (name.empty()) return {};
+	name = Titled(std::move(name), NativeWidgets::ReadText(NativeWidgets::FindChild(row, CharacterRowTitle)));
 	if (const std::string detail = NativeWidgets::ReadText(NativeWidgets::FindChild(row, CharacterRowDetail)); !detail.empty()) {
 		name += ", " + detail;
 	}
@@ -768,7 +778,9 @@ std::string CharacterRowPhrase(const D2RL::PluginContext* context, int rowIndex,
 	std::snprintf(slot, sizeof(slot), PopupSlotFormat, rowIndex);
 	const std::string namePath[]   = { CharacterListWidget, slot, CharacterRowName };
 	const std::string detailPath[] = { CharacterListWidget, slot, CharacterRowDetail };
+	const std::string titlePath[]  = { CharacterListWidget, slot, CharacterRowTitle };
 	if (std::string name = NativeWidgets::TextAt(CharacterSelectPanelName, namePath); !name.empty()) {
+		name = Titled(std::move(name), NativeWidgets::TextAt(CharacterSelectPanelName, titlePath));
 		if (const std::string detail = NativeWidgets::TextAt(CharacterSelectPanelName, detailPath); !detail.empty()) {
 			name += ", " + detail;
 		}

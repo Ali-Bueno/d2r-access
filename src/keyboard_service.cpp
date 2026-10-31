@@ -1940,6 +1940,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		LowLifeThreshold(),
 		{VitalsService::MinionsReported, VitalsService::SetMinionsReported, phrase(&T::minionReportOn, &T::minionReportOff), false, "minion-report"},
 		{VitalsService::MercenaryReported, VitalsService::SetMercenaryReported, phrase(&T::mercenaryReportOn, &T::mercenaryReportOff), false, "mercenary-report"},
+		{VitalsService::PartyFirst, VitalsService::SetPartyFirst, phrase(&T::partyFirstOn, &T::partyFirstOff), false, "party-first"},
 		{VitalsService::SkillsReported, VitalsService::SetSkillsReported, phrase(&T::skillReportOn, &T::skillReportOff), false, "skill-report"},
 		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
 		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},

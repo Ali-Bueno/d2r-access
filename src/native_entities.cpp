@@ -625,6 +625,7 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	if (!Peek(row + ObjSelectable + mode, selectable) || !selectable || !Peek(row + ObjIsDoor, door)
 		|| !Peek(row + ObjSubClass, subClass) || !Peek(row + ObjOpenWarp, openWarp)
 		|| !Peek(row + ObjOperateFn, operate)) return false;
+	if (operate == WellOperateFn) subClass |= SubClassWell;
 	uint8_t collision = 0;
 	uint32_t width = 0, height = 0;
 	// Doors use their separate DOOR collision bit; retain their existing sight policy.

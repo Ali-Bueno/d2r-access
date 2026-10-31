@@ -77,6 +77,8 @@ bool g_enabled = true;
 bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true, g_statusAlerts = true, g_minionReport = false;
 // The mercenary in BACK+X, off since BACK+RT says it (a tester, 2026-10-14).
 bool g_mercenaryReport = false;
+// BACK+RT's party members before the mercenary and the summons (a tester, 2026-10-30).
+bool g_partyFirst = true;
 // The player's running skills (auras, armours, shapes) in BACK+X, an option (a tester, 2026-10-17).
 bool g_skillReport = true;
 Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
@@ -361,6 +363,31 @@ std::string Whereabouts(std::string text, std::optional<Radar::Position> at, std
 	return text;
 }
 
+// Each party member's life, and where it stands or the area it is in.
+std::vector<std::string> PartyMembers(uint32_t id, std::optional<Radar::Position> here) {
+	constexpr uint32_t PlayerUnit = GroundItemLayout::PlayerType;
+	std::vector<std::string> entries;
+	std::vector<CorpseMemory::Owner> roster;
+	if (!NativeEntities::ReadRosterCorpses(id, roster)) return entries;
+	const auto& strings = Strings::Current();
+	const auto self = std::find_if(roster.begin(), roster.end(), [&](const auto& member) { return member.id == id; });
+	for (const auto& member : roster) {
+		if (!member.partyMember || member.name.empty()) continue;
+		char text[300]{};
+		std::snprintf(text, sizeof(text), strings.minionLife, member.name.c_str(), static_cast<int>(member.life));
+		if (self != roster.end() && member.level != self->level) {
+			char area[300]{};
+			std::snprintf(area, sizeof(area), strings.inArea, NativeEntities::LevelName(member.level).c_str());
+			entries.push_back(std::string(text) + ", " + area);
+			continue;
+		}
+		auto at = NativePets::PositionOf(member.id, PlayerUnit);
+		if (!at && member.located) at = member.position;
+		entries.push_back(Whereabouts(text, at, here));
+	}
+	return entries;
+}
+
 // What BACK+RT steps through (a tester, 2026-10-14): the mercenary, each summon
 // entry, each party member, with life and where each stands when known.
 std::vector<std::string> Companions() {
@@ -380,23 +407,8 @@ std::vector<std::string> Companions() {
 	for (const auto& entry : Summons(id, ids))
 		entries.push_back(entry.pet < 0 ? entry.text
 			: Whereabouts(entry.text, NativePets::PositionOf(ids[static_cast<size_t>(entry.pet)], MonsterUnit), here));
-	std::vector<CorpseMemory::Owner> roster;
-	if (!NativeEntities::ReadRosterCorpses(id, roster)) return entries;
-	const auto self = std::find_if(roster.begin(), roster.end(), [&](const auto& member) { return member.id == id; });
-	for (const auto& member : roster) {
-		if (!member.partyMember || member.name.empty()) continue;
-		char text[300]{};
-		std::snprintf(text, sizeof(text), strings.minionLife, member.name.c_str(), static_cast<int>(member.life));
-		if (self != roster.end() && member.level != self->level) {
-			char area[300]{};
-			std::snprintf(area, sizeof(area), strings.inArea, NativeEntities::LevelName(member.level).c_str());
-			entries.push_back(std::string(text) + ", " + area);
-			continue;
-		}
-		auto at = NativePets::PositionOf(member.id, PlayerUnit);
-		if (!at && member.located) at = member.position;
-		entries.push_back(Whereabouts(text, at, here));
-	}
+	const auto party = PartyMembers(id, here);
+	entries.insert(g_partyFirst ? entries.begin() : entries.end(), party.begin(), party.end());
 	return entries;
 }
 
@@ -804,6 +816,8 @@ bool SkillsReported() { return g_skillReport; }
 void SetSkillsReported(bool enabled) { g_skillReport = enabled; }
 bool MercenaryReported() { return g_mercenaryReport; }
 void SetMercenaryReported(bool enabled) { g_mercenaryReport = enabled; }
+bool PartyFirst() { return g_partyFirst; }
+void SetPartyFirst(bool enabled) { g_partyFirst = enabled; }
 bool LowLifeSound() { return g_lowLifeSound; }
 void SetLowLifeSound(bool enabled) { g_lowLifeSound = enabled; }
 int LowLifeLevel() { return g_lowLifeLevel; }
