@@ -1217,6 +1217,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
 	g_tickStart = Clock::now();
 	MenuMouse::Tick(now);
+	const bool padUsed = InputDirection::TakePadUse();
 	const bool menu = Foreground() && NativeWidgets::SupportsTree() && NativeSkillNavigation::Available()
 		&& !KeyboardService::Playing();
 	g_active = menu;
@@ -1234,6 +1235,9 @@ void Tick(const D2RL::PluginContext* context) {
 		for (auto& key : g_watched) { key.down = Down(key.key); key.waiting = false; }
 		return;
 	}
+	// A pad used while the keyboard has the menu takes the menu back: the game
+	// is in its controller mode again, and its focus is the one to read.
+	if (g_engaged && padUsed) Release(context, "a pad was used");
 	// A box of text the game says is being edited has every key. One the cursor
 	// is on has the keys that type and the left and right arrows, whatever the
 	// game says: out of controller mode it says nothing (READ), and the name box
@@ -1247,7 +1251,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const bool typing = editing || field;
 	g_keepArrows = g_engaged && !typing && g_menu.find("CharacterSelectPanel") != std::string::npos;
 	// With no pad the menu is the keyboard's from the moment it opens; with one
-	// connected it is the pad's until an arrow key is pressed.
+	// connected it is the pad's until an arrow key is pressed, and again once it is used.
 	if (!g_engaged && !InputDirection::LeftStick().connected) {
 		g_engaged = true;
 		AsyncLog::Info(context, "[cursor] taken: a menu is up and no pad is connected");

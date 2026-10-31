@@ -182,6 +182,9 @@ TriggerHold LeftTrigger();
 // was steering when the cue fired. Zero and not connected without a pad.
 struct Stick { float x = 0, y = 0; bool connected = false; };
 Stick LeftStick();
+// Whether a pad was used -- a button pressed, a stick or trigger pushed past
+// its threshold -- since the previous Take(), then cleared.
+bool TakePadUse();
 // The share of a stick's travel that counts as a deliberate push, not drift.
 inline constexpr float StickPushFraction = 0.5f;
 

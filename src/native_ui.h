@@ -24,6 +24,8 @@ struct Type {
 Type Classify(uintptr_t widget);
 // Current text in a non-masked native input; empty when unavailable.
 std::string InputText(uintptr_t widget);
+// The option a closed dropdown shows; empty when the widget is not a dropdown or it is unreadable.
+std::string DropdownText(uintptr_t widget);
 bool Visible(uintptr_t widget);
 uintptr_t Parent(uintptr_t widget);
 std::optional<Rect> LocalRect(uintptr_t widget);

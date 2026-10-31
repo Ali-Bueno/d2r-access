@@ -711,3 +711,15 @@ when movement can occur. A completely surrounded body has no proved route.
 character and the anonymous 57x57 collision capture from 11:24:53. The capture
 is a nearby route test, not proof of survival or the complete distant entrance
 route. User-led live confirmation remains necessary.
+
+## A pad used takes the menu back — 2026-10-31
+
+The user: with the game started without a controller, a pad plugged in later read nothing; only
+the keyboard was read. The log (07:17:31 `[cursor] taken: a menu is up and no pad is connected`,
+then 07:17:47 `InputMethodChanged` and the pad's presses) showed the keyboard's cursor still set,
+so `CurrentFocus` kept giving it and every pad move said "View your active notifications" again.
+The cursor was let go only when its menu closed. Now `InputDirection::TakePadUse` (a button
+pressed, or a stick or trigger past its threshold, on any pad) releases it
+(`[cursor] released: a pad was used`), whether the pad was plugged in late or was connected all
+along and the arrows had taken the menu. An arrow key takes it again, as before. Built and
+unit-tested; live check pending.

@@ -161,3 +161,13 @@ stay on screen, is open.
 0x40 bytes]`. A string size of 0 means the game pushed an empty message; anything else means the
 text lives elsewhere in the entry. The tester is also asked whether the square appears with the
 plugin removed.
+
+## A closed dropdown's option (2026-10-31)
+
+The user: moving over character creation's game-version dropdown without opening it named the
+dropdown, not the version chosen. The catalog reader took a dropdown's value from
+`ControlState`, which knows only what `Settings.json` holds (the options panel) and what was
+picked in the popup, so `CharacterCreatePanel/GameVersionDropdown` had no value until a pick.
+`NativeUi::DropdownText` now reads the option the widget draws on itself (its button caption,
+`+0x818`, the row above), the same text the native fallback already read, and the reader says it
+before falling back to `ControlState`. Built and unit-tested; live check pending.

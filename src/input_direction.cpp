@@ -55,6 +55,8 @@ struct PadEdgeState {
 	bool rbHeld         = false;
 	bool ltHeld         = false;
 	bool rtHeld         = false;
+	WORD buttons        = 0;
+	bool pushed         = false; // a stick or trigger past its threshold
 };
 
 PadEdgeState g_padState[XUSER_MAX_COUNT] {};
@@ -72,6 +74,7 @@ Stick g_leftStick;
 bool g_leftStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
 bool g_backWithDpadUp = false;
+bool g_padUsed = false;
 bool g_backWithLt = false, g_backWithRt = false;
 bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
@@ -105,6 +108,13 @@ void ResolvePush(StickPush push, const char* claimant) {
 	if (push == StickPush::None) return;
 	g_resolvedPush     = push;
 	g_resolvedClaimant = claimant;
+}
+
+// A stick or trigger past the threshold at which the mod and the game count it as moved.
+bool Pushed(const XINPUT_GAMEPAD& pad) {
+	const auto past = [](SHORT axis) { return axis >= kThumbstickDirectionThreshold || axis <= -kThumbstickDirectionThreshold; };
+	return past(pad.sThumbLX) || past(pad.sThumbLY) || past(pad.sThumbRX) || past(pad.sThumbRY)
+		|| pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD || pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
 }
 
 void RecordEdge(Horizontal direction) {
@@ -180,6 +190,10 @@ void Poll() {
 			g_nextProbe[padIndex] = 0;
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
+			const bool pushed = Pushed(pad);
+			if ((pad.wButtons & ~edges.buttons) != 0 || (pushed && !edges.pushed)) g_padUsed = true;
+			edges.buttons = pad.wButtons;
+			edges.pushed  = pushed;
 			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
 			const bool dpadUpDown = (pad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
 			if (UpdateEdge(edges.dpadUpHeld, dpadUpDown)) {
@@ -308,6 +322,7 @@ void Poll() {
 }
 
 Stick LeftStick() { return g_leftStick; }
+bool TakePadUse() { return std::exchange(g_padUsed, false); }
 TriggerHold LeftTrigger() { return g_leftTrigger; }
 bool TakeLeftStickClick() {
 	const bool clicked = g_leftStickClick;
@@ -512,6 +527,7 @@ void Shutdown() {
 		edges = {};
 	}
 	for (auto& probe : g_nextProbe) probe = 0;
+	g_padUsed = false;
 	g_keyLeftHeld  = false;
 	g_keyRightHeld = false;
 	g_keyUpHeld    = false;

@@ -3,6 +3,17 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-31 — A pad plugged in late, and a closed dropdown's option
+
+Two bugs the user found. Built and unit-tested only.
+- **A pad used gives the menu back** ([keyboard play](keyboard-play.md#a-pad-used-takes-the-menu-back--2026-10-31)):
+  any press on a pad releases the keyboard's cursor. Rejected: releasing on the pad's connection
+  alone (a pad lying on the desk would take the menu from a keyboard player while the game stays
+  in keyboard mode), and the game's `InputMethodChanged`, which fires both ways and says neither.
+- **A dropdown says the option it shows** ([native UI](native-ui.md#a-closed-dropdowns-option-2026-10-31)),
+  read from the widget before the `Settings.json` state. Rejected: a per-screen table for
+  character creation's game version.
+
 ## 2026-10-30 — The tester's notes on build test-2026-10-30-2
 
 From `D2R Access test build 2026-10-30-2 notes.txt` and a new `descriptions.txt`. Confirmed by the

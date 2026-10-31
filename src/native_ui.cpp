@@ -229,6 +229,11 @@ uintptr_t Parent(uintptr_t widget) {
 	return parent;
 }
 
+std::string DropdownText(uintptr_t widget) {
+	if (!NativeWidgets::SupportsTree() || !widget || Classify(widget).name != "DropdownListWidget") return {};
+	return NativeWidgets::ReadText(widget + ButtonTextOffset);
+}
+
 std::string InputText(uintptr_t widget) {
 	if (!NativeWidgets::SupportsTree() || !widget) return {};
 	// Any text box but the masked one, the chat's autocomplete box included; the getter

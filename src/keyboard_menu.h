@@ -32,7 +32,8 @@
 //
 // With an item in hand the cursor goes cell by cell: where the item would be
 // put down matters cell by cell. A connected pad is not touched; with one
-// connected the cursor wakes only when an arrow key is pressed.
+// connected the cursor wakes only when an arrow key is pressed, and a pad used
+// gives the menu back to the game's controller focus, a pad plugged in late included.
 // docs/keyboard-play.md
 namespace D2RAccess::KeyboardMenu {
 enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail };

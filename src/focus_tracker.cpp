@@ -906,7 +906,14 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		phrase += ", ";
 		phrase += PercentText(*percent);
 	}
-	if (const std::string state = ControlState::Describe(*match.widget, g_lastAnnounced); !state.empty()) {
+	// A dropdown shows its option on itself; Settings.json knows only the options panel's.
+	std::string state;
+	if (std::strcmp(match.widget->type, DropdownWidgetType) == 0) {
+		const NativeMemory::ReadScope scope;
+		state = UiText::Clean(NativeUi::DropdownText(nativeWidget != 0 ? nativeWidget : NativeUi::CurrentFocus().widget));
+	}
+	if (state.empty()) state = ControlState::Describe(*match.widget, g_lastAnnounced);
+	if (!state.empty()) {
 		phrase += ", ";
 		phrase += state;
 	}

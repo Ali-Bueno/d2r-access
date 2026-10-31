@@ -2,6 +2,19 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## A pad plugged in late; the game-version dropdown — 2026-10-31
+
+The user: a controller connected with the game running read nothing, and character creation's
+game-version dropdown said no version without being opened ([decisions](docs/decisions.md)).
+- Any pad press releases the keyboard's menu cursor (`InputDirection::TakePadUse`,
+  `[cursor] released: a pad was used`) ([keyboard play](docs/keyboard-play.md#a-pad-used-takes-the-menu-back--2026-10-31)).
+- A dropdown says the option drawn on it (`NativeUi::DropdownText`) ([native UI](docs/native-ui.md#a-closed-dropdowns-option-2026-10-31)).
+
+129/129 CTest; installed by the build. **Unverified live.**
+
+**Next step:** live: start without a pad, plug one in at the main menu and move with it; the
+game-version dropdown with the arrows and with the pad.
+
 ## Updates keep the player's config — 2026-10-31 (released as test-2026-10-31-2 from 534e94d)
 
 Release: 129/129 CTest, 27 entries, 63,013,786 bytes, SHA-256 `cd199f47…d2f580537`; news
