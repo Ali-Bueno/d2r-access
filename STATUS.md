@@ -2,11 +2,12 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The tester's notes on build test-2026-10-30-2 — 2026-10-30
+## The tester's notes on build test-2026-10-30-2 — 2026-10-30 (released as test-2026-10-31 from 6fbbd72)
 
+Release: 129/129 CTest, 29 entries, 63,020,648 bytes, SHA-256 `1d0e291b…f430c847`; news
+`../tester-news-draft-2026-10-31.txt`.
 From `D2R Access test build 2026-10-30-2 notes.txt` and a new `descriptions.txt`
 ([decisions](docs/decisions.md)). 129/129 CTest; installed by the build. **Unverified live.**
-Not released.
 - Difficulty window said as the game's "Select Difficulty" (`strselectdiff`, `PanelTitle` in
   `ui_message_monitor.cpp`).
 - Descriptions: the cows and placeholders for Pandemonium x3, Uber Tristram, Colossal Summit; every
@@ -14,7 +15,7 @@ Not released.
 - BACK+Y in hand-made maps: already answered by test-2026-10-30-3; Chaos Sanctuary (outside per
   `Levels.txt`) still says "Not in a dungeon room".
 
-**Next step:** the user decides on a release; live: the character select's difficulty window.
+**Next step:** live: the character select's difficulty window; BACK+Y in the Throne (`[room] chamber:`).
 
 ## The tester's notes on build test-2026-10-30 — 2026-10-30 (released as test-2026-10-30-2 from 45af590)
 
