@@ -721,5 +721,5 @@ so `CurrentFocus` kept giving it and every pad move said "View your active notif
 The cursor was let go only when its menu closed. Now `InputDirection::TakePadUse` (a button
 pressed, or a stick or trigger past its threshold, on any pad) releases it
 (`[cursor] released: a pad was used`), whether the pad was plugged in late or was connected all
-along and the arrows had taken the menu. An arrow key takes it again, as before. Built and
-unit-tested; live check pending.
+along and the arrows had taken the menu. An arrow key takes it again, as before. Confirmed live
+by the user, 2026-10-31.

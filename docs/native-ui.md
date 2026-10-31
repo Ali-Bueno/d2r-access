@@ -170,4 +170,4 @@ dropdown, not the version chosen. The catalog reader took a dropdown's value fro
 picked in the popup, so `CharacterCreatePanel/GameVersionDropdown` had no value until a pick.
 `NativeUi::DropdownText` now reads the option the widget draws on itself (its button caption,
 `+0x818`, the row above), the same text the native fallback already read, and the reader says it
-before falling back to `ControlState`. Built and unit-tested; live check pending.
+before falling back to `ControlState`. Confirmed live by the user, 2026-10-31.

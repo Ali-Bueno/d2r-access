@@ -12,10 +12,11 @@ game-version dropdown said no version without being opened ([decisions](docs/dec
   `[cursor] released: a pad was used`) ([keyboard play](docs/keyboard-play.md#a-pad-used-takes-the-menu-back--2026-10-31)).
 - A dropdown says the option drawn on it (`NativeUi::DropdownText`) ([native UI](docs/native-ui.md#a-closed-dropdowns-option-2026-10-31)).
 
-129/129 CTest; installed by the build. **Unverified live.**
+129/129 CTest. **Both confirmed live by the user** (2026-10-31, `[cursor] released: a pad was used`).
+Y with no left-stick push reads nothing, as designed (compare: hold Y, left stick; or the
+`compare-aloud` switch).
 
-**Next step:** live: start without a pad, plug one in at the main menu and move with it; the
-game-version dropdown with the arrows and with the pad.
+**Next step:** none for these two.
 
 ## Updates keep the player's config — 2026-10-31 (released as test-2026-10-31-2 from 534e94d)
 
