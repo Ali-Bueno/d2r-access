@@ -15,7 +15,9 @@ $zip = Join-Path $out "d2r-access-completo.zip"
 $pluginDll = "d2rl-d2r-access.dll"  # OUTPUT_NAME in CMakeLists.txt
 $vcRedist = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC"
 $runtimeDlls = "msvcp140.dll", "msvcp140_atomic_wait.dll", "vcruntime140.dll", "vcruntime140_1.dll"
-$loaderFiles = "D2RLoader.exe", "D2RCore.dll", "d2rloader.mpq", "d2rloader\config\d2rloader.toml"
+# No config files: the loader writes d2rloader.toml and d2r-access.toml when missing, and an
+# update extracted on top must keep the player's own (docs/test-releases.md).
+$loaderFiles = "D2RLoader.exe", "D2RCore.dll", "d2rloader.mpq"
 $loaderDirs = "mods", "d2rloader\crashes", "d2rloader\data", "d2rloader\logs"
 # Everything the plugin binary is built from; packaging text may change without a rebuild.
 $buildInputs = "src", "cmake", "CMakeLists.txt", "plugin.rc", "sounds", "third_party", "radar.toml", "data", "external", "LICENSE"
@@ -59,10 +61,10 @@ try {
 	foreach ($dll in $runtimeDlls) { Copy-Into (Join-Path $crt.FullName $dll) (Join-Path $stage $dll) }
 	Copy-Into (Join-Path $buildDir $pluginDll) (Join-Path $stage "d2rloader\plugins\$pluginDll")
 	Copy-Into "third_party\prism\bin\prism.dll" (Join-Path $stage "d2rloader\plugins\d2r-access\prism.dll")
-	Copy-Into "radar.toml" (Join-Path $stage "d2rloader\config\d2r-access.toml")
 	Copy-Into "packaging\tester\KEYBOARD.txt" (Join-Path $stage "KEYBOARD.txt")
 	Copy-Into "LICENSE" (Join-Path $stage "licenses\d2r-access-LICENSE.txt")
 	Copy-Item "third_party\prism\LICENSES" (Join-Path $stage "licenses\prism") -Recurse
+	if (Get-ChildItem $stage -Recurse -Filter *.toml) { throw "A config file is staged; an update would overwrite the player's settings." }
 
 	$repo = gh repo view --json nameWithOwner -q .nameWithOwner
 	$latestUrl = "https://github.com/$repo/releases/latest/download/$(Split-Path $zip -Leaf)"

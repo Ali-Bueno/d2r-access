@@ -39,8 +39,9 @@ in to GitHub with an account that has access to the repository):
 {{LATEST_URL}}
 
 To update, close the game and extract the new zip on top, just like the first
-time. If the game then starts in the wrong language again, repeat the LANGUAGE
-step.
+time. Your settings stay as they are: the zip carries no settings files, so the
+loader's options (language, extra shared stash pages and the rest) and the
+mod's d2r-access.toml are never replaced.
 
 
 STARTING THE GAME
@@ -67,7 +68,8 @@ LANGUAGE
 
 The mod speaks in the game's text language. The loader may ignore the language
 chosen in Steam and start the game in English. To choose it, open the file
-d2rloader\config\d2rloader.toml with Notepad and find these two lines:
+d2rloader\config\d2rloader.toml with Notepad (the loader creates it the first
+time it starts) and find these two lines:
 
 text_locale = ""
 audio_locale = ""
@@ -340,9 +342,10 @@ diagonals), and for enemy sounds [entity_cues]: on_screen (growls start when
 an enemy is on screen), range (used when on_screen is false), max_voices (how
 many enemies can growl, 1 to 8), pan_strength and pitch_strength (percent,
 100 is the default, up to 400), and the same two strengths under [beacon] for
-the guidance ping; [wall_tones] sets the wall tones' volume and range. Edit it
-with Notepad; changes apply the next time you start the game. A strength
-changed in the Ctrl+S list wins over the file.
+the guidance ping; [wall_tones] sets the wall tones' volume and range. The
+loader creates it the first time the game starts with the mod, and updates
+never replace it. Edit it with Notepad; changes apply the next time you start
+the game. A strength changed in the Ctrl+S list wins over the file.
 
 
 SOUND GLOSSARY

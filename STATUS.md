@@ -2,6 +2,16 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Updates keep the player's config — 2026-10-31 (not released)
+
+A tester: every update reset D2RLoader's extra shared stash pages. The zip carried
+`d2rloader.toml` and `d2r-access.toml`; both are now left out, and the loader writes each when
+missing ([test releases](docs/test-releases.md#package-contents)). `test-release.ps1` refuses any
+staged `*.toml`; the tester README no longer says to redo the language after an update.
+
+**Next step:** release with the next build; live: a fresh install without `d2rloader.toml`
+(the loader should write its default on first start).
+
 ## The tester's notes on build test-2026-10-30-2 — 2026-10-30 (released as test-2026-10-31 from 6fbbd72)
 
 Release: 129/129 CTest, 29 entries, 63,020,648 bytes, SHA-256 `1d0e291b…f430c847`; news
