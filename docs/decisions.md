@@ -3,6 +3,19 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-10-30 — The tester's notes on build test-2026-10-30-2
+
+From `D2R Access test build 2026-10-30-2 notes.txt` and a new `descriptions.txt`. Confirmed by the
+tester: character titles in the main menu. Built and unit-tested only.
+- **The difficulty window is "Select Difficulty"**, the game's own `strselectdiff`, not its layout
+  name ("Character Difficulty Modal"). Rejected: the mod's own words, which the game's string
+  already gives in every language.
+- **The endgame areas' words are the tester's placeholders**, kept until they have seen them; the
+  cows' text gets one comma fixed ([descriptions](descriptions.md)).
+- **BACK+Y in hand-made maps: nothing new**; the note predates test-2026-10-30-3, which answers in
+  every inside level. Left out: the Chaos Sanctuary, which the game marks outside and open ground,
+  until the throne's logs show the chambers right.
+
 ## 2026-10-30 — The tester's notes on build test-2026-10-30
 
 From `D2R access-2026-10-30.7z` (notes, the `no-slayer` logs). Confirmed by the tester: the Secret

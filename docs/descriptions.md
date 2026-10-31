@@ -99,5 +99,8 @@ Both "Arreat Summit" and "The Arreat Summit" answer: the second by the banner's 
 the file by the rule above: all answered but The Secret Cow Level (39), the three Pandemonium
 areas Matron's Den, Forgotten Sands and Furnace of Pain (133-135) and Colossal Summit (137).
 Uber Tristram (136) shares the name "Tristram" with the ruins (38): `Tristram [136]` would part
-them. Duriel's Lair is "Tal Rasha's Chamber" and Kurast Docktown "Kurast Docks" in the game's
+them. **Since build test-2026-10-30-2's notes every level is answered**: the tester's words for
+the cows, and one placeholder ("Hell's influence has warped this area beyond all recognition.")
+for the three Pandemonium areas, `Tristram [136]` and Colossal Summit, until the tester has been
+there. Duriel's Lair is "Tal Rasha's Chamber" and Kurast Docktown "Kurast Docks" in the game's
 own words, as the file has them.

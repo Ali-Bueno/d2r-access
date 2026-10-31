@@ -100,6 +100,10 @@ constexpr std::string_view GoldModalPanel     = "DropGoldModal";
 constexpr const char*      GoldPanelTarget    = "GoldPanelMessage";
 constexpr const char*      GoldConfirmCommand = "DropGold";
 bool g_goldConfirmed = false;
+// Character select's difficulty window has no title widget; the game's own
+// "Select Difficulty" names it, not its layout name (a tester, 2026-10-30).
+constexpr std::string_view DifficultyModalPanel = "CharacterDifficultyModal";
+constexpr std::string_view SelectDifficultyKey  = "strselectdiff";
 
 // A modal's prompt (ConfirmationModalHD.json: Frame/Prompt) is set at
 // runtime; it is read natively a few updates after the modal opens, then the
@@ -221,6 +225,7 @@ std::string PanelTitle(std::string_view panel) {
 	}
 	// The game's strings have no plain "Main Menu" (only "Return to Main Menu").
 	if (panel == MainMenuPanel) return Strings::Current().mainMenu;
+	if (panel == DifficultyModalPanel) return Localization::Text(SelectDifficultyKey);
 	return {};
 }
 

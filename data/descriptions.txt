@@ -266,3 +266,15 @@ Worldstone Keep Level 3 = Jagged crystal formations burst from the floor, pulsat
 Throne of Destruction = The strange fire-like glow you've seen in the crystal formations earlier suffuses every surface now and you can feel the Worldstone pulsate through the soles of your boots. Baal's presence hangs like a nauseating stench in the air.
 #
 The Worldstone Chamber = The unfettered magic of the Worldstone crawls along your skin as you enter this vast vault. To the northeast, the size of a small keep, is the Worldstone itself, a glorious red crystal. You notice dark, oily tendrils snake through its natural facets, a clear sign of Baal's corruption.
+#
+The Secret Cow Level = This wide, open pasture is the realm of the elusive and dreaded Cow King and his bovine court. The air is fragrant and crisp, and warm sunlight caresses your skin. And yet, something is very wrong here.
+#
+Matron's Den = Hell's influence has warped this area beyond all recognition.
+#
+Forgotten Sands = Hell's influence has warped this area beyond all recognition.
+#
+Furnace of Pain = Hell's influence has warped this area beyond all recognition.
+#
+Tristram [136] = Hell's influence has warped this area beyond all recognition.
+#
+Colossal Summit = Hell's influence has warped this area beyond all recognition.
