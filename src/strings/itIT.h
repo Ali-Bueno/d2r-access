@@ -210,7 +210,6 @@ inline constexpr Table itIT {
 	.roomNoExits = "Nessuna uscita",
 	.wayUnexplored = "%s, non esplorato",
 	.roomOutside = "Non sei in una stanza del dungeon",
-	.roomPreset = "Nessuna stanza da elencare: quest'area è un'unica mappa fatta a mano",
 	.roomsEnabled = "Uscite delle stanze attivate",
 	.roomsDisabled = "Uscite delle stanze disattivate",
 	.roomsUnavailable = "Uscite delle stanze non disponibili",

@@ -210,7 +210,6 @@ inline constexpr Table ruRU {
 	.roomNoExits = "Нет выхода",
 	.wayUnexplored = "%s, не исследовано",
 	.roomOutside = "Не в комнате подземелья",
-	.roomPreset = "Комнат для перечисления нет: эта область — одна карта, сделанная вручную",
 	.roomsEnabled = "Выходы из комнат включены",
 	.roomsDisabled = "Выходы из комнат выключены",
 	.roomsUnavailable = "Выходы из комнат недоступны",

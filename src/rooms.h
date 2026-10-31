@@ -21,8 +21,11 @@ struct Opening {
 };
 
 struct Room {
-	int x = 0, y = 0, width = 0, height = 0; // the native room's own rect
-	std::vector<Opening> openings;           // border order: top, bottom, left, right
+	int x = 0, y = 0, width = 0, height = 0; // the native room's own rect, or a chamber's bounds
+	std::vector<Opening> openings;           // border order: top, bottom, left, right; a chamber's nearest first
+	// A chamber's own floor over the rect, row by row; empty for a streamed room.
+	std::vector<uint8_t> area;
+	// Within the rect; for a chamber, within a stair's reach of its floor, since stairs are set in walls.
 	bool Contains(Position position) const;
 	Position Centre() const;
 };
@@ -36,6 +39,7 @@ int PassableWidth(int bodyPattern);
 struct Doorway {
 	Position centre{}; // middle of the gap, halfway through the wall, in collision subtiles
 	int width = 0;     // gap width in cells
+	bool wallAlongY = false; // the wall runs along y, so the gap is crossed along x
 };
 // Every doorway the streamed rooms show, once.
 std::vector<Doorway> Doorways(const Radar::World& world);
@@ -90,6 +94,10 @@ struct Hysteresis {
 // The streamed room covering `position` and every passable gap on its border.
 // False when no resident room covers the point.
 bool Describe(const Radar::World& world, Position position, Room& out);
+// On a level built as one map, where streamed rooms mean nothing on the ground: the floor
+// reached from `position` without crossing one of `doorways`, and each of them that leads out.
+// False when no resident room covers the point.
+bool Chamber(const Radar::World& world, Position position, const std::vector<Doorway>& doorways, Room& out);
 // The level's own doorway width: the median width of every opening of every
 // streamed room, in cells. Zero when no room has an opening loaded.
 int TypicalOpeningWidth(const Radar::World& world);

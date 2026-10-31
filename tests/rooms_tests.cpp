@@ -276,6 +276,50 @@ void WallDoorways() {
 		"a door beside an inner corner of a shallow room is a doorway");
 }
 
+// A hand-made map's chambers (a tester, 2026-10-30: the Throne of Destruction): the floor up to
+// the gaps in its walls, each gap that leads out a passage, a stair in the wall the chamber's.
+void Chambers() {
+	auto hall = Floor(0, 0, 30, 30);
+	Block(hall, 0, 15, 12, 15);
+	Block(hall, 16, 15, 29, 15);
+	auto world = Level({hall}, {5, 5}, 2);
+	const auto doorways = Rooms::Doorways(world);
+	Rooms::Room north;
+	Check(Rooms::Chamber(world, world.player, doorways, north), "the player's chamber is found");
+	Check(north.x == 0 && north.y == 0 && north.width == 30 && north.height == 15, "the chamber stops at its wall");
+	Check(north.openings.size() == 1 && north.openings.front().across.y > 15, "its gap is one passage, leading across the wall");
+	Check(north.Contains({20, 3}) && !north.Contains({20, 25}), "the floor past the gap is another chamber's");
+
+	world.player = {5, 25};
+	Rooms::Room south;
+	Check(Rooms::Chamber(world, world.player, doorways, south) && south.openings.size() == 1
+		&& south.openings.front().across.y < 15, "from the other side the same gap leads back");
+
+	world.player = {14, 15};
+	Rooms::Room gap;
+	Check(Rooms::Chamber(world, world.player, doorways, gap) && gap.openings.size() == 1,
+		"standing in the gap is standing in the nearest chamber");
+
+	auto mouth = Floor(0, 0, 30, 40);
+	Block(mouth, 0, 0, 12, 19);
+	Block(mouth, 16, 0, 29, 19);
+	const auto corridor = Level({mouth}, {14, 5}, 2);
+	Rooms::Room inCorridor;
+	Check(Rooms::Chamber(corridor, corridor.player, Rooms::Doorways(corridor), inCorridor) && inCorridor.width == 3
+		&& inCorridor.openings.size() == 1 && inCorridor.openings.front().across.y > 19,
+		"a corridor is a chamber of its own, its mouth the way out");
+
+	auto walled = Floor(0, 0, 30, 30);
+	Block(walled, 0, 0, 29, 4);
+	const auto stairs = Level({walled}, {15, 20}, 2);
+	Rooms::Room room;
+	Check(Rooms::Chamber(stairs, stairs.player, Rooms::Doorways(stairs), room) && room.openings.empty(),
+		"a chamber with no gap in its walls has no passage");
+	Check(room.Contains({15, 2}) && !room.Contains({40, 15}), "a stair set in the wall is the chamber's");
+
+	Check(!Rooms::Chamber(stairs, {100, 100}, {}, room), "no chamber where no room is loaded");
+}
+
 void Geometry() {
 	Rooms::Room room{4, 8, 12, 12, {}};
 	Check(room.Contains({4, 8}) && room.Contains({15.9, 19.9}), "the rectangle includes its own first and last cell");
@@ -295,5 +339,6 @@ int main() {
 	TypicalWidth();
 	Geometry();
 	WallDoorways();
+	Chambers();
 	Passed();
 }

@@ -210,7 +210,6 @@ inline constexpr Table frFR {
 	.roomNoExits = "Pas de sortie",
 	.wayUnexplored = "%s, inexploré",
 	.roomOutside = "Pas dans une salle de donjon",
-	.roomPreset = "Aucune salle à lister : cette zone est une seule carte faite à la main",
 	.roomsEnabled = "Sorties des salles activées",
 	.roomsDisabled = "Sorties des salles désactivées",
 	.roomsUnavailable = "Sorties des salles indisponibles",

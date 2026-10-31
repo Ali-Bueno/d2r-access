@@ -210,7 +210,6 @@ inline constexpr Table deDE {
 	.roomNoExits = "Kein Ausgang",
 	.wayUnexplored = "%s, unerforscht",
 	.roomOutside = "Nicht in einem Dungeonraum",
-	.roomPreset = "Keine Räume aufzuzählen: dieses Gebiet ist eine einzige handgebaute Karte",
 	.roomsEnabled = "Raumausgänge aktiviert",
 	.roomsDisabled = "Raumausgänge deaktiviert",
 	.roomsUnavailable = "Raumausgänge nicht verfügbar",

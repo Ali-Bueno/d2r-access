@@ -210,7 +210,6 @@ inline constexpr Table zhTW {
 	.roomNoExits = "無出口",
 	.wayUnexplored = "%s，未探索",
 	.roomOutside = "不在地城房間內",
-	.roomPreset = "沒有可列出的房間：此區域是一張手工製作的地圖",
 	.roomsEnabled = "房間出口已啟用",
 	.roomsDisabled = "房間出口已停用",
 	.roomsUnavailable = "房間出口無法使用",

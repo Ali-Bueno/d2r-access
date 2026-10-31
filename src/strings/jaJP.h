@@ -210,7 +210,6 @@ inline constexpr Table jaJP {
 	.roomNoExits = "出口なし",
 	.wayUnexplored = "%s、未探索",
 	.roomOutside = "ダンジョンの部屋にいません",
-	.roomPreset = "部屋はありません。このエリアは手作りの一枚のマップです",
 	.roomsEnabled = "ルーム出口 オン",
 	.roomsDisabled = "ルーム出口 オフ",
 	.roomsUnavailable = "ルーム出口を利用できません",

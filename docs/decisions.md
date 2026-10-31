@@ -11,10 +11,12 @@ Cow Level's portal in the scanner as it opens. Built and unit-tested only.
   multiplayer. Alone it changes nothing. Rejected: a separate key for the party.
 - **Act V's wells loop** (`WellOperateFn`): the well handler, OperateFn 22, marks all 14 wells; the
   SubClass bit only five. Rejected: matching the Name column "well".
-- **The Throne of Destruction is not made a maze** ([rooms](rooms.md)): a preset level's rooms are
-  the generator's chunks and cut across open floor. BACK+Y now says the area is one hand-made map
-  instead of "Not in a dungeon room" on every inside preset level. Rejected for now: rooms from
-  the walls' gaps (`Rooms::Doorways`), a new segmentation.
+- **The Throne of Destruction's passages** ([rooms](rooms.md)): a preset level's streamed rooms
+  are the generator's chunks and cut across open floor, so BACK+Y splits an inside preset level
+  into chambers at the gaps in its walls (`Rooms::Chamber`). First released as a sentence saying
+  the area is one hand-made map; the tester: the missing passages were the problem, not the
+  wording. Not announced on entering: a chamber's bounds move as rooms stream in. Rejected: the
+  streamed chunks as rooms.
 - **The end screen reads itself** like the death screen (`SelfReadScreens` in `modal_reader.cpp`),
   its boxes in order; the expansion's has no "Vanquished". **Character rows say their title**
   (the row's `Title` box, "Slayer Tank"). Neither seen live: the log never reached the end screen.

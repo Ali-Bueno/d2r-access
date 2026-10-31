@@ -210,7 +210,6 @@ inline constexpr Table koKR {
 	.roomNoExits = "출구 없음",
 	.wayUnexplored = "%s, 미탐사",
 	.roomOutside = "던전 방 안이 아님",
-	.roomPreset = "나열할 방이 없음: 이 지역은 하나로 된 수작업 맵입니다",
 	.roomsEnabled = "방 출구 켜짐",
 	.roomsDisabled = "방 출구 꺼짐",
 	.roomsUnavailable = "방 출구를 사용할 수 없습니다",

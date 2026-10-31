@@ -210,7 +210,6 @@ inline constexpr Table plPL {
 	.roomNoExits = "Brak wyjścia",
 	.wayUnexplored = "%s, niezbadane",
 	.roomOutside = "Nie w komnacie lochu",
-	.roomPreset = "Brak komnat do wymienienia: ten obszar to jedna ręcznie wykonana mapa",
 	.roomsEnabled = "Wyjścia pomieszczeń włączone",
 	.roomsDisabled = "Wyjścia pomieszczeń wyłączone",
 	.roomsUnavailable = "Wyjścia pomieszczeń niedostępne",

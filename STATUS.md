@@ -11,7 +11,8 @@ From `D2R access-2026-10-30.7z` ([decisions](docs/decisions.md)). 129/129 CTest;
 build. **Unverified live.**
 - BACK+RT: party members first, switch `party-first` (on) (`VitalsService::PartyMembers`).
 - Act V wells loop: OperateFn 22 is a well (`WellOperateFn`) ([ground items](docs/ground-items.md)).
-- BACK+Y on an inside preset level (Throne of Destruction): `roomPreset` ([rooms](docs/rooms.md)).
+- BACK+Y on an inside preset level (Throne of Destruction): released as a sentence (`roomPreset`),
+  now the chamber's passages (`Rooms::Chamber`) ([rooms](docs/rooms.md)).
 - End screen read whole (`SelfReadScreens`, `[modal] EndScreenPanelExpansion ->`); character rows
   with their title (`Titled` in `focus_tracker.cpp`).
 - Descriptions: 5 areas missing (cows, Pandemonium x3, Colossal Summit) ([descriptions](docs/descriptions.md#act-v-2026-10-30)).

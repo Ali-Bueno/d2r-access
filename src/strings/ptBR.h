@@ -210,7 +210,6 @@ inline constexpr Table ptBR {
 	.roomNoExits = "Nenhuma saída",
 	.wayUnexplored = "%s, não explorado",
 	.roomOutside = "Fora de uma sala de masmorra",
-	.roomPreset = "Nenhuma sala para listar: esta área é um único mapa feito à mão",
 	.roomsEnabled = "Saídas de ambiente ativadas",
 	.roomsDisabled = "Saídas de ambiente desativadas",
 	.roomsUnavailable = "Saídas de ambiente indisponíveis",

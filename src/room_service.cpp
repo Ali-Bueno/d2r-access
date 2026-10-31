@@ -16,6 +16,7 @@
 #include "tutorial.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <mutex>
@@ -137,17 +138,22 @@ void Layout(const Lifecycle& state) {
 		return;
 	}
 	Rooms::Room room;
-	if (!Maze(state.level) || !Rooms::Describe(world, world.player, room)) {
-		// An inside level built as one map (the Throne of Destruction) has no rooms to
-		// list, though it looks like the maze before it (a tester, 2026-10-30).
-		const bool oneMap = !Maze(state.level) && Generated::FindLevelFlags(static_cast<int32_t>(state.level)).inside;
-		ScreenReader::Speak(oneMap ? strings.roomPreset : strings.roomOutside, true);
+	const bool maze = Maze(state.level);
+	// An inside level built as one map (the Throne of Destruction) is split into chambers
+	// at the gaps in its walls: players find their way out with this (a tester, 2026-10-30).
+	const bool oneMap = !maze && Generated::FindLevelFlags(static_cast<int32_t>(state.level)).inside;
+	std::vector<Rooms::Doorway> doorways;
+	if (oneMap) doorways = Rooms::Doorways(world);
+	if (maze ? !Rooms::Describe(world, world.player, room) : !oneMap || !Rooms::Chamber(world, world.player, doorways, room)) {
+		ScreenReader::Speak(strings.roomOutside, true);
 		AsyncLog::InfoF(g_context, "[room] layout asked: not in a dungeon room level=%d maze=%u",
-			state.level, Maze(state.level) ? 1u : 0u);
+			state.level, maze ? 1u : 0u);
 		return;
 	}
 	TagOpenings(world, state.level, room);
-	Announce(state, world, room, "asked");
+	if (oneMap) AsyncLog::InfoF(g_context, "[room] chamber: %zu floor cells, %zu doorways loaded",
+		static_cast<size_t>(std::count(room.area.begin(), room.area.end(), uint8_t{1})), doorways.size());
+	Announce(state, world, room, oneMap ? "asked in a chamber" : "asked");
 }
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;

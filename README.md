@@ -459,7 +459,9 @@ See [quest-log implementation and remaining work](docs/quests.md),
 
 **Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
 Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
-stairs and portals by their own name. **Ctrl+Y** (BACK+Y on the pad) says them again.
+stairs and portals by their own name. **Ctrl+Y** (BACK+Y on the pad) says them again, and on a
+hand-made inside level (the Throne of Destruction, Mephisto's) the ways out of the chamber the
+player stands in, cut at the gaps in its walls.
 **Ctrl+M** toggles the announcements.
 See [room exits](docs/rooms.md).
 

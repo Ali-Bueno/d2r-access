@@ -210,7 +210,6 @@ inline constexpr Table enUS {
 	.roomNoExits = "No way out",
 	.wayUnexplored = "%s, unexplored",
 	.roomOutside = "Not in a dungeon room",
-	.roomPreset = "No rooms to list: this area is one hand-made map",
 	.roomsEnabled = "Room passages on",
 	.roomsDisabled = "Room passages off",
 	.roomsUnavailable = "Room passages unavailable",

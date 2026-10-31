@@ -3,7 +3,10 @@
 #include "level_exit_layout.h"
 
 #include <algorithm>
+#include <climits>
 #include <cmath>
+#include <optional>
+#include <utility>
 
 namespace D2RAccess::Rooms {
 namespace {
@@ -31,6 +34,22 @@ void Side(const Radar::World& world, int fromX, int fromY, int length,
 		run = 0;
 	}
 }
+// controllersettings.json RoomTile.targetAcquisitionDistance: the pad takes a stair from this
+// many subtiles away, so a stair this near a chamber's floor is that chamber's.
+constexpr int StairReach = 4;
+// Rooms::Doorways' deepest wall: a passage through a thick wall ends this far past its middle.
+constexpr int DoorwayDepth = 2 * LevelExitLayout::SubtilesPerTile;
+
+// The cells across a doorway's gap at its middle (two rows halfway through a thick wall), and
+// one past each edge: the wall's own first cells.
+template <typename Visit> void GapCells(const Doorway& doorway, Visit&& visit) {
+	const double along = doorway.wallAlongY ? doorway.centre.y : doorway.centre.x;
+	const double row = doorway.wallAlongY ? doorway.centre.x : doorway.centre.y;
+	const int middle = static_cast<int>(std::lround(along)), half = doorway.width / 2 + 1;
+	for (int r = static_cast<int>(std::floor(row)); r <= static_cast<int>(std::ceil(row)); ++r)
+		for (int a = middle - half; a <= middle + half; ++a) doorway.wallAlongY ? visit(r, a) : visit(a, r);
+}
+
 void Openings(const Radar::World& world, const Radar::RoomGrid& room, std::vector<Opening>& out) {
 	const int passable = PassableWidth(world.bodyPattern);
 	const int right = room.x + room.width - 1, bottom = room.y + room.height - 1;
@@ -43,7 +62,12 @@ void Openings(const Radar::World& world, const Radar::RoomGrid& room, std::vecto
 
 bool Room::Contains(Position position) const {
 	const int px = static_cast<int>(std::floor(position.x)), py = static_cast<int>(std::floor(position.y));
-	return px >= x && py >= y && px < x + width && py < y + height;
+	const auto within = [&](int cx, int cy) { return cx >= x && cy >= y && cx < x + width && cy < y + height; };
+	if (area.empty()) return within(px, py);
+	for (int cy = py - StairReach; cy <= py + StairReach; ++cy)
+		for (int cx = px - StairReach; cx <= px + StairReach; ++cx)
+			if (within(cx, cy) && area[static_cast<size_t>(cy - y) * width + (cx - x)]) return true;
+	return false;
 }
 
 Position Room::Centre() const {
@@ -178,10 +202,86 @@ std::vector<Doorway> Doorways(const Radar::World& world) {
 			const Position at = columns ? Position{row, centre} : Position{centre, row};
 			const bool known = std::any_of(result.begin(), result.end(), [&](const Doorway& seen) {
 				return std::abs(seen.centre.x - at.x) + std::abs(seen.centre.y - at.y) <= passable; });
-			if (!known) result.push_back({at, face.to - face.from + 1});
+			if (!known) result.push_back({at, face.to - face.from + 1, columns});
 		}
 	}
 	return result;
+}
+
+bool Chamber(const Radar::World& world, Position position, const std::vector<Doorway>& doorways, Room& out) {
+	const int px = static_cast<int>(std::floor(position.x)), py = static_cast<int>(std::floor(position.y));
+	if (world.RoomAt(px, py) < 0) return false;
+	int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
+	for (const auto& room : world.rooms) {
+		minX = std::min(minX, room.x); minY = std::min(minY, room.y);
+		maxX = std::max(maxX, room.x + room.width); maxY = std::max(maxY, room.y + room.height);
+	}
+	const int width = maxX - minX, height = maxY - minY;
+	const auto inside = [&](int x, int y) { return x >= minX && y >= minY && x < maxX && y < maxY; };
+	const auto index = [&](int x, int y) { return static_cast<size_t>(y - minY) * width + (x - minX); };
+	std::vector<uint8_t> shut(static_cast<size_t>(width) * height), reached(shut.size());
+	for (const auto& doorway : doorways)
+		GapCells(doorway, [&](int x, int y) { if (inside(x, y)) shut[index(x, y)] = 1; });
+	const auto walkable = [&](int x, int y) {
+		return inside(x, y) && !shut[index(x, y)] && Radar::Passable(world.Cell(x, y, Radar::Layer::Terrain)); };
+
+	// Standing in a doorway's gap: the nearest floor beside it.
+	std::optional<std::pair<int, int>> start;
+	for (int reach = 0; reach <= StairReach && !start; ++reach) {
+		int best = INT_MAX;
+		for (int y = py - reach; y <= py + reach; ++y)
+			for (int x = px - reach; x <= px + reach; ++x) {
+				const int distance = (x - px) * (x - px) + (y - py) * (y - py);
+				if (distance < best && walkable(x, y)) { best = distance; start = {x, y}; }
+			}
+	}
+	if (!start) return false;
+	std::vector<std::pair<int, int>> queue{*start};
+	reached[index(start->first, start->second)] = 1;
+	int left = start->first, top = start->second, right = left, bottom = top;
+	for (size_t i = 0; i < queue.size(); ++i) {
+		const auto [x, y] = queue[i];
+		for (const auto& [dx, dy] : {std::pair{1, 0}, std::pair{-1, 0}, std::pair{0, 1}, std::pair{0, -1}}) {
+			const int nx = x + dx, ny = y + dy;
+			if (!walkable(nx, ny) || reached[index(nx, ny)]) continue;
+			reached[index(nx, ny)] = 1;
+			queue.push_back({nx, ny});
+			left = std::min(left, nx); right = std::max(right, nx); top = std::min(top, ny); bottom = std::max(bottom, ny);
+		}
+	}
+	out = {left, top, right - left + 1, bottom - top + 1, {}, {}};
+	out.area.resize(static_cast<size_t>(out.width) * out.height);
+	for (const auto& [x, y] : queue) out.area[static_cast<size_t>(y - top) * out.width + (x - left)] = 1;
+
+	// A doorway leads out when the floor past its gap is the chamber's on one side only.
+	for (const auto& doorway : doorways) {
+		const double along = doorway.wallAlongY ? doorway.centre.y : doorway.centre.x;
+		const double row = doorway.wallAlongY ? doorway.centre.x : doorway.centre.y;
+		const int middle = static_cast<int>(std::floor(along));
+		const auto cell = [&](int r) { return doorway.wallAlongY ? std::pair{r, middle} : std::pair{middle, r}; };
+		bool ours[2]{};
+		Position beyond[2]{};
+		for (const int side : {0, 1}) {
+			const int step = side ? 1 : -1;
+			const int first = side ? static_cast<int>(std::ceil(row)) + 1 : static_cast<int>(std::floor(row)) - 1;
+			const auto [x0, y0] = cell(first);
+			beyond[side] = {static_cast<double>(x0), static_cast<double>(y0)};
+			for (int depth = 0; depth <= DoorwayDepth; ++depth) {
+				const auto [x, y] = cell(first + step * depth);
+				if (!walkable(x, y)) continue;
+				ours[side] = reached[index(x, y)] != 0;
+				beyond[side] = {static_cast<double>(x), static_cast<double>(y)};
+				break;
+			}
+		}
+		if (ours[0] == ours[1]) continue;
+		out.openings.push_back({doorway.centre, doorway.width, ours[0] ? beyond[1] : beyond[0]});
+	}
+	const auto distance = [&](const Opening& opening) {
+		return std::hypot(opening.centre.x - position.x, opening.centre.y - position.y); };
+	std::sort(out.openings.begin(), out.openings.end(),
+		[&](const Opening& a, const Opening& b) { return distance(a) < distance(b); });
+	return true;
 }
 
 int TypicalOpeningWidth(const Radar::World& world) {

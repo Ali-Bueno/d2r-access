@@ -25,9 +25,16 @@ nothing stable to bake — but it also does not need one:
 - Other level types are excluded. `DrlgType 2` is a hand-built preset area (a
   town, a quest area) and `DrlgType 3` is open ground; in both the room
   partition is the generator's own bookkeeping and cuts across open floor,
-  where announcing a boundary would be noise. Asked there, BACK+Y says "Not in a dungeon room"
-  outside and, on an inside one (the Throne of Destruction, Andariel's and Mephisto's levels, the
-  Kurast temples), that the area is one hand-made map with no rooms to list (2026-10-30).
+  where announcing a boundary would be noise. Outside, BACK+Y says "Not in a dungeon room".
+- **Chambers of a hand-made inside level** (2026-10-30, a tester: "players rely on Mod+Y to find
+  exits"; the Throne of Destruction, Andariel's and Mephisto's levels, the Kurast temples):
+  asked for only, never announced on entering. `Rooms::Chamber` floods the loaded floor from the
+  player, stopping at the gaps `Rooms::Doorways` finds (every one, door gaps included, not the
+  creak's selection); each gap with the chamber on one side only is a passage, nearest first.
+  Level exits within a stair's reach (4 subtiles) of its floor are the chamber's. An arch wider
+  than two tiles is no doorway, so two halls joined by one are one chamber; floor not loaded
+  ends the chamber with no passage said. Log: `[room] chamber: N floor cells, D doorways loaded`.
+  A shut door's cells are wall in the terrain layer, so its gap is no passage, as on a maze border.
 
 `src/generated/level_flags.h` carries the per-level flags, generated from the
 game's own `Levels.txt` by `tools/gen_level_flags.py` and committed like the

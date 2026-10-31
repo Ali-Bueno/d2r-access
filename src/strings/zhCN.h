@@ -210,7 +210,6 @@ inline constexpr Table zhCN {
 	.roomNoExits = "无出口",
 	.wayUnexplored = "%s，未探索",
 	.roomOutside = "不在地下城房间内",
-	.roomPreset = "没有可列出的房间：此区域是一张手工制作的地图",
 	.roomsEnabled = "房间出口已开启",
 	.roomsDisabled = "房间出口已关闭",
 	.roomsUnavailable = "房间出口不可用",

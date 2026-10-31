@@ -260,7 +260,6 @@ struct Table {
 	const char* roomNoExits;
 	const char* wayUnexplored; // %s = a way out (direction, passage or exit name) never taken yet
 	const char* roomOutside;   // BACK+Y where there is no dungeon room to describe
-	const char* roomPreset;    // BACK+Y on an inside level built as one map (the Throne of Destruction)
 	const char* roomsEnabled;
 	const char* roomsDisabled;
 	const char* roomsUnavailable;
@@ -627,7 +626,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.vitalsOrbTextMissingOne, t.mercenaryLife, t.equipmentBroken, t.currentOfMaximum, t.equipRefused, t.equipRefusedBecause, t.goldCarried, t.goldStashed, t.goldPersonalStash, t.goldSharedStash, t.handsEmpty, t.tradeRequested, t.tradeAsking, t.tradeWith, t.tradeYourOffer, t.tradeTheirOffer, t.tradePartnerGold, t.tradePartnerItems, t.tradePartnerAccepted, t.tradePartnerWithdrew, t.tradeWeWithdrew, t.tradeCompleted, t.tradeCancelled, t.tradeEnded, t.tradePartnerUnknown, t.autoDetailEnabled, t.autoDetailDisabled, t.controlTooltipsEnabled, t.controlTooltipsDisabled, t.listSeparator,
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
-		t.roomExits, t.roomExitNamed, t.roomNoExits, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomPreset, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.mapSidesOn, t.mapSidesOff, 
+		t.roomExits, t.roomExitNamed, t.roomNoExits, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.mapSidesOn, t.mapSidesOff, 
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot,
 		t.walkTo, t.walkStopped, t.walkBlocked, t.walkNoRoute, t.walkNothing, t.exploreTo, t.exploreArrived, t.exploreNothing,
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,

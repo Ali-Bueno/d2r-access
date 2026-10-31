@@ -210,7 +210,6 @@ inline constexpr Table esMX {
 	.roomNoExits = "Sin salida",
 	.wayUnexplored = "%s, sin explorar",
 	.roomOutside = "No estás en una sala de mazmorra",
-	.roomPreset = "No hay salas que listar: esta zona es un único mapa hecho a mano",
 	.roomsEnabled = "Salidas de sala activadas",
 	.roomsDisabled = "Salidas de sala desactivadas",
 	.roomsUnavailable = "Salidas de sala no disponibles",
