@@ -304,4 +304,4 @@ key; left and right change key; both wrap (`PadTyping::Move`). Each key is said 
 types it, toggles Caps Lock ("upper case" / "lower case", letters said and typed so), or sends
 Backspace. Each edit starts on `q` in lower case and says so (`typingStartedQwerty`). No `ñ`: the
 character list never had one, and a loader game name travels to the other player. Off, the old
-character list is used. Unit-tested (`tests/pad_typing_tests.cpp`), unverified live.
+character list is used. Unit-tested (`tests/pad_typing_tests.cpp`); **confirmed live** by BFBeast666 (2026-11-01): "It works great!"

@@ -200,7 +200,7 @@ one control in the form's order, left/right stay within a row, and the stock cur
 ([multiplayer](docs/multiplayer.md#the-form-as-a-list-2026-10-28)). Stick typing walks a QWERTY
 keyboard, switch `pad-typing-qwerty`, on
 ([multiplayer](docs/multiplayer.md#the-qwerty-keyboard-on-the-right-stick-2026-10-28)).
-129/129 CTest; installed by the build. **Unverified live.**
+129/129 CTest; installed by the build. **Confirmed live** (BFBeast666, 2026-11-01): the QWERTY stick typing "works great".
 
 **Next step:** live: the Host Game form with the D-pad and the left stick (the log's
 `[menu-navigation] boxes: ... list:` gives the order heard); a game name typed on the QWERTY keyboard.
