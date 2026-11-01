@@ -27,6 +27,7 @@ enum class WithoutEnemy { Report, CastHere, RepeatHere };
 // needs an enemy says so. A held stationary attack repeats in place.
 constexpr WithoutEnemy MissingEnemy(int skill, bool stationary) {
 	if (stationary) return WithoutEnemy::RepeatHere;
+	if (skill < 0) return WithoutEnemy::Report; // unreadable: fought as the plain Attack
 	return Generated::SkillRequiresEnemy(skill) ? WithoutEnemy::Report : WithoutEnemy::CastHere;
 }
 }

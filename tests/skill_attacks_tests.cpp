@@ -49,8 +49,9 @@ int main() {
 		Check(SkillCast::MissingEnemy(skill, false) == SkillCast::WithoutEnemy::Report, "ordinary melee retains no-enemy readout");
 		Check(SkillCast::MissingEnemy(skill, true) == SkillCast::WithoutEnemy::RepeatHere, "Shift permits a held strike in place without a target");
 	}
-	for (const int skill : {-1, 100000, 36, 47, 48, 92, 107, 143, 151})
+	for (const int skill : {100000, 36, 47, 48, 92, 107, 143, 151})
 		Check(SkillCast::MissingEnemy(skill, false) == SkillCast::WithoutEnemy::CastHere, "optional/unknown skill attempts cast without inventing an enemy requirement");
+	Check(SkillCast::MissingEnemy(-1, false) == SkillCast::WithoutEnemy::Report, "an unreadable skill is fought as the plain Attack");
 	Check(Generated::SkillRequiresEnemy(378), "non-attack Blood Oath retains its independent enemy requirement");
 	Check(!Generated::SkillRequiresEnemy(3), "Unsummon targets a pet, not an enemy");
 	Check(SkillCast::OnUnit(true, false, 0) == 6, "normal A retains native left-unit command");

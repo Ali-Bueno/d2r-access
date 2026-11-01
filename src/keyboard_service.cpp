@@ -1300,8 +1300,8 @@ bool Shooting(const D2RL::PluginContext* context, uint64_t now) {
 
 Generated::SkillAttack KindOf(Hand hand) {
 	const int skill = NativeActions::SelectedSkill(hand);
-	// An unknown skill must not inherit Attack's enemy requirement.
-	return Generated::SkillAttackFor(skill);
+	// A skill that cannot be read is fought with as the plain Attack would be.
+	return skill < 0 ? Generated::SkillAttack::Weapon : Generated::SkillAttackFor(skill);
 }
 
 CombatTarget::Reach ReachOf(const D2RL::PluginContext* context, Hand hand, uint64_t now) {

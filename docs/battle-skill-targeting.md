@@ -14,7 +14,7 @@ Ported by hand from bladestorm360's 97cb7c4 (2026-11-01); not tested live.
   locked one, else says "No enemies".
 - **An attack with no enemy**: an optional-target attack casts once where you
   stand; a unit-only attack says "No enemies" as before. An unreadable skill is
-  no longer taken for the plain Attack.
+  still fought with as the plain Attack, as on main (the branch had dropped that).
 - **Shift+A, held**: left skill in place. `SkillCast::OnUnit` picks the game's
   stand-still unit command (0x07, 0x0E; Charge and Whirlwind 0x0A, 0x11); it
   beats chase and retreat, and with no enemy strikes the player's cell. Shift is
