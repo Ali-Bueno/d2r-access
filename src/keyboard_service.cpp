@@ -42,6 +42,7 @@
 #include "native_belt_fill.h"
 #include "native_class_choice.h"
 #include "native_list_rows.h"
+#include "native_stash_pages.h"
 #include "native_belt_rows.h"
 #include "native_entities.h"
 #include "spoken_direction.h"
@@ -127,6 +128,8 @@ enum class Command : uint32_t {
 	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, NpcNext, NpcPrevious, WalkToTarget, Explore,
 	Retreat, Stop, RoomLayout,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
+	// Alt+PageUp/PageDown: the shared stash's page before and after.
+	StashPagePrevious, StashPageNext,
 	// In a menu: the description of what the cursor is on, the pad's right stick up.
 	ReadDetail,
 	// Space and the right stick right on the settings list: open a group, or change
@@ -2287,7 +2290,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 			: command == Command::Transmute ? TransmuteButton : nullptr;
 		const bool menuKey = button || command == Command::ClickLeft || command == Command::ClickRight
 			|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::Repeat || command == Command::Stop
-			|| command == Command::ReadDetail;
+			|| command == Command::ReadDetail || command == Command::StashPagePrevious || command == Command::StashPageNext;
 		if (menuKey || command == Command::Sort || command == Command::FillBelt) {
 			if (!pressed) return D2RL::Input::ActionResult::Ignored;
 			if (command == Command::Sort) g_sort = true;
@@ -2295,10 +2298,18 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 			else if (button) g_press = button;
 			else KeyboardMenu::Deliver(command == Command::ClickLeft ? Act::ClickLeft : command == Command::ClickRight ? Act::ClickRight
 				: command == Command::ReadPrevious ? Act::TabPrevious : command == Command::ReadNext ? Act::TabNext
-				: command == Command::ReadDetail ? Act::Detail : command == Command::Repeat ? Act::MenuPrevious : Act::MenuNext);
+				: command == Command::ReadDetail ? Act::Detail
+				: command == Command::StashPagePrevious ? Act::PagePrevious : command == Command::StashPageNext ? Act::PageNext
+				: command == Command::Repeat ? Act::MenuPrevious : Act::MenuNext);
 			return D2RL::Input::ActionResult::Handled;
 		}
 	}
+	// Alt+Page keys are the stash's in a menu (above), the game's elsewhere.
+	if (command == Command::StashPagePrevious || command == Command::StashPageNext) return D2RL::Input::ActionResult::Ignored;
+	// Ctrl+Shift+Page keys are the menu's page jump, seen directly (keyboard_menu.cpp); the loader's one-modifier reads stay silent.
+	if ((command == Command::ReadFirst || command == Command::ReadLast || command == Command::CompareItem || command == Command::CompareEquipped)
+		&& KeyboardMenu::Active() && !g_playing.load() && (GetAsyncKeyState(VK_CONTROL) & 0x8000) && (GetAsyncKeyState(VK_SHIFT) & 0x8000))
+		return D2RL::Input::ActionResult::Handled;
 	// Shift+A is the equip click in a menu (above); in play it attacks in place.
 	if (command == Command::ClickLeft && event->binding.modifier == D2RL::Input::Modifier::Shift) command = Command::Attack;
 	// Other modified clicks and the cube's key are the game's keys out of a menu.
@@ -2370,6 +2381,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeValueControls::Initialize(context);
 	if (nativeHooks) (void)NativeClassChoice::Initialize(context);
 	if (nativeHooks) (void)NativeListRows::Initialize(context);
+	if (nativeHooks) (void)NativeStashPages::Initialize(context);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {
@@ -2405,6 +2417,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-read-last", "Read: next category, or last", Key::PageDown, Modifier::Control, Command::ReadLast},
 			Entry{"keyboard-compare-item", "Compare: the item in full", Key::PageUp, Modifier::Shift, Command::CompareItem},
 			Entry{"keyboard-compare-equipped", "Compare: the item equipped", Key::PageDown, Modifier::Shift, Command::CompareEquipped},
+			Entry{"keyboard-stash-page-previous", "Menu: shared stash, previous page", Key::PageUp, Modifier::Alt, Command::StashPagePrevious},
+			Entry{"keyboard-stash-page-next", "Menu: shared stash, next page", Key::PageDown, Modifier::Alt, Command::StashPageNext},
 			Entry{"keyboard-repeat", "Say it again", Key::Home, Modifier::None, Command::Repeat},
 			Entry{"keyboard-read-detail", "Menu: read the description", Key::J, Modifier::None, Command::ReadDetail},
 			Entry{"keyboard-swap", "Swap weapons", Key::Y, Modifier::None, Command::Swap},

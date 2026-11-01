@@ -80,6 +80,8 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Ctrl+PageUp | a skill's lines, opened and closed |
 | Ctrl+PageDown | an item's size; a skill's points left |
 | Shift+PageUp, Shift+PageDown | compare: the item in full, the one equipped |
+| Alt+PageUp, Alt+PageDown | the shared stash's page before, the page after, clamped at the ends ([stash pages](stash-pages.md)) |
+| Ctrl+Shift+PageUp, Ctrl+Shift+PageDown | the same, ten pages at a time |
 | Ctrl+R | repair all |
 | Shift+R | repair |
 | Alt+T | transmute |

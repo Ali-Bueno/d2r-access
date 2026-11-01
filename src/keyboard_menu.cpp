@@ -19,6 +19,7 @@
 #include "native_skill_hand.h"
 #include "native_skill_icons.h"
 #include "native_skill_navigation.h"
+#include "native_stash_pages.h"
 #include "native_sort.h"
 #include "native_tooltips.h"
 #include "native_ui.h"
@@ -27,6 +28,7 @@
 #include "panel_state.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
+#include "stash_pages.h"
 #include "tooltip_text.h"
 #include "ui_text.h"
 
@@ -179,9 +181,9 @@ Watched g_watched[] = {
 	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
 	{VK_OEM_5, Act::SayAgain, With::Nothing}, {'J', Act::Detail, With::Nothing},
 };
-constexpr size_t Acts = 8;
+constexpr size_t Acts = 12;
 constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu",
-	"say again", "description"};
+	"say again", "description", "previous page", "next page", "ten pages back", "ten pages forward"};
 std::atomic<uint64_t> g_delivered[Acts]{};
 std::atomic<uint32_t> g_pending{0};
 
@@ -1018,6 +1020,14 @@ void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
 	Expect(now + AfterClickMs, Name(*tab, {}));
 }
 
+// The shared stash's pages, by the native command. The game shows the page that
+// results (InteractionReader::TickStash); at an edge nothing moves, so say it.
+void StepPage(int delta, int pages) {
+	const int moved = StashPages::Change(delta, pages);
+	if (moved < 0) ScreenReader::Speak(Strings::Current().unavailable, true);
+	else if (moved == 0) ScreenReader::Speak(StashPages::Label(), true);
+}
+
 void StepMenu(const D2RL::PluginContext* context, uint64_t now, int delta) {
 	// The menu that is open: the one opened last.
 	int open = -1;
@@ -1078,6 +1088,10 @@ void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	case Act::ClickRight:   Click(context, now, MenuMouse::Button::Right); break;
 	case Act::TabPrevious:  StepTab(context, now, -1); break;
 	case Act::TabNext:      StepTab(context, now, 1); break;
+	case Act::PagePrevious: StepPage(-1, NativeStashPages::OnePage); break;
+	case Act::PageNext:     StepPage(1, NativeStashPages::OnePage); break;
+	case Act::PageBack:     StepPage(-1, NativeStashPages::TenPages); break;
+	case Act::PageForward:  StepPage(1, NativeStashPages::TenPages); break;
 	case Act::MenuPrevious: StepMenu(context, now, -1); break;
 	case Act::MenuNext:     StepMenu(context, now, 1); break;
 	case Act::SayAgain:     SayAgain(context, now); break;
@@ -1090,6 +1104,10 @@ void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 		break;
 	}
 }
+
+// Ctrl+Shift+PageUp/PageDown: the loader's bindings hold one modifier, so these are seen here.
+struct PageJump { int key; Act act; bool down = false; };
+PageJump g_jumps[] = {{VK_PRIOR, Act::PageBack}, {VK_NEXT, Act::PageForward}};
 
 // The keys of the menu seen directly. One the loader delivers is the loader's;
 // one it does not, on a screen where it delivers none, is acted on from here.
@@ -1119,6 +1137,11 @@ void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
 				ActNames[act], g_menu.c_str());
 		}
 		g_pending |= 1u << act;
+	}
+	for (auto& jump : g_jumps) {
+		const bool down = Down(jump.key);
+		if (down && !jump.down && !typing && shift && control && !alt) g_pending |= 1u << static_cast<size_t>(jump.act);
+		jump.down = down;
 	}
 }
 }
