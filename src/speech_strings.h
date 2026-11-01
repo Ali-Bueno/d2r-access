@@ -294,6 +294,8 @@ struct Table {
 	const char* tradeAlertsOff;
 	const char* weaponSwapAlertsOn;
 	const char* weaponSwapAlertsOff;
+	const char* skillHotkeysOn;
+	const char* skillHotkeysOff;
 	const char* handSpeechOn;  // the pick-up and placement speech switch
 	const char* handSpeechOff;
 	const char* skillGridOn;
@@ -646,7 +648,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot,
 		t.walkTo, t.walkStopped, t.walkBlocked, t.walkNoRoute, t.walkNothing, t.exploreTo, t.exploreArrived, t.exploreNothing,
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
-		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
+		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.skillHotkeysOn, t.skillHotkeysOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
 		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.updateCheckOn, t.updateCheckOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.unexploredEverywhereOn, t.unexploredEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction,
 		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff};

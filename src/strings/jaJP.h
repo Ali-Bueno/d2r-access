@@ -242,6 +242,8 @@ inline constexpr Table jaJP {
 	.tradeAlertsOff = "トレードの通知 オフ",
 	.weaponSwapAlertsOn = "武器切り替えの通知 オン",
 	.weaponSwapAlertsOff = "武器切り替えの通知 オフ",
+	.skillHotkeysOn = "スキルホットキーの通知 オン",
+	.skillHotkeysOff = "スキルホットキーの通知 オフ",
 	.handSpeechOn = "アイテムの持ち上げと配置の通知 オン",
 	.handSpeechOff = "アイテムの持ち上げと配置の通知 オフ",
 	.skillGridOn = "スキルツリーのナビゲーション オン",

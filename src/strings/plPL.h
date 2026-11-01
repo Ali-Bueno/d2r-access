@@ -242,6 +242,8 @@ inline constexpr Table plPL {
 	.tradeAlertsOff = "Komunikaty handlu: wyłączone",
 	.weaponSwapAlertsOn = "Komunikaty zmiany broni: włączone",
 	.weaponSwapAlertsOff = "Komunikaty zmiany broni: wyłączone",
+	.skillHotkeysOn = "Komunikaty skrótów umiejętności: włączone",
+	.skillHotkeysOff = "Komunikaty skrótów umiejętności: wyłączone",
 	.handSpeechOn = "Komunikaty podnoszenia i odkładania przedmiotów: włączone",
 	.handSpeechOff = "Komunikaty podnoszenia i odkładania przedmiotów: wyłączone",
 	.skillGridOn = "Nawigacja po drzewie umiejętności: włączone",

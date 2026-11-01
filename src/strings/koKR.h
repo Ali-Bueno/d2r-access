@@ -242,6 +242,8 @@ inline constexpr Table koKR {
 	.tradeAlertsOff = "거래 알림 꺼짐",
 	.weaponSwapAlertsOn = "무기 교체 알림 켜짐",
 	.weaponSwapAlertsOff = "무기 교체 알림 꺼짐",
+	.skillHotkeysOn = "기술 단축키 알림 켜짐",
+	.skillHotkeysOff = "기술 단축키 알림 꺼짐",
 	.handSpeechOn = "아이템 집기 및 놓기 알림 켜짐",
 	.handSpeechOff = "아이템 집기 및 놓기 알림 꺼짐",
 	.skillGridOn = "기술 트리 탐색 켜짐",

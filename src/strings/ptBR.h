@@ -242,6 +242,8 @@ inline constexpr Table ptBR {
 	.tradeAlertsOff = "Anúncios de troca: desligado",
 	.weaponSwapAlertsOn = "Anúncios de troca de armas: ligado",
 	.weaponSwapAlertsOff = "Anúncios de troca de armas: desligado",
+	.skillHotkeysOn = "Anúncios de atalhos de habilidade: ligado",
+	.skillHotkeysOff = "Anúncios de atalhos de habilidade: desligado",
 	.handSpeechOn = "Anúncios ao pegar e colocar itens: ligado",
 	.handSpeechOff = "Anúncios ao pegar e colocar itens: desligado",
 	.skillGridOn = "Navegação da árvore de habilidades: ligado",

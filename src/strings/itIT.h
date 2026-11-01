@@ -242,6 +242,8 @@ inline constexpr Table itIT {
 	.tradeAlertsOff = "Annunci di scambio: disattivo",
 	.weaponSwapAlertsOn = "Annunci di cambio armi: attivo",
 	.weaponSwapAlertsOff = "Annunci di cambio armi: disattivo",
+	.skillHotkeysOn = "Annunci dei tasti rapidi abilità: attivo",
+	.skillHotkeysOff = "Annunci dei tasti rapidi abilità: disattivo",
 	.handSpeechOn = "Annunci di raccolta e posizionamento oggetti: attivo",
 	.handSpeechOff = "Annunci di raccolta e posizionamento oggetti: disattivo",
 	.skillGridOn = "Navigazione dell'albero delle abilità: attivo",
