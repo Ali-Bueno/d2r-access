@@ -1,795 +1,346 @@
 # d2r-access — screen reader accessibility for Diablo II: Resurrected
 
-A [D2RLoader](https://d2rloader.net) plugin that makes Diablo II: Resurrected playable with a
-screen reader (NVDA, JAWS, SAPI…) through [PRISM](https://github.com/ethindp/prism). Built for
-blind players using a controller or the keyboard; see [keyboard play](docs/keyboard-play.md) and
-the [architecture guide](docs/architecture.md).
-
-## What works today
-
-- **Tutorial for a new character (built; live validation pending):** a level 1 character playing
-  alone is guided through the mod's tools (vitals, radar, scanner, route, beacon, the area
-  questions) through the Den of Evil's reward and the first waypoint, each step waiting for the
-  player to do it, with short lessons on levelling up, the inventory, gold and shops. A chime
-  opens each message and another marks a step done. BACK + right stick left/right (K, L) reads the
-  messages again, a sound's message playing its sound, and BACK + D-pad up (Shift+K) the first,
-  kept from the game; while a lesson plays its sounds, left plays the last one again and right goes
-  on. Switches `tutorial` and `tutorial-sound-wait` (each sound waits for the player) in the Ctrl+S
-  list; spoken in every language the mod speaks. See [tutorial](docs/tutorial.md).
-- **Audio description of the cinematics (built; live validation pending):** the seven act
-  cinematics, in both the 2021 and the classic 2000 versions, are narrated between their spoken
-  lines, in every language the mod speaks: who does what, and what makes the sounds you hear. It
-  works for the main menu's Videos list (confirmed) and for the videos the game plays between acts
-  (built from the game's code, not yet heard in play; if the video cannot be identified, nothing is
-  said). Switch `audio-description` in the Ctrl+S list. See [cinematics](docs/cinematics-audio-description.md).
-- Screen changes and panels are announced with the game's own localized titles (title screen,
-  main menu, character select/create, options tabs, cinematics, calibration, modals). The main
-  menu's news ("Reign of the Warlock available now!") is read as it opens (`main-menu-news`, on).
-  The death screen and the end screen after the last boss read themselves whole ("Congratulations!
-  Tank Will Henceforth Be Known As Slayer Tank"), and a character row says the title the game
-  shows above the name ("Slayer Tank, Level 39 Paladin").
-- **Controller focus is read on every menu**: the focused button, checkbox, dropdown, carousel,
-  slider or text field is spoken with its label, its role and the game's own tooltip text.
-  Catalog controls now resolve from native focus identity first, fixing silent main-menu
-  actions after returning from gameplay when cached rectangles no longer match.
-- Slider values are spoken as a percentage, on focus and while changing them.
-- Checkbox and carousel states are tracked from the game's `Settings.json` plus the player's input;
-  dropdown popups read the highlighted option.
-- Character class names while creating a character.
-- The waypoint panel says each row's state from the game's own row table: "Dark Wood, you are
-  here", "Jail Level 1, undiscovered", and "Terror Zone" while the area is one; its act tabs
-  ("I" to "V") are said with the game's own "Act 1" to "Act 5" (built; live
-  validation pending). See [the waypoint panel](docs/waypoints.md).
-- Native text in dropdown rows, character rows and confirmation prompts. Character
-  selection reads the name and level/class from the selected runtime row, even
-  when the game's focus remains on the first row.
-- D2RLoader multiplayer controls use native focus for host, browser and direct-join
-  fields, buttons, checkboxes and overlay context. Short D-pad presses move between
-  the form controls. Hosting status and empty browser
-  results are announced when they change. See [playing with a friend](docs/multiplayer.md)
-  for setup and the current validation limits.
-- Everything is spoken in the game's text language: the plugin's own phrases are translated into all thirteen D2R locales and follow the language selected in the game's options (changing it in Options switches the plugin too).
-
-Implemented, awaiting live NVDA/controller verification: in-game NPC menus and topic
-lists, full scrolling dialogues, tutorial/automatic hints and area-name banners. The
-reader follows native controller focus and visible text, and suppresses repeated
-announcements. With the game's *NPC Speech* sound option on *Audio Only*, dialogue
-text is not read: the voice carries it. See [the controller test guide](docs/test-ingame-text.md).
-
-The user confirmed the Rogue Encampment entry announcement. Informational notices
-(including the Classic/Expansion restriction when pressing **G**) and the visible
-HUD notification feed now have a reader. The user confirmed that the G warning
-also reads on subsequent presses. New notices queue
-without interrupting a conversation. A new delivery of identical text is read
-again; simply leaving a notice visible stays silent. Notification text with links
-uses its native embedded textbox.
-
-The user confirmed the stash and Charsi target labels, basic inventory
-selection, smooth inventory navigation, and axe descriptions in the blacksmith's shop. The reader
-also exposes inventory coordinates and selected stash tabs. Item grids and equipment
-announce one name and its quality, such as `Crimson Spear. magic`, or
-`Spear. Unidentified`. Magic, set, rare, unique and crafted items use the game's
-full tooltip name. The stock 400 ms controller tooltip delay is removed everywhere
-(`TooltipDelay`), so an item is named from the game's own tooltip at once.
-Prices and properties are available with right-stick up, or automatically with
-autodetail (in the Ctrl+S settings list).
-
-To compare an item with what is equipped, **hold Y** on it (triangle on a
-PlayStation controller) and keep it held: the game shows the comparison only
-while Y is down, and holding it reads nothing by itself. While Y is held the
-**left stick** reads, and stops moving the cursor:
-
-- right: the equipped item the game compares with;
-- left: the highlighted item again;
-- up: its detail; down: the controls.
-
-The right stick is unchanged (detail up, controls down), so it does not read the
-comparison. Releasing Y ends it. As Y shows the comparison the mod says so and
-how the left stick reads it ("Comparing. Left stick: right, the equipped item;
-left, this item"); **Compare hint while Y is held** in the Ctrl+S settings list
-turns that off. With **Equipped item comparison read aloud** turned on there (off
-by default) the equipped item is read instead, as soon as Y shows the comparison. From the keyboard, Shift+Page Up reads the
-whole item and Shift+Page Down the equipped one. Unidentified items expose only the text
-the game renders: basic damage/defense and requirements, with magic properties
-remaining hidden until identification. Empty grid cells retain coordinate feedback. See
-[native tooltip evidence](docs/native-tooltips.md).
-
-The mercenary panel uses the shared stat-row reader. When the controller leaves
-that panel without a focused widget, the right stick reads its visible statistics
-one row at a time, as on the character panel. Equipment focus retains item detail.
-The advanced statistics panel also reads its live rows for either character:
-right-stick up/down moves between rows, and left/right reads the first/last row.
-Focusless inventory transitions no longer read every label, gold amount or
-controller-font symbol as a modal message.
-
-Hiring rows retain their candidate text and read the game's current controller
-actions. When the game renders skill descriptions for a row, those descriptions
-are announced and can be repeated with right-stick up. Disappearing skill tooltips
-do not interrupt the full description by repeating its remaining fragment.
-Closing them or changing focus clears the detail. Live logs confirm all three
-Act I skills; the correction awaits listening validation. See
-[hiring evidence](docs/character-panel.md#hiring-rows-2026-09-22).
-
-Existing NPC menu rows read
-without a population delay; inventory coordinates settle for one poll and
-already rendered item descriptions read immediately. Inventory section controls
-are discovered on entry and their selected values stay live, avoiding repeated
-full inventory walks. Gameplay focus is sampled at 30 Hz.
-
-The latest build also reads LT/RT (L2/R2) tab changes from the visible tab bars,
-including the controller menu strip and stash tabs while selection stays in the
-player inventory. Runtime logging now runs on a separate worker because the
-loader forces a disk flush on every line. The user confirmed inventory responsiveness
-after this change; tab announcements still await confirmation;
-see [latency and tab evidence](docs/navigation-latency.md).
-
-Character point-allocation buttons now announce **Strength, Dexterity, Vitality
-or Energy**, their current value, remaining points and help in the game's language.
-Allocating a point reads the changed value and remaining count. Skill trees now add
-**D-pad grid navigation**: each press selects one visible skill, skips gaps and stops
-at the boundary. Holding or changing direction without fully releasing the D-pad
-does not repeat selection. Releasing cancels any pending native cursor snap and
-restores free stick movement. Branch tabs are named, and each highlighted
-skill reads its name first, followed by its row/column, position within the branch,
-remaining points, current controller binding and available action buttons. Hold-to-use
-instructions come from the game's own footer. The full description, requirements
-and levels follow. Cursor selection now also refreshes native hover to prevent
-stale descriptions. General/item-granted skills use the same
-description reader. No points are spent by the mod. These additions passed
-automated checks. The user confirmed the description/action-help correction with
-the controller. All thirty skills in the inspected Barbarian
-tree are reachable in the navigation tests. See [skill actions and coverage](docs/skill-actions.md).
-See [progression evidence](docs/progression.md) and the
-[controller navigation follow-up](docs/controller-navigation.md).
-Use `access-skill-grid off` to restore stock skill navigation.
-
-With a controller, Options has **Video, Audio and Gameplay**. The game only adds
-the fourth **Controls** tab in keyboard mode. Controller cursor speed and
-thumbstick/weapon-swap settings are further down in **Gameplay** (**Juego**).
-
-Inventory icon buttons now use their native label/help or controller legend,
-including **Soltar oro**, and equipment slots announce their body location
-(head, neck, weapon, ring, belt, and so on), followed by any rendered item description.
-The user confirmed these additions. The specific
-scroll-related control reported by the user has not yet been identified live.
-
-The inventory/NPC follow-up reads equipment slot names immediately, reports
-confirmed empty/occupied slots even while the game has no item tooltip, and
-rejects lingering descriptions after equipment is removed. Controller footer
-actions now cover inventory, stash and NPC services as well as skills: repair,
-shop/refresh and other available actions use the game's current button labels
-and hold instructions. Unchanged actions are not repeated on every item; manual
-text repeat includes them. No purchase, repair or quest service runs automatically.
-UI memory permission checks are reused within each reading pass to reduce cursor
-stalls. These changes are built and tested; live controller/NVDA validation remains
-pending. See [inventory and NPC follow-up](docs/inventory-npc-followup.md).
-
-The user confirmed improvement and prefers the game's equipment-placement
-navigation. Picking up an inventory item now announces **Item in hand**, with
-a short instruction to choose a space or compatible equipment slot. Leaving
-that mode announces the placement destination when known. Brief focus gaps or
-crossing another control do not repeat the pickup instruction. While carrying
-an item, equipment destinations read immediately, including occupied slots
-whose item tooltip is still pending. Manual repeat includes the held-item
-context while in the inventory. Picking up and placement speech is one switch
-in the Ctrl+S settings list (`hand-speech`), on by default.
-
-The **belt** now names the D-pad direction and row of each focused cell, its
-potion, and the total items in that column. The bottom row is used first;
-higher rows are reserves for the same button. Placement names the destination
-button and row too. If the game displays an automatic potion from the inventory
-in an empty bottom cell, the reader identifies it separately from physical belt
-reserves. No new controller binding is added. See [potion assignments](docs/belt.md).
-
-**Hold LT (L2) alone** for about half a second during play to hear the LT skill
-bar, the six skills the game puts on LT + A, X, B, Y, RB and RT: each control,
-the skill's name in the game's language and the count the HUD draws (scrolls in
-a tome). Releasing LT stops the reading; an LT + button combo never triggers it.
-`access-skill-bar on|off` toggles it. See [the controller skill bar](docs/skill-bar.md),
-which also lists what every stock controller button does.
-
-An experimental **navigation radar** now reads the collision grids of loaded
-game rooms. It synthesizes four directional cues: a bright `tin` when a passage
-leads somewhere (another chamber of a dungeon, or a level exit), a soft breath
-for floor that leads nowhere new (rising upward, falling downward), a dull `tock` for a nearby wall and two
-knocks for a closed door ([readings](docs/radar-readings.md)),
-using fixed **up / left / right / down** directions that match the left stick;
-down has a lower pitch. `[radar] diagonals = true` or `access-radar diagonal`
-switches to the stick's diagonals, which the game turns into the directions its
-walls and corridors run in; each is then panned to its side and the two lower
-ones have a lower pitch. Simultaneous
-cues play successively with **50 ms of
-silence between them**. Exit readings include nearby transitions between outdoor
-areas when the passage scan confirms an approach. The radar checks the full body along each passage using
-the player's native movement mask. It also recognizes a complete, uniquely
-identifiable player footprint displaced from the reported cell, preventing that
-footprint from appearing as a nearby wall. Ambiguous shapes keep their blocking
-markers. It separates creature occupancy from terrain and keeps the original
-movement mask as the final opening check. With wall-slide prevention on (the
-default), a direct move stops at stones, trees and furniture, so the radar
-announces them as obstacles: a lone one up to a map tile across, with a way
-round it, has its own short, higher knock instead of the wall's tock
-(`small-obstacles` in the Ctrl+S settings list). With prevention off the game steers round them, so
-isolated furniture and small clutter are excluded from automatic space changes
-when a full-body check proves a route around them. Walls, doors, enclosed
-spaces and objects cutting off a corridor remain structural barriers either way.
-Uncertain cases retain their collision.
-
-The radar follows **usable connected passages** and remembers a wall's position
-when you move away from it. More free floor before the same wall stays silent;
-an opening must prove a clear approach past that remembered edge. A nearer
-observed barrier updates the reference, and an announced doorway can sound on
-return after the intervening wall is confirmed. It also retains multiple
-announced approaches per direction within the current area. An opening no
-longer replaces an earlier one, and pauses or temporary reading gaps preserve
-their positions. Returning requires fresh full-body clearance. Approaches join
-one remembered region only when the whole connecting strip is clear; crossing
-its other edge does not immediately repeat it. Staying at the same spot remains
-silent. Local contour checks keep
-small raster changes on an observed continuous wall from becoming exits. Moving along
-the wall can still reveal a doorway or its end. Unknown coverage does not turn
-an old wall into an exit. The four wall references supplement the local native
-body graph; they are not a saved exploration map. Speed and queue length do not
-create geometry transitions. Changes require two observations, with 120 ms cues
-and 50 ms silent gaps; a cancelled cue retries only if it never started.
-
-**Ctrl+G** toggles it; **Ctrl+T** first describes actual recent screen movement
-(including diagonals), then the four straight-line clearances, and saves a local
-map snapshot. This distinguishes moving along a wall from being stationary while
-one or two straight rays are blocked. Short passages remain limited space;
-recognizable actor obstruction is an occupied passage. It starts enabled,
-baselines silently and pauses during dialogue/offline pause. Existing settings
-are preserved; no external map or sound installation is required.
-
-Live map reads work in the camp and Blood Moor. The user confirmed that object
-filtering and connected passages helped. The latest correction retains known
-walls during retreat, follows local raster contours and rearms return visits.
-Cue events automatically capture local collision for diagnosis. This update is
-built and installed; controller/listening validation is pending. See
-[opening memory and current validation](docs/radar-opening-memory.md),
-[short return visits](docs/radar-revisits.md),
-[wall contours and sliding](docs/radar-sliding.md),
-[remembered walls](docs/radar-wall-memory.md),
-[connected passages and tests](docs/radar-connected-passages.md) and
-[object filtering](docs/radar-object-filtering.md) for behavior and limits.
-[Sonar controls](docs/sonar-radar.md) and
-[cue delivery](docs/radar-state-delivery.md) document the rest.
-
-**Movement without wall sliding** stops direct directional movement when the
-game would otherwise choose another direction around a blocked target. Enabled
-by default; `access-movement on|off|status` controls it for the current session.
-Mouse routes retain their normal pathfinding. The hook is restricted to the
-local player's directional path and checks the game code before installation.
-Stairs and passages a few cells wide keep the game's 45-degree slide, so a stick a little off a
-diagonal stairway still climbs it (`narrow-slide`, Navigation, on).
-Controller validation is pending; see [behavior and evidence](docs/wall-sliding.md).
-Pushing the stick into a wall the game refuses to cross sounds one low **wall
-bump** thud, panned by the push; it repeats only after a step, a turn of more
-than 45 degrees or a release of the stick (`wall-bump` in the Ctrl+S settings
-list), or, with `wall-bump-repeat` (Loop speeds; once by default, every 250 ms to 2 s),
-over and over while the push goes on. See [radar readings](docs/radar-readings.md).
-
-**Sound glossary:** the last group of the Ctrl+S settings list holds the mod's
-sounds (radar readings, wall bump, guidance, enemy and NPC cues, the NPC
-exclamation mark chime, the inventory edge knock, every loot and place loop, the
-Necromancer's corpse rattle): landing on one names it and plays it once, Space plays it again
-(`src/sound_glossary.cpp`). Its last entry is a group of its own with the game's Diablo II drop
-sounds. Landing on a group says it is a sub menu ("Sounds sub menu"). The list's own switches live
-in the **Settings list** group: at either end it goes round with a click, or with `settings-list-stops`
-stays there with a knock; `settings-list-restart` opens it at its first entry instead of where it was
-left.
-
-**Speech priority (built; live validation pending):** the **Speech priority** group of the settings
-list sets, for each kind of news (status effects beginning and ending, life and mana alerts, boss
-life, enemy names, game messages, quest updates, places, items on the ground, the tutorial, arrivals
-at a target), whether it waits its turn, cuts in only when urgent, always cuts in, or cuts in and
-cannot be cut off for 1.5 s. The defaults keep the mod's earlier behaviour, except status endings,
-which cut in, and arrivals, which cannot be cut off (a door's name under the cursor cut them). See
-[speech priority](docs/speech-priority.md).
-
-An experimental **stalled-footstep filter** suppresses repeated local HD
-footfalls when the character remains at exactly the same position while walking
-or running. Any fractional movement restores footsteps, including sliding along
-a wall. It starts enabled; **Ctrl+F** toggles it for comparison. The first blocked
-footfall may still sound. Native code checks and automated tests pass; the new
-filter awaits live listening validation. See [footstep behavior and limits](docs/footsteps.md).
-
-Not yet: full inventory operation coverage, full chat history, general in-game HUD/combat,
-full-map navigation and complete quest-objective coverage while the journal is unloaded.
-Named landmarks inside towns are under investigation; see [map findings](docs/map-landmarks.md).
-See `STATUS.md` for the live ledger.
-
-**Ground items:** approaching loot reads its localized base name and quality
-(gold also reads its amount). Nearby objects use the supplied continuous 3D
-loops, with stereo direction, distance attenuation and slightly lower pitch
-behind you. Orientation follows the screen: up is ahead, down is behind.
-**Ctrl+I** toggles proximity speech and **Ctrl+L** toggles loops independently.
-Loops start only after an item lands. Their level is normalized and was reduced
-by about 3.5 dB following the user's listening feedback, including piles of items.
-Sounds stop for pickup, dialogue, pause and leaving the game. See
-[item sound categories, controls and validation](docs/ground-items.md).
-The native reader and all six audio assets have initialized in a live game.
-
-**Quest item cues:** `quest item.ogg` marks nearby ground quest items and unused
-quest-item objects, including the Tree of Inifuss, the Malus, Lam Esen's Tome,
-and the Horadric and Khalim component chests. Every unactivated Cairn Stone is
-eligible for the cue. The scan, catalogue and beacon name its fixed symbol;
-opening the deciphered Scroll of Inifuss reads the symbol sequence. Reopen it
-to hear the sequence again, then choose which stone to touch yourself.
-Quest mechanisms also use the cue until they are used: the Compelling Orb, the
-Chaos Sanctuary seals, the Altar of the Heavens, the Hellforge, Frozen Anya, the
-Horadric Staff orifice, the Tainted Sun altar, the Gidbinn altar, Cain's Gibbet
-and the Kurast sewer lever. The seals are named Seal 1 to Seal 5, and the mod
-says how many are left. The opened sewer stairs are an exit.
-The cue repeats about every 700 ms,
-uses screen direction and reaches 45 subtiles with a gentler distance fade.
-Up to two quest sources get priority
-over ordinary sounds. Pickup or successful activation silences it; **Ctrl+L** toggles
-these cues together with item loops. Detection covers loaded nearby rooms;
-it does not locate the tree across the entire Dark Wood or check active quest flags.
-
-Navigation and loot cues use game state and bundled or synthesized sounds,
-independently of the text and voice language. If a container or exit name cannot
-be read, its cue remains available with a generic localized label. Beacon audio
-is cancelled when guidance is suspended by dialogue, menus or loss of focus.
-See [audio language verification and limits](docs/audio-language-audit.md).
-
-**Level exits:** entrances that require interaction, including dungeon stairs,
-cave entrances, portals and waypoints, play the `portal` loop; the stash plays
-its own `stash` loop with them. Only crossings
-traversed by walking use `zone transition`, at openings in the loaded collision map. The scanner
-names exits after their destination. **Ctrl+P** toggles the exit loops;
-`access-items exits-on|exits-off`. See [level exits](docs/level-exits.md).
-
-**Unexplored rooms:** only the nearest unvisited dungeon room within audio range
-plays `unexplored room` in a loop. Entering a new room plays `inside unexplored
-room` once; revisiting it stays silent, including after reloading the saved map.
-The two room sounds can be disabled with `[exploration] enabled = false` in the
-plugin config. See [exploration](docs/exploration.md).
-
-**Containers:** chests, caskets, urns, barrels, crates, corpses and the other
-things you open for loot loop through the same mixer, so you can hear where they
-are; dead bodies use the `corpse` loop and weapon racks the `weapon rack` loop
-instead of `chest`. Opening one silences it. What counts as a container comes from the game's
-own interaction handler, not from the name, so it holds in every language.
-**Ctrl+K** toggles them; `access-items chests-on|chests-off`, and `chests-dump`
-logs the verdict for everything currently in sight. See
-[container loops](docs/ground-items.md#container-loops).
-The user confirms that the ground-item loops are audible. The quieter level and landing-only
-start await a follow-up listening check.
-
-**Doors:** a shut door loops `wooden door`, `metal door`, `stone door` or
-`slime door`, chosen by the sound the game itself plays when that door opens,
-and falls silent once opened, unless `open-door-sounds` (off) keeps it. In the Crypt, the
-Mausoleum and the Tower Cellar, in Tristram (not yet its burning houses) and in Act I's cottages
-and the Tower's ruin every doorway creaks (`doorway-sounds`, on) and is listed in the scanner with the doors
-(`doorways-listed`, on). Walking past a Jail secret door says "You feel a cool draft." once
-(`secret-drafts`, on; [secret doors](docs/secret-doors.md)).
-Doors and doorways have their own volumes (`door-volume`, `doorway-volume`).
-A click every 1, 5 or 10 units walked tells distance (`step-clicks`, off; `step-click-interval`,
-5; `step-beep` for the first beep instead of the click; `step-volume`). With `distance-steps`
-(Navigation, off) every distance is said in steps, one step being one click: "10 steps" for 50
-units at the default interval. Scrolls, runes and gems on the ground have their
-own `scroll`, `rune` and `gem` loops; the Moldy Tome and Horazon's journal play
-`scroll` until read. `[doors] enabled` in the plugin config and
-`access-items doors-on|doors-off` switch the door loops. See
-[door loops](docs/ground-items.md#door-loops).
-
-**Scanner (right stick; live validation pending):** during play, push the
-right stick up or down to change category, and left or right to step through
-it, nearest first. It lists what a sighted player finds on the automap: exits,
-portals, waypoints, NPCs, the stash, shrines, objects, quest objects (their own category),
-visited areas and, in their own category, the unexplored areas sharing an
-open edge with what you have explored. It also lists the enemies in sight right now and, in multiplayer,
-the other players nearby and party members anywhere on the same level, by
-name, walls or not. Exits, waypoints and the stash you have found stay listed
-from anywhere on the level in later games too, as long as the map is the same;
-a regenerated map starts with none. Ground loot and
-ordinary chests are left to their sounds. Keyboard: Ctrl+Numpad 8/2 (category)
-and 4/6 (object). See [scanner](docs/entity-scan.md).
-
-**Directions and distances:** directions are screen directions said as compass points (north
-is the top of the screen, "northeast" its upper right) or, with the `direction-style` setting
-in the Ctrl+S list, as clock hours (twelve is the top). Distances are in units: one unit is
-the game's smallest map cell (a subtile). See [spoken directions](docs/radar-readings.md#spoken-directions-2026-10-13).
-
-**Route description (built; live validation pending):** **BACK + right stick down**, or
-**Ctrl+E**, says the way to what the beacon follows, else to what the scanner named last, as
-a sighted player plans it off the minimap: "Route to Akara, 85 units: north, 20; then door;
-then east, 30". Nothing walks for you; ask again on the way for the rest. While you walk it,
-the next leg is said at each turn ("Now east, 30"), never before half the leg is walked, and
-"Off the route" once if you leave it (`route-prompts`, on); a room is arrived at anywhere in it;
-the whole length and the legs can each be left out (`route-total`,
-`route-legs`, both on). Turns come at least 5 units apart (`route-long-legs`, on): a shorter
-leg is folded into its neighbour, so the way is walked a little off its exact cells.
-In exploration mode it prefers explored ground and otherwise guesses
-across rooms never entered, and says so. See [route description](docs/route-description.md).
-
-**Area and landmark descriptions (built; live validation pending):** **BACK + right stick up**
-says hand-written words for the area you are in. The first time a landmark with words comes
-into reach, its words replace its name (the Hangman's Tree of the Burial Grounds), and the first
-time a described area is entered, its name is followed by how to hear them (switch
-`description-hint`, off). The words are in the game's language (13 languages, English where one
-lacks a line), sealed into the plugin: they are changed only in this repository, in
-`data/descriptions/<locale>.txt`, one `Name [Id] = words` line per area. See
-[descriptions](docs/descriptions.md).
-A player's town portal is listed by whose it is, "TankMan's portal", and where it leads is read
-off the portal itself on reaching it; one opened anew replaces the old ([town portals](docs/portals.md)).
-The desert's cliff stairs are one entry, "stairs", halfway up; the Countess's Gilded Cistern of
-Virgins (the basin of blood in Tower Cellar Level 5), Tristram's fountain and Lut Gholein's
-palace entrance are listed too ([places](docs/places.md)).
-
-**Target guidance (built; live validation pending):** press **BACK+LB** (L3 is the
-game's walk/run toggle) or **Ctrl+B** to follow what the scanner last named with directional pings.
-After naming another target, one click switches to it; clicking again on the
-same target cancels. See [distant exits](docs/distant-exits.md) and
-[target guidance](docs/beacon.md).
-
-**Exploration mode (default; live validation pending):** a room is explored as
-soon as you step into it. The scanner lists every landmark in an explored room
-(stood in, underfoot, or drawn by the game's automap, including parts drawn in
-earlier games), anything that has come into range with a clear line of sight,
-the areas you have stood in, and the unexplored areas at the edge of explored
-ground, loaded or not, but never what they contain. It gives their
-straight-line distance and direction. Whatever it lists can be routed to and
-followed: the beacon prefers explored ground, otherwise guesses across rooms
-never entered and leads into the first of them; a room is reached at your
-first step inside. With no known or guessable way it says there is no route
-through explored areas and stays silent. Another player is always followed. See
-the [automap reader](docs/automap-reader.md) and [exploration mode](docs/beacon.md#exploration-mode).
-**Full assistance** restores routes through unexplored areas and the whole
-generated catalogue: add `full_assistance = true` under `[navigation]` in
-`d2rloader/config/d2r-access.toml` and restart, or switch for the session with
-`access-beacon full` (`access-beacon exploration` switches back). See
-[exploration mode](docs/beacon.md#exploration-mode).
-
-**Player corpses** have their own scanner category, after players: "your
-corpse" and "X's corpse", from the game's ownership link. Once seen, a corpse
-is listed from anywhere on its level for the rest of the game; a party
-member's corpse is listed even unseen, from the party roster. Picking it up
-removes it. Scenery corpses retain their ordinary container behavior. See
-[corpse detection and limits](docs/player-corpse-re.md).
-The beacon retries a failed room-graph read instead of keeping an empty graph
-for the entire level.
-
-**Quests (built; live validation pending):** quest buttons have names from the
-game's string tables. Selecting a quest reads its current objective; changing
-progress reads only updated text, including counters supplied by the game.
-The current controller button and action are read with the quest, with the
-visible dialogue-action caption as a fallback. Repeating the quest includes
-these hints; progress updates do not repeat them. Classic-layout quest identities
-cover the differently ordered icons in Acts I and III. Empty detail panes are
-explicitly reported. Automatic alerts announce journal updates and primary
-quest objectives achieved, without opening the journal. When updated objective
-text is available and identifiable, the reader speaks the quest and objective.
-A verified native capture also reads the text the game generates when a quest
-packet updates its state, including actual counters, even if the journal panel
-is unloaded. It observes the normal update without opening the journal or
-changing quest state. Unmatched or ambiguous updates retain the generic alert.
-Announcements wait for dialogue
-or menus to close. Console `access-quests on|off|status` controls this feature.
-The Seven Tombs also reads the visible true-tomb symbol as a plain shape name.
-Tomb entrances include their individual markings, for example "To Tal Rasha's Tomb: circle".
-D goes to an unused quest object in reach before nearer statues, NPCs or chests.
-See [quest-log implementation and remaining work](docs/quests.md),
-[quest objects](docs/quest-objects.md) and
-[Tal Rasha symbol evidence](docs/tal-rasha-symbols.md).
-
-**Room exits (built; live validation pending):** on maze levels (the Crypt, Catacombs, the Den of
-Evil and the rest), walking into a room speaks its ways out — plain openings as a screen direction,
-stairs and portals by their own name. **Ctrl+Y** (BACK+Y on the pad) says them again, and on a
-hand-made inside level (the Throne of Destruction, Mephisto's) the ways out of the chamber the
-player stands in, cut at the gaps in its walls.
-**Ctrl+M** toggles the announcements.
-See [room exits](docs/rooms.md).
-
-**Named places (built; live validation pending):** walking into a named part of the map speaks it,
-without interrupting: a named map piece (*bridge*, *Fallen camp*, *graveyard*), an interior
-(*tavern*, *palace entrance*, *hut*, *temple*) and the landmark within a few steps (*bar*,
-*kitchen*, *fireplace*, *stairs*, *dock*, *stalls*, *throne*). Everything comes from the game's own
-HD map layouts; the landmark is the nearest one by walking distance, so it never names a room
-through its wall. In maze levels it also reads corridors from the walkable grid: *corridor*,
-*dead-end corridor*, *bend*, *junction*, and what a corridor leads to (*towards* the stairs, the
-throne). `places` in the Ctrl+S settings list or `access-places on|off` toggles it;
-`access-places where` speaks the current place.
-See [named places](docs/places.md).
-
-**Terrain overview (built; live validation pending):** a spoken level overview. **Ctrl+O** (BACK+B)
-speaks the level name, where you stand in it (`northeast edge`, `centre`, `south corner`…), how much
-of it you have seen and, for each side of the level (northeast, southeast, southwest, northwest: the
-level's rectangle lies along the world axes, a diamond on screen), how far the level reaches, where
-unexplored terrain starts, or the name of a neighbouring level from available native layout data.
-Then the places the scanner has logged in this level, nearest first, with distance and direction
-("Waypoint, 40 units, northeast"). It can describe undiscovered terrain; it does not calculate a route.
-See [terrain overview](docs/terrain-overview.md).
-
-**Unexplored mark (built; listening pass pending):** the radar's exit and floor cues end in two short
-pips when the way leads to ground you have not covered: an opening into a chamber you have
-never stood in, stairs to a level you have never seen, open ground towards the frontier of what the
-game has streamed. The base cues are untouched and nothing new sounds on its own; the tail rides on
-the cue that was going to play. The room entry line tags each way out never
-taken (`izquierda, sin explorar`); the terrain overview says how much of the
-level is filled in (`explorado 22 por ciento`). What you have seen and where you have stood is kept
-in one compact archive, limited to 4 MiB, with separate records per map seed and layout.
-Existing exploration files are migrated automatically, so progress survives quitting. `access-radar
-test` auditions the marked cues. See [exploration](docs/exploration.md).
-
-### NPC and enemy sounds
-
-Soft synthesized pulses locate the nearest NPC and up to three enemies: the
-nearest boss/elite, resurrecting shaman and ordinary ranged enemy, then the
-nearest other enemies in the streams left, each heard on its own (as Diablo 1's
-diablo-access plays its three nearest monsters, so a pack's spread is audible). NPCs use a light wooden tap; priority enemies a low, resonant
-metallic swoop; ordinary enemies a short rough growl. Sounds follow the radar's
-fixed screen directions. A single target repeats about every 0.2 seconds nearby
-or 0.5 seconds at maximum range. Dialogue and menu/focus gating suspend the sounds.
-
-**Attack reach.** A bright rising two-note ping, placed toward the enemy, plays
-when an enemy in sight comes within melee reach, once until every enemy is out of
-reach again. It uses the game's own melee rule for every character: the distance
-between the two bodies against the weapon's `rangeadder` (two more for a
-Warlock). The monster plate's names follow the skills bound to the controller
-bars (on the keyboard, the selected hand skills) and the weapon in hand;
-`attack-melee` / `attack-ranged` fix that by hand, `attack-auto` returns to the
-automatic choice, and `status` says the current reach.
-
-**Crosshair beep.** Two short electronic blips, placed toward the enemy, play
-when the game's own target lands on an enemy in sight: the monster a sighted
-player sees outlined, which the next attack takes. Holding the same target stays
-quiet. `crosshair` in the Ctrl+S list, `crosshair-on|crosshair-off`
-([crosshair](docs/crosshair.md)).
-
-The monster health plate names a monster only once it is within that reach
-(bosses and elites from first sight), without interrupting other speech, and a
-name the auto-target keeps trading inside a pack is not repeated until it has
-been off the plate for ten seconds. The scanner and the keyboard's target keys
-still add the monster's rank, nature, enchantments and immunities.
-
-Enabled by default; `access-entity-cues on|off|status`, with separate `npc-off`,
-`enemy-off`, `ranged-off`, `ordinary-off`, `reach-off` and `crosshair-off` switches (and
-matching `*-on`); the growls, the ping and the beep are also `enemy-growls`, `attack-reach`
-and `crosshair` in the
-Ctrl+S settings list. Persistent range, volume, switches and the attack reach live
-under `[entity_cues]` in the plugin TOML. This is independent of the existing NPC
-speech toggle. See [entity cue behavior and controls](docs/entity-cues.md) and
-[attack reach](docs/attack-reach.md).
-
-### Character panel
-
-Opening the character sheet says the panel name with the character, class and
-level once, and then each row is read as you move through it: strength,
-dexterity, vitality, energy, defense, stamina, life and mana (as "45 of 120")
-and the four resistances. The mini-menu buttons that open it and the other
-screens are announced by name. See
-[character panel, equipment slots and placing items](docs/character-panel.md).
-
-### Life, mana and broken equipment
-
-Life and mana are announced as they cross their steps: every 25 points while the
-resource is comfortable (75, 50), every 10 below half (40, 30, 20, 10) and point
-by point at the end (5, 4, 3, 2, 1). Crossing a step speaks the real percentage,
-once, in either direction; a downward crossing at or below 10 % interrupts.
-Simultaneous changes use one announcement, life first, so a mana warning cannot
-erase the life warning from the same sample. The numbers are the
-game's own, read from the HUD orbs' value display, so the *Show life orb text*
-and *Show mana orb text* gameplay options must be on — with them off the game
-writes no number and the mod identifies whichever option is missing, including
-when the other orb works. Automatic hints wait for a persistent missing reading.
-A worn item
-that reaches zero durability is announced with its equipment slot, and an item
-that starts being worn, however it got there, with its slot and name
-("Equipado en Cabeza: Gorro, mágico"). An item whose requirements the character
-does not meet (the ones the game draws red) says so with its name, and a refused
-attempt to equip one says "No se puede equipar" and why. Console
-`access-vitals on|off|status`.
-See [life, mana and broken equipment](docs/vitals.md).
-
-Harmful states on the player (poison, freezing, chill, stun, slowing and the
-monster curses, by their `states.txt` rows) are read from the same native state
-check that colors the health orb for poison. A beginning interrupts and is not cut
-off for a second and a half ("You are afflicted by Amplify Damage", the curse named
-by the game's own skill name); an end is said once it has lasted a second, and the
-vitals report lists the states while active. When a shrine's blessing wears off,
-"The shrine's blessing has worn off". Switch `status-alerts`; see [status effects](docs/status-effects.md).
-
-**Loop speeds:** a group of the Ctrl+S settings list beside the volumes paces every loop that
-pulses rather than plays steadily, 50 to 300 percent of its own rhythm: doors, scrolls/runes/gems,
-chests/corpses/weapon racks/the stash, shrines and wells, quest items, unexplored areas and the
-Last Epoch set (`door-loop-speed`, `small-item-loop-speed`, `container-loop-speed`,
-`shrine-loop-speed`, `quest-loop-speed`, `room-loop-speed`, `epoch-loop-speed`), with the drop
-sounds' speed, the wall knock's repeat and the corpse rattle's interval moved there. There too,
-`radar-wall-repeat` (once by default, every 250 ms to 1.5 s) repeats the radar's wall on the ray
-the player heads along -- moving, or pushing against it -- while it stays. Gold,
-equipment, potions, portals and zone crossings play steadily and have no pace. See
-[ground items](docs/ground-items.md).
-
-**Low life heartbeat:** at or under a share of life (`low-life-below`, 25 percent by default) the
-Diablo IV low-life sound plays once and its heartbeat loops until life climbs five points over
-the line; quiet in a pause or a dialogue. Switch `low-life-sound` (Alerts, on), volume
-`low-life-volume` (Volumes). See [vitals](docs/vitals.md).
-
-The current mercenary's life uses the game's displayed percentage and the same
-steps and critical interrupt rule as the player's life. Simultaneous player and
-mercenary changes form one announcement, with the player's values first.
-Mercenary level increases are announced once; the vitals report includes both
-life and level. Missing mercenary data is not treated as death. Broken-equipment
-notices queue behind the life alerts.
-
-The vitals report can say the skills running on the player (`skill-report`, on: "Prayer aura
-active. Bone Armor active", every class skill whose skills.txt `aurastate` stays on its caster,
-`tools/gen_skill_states.py`), the mercenary (`mercenary-report`, off: BACK+RT says it, with its
-level; BACK+RT says the other players first, `party-first`, on) and the player's summons (`minion-report`, off), read from the game's own pet
-list and grouped as its party portraits show them (a count per counted type,
-life for single summons, the Warlock's demons one by one), and for a
-Necromancer the usable corpses nearby; a short bone rattle sounds toward the nearest as usable
-corpses come near and repeats while they stay (`corpse-interval`: once, or every 500 ms to
-5 s; 1 s, a drop sound's pace, by default). Every player's pets are kept out of the NPC and enemy lists.
-Switches `corpse-cue` and `corpse-interval`; see [summons and corpses](docs/summons-and-corpses-re.md).
-
-**Typing with the controller:** in the loader's lobby, A on a text box starts editing it (the
-mod calls the game's own begin-edit when the game does not), so a keyboard types there; while a
-box is edited, the right stick walks a QWERTY keyboard (digits, three letter rows, then Caps Lock,
-space, `-_.:` and Backspace): up and down change row, left and right key, each said, A types it
-(`pad-typing-qwerty`). With that off, the stick steps up through letters, space, a few signs and
-capitals, and down through the digits 1 to 0; right types the one reached and left deletes the last
-(`pad-typing`, Controller group).
-The form is a list: the D-pad and the left stick step one control at a time in its own order, left
-and right only along a row; boxes the game disables (LAN Only, Unlisted) are skipped.
-See [multiplayer](docs/multiplayer.md).
-
-**Audible loot filter:** **LB** in play turns it on and off ("Loot filter on"), as sighted players
-tap LB to filter the floor. While it is on, only the drop loops the **Loot filter** group of the
-Ctrl+S list keeps sound: potions (`loot-potions`), gems and runes (`loot-gems`), and equipment from
-a least quality up (`loot-equipment`: all, magic and better, rare and better, set and unique, off);
-a white item the game draws gray (socketed or ethereal, "silver") loops at every level but off.
-Gold, scrolls and quest items always loop, and every item still makes the game's own sound as it
-lands. Off by default (`loot-filter`); the four are kept between sessions.
-
-### Boss life
-
-A boss's life is said as it falls, the way your own is: `Andariel, 74 por
-ciento` when it crosses 75, 50, then every 10 down to 10, then every point
-(interrupting at 10 and below), and `0` when it dies. It covers act and quest
-bosses and superuniques (Rakanishu, Blood Raven, Andariel, Mephisto, Diablo...),
-using the fill of the game's own health plate. The first sight is only a
-baseline, so nothing is said until the fight starts. `access-boss-life
-on|off|status`, `boss-life` in the Ctrl+S settings list; `[boss_life] enabled` in
-the plugin TOML. See [boss life](docs/boss-life.md).
-
-### Weapon swap, stash gold and trading
-
-A weapon swap (R3 on the pad, Y on the keyboard, or the inventory's I/II tabs) names the set and the weapons
-now in hand ("Armas 2: Arco largo, Carcaj"); console `access-weapon-swap on|off`.
-See [weapon swap](docs/weapon-swap.md). In the stash, the withdraw button says the
-gold the open tab holds ("12345 de oro en el alijo").
-
-Trading with another player names the partner in the game's own request prompts,
-names the two offer grids, and announces what the other player offers (items,
-gold), both acceptances and whether the trade completed or was cancelled; console
-`access-trade on|off`. See [trade](docs/trade.md).
-
-The Horadric Cube says "Cube opened", names its grid as the cursor enters it, says what moves into
-or out of it whatever the button ("Moved Wirt's Leg into the Cube", "Moved 3 Chipped Topaz to
-Cube") and what Transmute made ("New item in Cube: Flawed Topaz"). See
-[Horadric Cube](docs/horadric-cube.md).
-
-The first time the scanner lists an exit on a map, dungeon entrances included, it
-plays a discovery sound and says "El radar ha registrado una salida nueva" with the
-exit's name (waypoints and the stash: "un lugar nuevo"; unused quest objects such as
-the Tree of Inifuss or a Cairn Stone: "un objeto de misión nuevo"); the exit back to
-the level just left is not announced. `[discoveries]` in the settings file. See
-[exploration](docs/exploration.md).
-
-## How it works
+A [D2RLoader](https://d2rloader.net) plugin that makes Diablo II: Resurrected playable by blind
+players. Everything the game shows is spoken through the player's screen reader (NVDA, JAWS, or
+the Windows voice) via [PRISM](https://github.com/ethindp/prism), and spatial sounds give what text
+cannot: walls and passages, loot, exits, chests, doors, monsters. It is played with a controller or
+the keyboard, in any of the game's thirteen languages.
+
+## Status: the whole game is playable
+
+Several testers playing by screen reader have taken characters through the complete game with this
+mod, from the first quest of Act I to the end of Act V, and finished it with no blocking problems:
+menus, character creation, towns and shops, every act's dungeons and quest puzzles, the act bosses
+and the end screen.
+
+Development continues through frequent test builds shaped by the testers' reports. The newest
+addition, the audio description of the act cinematics, is confirmed from the main menu's Videos
+list; the videos the game plays between acts are being heard in play for the first time. Reports
+on anything that sounds wrong are welcome.
+
+## Getting started
+
+### Requirements
+
+- Diablo II: Resurrected 3.3.x from Steam or Battle.net, on 64-bit Windows 10 or 11.
+- **D2RLoader 1.3.1-beta**, the build `d2rloader.net` distributes (1.3.0-beta also works). The
+  complete package below includes it.
+- NVDA or JAWS running before the game starts; without either, PRISM uses the Windows voice (SAPI).
+
+### Install and update
+
+1. Close the game.
+2. Download the [complete package](https://github.com/Ali-Bueno/d2r-access/releases/latest/download/d2r-access-completo.zip)
+   (the mod, D2RLoader and the Visual C++ runtime).
+3. Extract everything into the game folder, the one that has `D2R.exe`, replacing files if asked.
+   Do not rename or replace `D2R.exe`.
+
+The package's `README.txt` explains every step and control in detail. To update, extract a newer
+package on top: it carries no settings files, so the loader's options and the mod's settings stay
+as they are.
+
+### Start the game
+
+Start it with **`D2RAccess.exe`** in the game folder ([launcher](docs/launcher.md)). It renews the
+online license before Blizzard's 30-day offline limit is reached, offers a newer version of the mod
+when there is one (switch `update-check`), and starts the game through D2RLoader. The mod says
+"Diablo 2 accessibility loaded" when it is running.
+
+To use Steam's Play button instead, set the game's launch options (Properties → General → Launch
+Options) to the launcher's path followed by `%command%`:
+
+```
+"C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected\D2RAccess.exe" %command%
+```
+
+### Language
+
+The mod speaks in the game's text language, in all thirteen D2R locales. D2RLoader starts the
+game in English unless its configuration names a language, so set both lines in
+`d2rloader/config/d2rloader.toml`, for example:
+
+```toml
+text_locale = "esES"
+audio_locale = "esES"
+```
+
+Codes: `enUS`, `deDE`, `frFR`, `itIT`, `esES`, `esMX`, `plPL`, `ptBR`, `ruRU`, `jaJP`, `koKR`,
+`zhCN`, `zhTW`. With `text_locale` empty, the game's own *Text language* option rules the text and
+the mod follows it at once.
+
+## Controls at a glance
+
+The game keeps its whole controller layout; the mod adds these (keyboard equivalents in brackets).
+The full lists are in the package's `README.txt` and `KEYBOARD.txt`, and in
+[keyboard keys](docs/keyboard-keys.md) and [keyboard play](docs/keyboard-play.md).
+
+| Controller | Keyboard | What it does |
+|---|---|---|
+| Right stick up / down | Ctrl+Page Up / Down | Scanner: previous / next category |
+| Right stick left / right | Page Up / Down | Scanner: previous / next thing, nearest first |
+| BACK + LB | Ctrl+B | Beacon: follow or release what the scanner named |
+| BACK + right stick down | Ctrl+E | The route to the beacon's or scanner's target |
+| BACK + right stick up | — | Description of the area you are in |
+| BACK + Y | Ctrl+Y | The ways out of the room you are in |
+| BACK + B | Ctrl+O | Area overview |
+| BACK + X | Z / X | Life, mana, stamina, states on you |
+| BACK + RT | — | Mercenary, summons and party members, one at a time |
+| Hold LT / BACK + LT | — | The skills on each skill bar |
+| LB (in play) | — | Audible loot filter on or off |
+| BACK + RB | Ctrl+S | The mod's settings list |
+| BACK + right stick left / right | K / L | Tutorial: previous / next message |
+| — | Ctrl+G / Ctrl+T | Radar on or off / radar status |
+| — | D | Walk to the nearest usable thing and use it |
+
+In menus, right stick up reads the detail of what has focus (an item's full description, a
+skill's text) and right stick down the buttons the screen offers.
+
+## What the mod makes accessible
+
+### Menus and screens
+
+- **Every menu with the controller:** the focused button, checkbox, dropdown, carousel, slider or
+  text field is spoken with its label, its state or value (sliders as a percentage), its role and
+  the game's own tooltip. Controls the game locks are said to be unavailable.
+- Screen and panel changes are announced with the game's own localized titles: title screen, main
+  menu (with its news), character select and creation, difficulty, options, confirmation prompts.
+- Character rows say the title the game shows above the name ("Slayer Tank, Level 39 Paladin");
+  class names are read while creating a character.
+- The death screen and the end screen after the last boss read themselves whole.
+- NPC menus, topic lists and full scrolling dialogue are read. With the game's *NPC Speech* option
+  on *Audio Only*, the voice carries the dialogue instead.
+- Notices, the HUD notification feed, area-name banners and the game's own hints are read, queued
+  without cutting into a conversation.
+- The waypoint panel says each row's state ("Dark Wood, you are here", "Jail Level 1,
+  undiscovered", "Terror Zone") and its act tabs ([waypoints](docs/waypoints.md)).
+
+See [native UI](docs/native-ui.md) and [in-game text](docs/test-ingame-text.md).
+
+### Items, inventory, shops and trading
+
+- Inventory, stash, equipment and shop grids name each item and its quality (`Crimson Spear,
+  magic`), with the game's full name for magic, set, rare, unique and crafted items, as soon as
+  the cursor lands: the game's tooltip delay is removed. Right stick up reads prices and
+  properties, or `autodetail` reads them automatically.
+- **Comparing:** hold Y on an item and move the left stick: right reads the equipped item it is
+  compared with, left the item again, up its detail. Keyboard: Shift+Page Up / Shift+Page Down.
+  See [native tooltips](docs/native-tooltips.md).
+- Equipment slots say their body location and whether they are empty. Items whose requirements the
+  character does not meet say so, and a refused attempt to equip one says why.
+- Picking up an item says "Item in hand" and where it can go; placing it names the destination.
+- The belt names each cell's D-pad direction, row and potion ([belt](docs/belt.md)).
+- Stash tabs, LT/RT tab changes, the stash's gold, and shop, repair and other NPC service buttons
+  with the game's own labels. Nothing is bought, sold or repaired automatically.
+- The Horadric Cube says what moves in and out and what Transmute made ([Horadric Cube](docs/horadric-cube.md)).
+- A weapon swap names the set and the weapons now in hand ([weapon swap](docs/weapon-swap.md)).
+- Trading with another player names the partner, both offers, both acceptances and the outcome
+  ([trade](docs/trade.md)).
+
+See [inventory and NPC follow-up](docs/inventory-npc-followup.md).
+
+### Character, skills and mercenary
+
+- The character sheet reads each statistic as you move through it, and the point buttons name
+  Strength, Dexterity, Vitality or Energy with the value and the points left
+  ([character panel](docs/character-panel.md), [progression](docs/progression.md)).
+- Skill trees move one skill at a time with the D-pad. Each skill says its name, position, points,
+  controller binding and the actions available, then its full description, requirements and
+  levels ([skill actions](docs/skill-actions.md)). The mod never spends a point by itself.
+- Holding LT reads the six skills on that bar ([skill bar](docs/skill-bar.md)).
+- The mercenary panel, the advanced statistics panel and hiring rows (with each candidate's
+  skills) are read row by row.
+
+### Finding your way
+
+- **Radar** ([readings](docs/radar-readings.md)): four directional cues that match the left stick
+  (or its diagonals, `[radar] diagonals`): a bright *tin* where a passage leads somewhere, a soft
+  breath for open floor, a dull *tock* for a nearby wall, two knocks for a closed door and a short
+  knock for a lone obstacle with a way round it. It follows passages a full body can use,
+  remembers walls as you move, and stays silent while nothing changes. Two short pips mark a way
+  into ground you have not explored yet. Ctrl+G toggles it, Ctrl+T describes the surroundings.
+- **No wall sliding:** a stick push into a wall stops instead of letting the game slide you along
+  it, with a low bump sound panned to the side you pushed; narrow stairs and passages keep the
+  game's slide ([wall sliding](docs/wall-sliding.md)).
+- **Scanner** ([entity scan](docs/entity-scan.md)): what a sighted player finds on the automap,
+  by category, nearest first, with distance and direction: exits, portals, waypoints, NPCs, the
+  stash, shrines, objects, quest objects, explored and unexplored areas, enemies in sight, other
+  players, and corpses. Exits, waypoints and the stash you have found stay listed in later games
+  on the same map.
+- **Beacon** ([target guidance](docs/beacon.md)): directional pings lead along a real route to what
+  the scanner named, and the mod says when you arrive.
+- **Route description** ([route description](docs/route-description.md)): the way to the target as
+  a sighted player plans it off the minimap ("Route to Akara, 85 units: north, 20; then door; then
+  east, 30"), then each turn as you reach it, and "Off the route" if you leave it. Nothing walks
+  for you.
+- **Room exits** ([rooms](docs/rooms.md)): entering a room in a maze level (the Crypt, the
+  Catacombs, the Den of Evil...) speaks its ways out; in hand-made levels such as the Throne of
+  Destruction, BACK+Y gives the ways out of the chamber you stand in.
+- **Named places** ([places](docs/places.md)): bridges, camps, graveyards, taverns, palace
+  entrances, and corridors, bends, junctions and dead ends in mazes, all from the game's own map
+  layouts.
+- **Area overview** ([terrain overview](docs/terrain-overview.md)): where you stand in the area,
+  how much you have seen, how far each side reaches and what lies beyond it.
+- **Area and landmark descriptions** ([descriptions](docs/descriptions.md)): hand-written words for
+  every area and its landmarks (the Hangman's Tree, the Hellforge), in the game's language.
+- **Exploration mode** (default): the scanner lists what you have explored or seen, as a sighted
+  player's automap would, and routes guess across rooms never entered and say so. *Full
+  assistance* in the settings list lists everything the game has loaded
+  ([exploration mode](docs/beacon.md#exploration-mode), [exploration](docs/exploration.md)).
+- A new exit, waypoint or quest object found on the map plays a discovery sound and is named.
+- Town portals are listed by owner ("TankMan's portal") and say where they lead ([portals](docs/portals.md)).
+
+Directions are screen directions as compass points (north is the top of the screen) or, in the
+settings list, clock hours. Distances are in units, the game's smallest map cell
+([spoken directions](docs/radar-readings.md#spoken-directions-2026-10-13)).
+
+### Sounds of the world
+
+All spatial sounds follow the screen and fade with distance; they pause in dialogue, menus that
+pause the game and when the window loses focus. Each family has its own switch and volume.
+
+- **Loot** ([ground items](docs/ground-items.md)): approaching an item reads its name and quality
+  (and gold its amount); gold, equipment, potions, scrolls, runes and gems each loop their own
+  sound. LB turns on the **audible loot filter**, which keeps only the drops you chose in the
+  settings list (potions, gems and runes, equipment from a chosen quality up).
+- **Containers:** chests, urns, barrels, corpses and weapon racks loop until opened, recognised by
+  the game's own interaction rule, so it holds in every language.
+- **Doors:** a shut door loops a wooden, metal, stone or slime sound, chosen by the sound the game
+  plays when it opens; doorways creak; a secret door in the Jail gives "You feel a cool draft".
+- **Exits:** stairs, cave entrances, portals and waypoints loop one sound, walkable area crossings
+  another, the stash its own. Unexplored rooms in dungeons loop a sound of their own.
+- **Quest objects** ([quest objects](docs/quest-objects.md)): quest items and mechanisms (the Tree
+  of Inifuss, the Cairn Stones, the Horadric Staff orifice, the Compelling Orb, the Hellforge,
+  Frozen Anya, the Chaos Sanctuary seals...) loop until used. Shrines and wells loop too.
+- **NPCs and enemies** ([entity cues](docs/entity-cues.md)): soft pulses locate the nearest NPC
+  and up to three enemies, with bosses, elites and ranged enemies given priority. A rising ping
+  says an enemy is within melee reach by the game's own rule ([attack reach](docs/attack-reach.md)),
+  and a short beep says the game's target landed on an enemy ([crosshair](docs/crosshair.md)).
+- A Necromancer hears a bone rattle toward usable corpses.
+
+Navigation and loot sounds come from game state, never from the text, so they work in every
+language ([audio language audit](docs/audio-language-audit.md)).
+
+### Combat and survival
+
+- **Life and mana** are announced as they cross their steps, more often as they fall, interrupting
+  at 10 % and below; a heartbeat loops while life is low ([vitals](docs/vitals.md)). The game's
+  *Show life orb text* and *Show mana orb text* options must be on; the mod says which is missing.
+- **States:** poison, freezing, chill, stun, slowing and curses are named as they begin and end,
+  and a shrine's blessing as it wears off ([status effects](docs/status-effects.md)).
+- **Boss life** is said as it falls, for act bosses, quest bosses and superuniques
+  ([boss life](docs/boss-life.md)). Monster names are spoken as they come within reach, bosses and
+  elites from first sight, with ranks, enchantments and immunities in the scanner.
+- The mercenary's life and level, summons grouped as the game's portraits show them, and party
+  members' life and whereabouts ([summons and corpses](docs/summons-and-corpses-re.md)).
+- Running auras and buffs, worn items breaking, walking and running, and low stamina.
+- Your corpse and party members' corpses are listed in the scanner
+  ([player corpses](docs/player-corpse-re.md)).
+
+### Quests, story and guidance
+
+- **Quest log** ([quests](docs/quests.md)): every quest by name, with its current objective and the
+  game's own counters. Progress is announced as it happens, even with the journal closed.
+- **Quest puzzles:** the Scroll of Inifuss reads the Cairn Stone sequence and each stone names its
+  symbol ([Cairn Stones](docs/cairn-stones-re.md)); the Canyon of the Magi's true tomb symbol and
+  each tomb entrance's marking are read ([Tal Rasha symbols](docs/tal-rasha-symbols.md)); the Chaos
+  Sanctuary seals are numbered and the mod says how many are left.
+- **Audio description of the cinematics** ([cinematics](docs/cinematics-audio-description.md)): the
+  seven act cinematics, in both the 2021 and the classic 2000 versions, are narrated between their
+  spoken lines in every language the mod speaks. Switch `audio-description`.
+- **Tutorial** ([tutorial](docs/tutorial.md)): a new level 1 character playing alone is guided
+  through the mod's tools up to the Den of Evil's reward and the first waypoint, with short lessons
+  on levelling up, the inventory, gold and shops.
+
+### Playing with others
+
+D2RLoader's host, game browser and direct-join forms are read as a list, and a controller can type
+into their text boxes with a QWERTY keyboard on the right stick. Other players and their corpses
+appear in the scanner, party members in the life report, and trades are read in full
+([multiplayer](docs/multiplayer.md)).
+
+### Settings
+
+**Ctrl+S** (BACK+RB) opens the mod's settings list, in groups (Sounds, Volumes, Enemies and NPCs,
+Navigation, Items and menus, Alerts, Controller, Loot filter...), remembered between sessions. It
+includes **speech priority** for each kind of news ([speech priority](docs/speech-priority.md)),
+the pace of every pulsing loop, and a **sound glossary** that names and plays each of the mod's
+sounds. The rest of the configuration lives in `d2rloader/config/d2r-access.toml`.
+
+## Known limitations
+
+- Native readers are tied to the supported game and loader builds. A game patch may silence some
+  readings until the mod is updated (see
+  [regenerating the UI catalog](#regenerating-the-ui-catalog-after-a-game-patch)).
+- D2RLoader starts the game in English unless its configuration names a language (see
+  [Language](#language)); it ignores Steam's language setting.
+- Area descriptions and cinematic narration are written in English and machine-translated into
+  the other twelve languages; the Spanish ones have been proofread.
+- The scanner's line of sight uses walkable terrain, so a see-through fence hides what is behind
+  it until you go round.
+- Quest object sounds reach the rooms the game has loaded around you; the scanner and the beacon
+  find the rest.
+- The chat history cannot be reviewed yet.
+
+Known issues and the work in progress are tracked in [`STATUS.md`](STATUS.md).
+
+## For developers
+
+### How it works
 
 - The plugin listens to the game's UI message bus through the D2RLoader SDK (`PanelManager`,
   `FrontEndNavigation`, `OptionsPanelMessage`…).
-- The game's own **FocusManager** panel owns a `FocusIndicator` widget; its screen rectangle is
-  polled every UI update and matched against a catalog of focusable widgets generated offline from
-  the game's UI layout JSON (`tools/`). Labels, tooltips and option lists come from the same layouts
-  and are resolved through the game's localization tables at runtime.
+- The game's **FocusManager** panel owns a `FocusIndicator` widget; its screen rectangle is matched
+  against a catalog of focusable widgets generated offline from the game's UI layout JSON
+  (`tools/`). Labels, tooltips and option lists come from the same layouts and are resolved
+  through the game's localization tables at runtime.
+- In-game text uses a guarded native widget adapter (focused widget, visible children, class
+  ancestry, runtime strings), polled on the UI thread; all speech runs on a dedicated PRISM thread
+  ([native UI](docs/native-ui.md)).
+- World labels and item descriptions come from native tooltip render hooks; a native ground-item
+  reader and collision-grid snapshots feed the spatial sound services.
 - Speech goes through PRISM, loaded dynamically from `d2rloader/plugins/d2r-access/prism.dll`.
-- In-game text uses a guarded native widget adapter: actual focused widget, visible
-  children, class ancestry and runtime strings. It polls on the UI thread after the
-  local player is ready; all speech stays on the dedicated PRISM thread. Details and
-  verified build checks: [native UI evidence](docs/native-ui.md).
-- World labels and item descriptions use verified native tooltip render hooks.
-  They copy the primary and displayed comparison text before the game frees it
-  each frame, while preserving the stock comparison selection. They require the
-  supported game build and add no DLL dependencies. A separate native ground-item reader
-  supplies nearby loot snapshots to proximity speech and spatial sound services.
+  Sounds are embedded in the plugin DLL.
 
-## Requirements
+The full map of services and hooks is in the [architecture guide](docs/architecture.md); design
+decisions and what was rejected are in [decisions](docs/decisions.md).
 
-- Diablo II: Resurrected 3.3.x (Steam or Battle.net), **D2RLoader 1.3.1-beta** installed in the
-  game folder — the build `d2rloader.net` currently distributes. 1.3.0-beta is verified too.
-  Older builds are no longer downloadable, so the native readers target these; a newer loader may
-  work, since they locate the game pointers by what the loader resolved rather than by an offset
-  into it, but only those two are verified.
-- A screen reader (NVDA, JAWS) or Windows SAPI; PRISM picks the best one available.
-- To build: CMake 3.28+, Ninja, MSVC Build Tools 2022 (x64). The D2RLoader PluginSDK is a git
-  submodule (`external/PluginSDK`); PRISM's prebuilt DLL and header are vendored in
-  `third_party/prism/`.
+### Build
 
-## Build and install
+Requirements: CMake 3.28+, Ninja, MSVC Build Tools 2022 (x64), and FFmpeg on `PATH` (it converts
+the OGG sources at build time; it is not needed to run the plugin). The D2RLoader PluginSDK is a git
+submodule (`external/PluginSDK`); PRISM's prebuilt DLL and header are vendored in
+`third_party/prism/`.
 
-Testers who do not build can download the complete package (plugin, D2RLoader and the VC++
-runtime) from the [latest test release](https://github.com/Ali-Bueno/d2r-access/releases/latest/download/d2r-access-completo.zip)
-and follow its `README.txt`. Maintainers publish one with `tools\test-release.ps1`; see
-[test releases](docs/test-releases.md).
-
-Build with the game closed. FFmpeg must be on `PATH` to convert the OGG loop
-sources to WAV. The build embeds those sounds in the plugin DLL, so there are no
-loose sound files to install or replace; FFmpeg is not needed to run the plugin.
+Build with the game closed:
 
 ```powershell
-git clone --recurse-submodules <this repo>
+git clone --recurse-submodules https://github.com/Ali-Bueno/d2r-access.git
 cd d2r-access
 .\build.ps1        # configures, builds and copies the plugin into the game's d2rloader\plugins
+ctest --test-dir build --output-on-failure
 ```
 
 Set `D2R_GAME_DIR` in `CMakeLists.txt` (or pass `-DD2R_GAME_DIR=...`) if the game is not at the
-default Steam path. Launch the game with `D2RAccess.exe` (the launcher, [docs/launcher.md](docs/launcher.md):
-it refreshes the online license when it is about to lapse, then starts `D2RLoader.exe`; it also offers a newer release at start, switch `update-check` in Ctrl+S); the plugin speaks "Diablo 2 accessibility
-loaded" when it starts. Language (D2RLoader 1.3.1-beta, 2026-11-01): the loader starts the game
-in English unless `text_locale` and `audio_locale` in `d2rloader/config/d2rloader.toml` name a
-language (for example `"esES"`), which the installer's "Game language" sets. With `text_locale`
-empty the game's own "Text language" option rules the text instead (the mod follows it); the
-voices follow only `audio_locale`.
+default Steam path. The build runs at below-normal priority and leaves two logical processors free.
+Test packages are published with `tools\test-release.ps1` ([test releases](docs/test-releases.md)).
 
-To start from Steam's Play button instead, set the game's launch options (Properties →
-General → Launch Options) to the launcher's path followed by `%command%`, for example:
+### Testing
 
-```
-"D:\games\steam\steamapps\common\Diablo II Resurrected\D2RAccess.exe" %command%
-```
+[Testing](docs/testing.md) describes the target player, how tests are scripted as controller and
+key sequences with the expected speech, and how to verify them from the plugin's log
+(`d2rloader/logs/d2r-access.log`). The [desktop test tools](tools/computer_use/README.md) can drive
+the game unattended with keyboard input and screenshots.
 
-Steam then passes the `D2R.exe` path to the launcher, which forwards it to the loader, which
-forwards it to the game harmlessly (verified with loader 1.3.0-beta, directly). Do not rename or replace `D2R.exe`: the loader
-maps it from disk, and Steam restores it on update or file verification.
+### Console commands
 
-Console commands (developer console, `Ctrl+`` in game): `access-say <text>`, `access-trace on|off`,
-`access-dump-code`, `access-text on|off|repeat|dump`. The latter controls in-game text
-reading and can log the visible native text tree. Its toggle lasts until the game exits.
+In the developer console (`Ctrl+`` in game): `access-say <text>`, `access-trace on|off`,
+`access-dump-code`, `access-text on|off|repeat|dump`, `access-radar on|off|status|dump|test`,
+`access-footsteps on|off|status`, `access-items on|off|sound-on|sound-off|status`,
+`access-entity-cues on|off|status`, `access-boss-life on|off|status`, `access-quests on|off|status`,
+`access-places on|off|where`, `access-beacon full|exploration`. Radar cues are logged with event IDs
+and timing ([radar event log](docs/radar-event-log.md)).
 
-Radar commands: `access-radar on|off|status|dump|test`. `test` auditions the
-synthesized sounds; `dump` logs nearby native collision and sensor states.
-Generated cues and their queue, submission, completion or cancellation are
-logged automatically with event IDs, directions, origins and timing. See the
-[radar event log](docs/radar-event-log.md) to compare cues with movement without
-recording audio.
-`status` (Ctrl+T) distinguishes dialogue/pause, an inactive game window, waiting
-for the player, and unavailable terrain. Failed terrain reads record their
-specific stage in the plugin log.
-Unknown directions omit distances; an immediate body obstruction is described
-as nearby. Unchanged terrain is intentionally silent between state changes.
-Persistent radar preference: `[radar] enabled = true` (or `false`) in
-`d2rloader/config/d2r-access.toml`, created from the DLL only when missing.
-
-Footstep commands: `access-footsteps on|off|status`; Ctrl+F toggles the filter
-until the game exits. The log records audible/stalled transitions and grouped
-movement/animation/read-failure diagnostics, so a failed case can be investigated
-without visually identifying whether the character is sliding along a wall.
-
-Ground item commands: `access-items on|off|sound-on|sound-off|status`.
-`on/off` controls proximity speech; `sound-on/sound-off` controls the loops.
-
-Run automated checks after building: `ctest --test-dir build --output-on-failure`.
-The build runs at below-normal priority on all but two logical processors, so the PC stays
-usable, and each shared `src` file is compiled once for every test (`d2r_test` in
-`CMakeLists.txt`, one object library per source) instead of once per test.
-Test executables are not installed into the game.
-
-## Local computer-use testing
-
-The [desktop test tools](tools/computer_use/README.md) can capture the foreground
-game, operate menus and send short movement inputs using Python and existing
-Windows APIs. No packages or controller driver are required. Compare each action
-with screenshots and Ctrl+T diagnostics; audio capture and analog stick emulation
-are not implemented. The [first live measurements](docs/computer-use-radar-check.md)
-record navigation discrepancies that still need investigation.
-
-## Regenerating the UI catalog after a game patch
+### Regenerating the UI catalog after a game patch
 
 ```powershell
 cmake -S tools\casc-extract -B build\casc-extract -G Ninja && cmake --build build\casc-extract
@@ -807,23 +358,16 @@ build\casc-extract\casc_extract.exe extract "<game folder>" <scratch> "\pf_"
 python tools\gen_places.py --hd-root <scratch>
 ```
 
-## Layout
+### Layout
 
-- `src/` — plugin: `plugin.cpp` (SDK entry points, wiring only), `screen_reader` (PRISM sink),
+- `src/` — the plugin: `plugin.cpp` (SDK entry points, wiring only), `screen_reader` (PRISM sink),
   `ui_message_monitor` (UI bus listener), `focus_tracker` (indicator matching, labels, values),
-  `control_state`, `settings_file`, `input_direction`, `panel_state`, `widgets`, `localization`,
-  `ui_thread_pump`, `speech_strings` (all spoken phrases), `generated/` (catalog headers).
-  `native_memory`/`native_ui` provide guarded native snapshots; `ui_text` contains the
-  testable reading policy; `ui_notifications` reads and deduplicates visible notices;
-  `game_text_reader` manages gameplay lifecycle and speech context.
-  `native_world` provides guarded client collision snapshots; `radar`/`radar_grid`
-  evaluate navigation; `radar_audio`/`radar_synth` render cues and `radar_service`
-  wires lifecycle, UI suspension and shortcuts.
+  `speech_strings` (all spoken phrases), `native_memory`/`native_ui` (guarded native snapshots),
+  `native_world` (collision snapshots), `radar*` (navigation), `generated/` (catalog headers).
+- `data/` — descriptions and cinematic narration per language.
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
-- `tools/` — CASC extractor, layout indexer/generators and local computer-use tools.
-- `docs/` — discovery run scripts and research notes. `STATUS.md` — where the mod is.
-  `docs/decisions.md` — dated design-decision log (what was rejected and why).
-  `docs/testing.md` — target player profile and how to test/validate the mod.
+- `tools/` — CASC extractor, layout indexer and generators, release scripts, computer-use tools.
+- `docs/` — feature notes and research. `STATUS.md` — where the mod is and what comes next.
 
 ## License
 

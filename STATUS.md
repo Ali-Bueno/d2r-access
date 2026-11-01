@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The whole game played through by testers; README rewritten — 2026-11-01
+
+The user reports that over the last days several testers played the complete game with the mod,
+Act I to the end of Act V, and finished it with no blocking problems. The "live validation
+pending" marks on the features they used are therefore stale: the README was rewritten for
+players (status, install, controls, features by area, known limitations, then the developer
+part), keeping only the in-play act videos (`[audiodesc] in play`) as new. Sections below keep
+their dated "Unverified live" notes as history.
+
+**Next step:** unchanged, see the cinematics section below.
+
 ## Audio description of the cinematics, 2021 and classic — 2026-11-01 (released as test-2026-11-01-2 from 54ff120)
 
 Release: 133/133 CTest, 28 entries, 64,308,849 bytes, SHA-256 `6a332237…5349dbabd`; news
@@ -2826,23 +2837,22 @@ controller movement. Read
   cualquier tecla para empezar". Tested 2026-09-26. `D2R.exe` holds its own Steam-name → locale table
   (`spanish`, `latam`, `brazilian`...); the loader binaries contain none. Workaround: set both locales
   explicitly. To be reported upstream.
-- **Entity scan:** distance factor (one subtile per metre) is provisional;
-  line of sight uses terrain walkability, so a see-through fence hides what is
-  behind it until the native BLOCK_LOS flag is verified. Monster/object
-  offsets are verified offline against the live image and CASC tables, not yet
-  in-game (`docs/entity-units-re.md`). The right stick showed no native
-  gameplay use in the first live test.
-- **Ground items:** audibility is confirmed. Quieter volume and landing-only start
-  are installed and await listening feedback.
-  Equipment speech gives base name and quality, not the complete generated name.
+- **Entity scan:** line of sight uses terrain walkability, so a see-through fence hides what is
+  behind it until the native BLOCK_LOS flag is verified (`docs/entity-units-re.md`).
+- **Ground items:** proximity speech gives base name and quality, not the complete generated name.
   Only resident room/neighbors are scanned. User-added drop sounds are unused;
   this feature uses the six loop recordings. `docs/ground-items.md`.
-- **Sonar radar:** the 2026-09-16 confirm-by-travel redesign is installed but **not yet live-validated**, including the 18:10 forensic fix (1-cell lateral tolerance, openDepth 10/close 7, 5-cell clutter cap) that corrected the 76%-at-contact wall cues and false "exit" cues a live-session analysis found in the first cut. Direction count (four) and sound design are unchanged from before the review: an eight-direction/new-sound-design attempt was tried live and reverted at the user's request. Directional wall-sliding prevention is now installed; controller validation is pending (`docs/wall-sliding.md`). `docs/radar-redesign.md`.
+- **Radar:** the confirm-by-travel design and wall-sliding prevention carried the testers through
+  all five acts (2026-11-01 entry). Four directions and the current sounds stay: an
+  eight-direction/new-sound-design attempt was tried live and reverted at the user's request.
+  `docs/radar-redesign.md`, `docs/wall-sliding.md`.
 - **Footsteps:** both reported wall cases show real movement. No repeated stationary footfalls were captured, so live suppression remains unverified. Classic audio, first-footfall tails and non-locomotion animation modes retain prior limits. Ctrl+T now reports actual recent movement along the wall. `docs/footsteps.md`.
 
 - Character list rows beyond the visible window (many characters) are not scroll-corrected yet.
 - Dynamic text is read natively for popup rows, character rows and modal prompts (see "Widget text offsets"). ButtonWidget label offset is now derived (see above); applying it to the existing front-end modal reader is still pending. Also pending: legends (`ButtonLegendWidget` text/subText), tooltips set at runtime. The dropdown's own displayed value after a pick still comes from the tracked index; read it natively next.
-- **In-game phase:** camp entry, repeated G warnings, stash/Charsi labels, basic inventory selection/fluency, action/slot names, blacksmith axe descriptions and coordinate suppression confirmed. Earlier pauses reached 719–1000 ms inside callbacks before SDK logging moved off the UI thread. Occupied grid cells await their description without coordinates; empty/unknown cells retain coordinate feedback. An occupied cell with no rendered tooltip remains silent. The exact scroll-related control is still unidentified. Full inventory operations, chat history, HUD/combat and navigation remain pending.
+- **In-game phase:** played through the whole game (2026-11-01 entry). Still open: the chat
+  history is not readable; an occupied cell with no rendered tooltip stays silent; the
+  scroll-related inventory control reported early on was never identified.
 - Extended class descriptions (play styles, as in Diablo IV) do not exist in the game data: only one sentence per class (`str*Desc`). Any longer text would have to be written by the mod.
 
 - **Disabled controls are not detectable through the SDK** (only `setWidgetEnabled` exists; the visual is `disabledFrame`). Known dependencies are encoded as `DisabledWhenRules` in `focus_tracker.cpp` (ScreenResolution unavailable when WindowMode == Fullscreen). The new native in-game reader uses `+0x50` for availability; the existing front-end reader still uses those dependency rules.
