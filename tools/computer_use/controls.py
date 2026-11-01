@@ -6,9 +6,11 @@ import win32 as w
 # Virtual-key / KEYEVENTF / MOUSEEVENTF constants from winuser.h.
 VK = dict(ctrl=0x11, shift=0x10, alt=0x12, enter=0x0D, escape=0x1B, space=0x20,
           tab=0x09, backspace=0x08, up=0x26, down=0x28, left=0x25, right=0x27,
-          f1=0x70)
+          pageup=0x21, pagedown=0x22, end=0x23, home=0x24, f1=0x70)
 VK.update({f'f{number}': VK['f1'] + number - 1 for number in range(2, 25)})  # VK_F1..24
 VK_PAUSE, KEY_UP, SCANCODE, EXTENDED = 0x13, 0x02, 0x08, 0x01
+# The arrows and the navigation block share scan codes with the numeric keypad.
+NAVIGATION_KEYS = {VK[name] for name in ('up', 'down', 'left', 'right', 'pageup', 'pagedown', 'end', 'home')}
 MODIFIER_KEYS = {VK['ctrl'], VK['shift'], VK['alt'], 0x5B, 0x5C}  # VK_LWIN / VK_RWIN
 MAX_HOLD_SECONDS = 2.0  # small observable steps, never unattended navigation
 POLL_SECONDS = 0.01  # stop promptly when Pause is pressed or focus changes
@@ -38,7 +40,7 @@ def key_event(vk, release=False):
     scan = w.map_key(vk, 0)  # MAPVK_VK_TO_VSC
     if not scan:
         raise ValueError('Key has no scan code')
-    flags = SCANCODE | (KEY_UP if release else 0) | (EXTENDED if vk in {VK['up'], VK['down'], VK['left'], VK['right']} else 0)
+    flags = SCANCODE | (KEY_UP if release else 0) | (EXTENDED if vk in NAVIGATION_KEYS else 0)
     return w.Input(type=1, data=w.InputData(key=w.KeyInput(scan=scan, flags=flags)))
 
 
