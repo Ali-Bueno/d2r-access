@@ -1,5 +1,8 @@
 # Every key, in one place
 
+A new or changed key goes in four places: this file, the README's *Controls at a glance*, and the
+tester package's `KEYBOARD.txt` and `README.txt` (`packaging/tester/`), which ship in the zip.
+
 The keys of keyboard play on the `keyboard-local` branch, 2026-09-27, after
 the fourth session of that day. The mod's keys are READ from what the code
 registers with the loader (MEASURED 12:18: `[keyboard] 28 of 28 keys
