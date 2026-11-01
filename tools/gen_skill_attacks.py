@@ -14,6 +14,8 @@ need to know what kind of skill a skill id is, and skills.txt says so.
 The rules, in order. Each is a column of skills.txt, not a list of names:
 
   passive = 1, aura = 1, or a `summon`          -> not an attack
+  an active self state, without leftskill = 1   -> not an attack: a buff is
+                                                   applied to the caster
   TargetPet / TargetAlly / TargetCorpse /
   TargetItem = 1, without leftskill = 1         -> not an attack: its target is
                                                    not a monster. With
@@ -47,8 +49,9 @@ Known limits, stated rather than patched with a list of names:
   - Skills cast around the character (Nova, Frost Nova, Poison Nova, War Cry)
     come out Ranged: they launch missiles and do damage. They are attacks; they
     are used from the policy distance like any other.
-  - Armours that strike back (Chilling Armor, Blade Shield, Thunder Storm) come
-    out Ranged for the same reason.
+  - Native TargetableOnly describes unit targeting, independently of damage.
+    Charge/Leap Attack/Whirlwind start functions also allow ground targeting;
+    they do not require an enemy, despite that coarse flag.
 
 Usage:
     python tools/gen_skill_attacks.py [--excel game-data/global/excel]
@@ -87,7 +90,7 @@ def main():
         rows = list(csv.reader(source, delimiter="\t"))
     header = rows[0]
     at = {name: header.index(name) for name in
-          ("skill", "*Id", "passive", "aura", "summon", "range", "leftskill", "itypea1") + MISSILES + DAMAGE + OTHER_TARGETS}
+          ("skill", "*Id", "passive", "aura", "summon", "range", "leftskill", "itypea1", "aurastate", "TargetableOnly", "srvstfunc") + MISSILES + DAMAGE + OTHER_TARGETS}
 
     def cell(row, name):
         return row[at[name]].strip() if at[name] < len(row) else ""
@@ -96,6 +99,7 @@ def main():
         return cell(row, name) not in ("", "0")
 
     kinds = {}
+    targets = {}
     names = {}
     for row in rows[1:]:
         number = cell(row, "*Id")
@@ -110,6 +114,8 @@ def main():
         damage = any(is_set(row, name) for name in DAMAGE)
         missile = any(cell(row, name) for name in MISSILES)
         if is_set(row, "passive") or is_set(row, "aura") or cell(row, "summon"):
+            kind = NONE
+        elif cell(row, "aurastate") and not left:
             kind = NONE
         elif any(is_set(row, name) for name in OTHER_TARGETS) and not left:
             kind = NONE
@@ -126,6 +132,12 @@ def main():
         else:
             kind = NONE
         kinds[skill] = kind
+        # TargetableOnly is independent of range/damage. A missile or damage
+        # does not make a self cast (armours, novas) require a monster. Other
+        # unit targets belong to their own native rules, not enemy navigation.
+        targets[skill] = (cell(row, "TargetableOnly") == "1"
+                          and cell(row, "srvstfunc") not in ("31", "38", "41")
+                          and not any(is_set(row, name) for name in OTHER_TARGETS))
 
     with io.open(args.excel / "weapons.txt", encoding="utf-8-sig", errors="replace", newline="") as source:
         weapons = list(csv.reader(source, delimiter="	"))
@@ -177,6 +189,19 @@ def main():
     out.append("constexpr SkillAttack SkillAttackFor(int skill) {")
     out.append("\treturn skill >= 0 && static_cast<size_t>(skill) < SkillAttacks.size()")
     out.append("\t\t? SkillAttacks[static_cast<size_t>(skill)] : SkillAttack::None;")
+    out.append("}")
+    out.append("")
+    out.append("// Enemy targeting is independent of attack/reach classification. Native")
+    out.append("// TargetableOnly, excluding pet/ally/corpse/item targets. Unknown ids never")
+    out.append("// invent an enemy requirement; the native cast still decides validity.")
+    out.append("inline constexpr std::array<bool, %d> EnemyTargets{{" % (last + 1))
+    for start in range(0, last + 1, 20):
+        out.append("\t" + ",".join("true" if targets.get(skill, False) else "false"
+                   for skill in range(start, min(start + 20, last + 1))) + ", // %d" % start)
+    out.append("}};")
+    out.append("constexpr bool SkillRequiresEnemy(int skill) {")
+    out.append("\treturn skill >= 0 && static_cast<size_t>(skill) < EnemyTargets.size()")
+    out.append("\t\t&& EnemyTargets[static_cast<size_t>(skill)];")
     out.append("}")
     out.append("")
     out.append("// The weapons that shoot: the bows and crossbows of weapons.txt, by item code")

@@ -31,7 +31,12 @@ bool Available();
 // game's tests do; kept to tell the two apart in a live test.
 bool MoveTo(Radar::Position cell, bool run = true, bool plain = false);
 bool SkillAt(Hand hand, Radar::Position cell);
-bool SkillOn(Hand hand, Unit type, uint32_t id);
+// A cast where the player stands: reads only the player's position, no terrain
+// or enemies. The game decides town, mana and form restrictions.
+bool SkillHere(Hand hand);
+// `stationary` is Shift held: the game's own stand-still unit command, which
+// does not walk up to the unit.
+bool SkillOn(Hand hand, Unit type, uint32_t id, bool stationary = false);
 // Talk to, open, take or use: the command the game sends for that kind of
 // unit. The game refuses one that is too far, so the caller walks up first.
 bool Interact(Unit type, uint32_t id);
