@@ -292,7 +292,7 @@ what went wrong and what they needed, and kept going until the credits rolled.
 - **mojsior**, for testing.
 - **bladestorm360**, for testing and for implementing keyboard play, and then finishing the whole
   game with it.
-- And a special thanks to **bfbeast666** and **Raine**, a couple who reported a huge number of bugs,
+- And a special thanks to **BFBeast666** and **Raine**, a couple who reported a huge number of bugs,
   contributed area descriptions and ideas, finished the game together, and told me about their
   progress every step of the way.
 
