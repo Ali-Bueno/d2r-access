@@ -39,6 +39,8 @@ before adding one, and read this file first.
 | Ctrl+B | follow or release what the scanner named |
 | Ctrl+E | the route to what the beacon follows or the scanner named (docs/route-description.md) |
 | Ctrl+Y | the ways out of this room |
+| Shift+Y | the description of the area you are in, as BACK + right stick up ([descriptions](descriptions.md); the user, 2026-11-01) |
+| Shift+Z | the next companion -- summons, mercenary, party -- with its life, one per press, as BACK+RT (the user, 2026-11-01) |
 | Ctrl+O | the terrain overview |
 | Ctrl+T | the radar's state |
 | K, L | the tutorial: previous message, next message ([tutorial](tutorial.md); the user, 2026-10-21) |

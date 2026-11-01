@@ -127,6 +127,8 @@ using Radar::Position;
 enum class Command : uint32_t {
 	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, NpcNext, NpcPrevious, WalkToTarget, Explore,
 	Retreat, Stop, RoomLayout,
+	// The pad's BACK + right stick up and BACK + RT: the area's description, the next companion.
+	AreaDescription, Companions,
 	ReadPrevious, ReadNext, ReadFirst, ReadLast, CompareItem, CompareEquipped, Repeat,
 	// Alt+PageUp/PageDown: the shared stash's page before and after.
 	StashPagePrevious, StashPageNext,
@@ -1542,6 +1544,8 @@ void Read(Command command, bool inPlay) {
 	case Command::CompareItem:     InputDirection::PostLeftStickPush(StickPush::Left); break;
 	case Command::CompareEquipped: InputDirection::PostLeftStickPush(StickPush::Right); break;
 	case Command::RoomLayout:   InputDirection::PostBackWith(InputDirection::FaceButton::Y); break;
+	case Command::AreaDescription: InputDirection::PostBackWithRightStick(StickPush::Up); break;
+	case Command::Companions:      InputDirection::PostBackWithTrigger(true); break;
 	case Command::Repeat:
 		if (inPlay) MapSurveyService::Repeat();
 		else GameTextReader::RequestRepeat();
@@ -2411,6 +2415,8 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-retreat", "Retreat to the way you came in; in a menu, repair all", Key::R, Modifier::Control, Command::Retreat},
 			Entry{"keyboard-stop", "Stop walking or fighting", Key::End, Modifier::None, Command::Stop},
 			Entry{"keyboard-room", "Say the ways out of this room", Key::Y, Modifier::Control, Command::RoomLayout},
+			Entry{"keyboard-area-description", "Describe the area you are in", Key::Y, Modifier::Shift, Command::AreaDescription},
+			Entry{"keyboard-companions", "The next companion: summons, mercenary, party", Key::Z, Modifier::Shift, Command::Companions},
 			Entry{"keyboard-read-previous", "Read: previous", Key::PageUp, Modifier::None, Command::ReadPrevious},
 			Entry{"keyboard-read-next", "Read: next", Key::PageDown, Modifier::None, Command::ReadNext},
 			Entry{"keyboard-read-first", "Read: previous category, or first", Key::PageUp, Modifier::Control, Command::ReadFirst},

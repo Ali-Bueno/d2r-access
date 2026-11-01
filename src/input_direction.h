@@ -210,6 +210,9 @@ bool LineStepPending();
 bool LineStepPlain();
 void PostBackWith(FaceButton button);
 void PostBackWithLb();
+// BACK + the right stick up or down, and BACK + a trigger, for the keyboard.
+void PostBackWithRightStick(StickPush push);
+void PostBackWithTrigger(bool right);
 void PostFacePress(FaceButton button);  // A and B have readers
 
 // Releases the dynamically loaded XInput library. Safe to call even if Poll

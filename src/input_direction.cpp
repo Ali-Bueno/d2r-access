@@ -436,6 +436,10 @@ void PostBackWith(FaceButton button) {
 	else if (button == FaceButton::Y) g_backWithY = true;
 }
 void PostBackWithLb() { g_backWithLb = true; }
+void PostBackWithRightStick(StickPush push) {
+	if (push == StickPush::Up || push == StickPush::Down) g_backWithRightStick = push;
+}
+void PostBackWithTrigger(bool right) { (right ? g_backWithRt : g_backWithLt) = true; }
 void PostFacePress(FaceButton button) {
 	if (button == FaceButton::B) g_pressedB = true;
 	if (button == FaceButton::A) g_pressedA = true;
