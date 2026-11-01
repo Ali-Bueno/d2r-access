@@ -230,7 +230,6 @@ Continuous proximity tones and full-map guidance remain outside this prototype.
 
 | Control | Action |
 |---|---|
-| Ctrl+G | Toggle radar for this run; announces the switch |
 | Ctrl+T | Read up/left/right/down states and body-clear depths |
 | `access-radar on` / `off` | Console equivalent of the toggle |
 | `access-radar status` | Speak states, or explain that terrain/audio is unavailable |

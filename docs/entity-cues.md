@@ -68,7 +68,7 @@ current output on suspension; there is no queue of stale targets.
 ## Controls
 
 `access-entity-cues on|off|status` controls the feature independently of NPC
-speech (`Ctrl+N`) and the navigation radar (`Ctrl+G`). The same command accepts
+speech (`Ctrl+N`) and the navigation radar (the settings list). The same command accepts
 `npc-on`, `npc-off`, `enemy-on`, `enemy-off`, `ranged-on`, `ranged-off`,
 `ordinary-on`, `ordinary-off`, and the reach controls of [attack reach](attack-reach.md).
 Status and toggle feedback are localized in all 13 game languages.

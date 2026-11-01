@@ -27,7 +27,6 @@ In play:
 | End | stop |
 | Ctrl+Y | the ways out of this room |
 | Z, X | life, mana. There is no key for both |
-| Ctrl+G | radar on or off |
 
 Everywhere:
 

@@ -120,7 +120,6 @@ game's code, not pressed in a test).
 | Ctrl+S | the list of the mod's switches, in groups, open and shut: Page Up/Down step, Space opens a group or changes, Shift+Space lowers, Backspace returns to the groups. The pad's is BACK+RB, then the right stick: up and down step, right opens or changes, left returns; LB and RB lower and raise, kept from the game while the list is open (2026-10-13) |
 | PageUp, PageDown, Space | with that list open: previous, next, change. The arrows are not the list's: in play they still walk the character. The user, 2026-09-28, once told PageUp and PageDown step the list: no change wanted |
 | Ctrl+H | the controls read with it, on and off |
-| Ctrl+G | radar |
 | Ctrl+F | footstep filter |
 | Ctrl+U | the scanner's filter for what cannot be reached: on, it lists only what the player can get to on foot from where they stand (the user, 2026-10-02: Ctrl+F if free, else the first Ctrl key that makes sense; Ctrl+F is the footstep filter). Off until switched on; also in the Ctrl+S list |
 | Ctrl+N | NPC announcer |

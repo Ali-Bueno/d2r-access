@@ -3,6 +3,11 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-11-01 — No key turns the radar on or off (the user)
+
+Ctrl+G is gone: the radar is switched in the settings list (Ctrl+S, BACK+RB), as everything without a
+key of its own is. Ctrl+T still says its status; `access-radar on|off` stays for the console.
+
 ## 2026-11-01 — Holding Y says how to compare
 
 The user pressed Y and used the right stick, as a tester did on 2026-10-13. Built and unit-tested.

@@ -90,7 +90,7 @@ The full lists are in the package's `README.txt` and `KEYBOARD.txt`, and in
 | LB (in play) | — | Audible loot filter on or off |
 | BACK + RB | Ctrl+S | The mod's settings list |
 | BACK + right stick left / right | K / L | Tutorial: previous / next message |
-| — | Ctrl+G / Ctrl+T | Radar on or off / radar status |
+| — | Ctrl+T | Radar status (on or off in the settings list) |
 | — | D | Walk to the nearest usable thing and use it |
 | — | A / W, held | Fight with the left / right skill; a buff or a summon is cast once where you stand |
 | — | Shift+A, held | Attack in place with the left skill: no walking up, no falling back |
@@ -166,7 +166,7 @@ See [inventory and NPC follow-up](docs/inventory-npc-followup.md).
   breath for open floor, a dull *tock* for a nearby wall, two knocks for a closed door and a short
   knock for a lone obstacle with a way round it. It follows passages a full body can use,
   remembers walls as you move, and stays silent while nothing changes. Two short pips mark a way
-  into ground you have not explored yet. Ctrl+G toggles it, Ctrl+T describes the surroundings.
+  into ground you have not explored yet. The settings list turns it on or off, Ctrl+T describes the surroundings.
 - **No wall sliding:** a stick push into a wall stops instead of letting the game slide you along
   it, with a low bump sound panned to the side you pushed; narrow stairs and passages keep the
   game's slide ([wall sliding](docs/wall-sliding.md)).

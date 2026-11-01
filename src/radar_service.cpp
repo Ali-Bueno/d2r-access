@@ -32,7 +32,7 @@
 namespace D2RAccess::RadarService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, On, Off, Toggle, Status, Dump, Test, Diagonal, Cardinal };
+enum class Command { None, On, Off, Status, Dump, Test, Diagonal, Cardinal };
 constexpr uint64_t TestStepMs = 400; // audition spacing: well over one cue plus its gap
 constexpr int DumpRadius = 12; // 25x25 local ASCII diagnostic, not sensor range
 // Collision snapshots are bulky records; one per second keeps AsyncLog's
@@ -240,8 +240,8 @@ bool Register(const D2RL::PluginContext* context) {
 	if (context->QueryService(&g_input) == D2RL::ServiceQueryResult::Success
 		&& D2RL::HasInputServiceField(g_input, D2RL::InputServiceRequiredSize)) {
 		struct Shortcut { const char* id; const char* label; D2RL::Input::Key key; Command command; };
-		const Shortcut shortcuts[] = {{"radar-toggle", "Toggle navigation radar", D2RL::Input::Key::G, Command::Toggle},
-			{"radar-status", "Read navigation radar", D2RL::Input::Key::T, Command::Status}};
+		// No key turns the radar on or off: the settings list does (the user, 2026-11-01).
+		const Shortcut shortcuts[] = {{"radar-status", "Read navigation radar", D2RL::Input::Key::T, Command::Status}};
 		for (const auto& shortcut : shortcuts) {
 			const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 				.logicalId = shortcut.id, .displayName = shortcut.label, .category = "Accessibility",
@@ -262,8 +262,8 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return; // Register failed or Unregister ran
 	const auto command = g_command.exchange(Command::None);
 	const uint64_t now = GetTickCount64();
-	if (command == Command::On || command == Command::Off || command == Command::Toggle) {
-		g_enabled = command == Command::On || (command == Command::Toggle && !g_enabled);
+	if (command == Command::On || command == Command::Off) {
+		g_enabled = command == Command::On;
 		Suspend(g_enabled ? "enabled-reset" : "disabled");
 		ScreenReader::Speak(g_enabled ? Strings::Current().radarEnabled : Strings::Current().radarDisabled, true);
 	}

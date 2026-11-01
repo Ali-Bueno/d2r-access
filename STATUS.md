@@ -68,6 +68,14 @@ The pad stays as it is (the user, 2026-11-01): no keyboard key for the BACK+X re
 Release: 137/137 CTest, 28 entries, 64,318,604 bytes, SHA-256 `ea119f46…b5c7bf49`; news
 `../tester-news-draft-2026-11-01d.txt`.
 
+Ctrl+G no longer turns the radar on or off (the user: the settings list does; decisions 2026-11-01);
+it now reaches the game. Live: Ctrl+G silent for the mod, Ctrl+T says the status, "Radar activado"
+in the list. Released texts: test-2026-11-01-5 (README.txt and KEYBOARD.txt with the new keys).
+Seen once, not reproduced (19:00): in one run the keyboard cursor never took an in-game menu (no
+`[cursor] on` in the pause menu or the inventory, the game's own focus spoke instead) while it did
+at the main menu; that run started with the window not in front. Fresh runs, with Ctrl+S, a group
+opened in it and Ctrl+G, all worked. If a tester hits it, the log's `[cursor]` lines are the lead.
+
 **Next step:** testers' first logs of these: shop tabs, set names, Shift+A against a monster, a self
 buff out of town, more than 5 stash pages. Check the local `port/bladestorm-npcs` before deleting
 `origin/bladestorm`.

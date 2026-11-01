@@ -193,7 +193,7 @@ Keyboard: the full list is in KEYBOARD.txt. To begin with:
 - Page Up / Page Down: scanner, previous / next object.
   Ctrl+Page Up / Ctrl+Page Down: previous / next category.
 - D: walk to the nearest usable thing and use it.
-- Ctrl+G: radar on or off. Ctrl+T: radar status.
+- Ctrl+T: radar status. The radar is turned on or off in the Ctrl+S list.
 - Z and X: life and mana. Shift+Z: your companions, one at a time.
 - Shift+Y: the description of the area you are in.
 
