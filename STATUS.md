@@ -39,11 +39,14 @@ The user asked four things ([descriptions](docs/descriptions.md#in-every-languag
   `test-release.ps1` uploads `release.json`. 132/132 CTest. **Unverified live** until the repo is
   public; dev builds (no release tag) skip it ([launcher](docs/launcher.md)).
 - Descriptions **confirmed live** in Spanish (`[descriptions] 139 in esES`, BACK+up in Lut Gholein).
-- Installer: the user's `D:\code\tools\mod-installer` with `configs/d2r.toml` (uncommitted there),
+- Installer: the user's `D:\code\tools\mod-installer` with `configs/d2r.toml` (f3843f1 there),
   `dist\D2RAccessInstaller.exe`; Steam's launch option and the desktop shortcut start the launcher.
   The repo goes public before the first release.
 
-**Next step:** the installer against the real game; the Hangman's Tree's words; commits.
+**Next step:** audio description of the cinematics ([plan](docs/cinematics-audio-description.md));
+live: the installer against the real game, the Hangman's Tree's words. Before the first public
+release: make the repo public; each release carries the zip, `release.json` and
+`D2RAccessInstaller.exe` (not yet uploaded by `test-release.ps1`).
 
 ## Holding Y says how to compare — 2026-11-01 (released as test-2026-11-01 from 24326f4)
 
