@@ -242,6 +242,8 @@ inline constexpr Table deDE {
 	.tradeAlertsOff = "Handelsansagen aus",
 	.weaponSwapAlertsOn = "Waffenwechsel-Ansagen an",
 	.weaponSwapAlertsOff = "Waffenwechsel-Ansagen aus",
+	.skillHotkeysOn = "Fertigkeiten-Tastenansagen an",
+	.skillHotkeysOff = "Fertigkeiten-Tastenansagen aus",
 	.handSpeechOn = "Ansagen beim Aufnehmen und Ablegen an",
 	.handSpeechOff = "Ansagen beim Aufnehmen und Ablegen aus",
 	.skillGridOn = "Fertigkeitsbaum-Navigation an",

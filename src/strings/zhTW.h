@@ -242,6 +242,8 @@ inline constexpr Table zhTW {
 	.tradeAlertsOff = "交易提示已關閉",
 	.weaponSwapAlertsOn = "武器切換提示已開啟",
 	.weaponSwapAlertsOff = "武器切換提示已關閉",
+	.skillHotkeysOn = "技能快捷鍵播報 開",
+	.skillHotkeysOff = "技能快捷鍵播報 關",
 	.handSpeechOn = "拿起和放置物品提示已開啟",
 	.handSpeechOff = "拿起和放置物品提示已關閉",
 	.skillGridOn = "技能樹導覽已開啟",

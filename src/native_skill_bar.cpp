@@ -36,6 +36,7 @@ constexpr GroundItemLayout::Evidence Checks[] = {
 	{0x239110, 616, 0x983A761456B6E184ULL},       // controller actions and Town Portal count
 };
 uintptr_t g_base = 0;
+constexpr int KeyboardSlots = 16; // the getter asserts slot <= 15 (0x117D20)
 
 bool ReadSkills(std::array<int, Buttons>& skills, int first = AlternateFirst) noexcept {
 	__try {
@@ -65,6 +66,18 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (!context || !LayoutCheck::Verify(context, context->exeBase, Checks, "skill-bar", "LT bar reading disabled")) return false;
 	g_base = context->exeBase;
 	return true;
+}
+
+bool Ready() { return g_base != 0; }
+
+std::optional<int> KeyboardSkill(int slot) noexcept {
+	if (!g_base || slot < 0 || slot >= KeyboardSlots) return std::nullopt;
+	__try {
+		if (reinterpret_cast<bool(*)()>(g_base + ControllerMode)()) return std::nullopt;
+		const int skill = reinterpret_cast<int(*)(int)>(g_base + SkillAt)(slot);
+		if (skill == NoSkill) return std::nullopt;
+		return skill;
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
 }
 
 std::optional<std::array<Binding, Buttons>> AlternateBar(bool main) {

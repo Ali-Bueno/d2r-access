@@ -242,6 +242,8 @@ inline constexpr Table enUS {
 	.tradeAlertsOff = "Trade announcements off",
 	.weaponSwapAlertsOn = "Weapon swap announcements on",
 	.weaponSwapAlertsOff = "Weapon swap announcements off",
+	.skillHotkeysOn = "Skill hotkey announcements on",
+	.skillHotkeysOff = "Skill hotkey announcements off",
 	.handSpeechOn = "Pick-up and placement speech on",
 	.handSpeechOff = "Pick-up and placement speech off",
 	.skillGridOn = "Skill tree navigation on",

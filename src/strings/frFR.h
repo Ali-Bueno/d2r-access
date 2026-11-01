@@ -242,6 +242,8 @@ inline constexpr Table frFR {
 	.tradeAlertsOff = "Annonces d'échange : désactivé",
 	.weaponSwapAlertsOn = "Annonces de changement d'armes : activé",
 	.weaponSwapAlertsOff = "Annonces de changement d'armes : désactivé",
+	.skillHotkeysOn = "Annonces des raccourcis de compétence : activé",
+	.skillHotkeysOff = "Annonces des raccourcis de compétence : désactivé",
 	.handSpeechOn = "Annonces de prise et de dépôt d'objets : activé",
 	.handSpeechOff = "Annonces de prise et de dépôt d'objets : désactivé",
 	.skillGridOn = "Navigation dans l'arbre de compétences : activé",

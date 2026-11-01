@@ -12,6 +12,11 @@ namespace D2RAccess::NativeSkillBar {
 inline constexpr int Buttons = 6;
 
 bool Initialize(const D2RL::PluginContext* context);
+// True once the fingerprints matched and the readers below work.
+bool Ready();
+// The skill bound to a keyboard binding slot (0 to 15), none in controller mode or when it cannot be read.
+// Safe on any thread.
+std::optional<int> KeyboardSkill(int slot) noexcept;
 
 struct Binding { bool bound = false; int skill = -1; std::string name; };
 // The LT bar of the current weapon set in SkillButton order, or with `main` the

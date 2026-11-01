@@ -192,6 +192,8 @@ add_library(d2r-access SHARED
 	src/native_weapon_set.cpp
 	src/weapon_swap.cpp
 	src/weapon_swap_service.cpp
+	src/skill_hotkey_service.cpp
+	src/native_skill_hotkeys.cpp
 	src/native_trade.cpp
 	src/trade.cpp
 	src/trade_service.cpp
@@ -624,6 +626,8 @@ if(BUILD_TESTING)
 	add_test(NAME minion-report COMMAND minion-report-tests)
 	d2r_test(weapon-swap-tests tests/weapon_swap_tests.cpp src/weapon_swap.cpp src/speech_strings.cpp)
 	add_test(NAME weapon-swap COMMAND weapon-swap-tests)
+	d2r_test(skill-hotkey-tests tests/skill_hotkey_tests.cpp)
+	add_test(NAME skill-hotkey COMMAND skill-hotkey-tests)
 	d2r_test(trade-tests tests/trade_tests.cpp src/trade.cpp src/speech_strings.cpp)
 	add_test(NAME trade COMMAND trade-tests)
 	d2r_test(quest-service-tests tests/quest_service_tests.cpp src/quest_service.cpp src/speech_priority.cpp src/quest_seals.cpp src/quest_progress.cpp src/quest_log.cpp src/native_memory.cpp src/ui_text.cpp src/speech_strings.cpp)

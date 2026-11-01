@@ -45,6 +45,11 @@ enabled = true
 [weapon_swap]
 enabled = true
 
+# Says the skill's name when a keyboard skill hotkey (F1 to F8, quick cast) selects another skill.
+# access-skill-hotkeys on|off toggles it for the current run.
+[skill_hotkey]
+enabled = true
+
 # Player-to-player trade: who asks, what the other player offers, accepts or
 # withdraws, and whether the trade completed. access-trade on|off toggles it.
 [trade]
