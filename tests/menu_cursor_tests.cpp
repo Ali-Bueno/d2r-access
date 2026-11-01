@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 using namespace D2RAccess;
@@ -223,6 +224,25 @@ int main() {
 		Check(MenuCursor::Move(targets, {Button, {}, {}}, Direction::Right, false, links).widget == TopRight,
 			"the same step again lands where that step landed before");
 		Check(MenuCursor::Move(targets, {Button, {}, {}}, Direction::Left, false, links).widget == TopLeft, "and the step back returns");
+	}
+	{
+		// The Warcries page as the live log drew it (2026-11-01): down from Howl
+		// landed on the footer, put there by Mend because the tabs' down step
+		// passed over the skills to the footer, a thing of no group like a tab.
+		enum : uintptr_t { Cancel = 1, Tab0, Tab1, Tab2, Footer, Tree = 100 };
+		std::vector<Target> targets{{Cancel, {2347, 144, 55, 56}, {}}, {Tab0, {1717, 244, 196, 66}, {}},
+			{Tab1, {1916, 244, 196, 66}, {}}, {Tab2, {2113, 244, 196, 66}, {}}, {Footer, {1691, 1063, 648, 40}, {}}};
+		const int column[] = {1799, 1974, 2147};
+		const std::pair<int, int> cells[] = {{0, 335}, {2, 335}, {0, 456}, {1, 456}, {2, 574}, {0, 694}, {1, 814}, {2, 814}, {0, 931}, {1, 931}};
+		uintptr_t skill = 10;
+		for (const auto& [x, y] : cells) targets.push_back({skill++, {column[x], y, 86, 86}, {}, Tree});
+		constexpr uintptr_t Howl = 10, FindPotion = 12, GrimWard = 18;
+		Check(MenuCursor::Move(targets, {Tab0, {}, {}}, Direction::Down, false).widget == Howl, "down from a tab lands on the skill under it");
+		const auto links = MenuCursor::Mend(targets);
+		Check(MenuCursor::Move(targets, {Howl, {}, {}}, Direction::Down, false, links).widget == FindPotion,
+			"down from the first skill lands on the skill below it, not on the footer");
+		Check(MenuCursor::Move(targets, {GrimWard, {}, {}}, Direction::Down, false, links).widget == Footer, "the footer is below the last row");
+		Check(AllReached(targets, links), "and every place of the page is reached from every other");
 	}
 	{
 		enum : uintptr_t { Top = 1, Low, Hidden };

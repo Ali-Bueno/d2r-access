@@ -26,9 +26,12 @@ pad (an arrow takes them), town NPC lists, Kurast NPCs. 134/134 CTest.
 de habilidad en Aullido", on War Cry both of its two; Alt+A on the inventory's Close logs
 `left click with Alt on close` and closes it. Not live: shop tabs (the unattended guardrail keeps
 NPCs out), set names (no set item on the character).
-Seen on the way, not from the port: the weapon-swap tabs over the weapon slots are said by their
-widget name (`weaponswap_left_arm`); down from a skill tree's first skill lands on the footer
-tooltip, not the skill below.
+Seen on the way and fixed the same day (live 18:0x): the weapon-swap tabs said `weaponswap_left_arm`,
+now "Cambiar armas" (`Cfgswapweapons`); a text-less hit area is named by what it covers (the skill
+tree's footer: "0 elecciones de habilidad restantes", was "Tooltip") — both in
+`FrontendNativeFallback`. Down from a skill tree's first skill went to the footer: the cursor's
+group preference counted "no group" as a group (`menu_cursor.cpp`); now tab, Howl, Taunt, Battle
+Cry, War Cry, footer, with no mended step.
 Details in [keyboard keys](docs/keyboard-keys.md), [progression](docs/progression.md),
 [native tooltips](docs/native-tooltips.md#set-item-names).
 
@@ -58,9 +61,12 @@ stick up), **Shift+Z** the next companion (pad BACK+RT). Live: Shift+Y read Lut 
 Shift+Z "Vida del mercenario 100 por ciento. Nivel 19…", Z still life alone. 137/137 CTest.
 The harness can now send PageUp, PageDown, Home and End (`71cce8a`).
 
-**Next step:** push and a test release when the user says. Pad-only still: the full BACK+X report
-(the user chose 2026-09-27 no key for life and mana together; it now holds more), LB's loot
-filter. Check the local `port/bladestorm-npcs` before deleting `origin/bladestorm`.
+Tester credits: "Dani" was Raine's name in 17 published release notes; replaced with Raine on GitHub
+(the README already said Raine), and in `docs/portals.md`, this file and the local news drafts.
+The pad stays as it is (the user, 2026-11-01): no keyboard key for the BACK+X report or LB's filter.
+
+**Next step:** push and a test release when the user says. Check the local `port/bladestorm-npcs`
+before deleting `origin/bladestorm`.
 
 ## In-play act videos: the wrong video described, fixed — 2026-11-01 (released as test-2026-11-01-3 from eb658f9)
 
@@ -680,7 +686,7 @@ doorway, `[survey] town NPCs on level 75`, `[modal] DropGoldModal title`, `[ques
 Release: 123/123 CTest, 29 entries, 62,665,603 bytes, SHA-256 `b89c2a63…d881`.
 
 From the tester's "Fundamentals: Route finder (Mod+A)" (text, painted screenshots, `wf_` logs on
-`test-2026-10-19`) and the earlier `BFB_mp`/`dani_mp`/`dani_sp` logs; choices in
+`test-2026-10-19`) and the earlier multiplayer and single-player logs of BFBeast666 and Raine; choices in
 [decisions](docs/decisions.md); news (with replies) `../tester-news-draft-2026-10-19c.txt`:
 - Every leg is one of the eight ways, a doorway crossed along its axis (`RouteLegs::Search`:
   turns charged 3 units, diagonals need room on both sides; stretches of 96 cells); the route ends

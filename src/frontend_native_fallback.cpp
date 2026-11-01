@@ -4,6 +4,8 @@
 
 namespace D2RAccess::FrontendNativeFallback {
 namespace {
+// The game's key-binding string (keybinds.json) for the I/II tabs over the weapon slots, which have no text.
+constexpr const char* SwapWeaponsKey = "Cfgswapweapons";
 
 bool Under(const UiText::Snapshot& snapshot, size_t child, size_t parent) {
 	for (int at = static_cast<int>(child); at >= 0 && static_cast<size_t>(at) < snapshot.nodes.size();) {
@@ -182,6 +184,20 @@ Readout Describe(const UiText::Snapshot& snapshot) {
 			Append(status, TextNamed(snapshot, "HostingStatusLabel"));
 			Append(status, TextNamed(snapshot, "HostingStatusText"));
 			if (!status.empty()) controlText = status;
+		}
+	}
+	// A hit area with no words of its own: the weapon-swap tabs by the game's string for the swap, any
+	// other by what it covers (the skill tree's footer covers the choices left), else by its tooltip.
+	if (controlText == node.name) {
+		const auto* covered = node.parent >= 0 ? &snapshot.nodes[static_cast<size_t>(node.parent)] : nullptr;
+		if (node.name == "weaponswap_left_arm" || node.name == "weaponswap_right_arm") result.labelKey = SwapWeaponsKey;
+		else if (covered && !UiText::Clean(covered->text).empty()) {
+			controlText.clear();
+			Append(controlText, covered->text);
+			Append(controlText, node.hint);
+		} else if (!UiText::Clean(node.hint).empty()) {
+			controlText.clear();
+			Append(controlText, node.hint);
 		}
 	}
 	result.text = controlText;

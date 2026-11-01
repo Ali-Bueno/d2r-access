@@ -55,7 +55,7 @@ while the client stays away; the client's log should show `[scan] portal dropped
 
 ## One portal per owner, named by its owner (2026-10-22)
 
-The tester's two-player log (`portal_dani_*`, `portal_tank_man_*` in the user's Downloads,
+The testers' two-player log (Raine's and TankMan's `portal_*` files in the user's Downloads,
 `d2r access test build 2026-10-22 notes.7z`): the host opened a portal from the Dry Hills, then a
 new one from the Far Oasis while the client was far off in town. For about 100 s the client still
 listed "Dry Hills, TankMan's portal" (the old unit, id 50, not loaded, so rule 1 waited for the new

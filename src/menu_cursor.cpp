@@ -53,7 +53,8 @@ const Target* Nearest(std::span<const Target> targets, const Target* current, co
 		if (&target == current || !Drawn(target)) continue;
 		const auto distance = Between(origin, target.rect, direction);
 		if (distance.ahead <= 0) continue;
-		const std::tuple score{distance.across > distance.along, target.group != current->group,
+		// Only a step from a thing of a group keeps to its group: from a tab the skill below comes first.
+		const std::tuple score{distance.across > distance.along, current->group != 0 && target.group != current->group,
 			distance.along * distance.along + distance.across * distance.across, distance.across, distance.ahead,
 			target.rect.y, target.rect.x};
 		if (!best || score < least) { best = &target; least = score; }

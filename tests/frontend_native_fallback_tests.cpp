@@ -145,5 +145,27 @@ int main() {
 		"captionless loader icon uses its shipped localization key");
 	icons.name = "OtherPanel";
 	Check(FrontendNativeFallback::Describe(icons).labelKey.empty(), "loader label override does not rename other panels");
+	// Hit areas with no words of their own (live log, 2026-11-01).
+	UiText::Snapshot inventory;
+	inventory.name = "PlayerInventoryExpansionLayout";
+	inventory.focus = 21;
+	inventory.nodes = {
+		{20, -1, Kind::Other, "PlayerInventoryExpansionLayout", "Panel"},
+		{21, 0, Kind::Other, "weaponswap_left_arm", "FocusableWidget"},
+	};
+	Check(FrontendNativeFallback::Describe(inventory).labelKey == "Cfgswapweapons", "a weapon-swap tab is called by the game's string for the swap");
+	UiText::Snapshot tree;
+	tree.name = "SkillsTreePanel";
+	tree.focus = 32;
+	tree.nodes = {
+		{30, -1, Kind::Other, "SkillsTreePanel", "Panel"},
+		{31, 0, Kind::Text, "SkillCounter", "TextBoxWidget", "0 skill choices left"},
+		{32, 1, Kind::Other, "Tooltip", "FocusableWidget"},
+	};
+	tree.nodes.back().hint = "Spend skill points to raise your skills.";
+	Check(FrontendNativeFallback::Describe(tree).text == "0 skill choices left, Spend skill points to raise your skills.",
+		"a hit area with no words is called by what it covers, then by its tooltip");
+	tree.nodes[1].text.clear();
+	Check(FrontendNativeFallback::Describe(tree).text == "Spend skill points to raise your skills.", "or by its tooltip alone");
 	Passed();
 }

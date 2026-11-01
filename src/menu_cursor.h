@@ -19,7 +19,8 @@
 // none there, and not on one further along the row (the user, 2026-09-27).
 // Of two things that lie that way, one of the group the step is made from
 // comes first: a step to the right from a skill lands on a skill, not on the
-// tab drawn over the next column. With nothing like that, it is the nearest
+// tab drawn over the next column. A step from a thing of no group has no such
+// preference: down from a tab lands on the skill under it, not the footer. With nothing like that, it is the nearest
 // thing that lies that way at all. What the arrows would still miss is put
 // within their reach by Mend.
 // Pure logic, unit-tested without the game. docs/keyboard-play.md

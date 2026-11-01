@@ -229,6 +229,9 @@ The rule (`Nearest` in `src/menu_cursor.cpp`), in this order:
    skills of a skill tree are a group, and so are the skills of the list for
    a hand: the tabs of the skill tree are drawn right over its first row,
    and without this a step to the right from the first skill lands on a tab.
+   A step from a thing of no group has no such preference (2026-11-01): it
+   counted "no group" as a group, so down from a tab passed over the skills
+   to the footer, and Mend then put the footer under the first skill.
 4. Then the nearest, by the two spaces together.
 
 So right from Sacrifice is Holy Bolt, and down from Sacrifice is Zeal, the
