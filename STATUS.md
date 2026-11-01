@@ -26,7 +26,7 @@ pad (an arrow takes them), town NPC lists, Kurast NPCs. 134/134 CTest.
 de habilidad en Aullido", on War Cry both of its two; Alt+A on the inventory's Close logs
 `left click with Alt on close` and closes it. Not live: shop tabs (the unattended guardrail keeps
 NPCs out), set names (no set item on the character).
-Seen on the way and fixed the same day (live 18:0x): the weapon-swap tabs said `weaponswap_left_arm`,
+Seen on the way and fixed the same day (live 18:00-18:00): the weapon-swap tabs said `weaponswap_left_arm`,
 now "Cambiar armas" (`Cfgswapweapons`); a text-less hit area is named by what it covers (the skill
 tree's footer: "0 elecciones de habilidad restantes", was "Tooltip") — both in
 `FrontendNativeFallback`. Down from a skill tree's first skill went to the footer: the cursor's
