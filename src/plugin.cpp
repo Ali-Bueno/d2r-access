@@ -27,7 +27,9 @@
 #include "native_widgets.h"
 #include "native_cairn.h"
 #include "native_memory.h"
+#include "audio_description.h"
 #include "descriptions.h"
+#include "movie_probe.h"
 #include "native_hit_chance.h"
 #include "native_hover.h"
 #include "native_ui.h"
@@ -218,6 +220,8 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::ModalReader::Tick(context); lap("ModalReader");
 	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");
 	D2RAccess::UiMessageMonitor::Tick(context); lap("UiMessageMonitor");
+	D2RAccess::AudioDescription::Tick(context); lap("AudioDescription");
+	D2RAccess::MovieProbe::Tick(context); lap("MovieProbe");
 	D2RAccess::NativeWidgets::Tick(context); lap("NativeWidgets");
 	D2RAccess::QuestService::Tick(context, uiOwnsSpeech); lap("QuestService");
 	D2RAccess::TutorialService::Tick(context, uiOwnsSpeech); lap("TutorialService");
@@ -393,6 +397,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 	D2RAccess::Localization::DetectSpeechLanguage(context);
 	D2RAccess::Descriptions::Load(context, D2RAccess::Descriptions::OpenBundled(context),
+		[] { return D2RAccess::Strings::LocaleCode(D2RAccess::Strings::Selected()); });
+	D2RAccess::AudioDescription::Load(context, D2RAccess::AudioDescription::OpenBundled(context),
 		[] { return D2RAccess::Strings::LocaleCode(D2RAccess::Strings::Selected()); });
 
 	// After Initialize, whose own Shutdown clears it: set before, no phrase was logged.

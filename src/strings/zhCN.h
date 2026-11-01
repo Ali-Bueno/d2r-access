@@ -424,6 +424,8 @@ inline constexpr Table zhCN {
 	.compareHint = "比较中。左摇杆：向右是已装备物品，向左是此物品",
 	.compareHintOn = "按住 Y 时的比较提示已开启",
 	.compareHintOff = "按住 Y 时的比较提示已关闭",
+	.audioDescriptionOn = "过场动画口述影像已开启",
+	.audioDescriptionOff = "过场动画口述影像已关闭",
 	.settingsEndsStop = "设置列表在两端停止",
 	.settingsEndsWrap = "设置列表循环并发出咔哒声",
 	.routeOnAOn = "路线为返回键加A",

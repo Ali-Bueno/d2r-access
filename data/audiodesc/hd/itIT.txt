@@ -1,0 +1,169 @@
+# Audio description for the 2021 (Diablo II: Resurrected) act cinematics, Italian: story narration for the gaps between dialogue. One cue per line: video, seconds, text (tab separated).
+# d2intro
+d2intro	10.5	Lettere infuocate: Blizzard Entertainment presenta.
+d2intro	19.9	In un corridoio di celle, un ragno corre sul pavimento e passano piedi in tonaca.
+d2intro	26.2	Un cancello cigola. Uno sconosciuto incappucciato prosegue nel corridoio.
+d2intro	32.1	In una cella spoglia, un vecchio fragile giace in un fascio di luce.
+d2intro	37.7	Magro e dai capelli bianchi, traccia forme sul pavimento con un dito, borbottando.
+d2intro	43.9	Dietro di lui la porta della cella si è aperta e l'incappucciato è sulla soglia.
+d2intro	50.5	Una frusta schiocca e un uomo urla.
+d2intro	53.7	Il vecchio alza la testa. Da lontano giungono applausi e risate.
+d2intro	58.8	Piagnucolando si rannicchia e il suo piatto rotola via.
+d2intro	63.0	Presso la finestra a sbarre lo sconosciuto si siede, il volto nascosto.
+d2intro	74.3	Un lampo: lo sconosciuto appare come un angelo.
+d2intro	131.95	Il suo volto si scioglie in un braciere.
+d2intro	152.55	In una taverna, un cameriere si avvicina a Marius.
+d2intro	158.7	Marius si limita a gemere, assonnato.
+d2intro	161.8	Il cameriere sbuffa disgustato e se ne va col vassoio di boccali.
+d2intro	193.1	Si apre una porta. Il vento entra e piega le fiamme.
+d2intro	197.4	Un viaggiatore incappucciato sulla soglia.
+d2intro	212.53	La spada stride.
+d2intro	230.72	Le assi cigolano accanto a un bevitore.
+d2intro	235.3	Il bevitore, magro e calvo, lo fissa oltre una candela e ride.
+d2intro	241.2	Il viaggiatore pianta la spada nel pavimento e si accascia sull'elsa.
+d2intro	255.95	Il bevitore ghigna. Il pugno del viaggiatore brilla verde.
+d2intro	260.4	Ringhia; il suo volto brilla verde.
+d2intro	266.9	La risata del bevitore diventa disumana.
+d2intro	270.75	Qualcosa di scuro corre sul pavimento, sparpagliando braci.
+d2intro	275.25	Il bevitore tace. Il fuoco erompe dal pavimento.
+d2intro	279.45	Un demone storto e zannuto corre ringhiando sul pavimento.
+d2intro	284.0	Marius geme; il fuoco dilaga e i demoni ridono.
+d2intro	320.3	Scheletri infuocati attaccano. Marius è sgomento.
+d2intro	324.1	Un lampo verde abbatte un cliente; gli scheletri lo colpiscono.
+d2intro	329.3	Su un tavolo, un cliente calvo alza la spada su uno scheletro.
+d2intro	334.2	Il cameriere prende fuoco e urla, braccia alzate.
+d2intro	338.0	Un lampo verde colpisce un uomo al petto. Barcolla.
+d2intro	342.7	Un avventore incrocia la spada con uno scheletro.
+d2intro	347.9	In ginocchio tra le fiamme, il Viandante spalanca le braccia, straziato.
+d2intro	353.3	Fumo verde esce dal cappuccio. Si curva e crolla a terra.
+d2intro	360.4	Pipistrelli escono dalle fiamme. Un demone cornuto striscia in una crepa.
+d2intro	366.2	Marius si schiaccia contro il muro. La pipa cade a terra.
+d2intro	370.8	Il Viandante si allontana lento nella sala in fiamme.
+d2intro	379.6	Dietro, Marius si alza e lo guarda andare.
+d2intro	383.2	Poi Marius lo segue tra le fiamme.
+d2intro	387.2	Esce barcollando nella notte, tra cadaveri.
+d2intro	418.0	Sulla taverna in fiamme nel bosco innevato, lettere infuocate formano Diablo II: Resurrected.
+# Act02start
+Act02start	3.0	Atto Due, in lettere pallide su pietra macchiata di ruggine.
+Act02start	155.25	Un raggio rosso sale da un colle.
+Act02start	158.35	Marius si sveglia ansimando al fuoco.
+Act02start	172.75	Un lupo ulula alla luna. La notte lascia il posto a un mattino chiaro.
+Act02start	192.8	Una figura solitaria va a Lut Gholein.
+# Act03start
+Act03start	3.0	Atto Tre, in lettere pallide su pietra rosso sangue.
+Act03start	25.78	Il vento fischia.
+Act03start	71.6	Pipistrelli stridono mentre i due attraversano un salone buio; Marius fa luce.
+Act03start	77.7	Un lamento echeggia lontano. Il Viandante si ferma e Marius alza la torcia.
+Act03start	83.6	Il Viandante, calvo e smunto, si stringe il ventre e si piega con un grugnito.
+Act03start	89.4	Urla. Marius lo fissa, torcia in mano.
+Act03start	92.5	Un segno rosso brucia sulla fronte e la pelle ribolle e si gonfia.
+Act03start	97.5	Silenzio. Marius è accanto al Viandante immobile.
+Act03start	115.4	I bracieri si accendono e linee di fuoco corrono verso un pilastro che geme.
+Act03start	121.6	Il Viandante avanza deciso, Marius con la torcia dietro.
+Act03start	142.8	Il Viandante urla. Nastri di luce blu sferzano un ponte di corda, che prende fuoco.
+Act03start	149.6	Marius, torcia alta, guarda il ponte che brucia.
+Act03start	153.9	Tal Rasha geme legato, con una gemma che brilla nel petto.
+Act03start	158.6	Il Viandante striscia sul ponte e Tyrael atterra davanti a lui, ali spiegate.
+Act03start	164.6	La luce blu sferza il Viandante accovacciato.
+Act03start	168.6	Tal Rasha si dibatte e geme. Tyrael piomba sul Viandante.
+Act03start	173.4	Marius, impietrito, guarda.
+Act03start	181.2	Marius, come in trance, tende la mano.
+Act03start	187.5	Marius attraversa il ponte in fiamme, aggrappato alla corda.
+Act03start	192.6	Tyrael combatte il Viandante in una luce blu.
+Act03start	200.0	Le spade cozzano. Marius va da Tal Rasha.
+Act03start	203.6	Tende la mano alla gemma nel petto di Tal Rasha.
+Act03start	210.5	Marius strappa la gemma.
+Act03start	239.2	Tal Rasha scatta tra le fiamme, le corde sferzano.
+Act03start	243.1	Tyrael alza la spada, con le ali bianche.
+Act03start	246.5	Tal Rasha si dibatte e urla, il volto un teschio marcio.
+Act03start	251.5	Marius fugge verso la luce.
+# Act04start
+Act04start	3.0	Atto Quattro, in lettere pallide su pietra scura venata di braci.
+Act04start	13.4	Marius sbircia da dietro un pilastro.
+Act04start	70.42	Un fulmine scoppia.
+Act04start	89.6	Il cerchio di rune esplode in luce bianca e il Portale Infernale avvampa.
+Act04start	123.8	Il Viandante urla mentre il volto si gonfia e si squarcia. Crolla sul pavimento inciso.
+Act04start	138.0	Spine sbucano dalla tunica. Dietro un pilastro, Marius piange.
+Act04start	142.8	Lunghe corna nere squarciano la schiena e spezzano il corpo.
+Act04start	147.5	Il Portale Infernale arde e geme.
+Act04start	157.8	Nella luce bianca svetta Diablo, un demone rosso irto di spine nere.
+Act04start	163.3	I suoi passi rimbombano scendendo dall'altare, la coda spinosa a trascinarsi.
+Act04start	169.5	Il suo artiglio schiaccia dei teschi.
+Act04start	187.0	Diablo si volta verso il fuoco del Portale Infernale.
+Act04start	191.9	Nascosto in una porta, Marius guarda, il volto illuminato dal Portale.
+Act04start	197.2	Piangendo, alza la pietra luminosa davanti agli occhi.
+Act04start	201.8	Davanti a lui il Portale Infernale arde, volti tormentati vi si contorcono.
+# Act04end
+Act04end	3.0	Epilogo, in lettere pallide su pietra scura venata di braci.
+Act04end	13.7	Un cancello sbatte. Marius si rannicchia.
+Act04end	21.6	In una tempesta di fuoco, una forma blu spettrale si strappa da Diablo.
+Act04end	37.9	Solo in cella, Marius singhiozza sul giaciglio.
+Act04end	41.5	A occhi chiusi, porta una mano tremante alla fronte.
+Act04end	68.0	L'incappucciato lo sovrasta, nella luce della finestra.
+Act04end	79.5	Lo sconosciuto tende la mano. Marius tira fuori la pietra dalla tunica, appesa a un laccio.
+Act04end	89.2	Tende la pietra.
+Act04end	103.7	Marius si rannicchia ai suoi piedi.
+Act04end	106.7	Voci urlano lontano. Marius apre il palmo e lo sconosciuto prende la pietra.
+Act04end	126.0	Il vero volto brucia.
+Act04end	149.6	Baal tende la mano al volto di Marius. Il suo urlo si spegne nel buio.
+Act04end	155.4	Marius giace rannicchiato in cella.
+Act04end	158.3	Baal si allontana, fiamme dietro la tunica, finché il fuoco inonda la cella.
+Act04end	164.5	Baal esce da un muro di fuoco in una via acciottolata, il mantello al vento.
+Act04end	170.4	Dietro di lui brucia tutta la via. Cammina calmo.
+Act04end	175.5	Le fiamme lambiscono l'orlo della veste mentre passa.
+Act04end	179.7	Urla salgono da lontano mentre le fiamme diventano bianche e lo inghiottono.
+# D2x_Intro
+D2x_Intro	6.0	Dal buio emerge un salone di pietra, illuminato da lampadari e bracieri fumanti.
+D2x_Intro	12.6	Un uomo corpulento in mantello rosso con colletto di pelliccia va verso il gran portone.
+D2x_Intro	19.8	Una sottile linea di luce spacca il portone, che si apre. Entra il vento.
+D2x_Intro	25.4	Fuori c'è un passo innevato, fiancheggiato da stendardi rossi.
+D2x_Intro	30.8	L'uomo raggiunge la soglia con un alto stendardo e si ferma tra i battenti.
+D2x_Intro	41.8	Esce tra gli enormi battenti borchiati. Lo stendardo sventola al vento.
+D2x_Intro	50.0	La fortezza sorge su un ripiano innevato sopra una cascata, con stendardi rossi sulle mura.
+D2x_Intro	59.0	Al portone, un vecchio guerriero barbabianca, berretto di pelliccia e armatura.
+D2x_Intro	65.0	Di fronte, stendardi rossi in fila e dietro una torma di demoni spinosi.
+D2x_Intro	70.7	Si fa schermo agli occhi e scruta.
+D2x_Intro	75.3	Un corno risuona nel passo.
+D2x_Intro	79.0	Un grande trono avanza tra gli stendardi, con vele di tela aperte come ali.
+D2x_Intro	85.3	Scheletri corazzati con torce camminano al suo fianco.
+D2x_Intro	91.0	Il vecchio guerriero lo fissa, atterrito.
+D2x_Intro	94.9	Sul trono, un demone pallido tra viticci aggrotta la fronte.
+D2x_Intro	101.9	Dietro di lui, il portone si chiude cigolando.
+D2x_Intro	105.9	Si volta mentre sbattono, chiudendolo fuori con la torma.
+D2x_Intro	111.2	Abbassa il capo stringendo l'asta, poi si raddrizza e squadra le spalle.
+D2x_Intro	117.3	Emette un lungo sospiro e fronteggia il trono.
+D2x_Intro	121.0	Alza la mano.
+D2x_Intro	150.9	Il grido di Baal rimbomba sulle vette. Il guerriero si stringe la testa.
+D2x_Intro	156.4	Baal ringhia. Una gemma gialla brilla sul petto.
+D2x_Intro	160.1	Il guerriero si toglie il berretto e lo stringe al petto, il capo calvo chino.
+D2x_Intro	172.4	Il guerriero attende. Baal chiude gli occhi e passa una mano artigliata sulla pietra.
+D2x_Intro	179.6	Poi ghigna e alza la mano, artigli aperti.
+D2x_Intro	183.2	Un rombo scuote le alte mura della fortezza. Il guerriero alza lo sguardo.
+D2x_Intro	188.8	Baal serra il pugno, occhi chiusi, e le mura tremano.
+D2x_Intro	193.1	Allarmato, alza lo sguardo.
+D2x_Intro	195.6	Fuoco rosso turbina dalle mani di Baal e attraversa il campo verso il portone.
+D2x_Intro	201.5	Raggiunge il portone e avvolge il guerriero, berretto in mano.
+D2x_Intro	206.3	L'anello di fuoco si chiude su di lui. Resta solo una macchia rossa.
+D2x_Intro	219.0	Baal ride sul suo trono.
+D2x_Intro	222.3	La torma ruggisce e si getta sul portone: scheletri con elmi cornuti e bestie enormi coperte di spine.
+D2x_Intro	231.0	Atto Cinque, in lettere pallide su pietra scura.
+D2x_Intro	236.0	Lord of Destruction.
+# D2x_Out
+D2x_Out	4.2	In una vasta caverna, guglie di roccia pendono su una nebbia luminosa mentre cadono lastre di pietra.
+D2x_Out	17.0	In fondo a una strada in rovina con bracieri sta Tyrael, ali di luce spiegate.
+D2x_Out	24.0	Le ali si librano su un ponte di pietra verso la Pietra del Mondo, enorme cristallo rosso.
+D2x_Out	31.6	Tyrael, incappucciato e corazzato, alza la grande spada e la pianta a punta in giù.
+D2x_Out	38.4	Sul ponte, le ali di luce ondeggiano e si chiudono intorno a lui.
+D2x_Out	43.9	A capo chino sulla spada, inizia a pregare e la luce scorre lungo la lama.
+D2x_Out	49.8	Con uno schiocco, il cristallo blu sale sul braciere del ponte.
+D2x_Out	55.2	Il cristallo copre l'armatura di Tyrael, che continua a pregare.
+D2x_Out	60.0	Entrambi i bracieri sono rivestiti di cristallo, che incrosta il braccio e la spalla di Tyrael.
+D2x_Out	69.3	La preghiera finisce. Scrolla il cristallo e alza lo sguardo.
+D2x_Out	73.9	Alza la spada e la scaglia, un lampo di luce, nel cristallo rosso.
+D2x_Out	79.7	Dove colpisce si apre un anello di luce bianca turbinante. La caverna rimbomba.
+D2x_Out	85.7	Conficcata nel cristallo, la spada brilla e crepe rosse si allargano.
+D2x_Out	91.4	Il cristallo rosso esplode e schegge piovono sul ponte.
+D2x_Out	96.5	Fulmini rossi spaccano il cristallo da dentro mentre si scuote e si rompe.
+D2x_Out	102.1	Una fenda di fuoco bianco lo percorre e frammenti volano nel buio.
+D2x_Out	108.4	La massa si sbriciola fino a restare una fenda rossa.
+D2x_Out	112.6	Poi un lampo blu e bianco accecante inghiotte tutto, e cala il buio.

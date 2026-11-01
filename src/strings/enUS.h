@@ -424,6 +424,8 @@ inline constexpr Table enUS {
 	.compareHint = "Comparing. Left stick: right, the equipped item; left, this item",
 	.compareHintOn = "Compare hint while Y is held on",
 	.compareHintOff = "Compare hint while Y is held off",
+	.audioDescriptionOn = "Audio description of the cinematics on",
+	.audioDescriptionOff = "Audio description of the cinematics off",
 	.settingsEndsStop = "Settings list stops at its ends",
 	.settingsEndsWrap = "Settings list wraps around with a click",
 	.routeOnAOn = "Route on Back plus A",

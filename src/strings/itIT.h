@@ -424,6 +424,8 @@ inline constexpr Table itIT {
 	.compareHint = "Confronto. Levetta sinistra: a destra, l'oggetto equipaggiato; a sinistra, questo oggetto",
 	.compareHintOn = "Suggerimento di confronto tenendo premuto Y: attivo",
 	.compareHintOff = "Suggerimento di confronto tenendo premuto Y: disattivo",
+	.audioDescriptionOn = "Audiodescrizione dei filmati: attiva",
+	.audioDescriptionOff = "Audiodescrizione dei filmati: disattiva",
 	.settingsEndsStop = "L’elenco delle impostazioni si ferma alle estremità",
 	.settingsEndsWrap = "L’elenco delle impostazioni ricomincia con un clic",
 	.routeOnAOn = "Percorso su Indietro più A",

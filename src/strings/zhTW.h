@@ -424,6 +424,8 @@ inline constexpr Table zhTW {
 	.compareHint = "比較中。左搖桿：向右是已裝備物品，向左是此物品",
 	.compareHintOn = "按住 Y 時的比較提示已開啟",
 	.compareHintOff = "按住 Y 時的比較提示已關閉",
+	.audioDescriptionOn = "過場動畫口述影像已開啟",
+	.audioDescriptionOff = "過場動畫口述影像已關閉",
 	.settingsEndsStop = "設定清單在兩端停止",
 	.settingsEndsWrap = "設定清單循環並發出喀噠聲",
 	.routeOnAOn = "路線為返回鍵加A",

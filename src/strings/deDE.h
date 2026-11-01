@@ -424,6 +424,8 @@ inline constexpr Table deDE {
 	.compareHint = "Vergleich. Linker Stick: rechts der ausgerüstete Gegenstand, links dieser Gegenstand",
 	.compareHintOn = "Vergleichshinweis beim Halten von Y an",
 	.compareHintOff = "Vergleichshinweis beim Halten von Y aus",
+	.audioDescriptionOn = "Audiodeskription der Filmsequenzen an",
+	.audioDescriptionOff = "Audiodeskription der Filmsequenzen aus",
 	.settingsEndsStop = "Einstellungsliste hält an den Enden an",
 	.settingsEndsWrap = "Einstellungsliste springt mit einem Klick zum anderen Ende",
 	.routeOnAOn = "Weg auf Zurück plus A",

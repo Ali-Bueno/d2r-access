@@ -424,6 +424,8 @@ inline constexpr Table esES {
 	.compareHint = "Comparación. Stick izquierdo: derecha, lo equipado; izquierda, este objeto",
 	.compareHintOn = "Aviso de comparación al mantener Y activado",
 	.compareHintOff = "Aviso de comparación al mantener Y desactivado",
+	.audioDescriptionOn = "Audiodescripción de las cinemáticas activada",
+	.audioDescriptionOff = "Audiodescripción de las cinemáticas desactivada",
 	.settingsEndsStop = "La lista de ajustes se detiene en los extremos",
 	.settingsEndsWrap = "La lista de ajustes da la vuelta con un clic",
 	.routeOnAOn = "Ruta en Atrás más A",

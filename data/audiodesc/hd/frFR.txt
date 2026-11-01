@@ -1,0 +1,169 @@
+# Audio description for the 2021 (Diablo II: Resurrected) act cinematics, French: story narration for the gaps between dialogue. One cue per line: video, seconds, text (tab separated).
+# d2intro
+d2intro	10.5	Lettres de feu : Blizzard Entertainment présente.
+d2intro	19.9	Dans un couloir de cellules, une araignée file au sol et des pieds en robe passent.
+d2intro	26.2	Une grille grince. Un inconnu encapuchonné poursuit son chemin.
+d2intro	32.1	Dans une cellule nue, un vieillard frêle gît dans un rai de lumière.
+d2intro	37.7	Maigre et chevelu de blanc, il trace des formes au sol du doigt, en marmonnant.
+d2intro	43.9	Derrière lui, la porte a grincé : l'inconnu encapuchonné se tient sur le seuil.
+d2intro	50.5	Un fouet claque et un homme hurle.
+d2intro	53.7	Le vieillard lève la tête. Rires et acclamations lointains.
+d2intro	58.8	Gémissant, il se recroqueville ; son écuelle roule.
+d2intro	63.0	Près de la fenêtre grillagée, l'inconnu s'assoit, le visage caché.
+d2intro	74.3	Un éclair : l'inconnu apparaît en ange.
+d2intro	131.95	Son visage se fond dans un brasero ardent.
+d2intro	152.55	Dans une taverne, un serveur s'approche de Marius.
+d2intro	158.7	Marius grogne, les yeux mi-clos.
+d2intro	161.8	Le serveur souffle de dégoût et s'en va, plateau de chopes en main.
+d2intro	193.1	Une porte s'ouvre. Le vent entre et courbe les flammes.
+d2intro	197.4	Un voyageur encapuchonné sur le seuil.
+d2intro	212.53	Son épée racle.
+d2intro	230.72	Le plancher craque devant un buveur.
+d2intro	235.3	Le buveur, maigre et chauve, le fixe par-dessus une bougie et rit.
+d2intro	241.2	Le voyageur plante son épée et s'affaisse sur la poignée qui oscille.
+d2intro	255.95	Le buveur ricane. Le poing du voyageur luit en vert.
+d2intro	260.4	Il gronde ; son visage luit en vert.
+d2intro	266.9	Le rire du buveur devient inhumain.
+d2intro	270.75	Une forme sombre file sur le sol, dispersant des braises.
+d2intro	275.25	Le buveur se tait. Le feu jaillit du sol.
+d2intro	279.45	Un démon tordu et crochu file sur le sol en grondant.
+d2intro	284.0	Marius gémit ; le feu balaie tout, les démons ricanent.
+d2intro	320.3	Des squelettes ardents attaquent. Marius frémit.
+d2intro	324.1	Un éclair vert projette un client ; des squelettes le tailladent.
+d2intro	329.3	Sur une table, un chauve brandit son épée face à un squelette.
+d2intro	334.2	Le serveur s'embrase et hurle, les bras levés.
+d2intro	338.0	Un éclair vert frappe un homme à la poitrine. Il chancelle.
+d2intro	342.7	Un client croise le fer avec un squelette.
+d2intro	347.9	À genoux dans le feu, le Rôdeur ouvre les bras, tordu de douleur.
+d2intro	353.3	Une fumée verte sort de sa capuche. Il se courbe et s'effondre.
+d2intro	360.4	Des chauves-souris jaillissent du feu. Un démon cornu rampe dans une fissure.
+d2intro	366.2	Marius se recroqueville contre le mur. Sa pipe tombe.
+d2intro	370.8	Le Rôdeur s'éloigne lentement dans la salle en flammes.
+d2intro	379.6	Marius se redresse et le regarde partir.
+d2intro	383.2	Puis Marius le suit dans les flammes.
+d2intro	387.2	Il titube dans la nuit, parmi les morts.
+d2intro	418.0	Sur la taverne en feu dans la forêt enneigée, des lettres de feu forment Diablo II : Resurrected.
+# Act02start
+Act02start	3.0	Acte Deux, en lettres pâles sur une pierre rouillée.
+Act02start	155.25	Un rayon rouge jaillit d'une colline.
+Act02start	158.35	Marius s'éveille haletant près du feu.
+Act02start	172.75	Un loup hurle à la lune. La nuit cède à un matin clair.
+Act02start	192.8	Une silhouette seule gagne Lut Gholein.
+# Act03start
+Act03start	3.0	Acte Trois, en lettres pâles sur une pierre rouge sang.
+Act03start	25.78	Le vent siffle.
+Act03start	71.6	Des chauves-souris crient quand ils traversent une salle sombre ; Marius éclaire.
+Act03start	77.7	Une plainte résonne au loin. Le Rôdeur s'arrête, Marius lève la torche.
+Act03start	83.6	Le Rôdeur, chauve et décharné, se tient le ventre et se plie en grognant.
+Act03start	89.4	Il crie. Marius le fixe, torche en main.
+Act03start	92.5	Une marque rouge brûle sur son front, sa peau bouillonne et gonfle.
+Act03start	97.5	Silence. Marius se tient près du Rôdeur immobile.
+Act03start	115.4	Les braseros s'embrasent, des lignes de feu courent vers un pilier qui gémit.
+Act03start	121.6	Le Rôdeur entre à grands pas, Marius et sa torche derrière.
+Act03start	142.8	Le Rôdeur crie. Des rubans bleus fouettent un pont de corde, qui s'enflamme.
+Act03start	149.6	Marius, torche haute, regarde le pont brûler et craquer.
+Act03start	153.9	Tal Rasha gémit, ligoté, une gemme luisant dans la poitrine.
+Act03start	158.6	Le Rôdeur rampe sur le pont ; Tyraël atterrit devant lui, ailes déployées.
+Act03start	164.6	La lumière bleue fouette le Rôdeur accroupi.
+Act03start	168.6	Tal Rasha se débat et gémit. Tyraël fond sur le Rôdeur.
+Act03start	173.4	Marius, figé, regarde.
+Act03start	181.2	Marius, comme en transe, tend la main.
+Act03start	187.5	Marius traverse le pont en flammes, accroché à la corde.
+Act03start	192.6	Tyraël combat le Rôdeur dans une lumière bleue.
+Act03start	200.0	Fracas d'épées. Marius va vers Tal Rasha.
+Act03start	203.6	Il tend la main vers la gemme de Tal Rasha.
+Act03start	210.5	Marius arrache la gemme.
+Act03start	239.2	Tal Rasha bondit dans les flammes, cordes au vent.
+Act03start	243.1	Tyraël lève l'épée, ailes blanches.
+Act03start	246.5	Tal Rasha se débat et hurle, le visage en crâne pourri.
+Act03start	251.5	Marius fuit vers le jour.
+# Act04start
+Act04start	3.0	Acte Quatre, en lettres pâles sur une pierre sombre veinée de braises.
+Act04start	13.4	Marius risque un œil derrière un pilier.
+Act04start	70.42	La foudre gronde.
+Act04start	89.6	Le cercle de runes explose en lumière blanche, la porte infernale rougeoie.
+Act04start	123.8	Le Rôdeur hurle, le visage gonflé et déchiré. Il s'écroule sur le sol gravé.
+Act04start	138.0	Des pointes percent sa robe. Derrière un pilier, Marius pleure.
+Act04start	142.8	De longues cornes noires déchirent son dos et le fendent.
+Act04start	147.5	La porte infernale brûle et gémit.
+Act04start	157.8	Dans la lumière blanche, Diablo, démon rouge hérissé de pointes noires.
+Act04start	163.3	Ses pas résonnent quand il descend de l'autel, sa queue hérissée traînant.
+Act04start	169.5	Sa griffe écrase un tas de crânes.
+Act04start	187.0	Diablo se détourne vers le feu de la porte infernale.
+Act04start	191.9	Caché dans une porte, Marius regarde, éclairé par la porte infernale.
+Act04start	197.2	En pleurs, il lève la pierre lumineuse devant ses yeux.
+Act04start	201.8	Devant lui, la porte infernale brûle, des visages tourmentés s'y tordent.
+# Act04end
+Act04end	3.0	Épilogue, en lettres pâles sur une pierre sombre veinée de braises.
+Act04end	13.7	Une grille claque. Marius se recroqueville.
+Act04end	21.6	Dans une tempête de feu, une forme bleue spectrale s'arrache de Diablo.
+Act04end	37.9	Seul, Marius sanglote sur sa paillasse.
+Act04end	41.5	Les yeux clos, il porte une main tremblante à son front.
+Act04end	68.0	L'encapuchonné le domine, à la lumière de la fenêtre.
+Act04end	79.5	L'inconnu tend la main. Marius sort la pierre de sa tunique, au bout d'un cordon.
+Act04end	89.2	Il tend la pierre.
+Act04end	103.7	Marius se recroqueville à ses pieds.
+Act04end	106.7	Des voix crient au loin. Marius ouvre la paume et l'inconnu prend la pierre.
+Act04end	126.0	Son vrai visage luit.
+Act04end	149.6	Baal tend la main vers le visage de Marius. Son cri s'éteint dans le noir.
+Act04end	155.4	Marius gît recroquevillé en cellule.
+Act04end	158.3	Baal s'éloigne, des flammes derrière sa robe, jusqu'à ce que le feu noie la cellule.
+Act04end	164.5	Baal sort d'un mur de feu dans une rue pavée, sa cape tourbillonnant.
+Act04end	170.4	Derrière lui, toute la rue brûle. Il avance, calme.
+Act04end	175.5	Les flammes lèchent l'ourlet de sa robe sur son passage.
+Act04end	179.7	Des cris montent au loin quand les flammes blanchissent et l'engloutissent.
+# D2x_Intro
+D2x_Intro	6.0	Du noir émerge une salle de pierre, éclairée de lustres et de braseros fumants.
+D2x_Intro	12.6	Un homme massif, cape rouge et col de fourrure, va vers les grandes portes.
+D2x_Intro	19.8	Un mince filet de lumière fend les portes, qui s'ouvrent. Le vent entre.
+D2x_Intro	25.4	Dehors s'étend un col enneigé bordé de bannières rouges.
+D2x_Intro	30.8	L'homme gagne le seuil, une haute hampe de bannière en main, et s'arrête entre les portes.
+D2x_Intro	41.8	Il sort entre les énormes portes cloutées. Sa bannière claque au vent.
+D2x_Intro	50.0	La forteresse domine une corniche enneigée au-dessus d'une cascade, bannières rouges aux murs.
+D2x_Intro	59.0	À la porte, un vieux guerrier à barbe blanche, bonnet de fourrure et armure.
+D2x_Intro	65.0	Face à lui, des bannières rouges et une horde de démons hérissés.
+D2x_Intro	70.7	Il se protège les yeux et scrute au loin.
+D2x_Intro	75.3	Un cor retentit dans le col.
+D2x_Intro	79.0	Un grand trône avance entre les bannières, ses voiles déployées comme des ailes.
+D2x_Intro	85.3	Des squelettes en armure portant des torches marchent à côté.
+D2x_Intro	91.0	Le vieux guerrier le fixe, saisi d'effroi.
+D2x_Intro	94.9	Sur le trône, un démon pâle à vrilles fronce les sourcils.
+D2x_Intro	101.9	Derrière lui, les portes grincent en se fermant.
+D2x_Intro	105.9	Il se retourne quand elles claquent, le laissant dehors avec la horde.
+D2x_Intro	111.2	Il baisse la tête, serrant la hampe, puis se redresse et bombe le torse.
+D2x_Intro	117.3	Il expire longuement et fait face au trône.
+D2x_Intro	121.0	Il lève la main.
+D2x_Intro	150.9	Le cri de Baal résonne sur les cimes. Le guerrier se tient la tête.
+D2x_Intro	156.4	Baal gronde. Une gemme jaune luit sur son torse.
+D2x_Intro	160.1	Le guerrier ôte son bonnet et le serre contre lui, le crâne chauve incliné.
+D2x_Intro	172.4	Le guerrier attend. Baal ferme les yeux et passe une main griffue sur la pierre.
+D2x_Intro	179.6	Puis il ricane et lève la main griffue.
+D2x_Intro	183.2	Un grondement secoue les murs de la forteresse. Le guerrier lève les yeux.
+D2x_Intro	188.8	Baal serre le poing, yeux clos ; les murs tremblent.
+D2x_Intro	193.1	Alarmé, il lève les yeux.
+D2x_Intro	195.6	Un feu rouge tournoie des mains de Baal et file vers la porte.
+D2x_Intro	201.5	Il atteint la porte et enserre le guerrier, bonnet en main.
+D2x_Intro	206.3	L'anneau de feu se referme sur lui. Il ne reste qu'une tache rouge.
+D2x_Intro	219.0	Baal ricane sur son trône.
+D2x_Intro	222.3	La horde rugit et se rue vers la porte : squelettes à casque cornu, bêtes massives hérissées de pointes.
+D2x_Intro	231.0	Acte Cinq, en lettres pâles sur une pierre sombre.
+D2x_Intro	236.0	Lord of Destruction.
+# D2x_Out
+D2x_Out	4.2	Dans une vaste caverne, des pics de roche pendent sur une brume lumineuse, des dalles tombent.
+D2x_Out	17.0	Au bout d'une chaussée en ruine à braseros se tient Tyraël, ailes de lumière déployées.
+D2x_Out	24.0	Ses ailes planent sur un pont de pierre vers la Pierre-Monde, une énorme masse de cristal rouge.
+D2x_Out	31.6	Tyraël, encapuchonné et en armure, lève sa grande épée puis la tient pointe en bas.
+D2x_Out	38.4	Sur le pont, ses ailes de lumière ondulent et se replient autour de lui.
+D2x_Out	43.9	La tête penchée sur l'épée, il prie, et la lumière coule le long de la lame.
+D2x_Out	49.8	Dans un crépitement, le cristal bleu grimpe sur le brasero du pont.
+D2x_Out	55.2	Le cristal gagne l'armure de Tyraël, qui continue de prier.
+D2x_Out	60.0	Les deux braseros sont pris dans le cristal, qui croûte aussi son bras et son épaule.
+D2x_Out	69.3	Sa prière s'achève. Il secoue le cristal et lève les yeux.
+D2x_Out	73.9	Il lève l'épée et la lance, une traînée de lumière, dans le cristal rouge.
+D2x_Out	79.7	À l'impact, un anneau de lumière blanche tourbillonne. La caverne gronde.
+D2x_Out	85.7	Plantée dans le cristal, l'épée luit et des fissures rouges s'étendent.
+D2x_Out	91.4	Le cristal rouge éclate et des éclats pleuvent sur le pont.
+D2x_Out	96.5	Des éclairs rouges fendent le cristal de l'intérieur, qui se disloque.
+D2x_Out	102.1	Une faille de feu blanc le parcourt et des éclats fusent dans le noir.
+D2x_Out	108.4	La masse s'effrite jusqu'à une simple faille rouge.
+D2x_Out	112.6	Puis un souffle bleu-blanc aveuglant engloutit tout, et tout s'assombrit.

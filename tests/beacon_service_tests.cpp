@@ -166,6 +166,9 @@ namespace D2RAccess::Descriptions {
 std::string FindArea(int) { return {}; }
 void NoteLevel(int) {}
 }
+namespace D2RAccess::AudioDescription {
+void NoteLevel(const D2RL::PluginContext*, int) {}
+}
 namespace D2RAccess::ZoneTransitions {
 std::vector<Radar::LevelExit> Find(const Radar::World&, const NativeLevelExits::Layout&, double) { return {}; }
 bool Crosses(const EntityRadar::Entity& entity) { return entity.destinationLevel != 0; }

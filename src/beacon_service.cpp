@@ -9,6 +9,7 @@
 #include "keyboard_service.h"
 #include "level_areas.h"
 #include "map_survey_service.h"
+#include "audio_description.h"
 #include "descriptions.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
@@ -876,6 +877,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_revision = state.revision;
 		OnLifecycle(state, now);
 		Descriptions::NoteLevel(state.level);
+		AudioDescription::NoteLevel(context, static_cast<int>(state.level));
 	}
 	if (command == Command::Exploration || command == Command::FullAssistance) {
 		Release("navigation-mode");

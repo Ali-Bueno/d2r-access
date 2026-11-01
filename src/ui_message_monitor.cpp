@@ -1,5 +1,7 @@
 #include "async_log.h"
 #include "ui_message_monitor.h"
+#include "audio_description.h"
+#include "movie_probe.h"
 
 #include "quest_service.h"
 #include "menu_navigation.h"
@@ -57,6 +59,7 @@ constexpr const char* MoviePlayerTarget = "MoviePlayerMessage";
 constexpr const char* MoviePlayCommand  = "Play";
 constexpr const char* CinematicsTarget  = "Cinematics";
 constexpr const char* MovieDoneCommand  = "MovieComplete";
+constexpr const char* VideosPlayCommand = "Play"; // the Videos list, its index as text
 constexpr const char* NavigationCommandPrefix  = "To";
 
 // Screens that carry a selection in the message text itself
@@ -349,14 +352,17 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		AnnouncePanel(*event);
 	} else if (std::strcmp(event->target, MoviePlayerTarget) == 0 && std::strcmp(event->command, MoviePlayCommand) == 0) {
 		PanelState::MovieStarted();
-		// The text may name the movie, which audio description needs (docs/cinematics-audio-description.md).
-		AsyncLog::InfoF(context, "[ui] cinematic started: cues paused, text=\"%s\"", event->text ? event->text : "");
+		AsyncLog::Info(context, "[ui] cinematic started: cues paused");
+		AudioDescription::MovieStarted(context);
+		MovieProbe::Started();
 	} else if (std::strcmp(event->target, CinematicsTarget) == 0 && std::strcmp(event->command, MovieDoneCommand) == 0) {
 		PanelState::MovieEnded();
 		AsyncLog::Info(context, "[ui] cinematic ended");
+		AudioDescription::MovieEnded(context);
+		MovieProbe::Ended();
 	} else if (std::strcmp(event->target, CinematicsTarget) == 0) {
-		// The main menu's Videos list (Cinematics:Play:N), for audio description's movie identity.
 		AsyncLog::InfoF(context, "[ui] cinematics: %s text=\"%s\"", event->command, event->text ? event->text : "");
+		if (std::strcmp(event->command, VideosPlayCommand) == 0) AudioDescription::MenuChoice(context, event->text ? event->text : "");
 	} else if (std::strcmp(event->target, CharacterSelectTarget) == 0 && std::strcmp(event->command, DeleteCharacterCommand) == 0) {
 		g_characterDeleted = true;
 	} else if (std::strcmp(event->target, GoldPanelTarget) == 0 && std::strcmp(event->command, GoldConfirmCommand) == 0) {

@@ -2,6 +2,35 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Audio description of the cinematics, 2021 and classic — 2026-11-01 (not released)
+
+The user asked for it for both editions ([plan and guide](docs/cinematics-audio-description.md)).
+- Scripts `data/audiodesc/<hd|classic>/<locale>.txt` (`<video> TAB <seconds> TAB <text>`), English
+  written from 1 fps contact sheets of each edition (293 + 290 cues), machine-translated into the
+  other 12 languages with the dubs' own names (no cue dropped; esES proofread by sample, esMX
+  derived from it), sealed into the plugin (`AUDIODESC`, 26 files). One timeline for all: the 13 SRTs agree, and the classic audio is aligned with the
+  2021 one (lag 0, measured). CTest `audio-description` keeps every cue out of speech
+  (`speech.tsv`, from `tools/audiodesc.py speech`). 133/133 CTest.
+- Which video: the Videos list's index and its classic box (**confirmed live**, 4 videos, the user:
+  "worked well"). In play: `InGameMoviePlayerPanel/ProgressionHelper` +0x8C (index) and +0x88
+  (state), from RE of the 93787 dump, accepted only when the index fits the player's act (Levels.txt
+  `Act`, now in `level_flags.h`); edition from `Legacy Graphics Mode`. **Unverified live**: the
+  log says `[audiodesc] ProgressionHelper at rest` on entering a game and `in play: ...` at an act
+  video. The probe found no name and no clock in the MoviePlayer widget.
+- Clock: time since `MoviePlayerMessage:Play` less the start delay, **measured live** by matching
+  screenshots to the video's frames: 1.05 s (2021), 0.70 s (classic). Switch `audio-description`, on.
+- Tested by the assistant (computer use, 2026-11-01 13:48-13:51): both intros from the Videos list,
+  cues said, none dropped; entering a game logs `ProgressionHelper at rest: state 0, index 0`, the
+  layout the RE predicts, on 3.3.94995.
+- **Rewrite** (the user: too generic, like the Witcher mod please; footsteps and a door heard, never
+  said what happens): new guide, 640 px sheets of the free stretches, Opus writers. Story narration,
+  161 cues (2021) and 163 (classic), in 13 languages, 0 timing problems. Final check by the assistant
+  (14:18): esES hd intro 43 cues, classic Act II 6, each said on its second. DLL `5B951841…`.
+  Tester news `../tester-news-draft-2026-11-01b.txt`.
+
+**Next step:** the user listens and decides the release; in play, the first act video confirms the
+ProgressionHelper reading (`[audiodesc] in play: ...`).
+
 ## Descriptions in 13 languages, sealed; the installer adapted — 2026-11-01 (not released)
 
 The user asked four things ([descriptions](docs/descriptions.md#in-every-language-sealed-from-the-source-only-2026-11-01),
@@ -43,7 +72,7 @@ The user asked four things ([descriptions](docs/descriptions.md#in-every-languag
   `dist\D2RAccessInstaller.exe`; Steam's launch option and the desktop shortcut start the launcher.
   The repo goes public before the first release.
 
-**Next step:** audio description of the cinematics ([plan](docs/cinematics-audio-description.md));
+**Next step:** audio description (entry above);
 live: the installer against the real game, the Hangman's Tree's words. Before the first public
 release: make the repo public; each release carries the zip, `release.json` and
 `D2RAccessInstaller.exe` (not yet uploaded by `test-release.ps1`).

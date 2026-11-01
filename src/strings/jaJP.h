@@ -424,6 +424,8 @@ inline constexpr Table jaJP {
 	.compareHint = "比較中。左スティック: 右で装備中のアイテム、左でこのアイテム",
 	.compareHintOn = "Y長押し時の比較ヒント オン",
 	.compareHintOff = "Y長押し時の比較ヒント オフ",
+	.audioDescriptionOn = "ムービーの音声解説 オン",
+	.audioDescriptionOff = "ムービーの音声解説 オフ",
 	.settingsEndsStop = "設定リストは端で止まる",
 	.settingsEndsWrap = "設定リストはクリック音とともに反対側へ戻る",
 	.routeOnAOn = "ルートは戻る＋A",

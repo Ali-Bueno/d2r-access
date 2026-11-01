@@ -424,6 +424,8 @@ inline constexpr Table plPL {
 	.compareHint = "Porównanie. Lewa gałka: w prawo założony przedmiot, w lewo ten przedmiot",
 	.compareHintOn = "Podpowiedź porównania przy przytrzymaniu Y: włączone",
 	.compareHintOff = "Podpowiedź porównania przy przytrzymaniu Y: wyłączone",
+	.audioDescriptionOn = "Audiodeskrypcja przerywników filmowych: włączona",
+	.audioDescriptionOff = "Audiodeskrypcja przerywników filmowych: wyłączona",
 	.settingsEndsStop = "Lista ustawień zatrzymuje się na końcach",
 	.settingsEndsWrap = "Lista ustawień przechodzi na drugi koniec z kliknięciem",
 	.routeOnAOn = "Trasa pod Wstecz i A",

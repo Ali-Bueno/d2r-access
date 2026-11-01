@@ -79,6 +79,7 @@
 #include "speech_priority.h"
 #include "speech_strings.h"
 #include "terrain_service.h"
+#include "audio_description.h"
 #include "descriptions.h"
 #include "place_service.h"
 #include "boss_life_service.h"
@@ -1950,6 +1951,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{GameTextReader::MercenaryBark, GameTextReader::SetMercenaryBark, phrase(&T::mercenaryBarkOn, &T::mercenaryBarkOff), false, "mercenary-bark"},
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
 		{[] { return WeaponSwapService::Enabled(); }, [](bool on) { WeaponSwapService::SetEnabled(on); }, phrase(&T::weaponSwapAlertsOn, &T::weaponSwapAlertsOff), false, "weapon-swap-alerts"},
+		{AudioDescription::Enabled, AudioDescription::SetEnabled, phrase(&T::audioDescriptionOn, &T::audioDescriptionOff), false, "audio-description"},
 		{TutorialService::Enabled, TutorialService::SetEnabled, phrase(&T::tutorialOn, &T::tutorialOff), false, "tutorial"},
 		{TutorialService::WaitForSounds, TutorialService::SetWaitForSounds, phrase(&T::tutorialSoundWaitOn, &T::tutorialSoundWaitOff), false, "tutorial-sound-wait"},
 		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},

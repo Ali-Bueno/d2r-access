@@ -16,6 +16,12 @@ the [architecture guide](docs/architecture.md).
   kept from the game; while a lesson plays its sounds, left plays the last one again and right goes
   on. Switches `tutorial` and `tutorial-sound-wait` (each sound waits for the player) in the Ctrl+S
   list; spoken in every language the mod speaks. See [tutorial](docs/tutorial.md).
+- **Audio description of the cinematics (built; live validation pending):** the seven act
+  cinematics, in both the 2021 and the classic 2000 versions, are narrated between their spoken
+  lines, in every language the mod speaks: who does what, and what makes the sounds you hear. It
+  works for the main menu's Videos list (confirmed) and for the videos the game plays between acts
+  (built from the game's code, not yet heard in play; if the video cannot be identified, nothing is
+  said). Switch `audio-description` in the Ctrl+S list. See [cinematics](docs/cinematics-audio-description.md).
 - Screen changes and panels are announced with the game's own localized titles (title screen,
   main menu, character select/create, options tabs, cinematics, calibration, modals). The main
   menu's news ("Reign of the Warlock available now!") is read as it opens (`main-menu-news`, on).

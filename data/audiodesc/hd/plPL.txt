@@ -1,0 +1,169 @@
+# Audio description for the 2021 (Diablo II: Resurrected) act cinematics, Polish: story narration for the gaps between dialogue. One cue per line: video, seconds, text (tab separated).
+# d2intro
+d2intro	10.5	Płonące litery: Blizzard Entertainment przedstawia.
+d2intro	19.9	W korytarzu cel pająk biegnie po podłodze, mijają go stopy w szatach.
+d2intro	26.2	Skrzypi krata. Zakapturzony nieznajomy idzie dalej korytarzem.
+d2intro	32.1	W nagiej celi słaby starzec leży w smudze światła.
+d2intro	37.7	Wychudzony, siwy, wodzi palcem po podłodze, mamrocząc.
+d2intro	43.9	Za nim zaskrzypiały drzwi celi: w progu stoi zakapturzony nieznajomy.
+d2intro	50.5	Gdzieś trzaska bicz i krzyczy człowiek.
+d2intro	53.7	Starzec unosi głowę. Z oddali dobiegają wiwaty i śmiech.
+d2intro	58.8	Skamląc, kuli się, a jego miska odtacza się z brzękiem.
+d2intro	63.0	Przy zakratowanym oknie nieznajomy siada, twarz ukrywa w cieniu.
+d2intro	74.3	Błysk światła: nieznajomy ukazuje się jako anioł.
+d2intro	131.95	Jego twarz rozpływa się w płomieniach.
+d2intro	152.55	W tawernie kelner podchodzi do Mariusa.
+d2intro	158.7	Marius tylko jęczy, na wpół przytomny.
+d2intro	161.8	Kelner prycha z obrzydzeniem i odchodzi z tacą kufli.
+d2intro	193.1	Otwierają się drzwi. Wiatr wpada i zgina płomienie.
+d2intro	197.4	W progu staje zakapturzony wędrowiec.
+d2intro	212.53	Miecz zgrzyta.
+d2intro	230.72	Deski skrzypią, gdy mija pijaka.
+d2intro	235.3	Chudy łysy pijak patrzy na niego nad świecą i się śmieje.
+d2intro	241.2	Wędrowiec wbija miecz w podłogę i osuwa się na kołyszącą rękojeść.
+d2intro	255.95	Pijak rechocze. Pięść wędrowca jarzy się zielenią.
+d2intro	260.4	Warczy; twarz świeci na zielono.
+d2intro	266.9	Śmiech pijaka staje się nieludzki.
+d2intro	270.75	Coś ciemnego przemyka po podłodze, rozrzucając żar.
+d2intro	275.25	Pijak milknie. Z podłogi tryska ogień.
+d2intro	279.45	Pokraczny kłapiący demon pełznie po podłodze, warcząc.
+d2intro	284.0	Marius jęczy, ogień zalewa podłogę, demony chichoczą.
+d2intro	320.3	Płonące szkielety atakują. Marius blednie.
+d2intro	324.1	Zielony błysk odrzuca klienta. Szkielety siekają go mieczami.
+d2intro	329.3	Na stole łysy klient unosi miecz na szkielet.
+d2intro	334.2	Kelner staje w ogniu i krzyczy, ręce w górze.
+d2intro	338.0	Zielony błysk trafia mężczyznę w pierś. Chwieje się.
+d2intro	342.7	Klient krzyżuje miecz ze szkieletem.
+d2intro	347.9	Wędrowiec klęczy w ogniu, rozłożywszy ramiona, twarz wykrzywia ból.
+d2intro	353.3	Z kaptura bucha zielony dym. Zgina się i pada na podłogę.
+d2intro	360.4	Z ognia wyfruwają nietoperze. Rogaty demon wije się przez szczelinę.
+d2intro	366.2	Marius kuli się przy ścianie. Fajka spada na podłogę.
+d2intro	370.8	Wędrowiec powoli odchodzi w płonącą salę.
+d2intro	379.6	Za nim Marius wstaje i odprowadza go wzrokiem.
+d2intro	383.2	Potem Marius rusza za nim w płomienie.
+d2intro	387.2	Wytacza się w noc, mijając ciała.
+d2intro	418.0	Nad płonącą tawerną w zaśnieżonym lesie płonące litery układają się w Diablo II: Resurrected.
+# Act02start
+Act02start	3.0	Akt Drugi, bladymi literami na zardzewiałym kamieniu.
+Act02start	155.25	Czerwony promień bije w niebo.
+Act02start	158.35	Marius budzi się przy ognisku, dysząc.
+Act02start	172.75	Wilk wyje do księżyca. Noc ustępuje jasnemu porankowi.
+Act02start	192.8	Samotna postać zmierza do Lut Gholein.
+# Act03start
+Act03start	3.0	Akt Trzeci, bladymi literami na krwistoczerwonym kamieniu.
+Act03start	25.78	Wpada wiatr.
+Act03start	71.6	Nietoperze piszczą, gdy przechodzą mroczną salę; Marius świeci.
+Act03start	77.7	Z oddali dobiega jęk. Wędrowiec staje, Marius unosi pochodnię.
+Act03start	83.6	Łysy wychudzony Wędrowiec chwyta się za brzuch i zgina z jękiem.
+Act03start	89.4	Krzyczy. Marius gapi się z pochodnią.
+Act03start	92.5	Czerwony znak płonie na czole, skóra bąbluje i puchnie.
+Act03start	97.5	Cisza. Marius stoi przy nieruchomym Wędrowcu.
+Act03start	115.4	Zapalają się kosze z żarem, ogniste linie biegną do jęczącego filaru.
+Act03start	121.6	Wędrowiec wchodzi krokiem, za nim Marius z pochodnią.
+Act03start	142.8	Wędrowiec krzyczy. Niebieskie wstęgi światła biją linowy most, który staje w ogniu.
+Act03start	149.6	Marius z pochodnią patrzy, jak most płonie i skrzypi.
+Act03start	153.9	Tal Rasha jęczy spętany, klejnot jarzy mu się w piersi.
+Act03start	158.6	Wędrowiec czołga się po moście, przed nim ląduje Tyrael ze skrzydłami.
+Act03start	164.6	Niebieskie światło chłoszcze skulonego Wędrowca.
+Act03start	168.6	Tal Rasha szarpie się i jęczy. Tyrael spada na Wędrowca.
+Act03start	173.4	Marius stoi skamieniały.
+Act03start	181.2	Marius jak we śnie wyciąga rękę.
+Act03start	187.5	Marius przechodzi płonący most, trzymając się liny.
+Act03start	192.6	Tyrael walczy z Wędrowcem w niebieskim świetle.
+Act03start	200.0	Miecze szczękają. Marius idzie do Tal Rashy.
+Act03start	203.6	Sięga po klejnot w piersi Tal Rashy.
+Act03start	210.5	Marius wyrywa klejnot.
+Act03start	239.2	Tal Rasha rzuca się przez płomienie, liny smagają.
+Act03start	243.1	Tyrael unosi miecz, skrzydła płoną bielą.
+Act03start	246.5	Tal Rasha szarpie się i wrzeszczy, jego twarz to zgniła czaszka.
+Act03start	251.5	Marius ucieka w stronę dnia.
+# Act04start
+Act04start	3.0	Akt Czwarty, bladymi literami na ciemnym kamieniu żyłkowanym żarem.
+Act04start	13.4	Marius zerka ostrożnie zza filaru.
+Act04start	70.42	Błyska piorun.
+Act04start	89.6	Krąg run wybucha białym światłem, Piekielne Wrota rozjarzają się czerwienią.
+Act04start	123.8	Wędrowiec krzyczy, twarz puchnie i pęka. Pada na rzeźbioną podłogę.
+Act04start	138.0	Kolce przebijają szatę. Za filarem Marius płacze.
+Act04start	142.8	Długie czarne rogi rozdzierają mu plecy i rozłupują ciało.
+Act04start	147.5	Piekielne Wrota płoną i jęczą.
+Act04start	157.8	W białym świetle wznosi się Diablo, czerwony demon w czarnych kolcach.
+Act04start	163.3	Jego kroki dudnią, gdy schodzi z ołtarza, kolczasty ogon się wlecze.
+Act04start	169.5	Jego pazur miażdży stos czaszek.
+Act04start	187.0	Diablo odwraca się ku ogniowi Piekielnych Wrót.
+Act04start	191.9	W drzwiach ukryty Marius patrzy, twarz oświetlają płonące Wrota.
+Act04start	197.2	Płacząc, unosi świecący kamień przed oczy.
+Act04start	201.8	Przed nim Piekielne Wrota płoną, torturowane twarze wiją się na ich powierzchni.
+# Act04end
+Act04end	3.0	Epilog, bladymi literami na ciemnym kamieniu żyłkowanym żarem.
+Act04end	13.7	Trzaska krata. Marius kuli się w celi.
+Act04end	21.6	W burzy ognia błękitny widmowy kształt wyrywa się z Diablo.
+Act04end	37.9	Sam w celi Marius szlocha na pryczy.
+Act04end	41.5	Z zamkniętymi oczami przyciska drżącą dłoń do czoła.
+Act04end	68.0	Zakapturzony stoi nad nim w świetle okna.
+Act04end	79.5	Nieznajomy wyciąga rękę. Marius wyjmuje spod tuniki kamień na rzemieniu.
+Act04end	89.2	Wyciąga kamień.
+Act04end	103.7	Marius kuli się u jego stóp.
+Act04end	106.7	Z oddali krzyczą głosy. Marius otwiera dłoń, nieznajomy bierze kamień.
+Act04end	126.0	Prawdziwa twarz lśni.
+Act04end	149.6	Baal sięga ku twarzy Mariusa. Jego krzyk cichnie w mroku.
+Act04end	155.4	Marius leży skulony w celi.
+Act04end	158.3	Baal odchodzi, za szatą płomienie, aż ogień zalewa całą celę.
+Act04end	164.5	Baal wychodzi ze ściany ognia na brukowaną ulicę, płaszcz za nim wiruje.
+Act04end	170.4	Za nim płonie cała ulica. Idzie dalej spokojnie.
+Act04end	175.5	Płomienie liżą skraj jego szaty, gdy je mija.
+Act04end	179.7	W oddali rosną krzyki, płomienie bieleją i go pochłaniają.
+# D2x_Intro
+D2x_Intro	6.0	Z mroku wyłania się kamienna sala, oświetlona żyrandolami i dymiącymi koszami z żarem.
+D2x_Intro	12.6	Postawny mężczyzna w czerwonym płaszczu z futrzanym kołnierzem idzie ku wielkim wrotom.
+D2x_Intro	19.8	Cienka linia światła rozcina wrota, które się otwierają. Wpada wiatr.
+D2x_Intro	25.4	Na zewnątrz leży zaśnieżona przełęcz, obstawiona czerwonymi sztandarami.
+D2x_Intro	30.8	Mężczyzna dochodzi do progu z wysokim drzewcem sztandaru i staje między wrotami.
+D2x_Intro	41.8	Wychodzi między potężnymi okutymi wrotami. Sztandar łopocze na wietrze.
+D2x_Intro	50.0	Forteca stoi na zaśnieżonym występie nad wodospadem, na murach czerwone sztandary.
+D2x_Intro	59.0	Przy bramie stoi stary wojownik, siwobrody, w futrzanej czapie i nabijanej zbroi.
+D2x_Intro	65.0	Przed nim w rzędzie czerwone sztandary, za nimi horda kolczastych demonów.
+D2x_Intro	70.7	Osłania oczy dłonią i wypatruje.
+D2x_Intro	75.3	Przez przełęcz niesie się ryk rogu.
+D2x_Intro	79.0	Wielki tron toczy się między sztandarami, płócienne żagle rozpostarte jak skrzydła.
+D2x_Intro	85.3	Obok idą opancerzone szkielety z pochodniami.
+D2x_Intro	91.0	Stary wojownik patrzy na niego z grozą.
+D2x_Intro	94.9	Na tronie marszczy brwi blady demon spowity powyginanymi wąsami.
+D2x_Intro	101.9	Za nim wielkie wrota skrzypią, zamykając się.
+D2x_Intro	105.9	Ogląda się, gdy trzaskają, zostawiając go z hordą.
+D2x_Intro	111.2	Pochyla głowę, ściskając drzewce, potem prostuje się i wypina pierś.
+D2x_Intro	117.3	Wypuszcza długi oddech i staje twarzą do tronu.
+D2x_Intro	121.0	Unosi dłoń.
+D2x_Intro	150.9	Krzyk Baala odbija się od szczytów. Wojownik chwyta się za głowę z bólu.
+D2x_Intro	156.4	Baal warczy. Żółty kamień jarzy mu się na piersi.
+D2x_Intro	160.1	Wojownik zdejmuje czapę i przyciska ją do piersi, łysą głowę pochyla.
+D2x_Intro	172.4	Wojownik czeka. Baal przymyka oczy i przesuwa szponiastą dłoń po kamieniu.
+D2x_Intro	179.6	Potem szczerzy zęby i unosi dłoń ze szponami.
+D2x_Intro	183.2	Grzmot wstrząsa wysokimi murami fortecy. Wojownik patrzy w górę.
+D2x_Intro	188.8	Baal zaciska pięść, oczy zamknięte, mury drżą.
+D2x_Intro	193.1	Zaniepokojony patrzy w górę.
+D2x_Intro	195.6	Czerwony ogień wiruje z dłoni Baala i pędzi przez pole ku bramie.
+D2x_Intro	201.5	Dopada bramy i owija wojownika z czapą w dłoni.
+D2x_Intro	206.3	Krąg ognia zamyka się nad nim. Zostaje tylko czerwona plama.
+D2x_Intro	219.0	Baal rechocze na tronie.
+D2x_Intro	222.3	Horda ryczy i rusza ku bramie: szkielety w rogatych hełmach, potężne bestie najeżone kolcami.
+D2x_Intro	231.0	Akt Piąty, bladymi literami na ciemnym kamieniu.
+D2x_Intro	236.0	Lord of Destruction.
+# D2x_Out
+D2x_Out	4.2	W ogromnej jaskini skalne iglice wiszą nad świecącą mgłą, obok spadają kamienne płyty.
+D2x_Out	17.0	Na końcu zrujnowanej grobli z koszami żaru stoi Tyrael, skrzydła ze światła rozpostarte.
+D2x_Out	24.0	Jego skrzydła unoszą się nad kamiennym mostem do Kamienia Świata, wielkiej bryły czerwonego kryształu.
+D2x_Out	31.6	Tyrael w kapturze i zbroi unosi wielki miecz, po czym opiera go ostrzem w dół.
+D2x_Out	38.4	Na moście skrzydła ze światła falują i składają się wokół niego.
+D2x_Out	43.9	Z pochyloną głową zaczyna się modlić, a światło spływa po ostrzu.
+D2x_Out	49.8	Z trzaskiem niebieski kryształ pnie się po koszu z żarem na moście.
+D2x_Out	55.2	Kryształ obrasta zbroję Tyraela, który modli się dalej.
+D2x_Out	60.0	Oba kosze obrosły kryształem, ten pokrywa też ramię i bark Tyraela.
+D2x_Out	69.3	Modlitwa dobiega końca. Strząsa kryształ i patrzy w górę.
+D2x_Out	73.9	Unosi miecz i ciska go, smugą światła, w czerwony kryształ.
+D2x_Out	79.7	Przy uderzeniu otwiera się wirujący pierścień białego światła. Jaskinia dudni.
+D2x_Out	85.7	Utkwiony w krysztale miecz jarzy się, czerwone pęknięcia się rozchodzą.
+D2x_Out	91.4	Czerwony kryształ wybucha, odłamki spadają na most.
+D2x_Out	96.5	Czerwone błyskawice rozłupują kryształ od środka, ten drży i się rozpada.
+D2x_Out	102.1	Szczelina białego ognia przebiega go całego, odłamki lecą w mrok.
+D2x_Out	108.4	Bryła kruszy się, aż zostaje tylko czerwona szczelina.
+D2x_Out	112.6	Wtedy oślepiający niebiesko-biały podmuch pochłania wszystko i zapada ciemność.

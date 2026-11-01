@@ -424,6 +424,8 @@ inline constexpr Table ptBR {
 	.compareHint = "Comparação. Analógico esquerdo: direita, o item equipado; esquerda, este item",
 	.compareHintOn = "Dica de comparação ao segurar Y: ligado",
 	.compareHintOff = "Dica de comparação ao segurar Y: desligado",
+	.audioDescriptionOn = "Audiodescrição das cinemáticas: ligada",
+	.audioDescriptionOff = "Audiodescrição das cinemáticas: desligada",
 	.settingsEndsStop = "A lista de configurações para nas pontas",
 	.settingsEndsWrap = "A lista de configurações dá a volta com um clique",
 	.routeOnAOn = "Rota em Voltar mais A",

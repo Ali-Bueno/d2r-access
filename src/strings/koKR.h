@@ -424,6 +424,8 @@ inline constexpr Table koKR {
 	.compareHint = "비교 중. 왼쪽 스틱: 오른쪽은 착용 중인 아이템, 왼쪽은 이 아이템",
 	.compareHintOn = "Y를 누르고 있을 때 비교 안내 켜짐",
 	.compareHintOff = "Y를 누르고 있을 때 비교 안내 꺼짐",
+	.audioDescriptionOn = "시네마틱 화면 해설 켜짐",
+	.audioDescriptionOff = "시네마틱 화면 해설 꺼짐",
 	.settingsEndsStop = "설정 목록이 끝에서 멈춤",
 	.settingsEndsWrap = "설정 목록이 딸깍 소리와 함께 반대쪽 끝으로 돌아감",
 	.routeOnAOn = "경로는 뒤로+A",

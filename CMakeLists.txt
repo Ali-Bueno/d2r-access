@@ -223,6 +223,9 @@ add_library(d2r-access SHARED
 	src/native_quest_flags.cpp
 	src/descriptions.cpp
 	src/descriptions_bundle.cpp
+	src/audio_description.cpp
+	src/audio_description_script.cpp
+	src/movie_probe.cpp
 	src/sealed_text.cpp
 	src/native_buttons.cpp
 	src/native_value_controls.cpp
@@ -251,10 +254,21 @@ add_custom_command(OUTPUT "${D2R_DESCRIPTIONS_SEALED}" "${D2R_DESCRIPTIONS_KEY}"
 	COMMAND seal-descriptions "${CMAKE_CURRENT_SOURCE_DIR}/data/descriptions" "${D2R_DESCRIPTIONS_SEALED}" "${D2R_DESCRIPTIONS_KEY}"
 	DEPENDS seal-descriptions ${D2R_DESCRIPTION_FILES}
 	VERBATIM)
+# The cinematics' audio description, one file per edition and language, sealed the same way
+# (docs/cinematics-audio-description.md).
+file(GLOB D2R_AUDIODESC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/data/audiodesc/*/*.txt")
+set(D2R_AUDIODESC_SEALED "${CMAKE_CURRENT_BINARY_DIR}/audiodesc.sealed")
+set(D2R_AUDIODESC_KEY "${CMAKE_CURRENT_BINARY_DIR}/generated/audiodesc_key.h")
+add_custom_command(OUTPUT "${D2R_AUDIODESC_SEALED}" "${D2R_AUDIODESC_KEY}"
+	COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+	COMMAND seal-descriptions "${CMAKE_CURRENT_SOURCE_DIR}/data/audiodesc" "${D2R_AUDIODESC_SEALED}" "${D2R_AUDIODESC_KEY}" AudioDescriptionKey
+	DEPENDS seal-descriptions ${D2R_AUDIODESC_FILES}
+	VERBATIM)
 set(D2R_DESCRIPTIONS_RC "${CMAKE_CURRENT_BINARY_DIR}/descriptions.rc")
-file(CONFIGURE OUTPUT "${D2R_DESCRIPTIONS_RC}" CONTENT "DESCRIPTIONS RCDATA \"${D2R_DESCRIPTIONS_SEALED}\"\n")
-set_property(SOURCE "${D2R_DESCRIPTIONS_RC}" APPEND PROPERTY OBJECT_DEPENDS "${D2R_DESCRIPTIONS_SEALED}")
-target_sources(d2r-access PRIVATE "${D2R_DESCRIPTIONS_RC}" "${D2R_DESCRIPTIONS_KEY}")
+file(CONFIGURE OUTPUT "${D2R_DESCRIPTIONS_RC}" CONTENT
+	"DESCRIPTIONS RCDATA \"${D2R_DESCRIPTIONS_SEALED}\"\nAUDIODESC RCDATA \"${D2R_AUDIODESC_SEALED}\"\n")
+set_property(SOURCE "${D2R_DESCRIPTIONS_RC}" APPEND PROPERTY OBJECT_DEPENDS "${D2R_DESCRIPTIONS_SEALED};${D2R_AUDIODESC_SEALED}")
+target_sources(d2r-access PRIVATE "${D2R_DESCRIPTIONS_RC}" "${D2R_DESCRIPTIONS_KEY}" "${D2R_AUDIODESC_KEY}")
 target_include_directories(d2r-access PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_include_directories(d2r-access PRIVATE "${PRISM_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set_target_properties(d2r-access PROPERTIES
@@ -663,6 +677,9 @@ if(BUILD_TESTING)
 	target_link_libraries(descriptions-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	target_compile_definitions(descriptions-tests PRIVATE D2R_DESCRIPTIONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/descriptions")
 	add_test(NAME descriptions COMMAND descriptions-tests)
+	d2r_test(audio-description-tests tests/audio_description_tests.cpp src/audio_description_script.cpp)
+	target_compile_definitions(audio-description-tests PRIVATE D2R_AUDIODESC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/audiodesc")
+	add_test(NAME audio-description COMMAND audio-description-tests)
 	d2r_test(sealed-text-tests tests/sealed_text_tests.cpp src/sealed_text.cpp)
 	target_link_libraries(sealed-text-tests PRIVATE bcrypt)
 	add_test(NAME sealed-text COMMAND sealed-text-tests)
