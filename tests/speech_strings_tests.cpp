@@ -1,6 +1,7 @@
 #include "speech_strings.h"
 #include "test_support.h"
 
+#include <cctype>
 #include <string>
 #include <vector>
 
@@ -16,7 +17,11 @@ std::vector<std::string> Specifiers(const char* phrase) {
 		if (text[i] != '%') continue;
 		if (i + 1 < text.size() && text[i + 1] == '%') { ++i; continue; }
 		size_t end = i + 1;
-		while (end < text.size() && std::string("sduf.0123456789").find(text[end]) != std::string::npos) ++end;
+		while (end < text.size() && std::string("sduf.0123456789").find(text[end]) != std::string::npos) {
+			// A full stop ends the sentence unless it starts a precision (".2f").
+			if (text[end] == '.' && !(end + 1 < text.size() && std::isdigit(static_cast<unsigned char>(text[end + 1])))) break;
+			++end;
+		}
 		found.push_back(text.substr(i, end - i));
 		i = end - 1;
 	}

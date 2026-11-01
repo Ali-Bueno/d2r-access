@@ -222,6 +222,9 @@ add_library(d2r-access SHARED
 	src/native_waypoints.cpp
 	src/native_quest_flags.cpp
 	src/descriptions.cpp
+	src/descriptions_bundle.cpp
+	src/sealed_text.cpp
+	src/native_buttons.cpp
 	src/native_value_controls.cpp
 	src/native_belt_rows.cpp
 	src/native_belt_fill.cpp
@@ -232,14 +235,27 @@ add_library(d2r-access SHARED
 	src/settings_store.cpp
 	plugin.rc
 )
-target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version)
+target_link_libraries(d2r-access PRIVATE D2RLPlugin::D2RLPlugin winmm version bcrypt)
 d2rlplugin_embed_config(TARGET d2r-access FILE "${CMAKE_CURRENT_SOURCE_DIR}/radar.toml")
-# The descriptions that come with the mod, read under the player's own file (docs/descriptions.md).
-set(D2R_DESCRIPTIONS "${CMAKE_CURRENT_SOURCE_DIR}/data/descriptions.txt")
+# The descriptions, one file per language, sealed into the plugin at build time (docs/descriptions.md).
+add_executable(seal-descriptions tools/seal-descriptions/seal_descriptions.cpp src/sealed_text.cpp)
+target_include_directories(seal-descriptions PRIVATE src)
+target_compile_features(seal-descriptions PRIVATE cxx_std_20)
+target_compile_definitions(seal-descriptions PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_link_libraries(seal-descriptions PRIVATE bcrypt)
+file(GLOB D2R_DESCRIPTION_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/data/descriptions/*.txt")
+set(D2R_DESCRIPTIONS_SEALED "${CMAKE_CURRENT_BINARY_DIR}/descriptions.sealed")
+set(D2R_DESCRIPTIONS_KEY "${CMAKE_CURRENT_BINARY_DIR}/generated/descriptions_key.h")
+add_custom_command(OUTPUT "${D2R_DESCRIPTIONS_SEALED}" "${D2R_DESCRIPTIONS_KEY}"
+	COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/generated"
+	COMMAND seal-descriptions "${CMAKE_CURRENT_SOURCE_DIR}/data/descriptions" "${D2R_DESCRIPTIONS_SEALED}" "${D2R_DESCRIPTIONS_KEY}"
+	DEPENDS seal-descriptions ${D2R_DESCRIPTION_FILES}
+	VERBATIM)
 set(D2R_DESCRIPTIONS_RC "${CMAKE_CURRENT_BINARY_DIR}/descriptions.rc")
-file(CONFIGURE OUTPUT "${D2R_DESCRIPTIONS_RC}" CONTENT "DESCRIPTIONS RCDATA \"${D2R_DESCRIPTIONS}\"\n")
-set_property(SOURCE "${D2R_DESCRIPTIONS_RC}" APPEND PROPERTY OBJECT_DEPENDS "${D2R_DESCRIPTIONS}")
-target_sources(d2r-access PRIVATE "${D2R_DESCRIPTIONS_RC}")
+file(CONFIGURE OUTPUT "${D2R_DESCRIPTIONS_RC}" CONTENT "DESCRIPTIONS RCDATA \"${D2R_DESCRIPTIONS_SEALED}\"\n")
+set_property(SOURCE "${D2R_DESCRIPTIONS_RC}" APPEND PROPERTY OBJECT_DEPENDS "${D2R_DESCRIPTIONS_SEALED}")
+target_sources(d2r-access PRIVATE "${D2R_DESCRIPTIONS_RC}" "${D2R_DESCRIPTIONS_KEY}")
+target_include_directories(d2r-access PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_include_directories(d2r-access PRIVATE "${PRISM_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set_target_properties(d2r-access PROPERTIES
 	CXX_STANDARD 20
@@ -254,6 +270,40 @@ set_property(SOURCE src/plugin.cpp APPEND PROPERTY COMPILE_DEFINITIONS "D2R_ACCE
 if(MSVC)
 	target_compile_options(d2r-access PRIVATE /W4 /permissive- /EHsc /utf-8)
 endif()
+
+# D2RAccess.exe: starts the game through a short online license check (docs/launcher.md).
+add_executable(D2RAccess WIN32
+	launcher/launcher_main.cpp
+	launcher/launcher_logic.cpp
+	launcher/launcher_log.cpp
+	launcher/launcher_speech.cpp
+	launcher/launcher_system.cpp
+	launcher/launcher_update.cpp
+	launcher/launcher_download.cpp
+	launcher/launcher_install.cpp
+	launcher/update_logic.cpp
+	src/speech_strings.cpp
+)
+target_include_directories(D2RAccess PRIVATE launcher src "${PRISM_DIR}/include")
+target_compile_definitions(D2RAccess PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+target_link_libraries(D2RAccess PRIVATE shell32 ole32 advapi32 user32 winhttp bcrypt)
+# The launcher's own release tag; empty in a development build, which never updates itself.
+set_property(SOURCE launcher/launcher_update.cpp APPEND PROPERTY COMPILE_DEFINITIONS "D2R_ACCESS_RELEASE=\"${D2R_ACCESS_RELEASE}\"")
+set_target_properties(D2RAccess PROPERTIES
+	CXX_STANDARD 20
+	CXX_STANDARD_REQUIRED TRUE
+	CXX_EXTENSIONS FALSE
+	MSVC_RUNTIME_LIBRARY "MultiThreaded"
+)
+if(MSVC)
+	target_compile_options(D2RAccess PRIVATE /W4 /permissive- /EHsc /utf-8)
+endif()
+# Best effort: the game folder may be absent or the launcher running.
+add_custom_command(TARGET D2RAccess POST_BUILD
+	COMMAND "${CMAKE_COMMAND}" "-DSOURCE=$<TARGET_FILE:D2RAccess>" "-DDEST_DIR=${D2R_GAME_DIR}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BestEffortCopy.cmake"
+	COMMENT "Copying D2RAccess.exe to ${D2R_GAME_DIR}"
+	VERBATIM
+)
 
 include(CTest)
 include(cmake/GroundItems.cmake)
@@ -454,6 +504,14 @@ if(BUILD_TESTING)
 	d2r_test(speech-strings-tests tests/speech_strings_tests.cpp src/speech_strings.cpp)
 	add_test(NAME speech-strings COMMAND speech-strings-tests)
 
+	d2r_test(launcher-logic-tests tests/launcher_logic_tests.cpp launcher/launcher_logic.cpp)
+	target_include_directories(launcher-logic-tests PRIVATE launcher)
+	add_test(NAME launcher-logic COMMAND launcher-logic-tests)
+
+	d2r_test(launcher-update-tests tests/launcher_update_tests.cpp launcher/update_logic.cpp)
+	target_include_directories(launcher-update-tests PRIVATE launcher)
+	add_test(NAME launcher-update COMMAND launcher-update-tests)
+
 	d2r_test(lootables-tests tests/lootables_tests.cpp)
 	add_test(NAME lootables COMMAND lootables-tests)
 	d2r_test(item-sizes-tests tests/item_sizes_tests.cpp)
@@ -603,7 +661,11 @@ if(BUILD_TESTING)
 	add_test(NAME settings-store COMMAND settings-store-tests)
 	d2r_test(descriptions-tests tests/descriptions_tests.cpp src/descriptions.cpp src/async_log.cpp)
 	target_link_libraries(descriptions-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	target_compile_definitions(descriptions-tests PRIVATE D2R_DESCRIPTIONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/descriptions")
 	add_test(NAME descriptions COMMAND descriptions-tests)
+	d2r_test(sealed-text-tests tests/sealed_text_tests.cpp src/sealed_text.cpp)
+	target_link_libraries(sealed-text-tests PRIVATE bcrypt)
+	add_test(NAME sealed-text COMMAND sealed-text-tests)
 endif()
 
 add_custom_command(TARGET d2r-access POST_BUILD

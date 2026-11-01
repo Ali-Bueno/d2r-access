@@ -403,11 +403,9 @@ across rooms never entered, and says so. See [route description](docs/route-desc
 says hand-written words for the area you are in. The first time a landmark with words comes
 into reach, its words replace its name (the Hangman's Tree of the Burial Grounds), and the first
 time a described area is entered, its name is followed by how to hear them (switch
-`descriptions`, on). Your own words go in `d2rloader/plugins/d2r-access/descriptions.txt`, one
-"Name = words" line each; updates never replace it. It is read again a second after you save
-it, while the game runs, and `descriptions-names.txt` beside it lists every name it answers to; an
-area can also be written as its banner says it ("The Cave Level 1"), and a name two levels share
-takes the level's Levels.txt Id in brackets ("Sewers Level 1 [92]" is Kurast's alone). See
+`description-hint`, off). The words are in the game's language (13 languages, English where one
+lacks a line), sealed into the plugin: they are changed only in this repository, in
+`data/descriptions/<locale>.txt`, one `Name [Id] = words` line per area. See
 [descriptions](docs/descriptions.md).
 A player's town portal is listed by whose it is, "TankMan's portal", and where it leads is read
 off the portal itself on reaching it; one opened anew replaces the old ([town portals](docs/portals.md)).
@@ -725,20 +723,23 @@ cd d2r-access
 ```
 
 Set `D2R_GAME_DIR` in `CMakeLists.txt` (or pass `-DD2R_GAME_DIR=...`) if the game is not at the
-default Steam path. Launch the game with `D2RLoader.exe`; the plugin speaks "Diablo 2 accessibility
-loaded" when it starts. D2RLoader 1.3.0-beta ignores the language chosen in Steam: with
-`text_locale` and `audio_locale` left empty the game starts in English. Set both explicitly in
-`d2rloader/config/d2rloader.toml` (for example `"esES"`).
+default Steam path. Launch the game with `D2RAccess.exe` (the launcher, [docs/launcher.md](docs/launcher.md):
+it refreshes the online license when it is about to lapse, then starts `D2RLoader.exe`; it also offers a newer release at start, switch `update-check` in Ctrl+S); the plugin speaks "Diablo 2 accessibility
+loaded" when it starts. Language (D2RLoader 1.3.1-beta, 2026-11-01): the loader starts the game
+in English unless `text_locale` and `audio_locale` in `d2rloader/config/d2rloader.toml` name a
+language (for example `"esES"`), which the installer's "Game language" sets. With `text_locale`
+empty the game's own "Text language" option rules the text instead (the mod follows it); the
+voices follow only `audio_locale`.
 
-To start the loader from Steam's Play button instead, set the game's launch options (Properties →
-General → Launch Options) to the loader's path followed by `%command%`, for example:
+To start from Steam's Play button instead, set the game's launch options (Properties →
+General → Launch Options) to the launcher's path followed by `%command%`, for example:
 
 ```
-"D:\games\steam\steamapps\common\Diablo II Resurrected\D2RLoader.exe" %command%
+"D:\games\steam\steamapps\common\Diablo II Resurrected\D2RAccess.exe" %command%
 ```
 
-Steam then passes the `D2R.exe` path to the loader as an argument, which the loader forwards to the
-game harmlessly (verified with loader 1.3.0-beta). Do not rename or replace `D2R.exe`: the loader
+Steam then passes the `D2R.exe` path to the launcher, which forwards it to the loader, which
+forwards it to the game harmlessly (verified with loader 1.3.0-beta, directly). Do not rename or replace `D2R.exe`: the loader
 maps it from disk, and Steam restores it on update or file verification.
 
 Console commands (developer console, `Ctrl+`` in game): `access-say <text>`, `access-trace on|off`,

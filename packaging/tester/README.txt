@@ -46,39 +46,49 @@ mod's d2r-access.toml are never replaced.
 
 STARTING THE GAME
 
-Steam (recommended): in the game's Properties, General tab, Launch options,
-type the path of D2RLoader.exe in quotes followed by %command%. For example:
+Start the game with D2RAccess.exe, in the game folder (the installer puts a
+shortcut to it on the desktop). It starts the game with the mod and, when the
+last online sign-in is about 20 days old, first validates the license online by
+itself (about half a minute, it tells you), so the 30-day offline block never
+reaches you.
+At each start it also checks for a newer version and asks before installing it;
+turn that off with the "update-check" switch in the settings list (Ctrl+S).
 
-"C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected\D2RLoader.exe" %command%
+Steam: to use Steam's Play button, in the game's Properties, General tab,
+Launch options, type the path of D2RAccess.exe in quotes followed by %command%.
+For example:
 
-Then play with Steam's Play button, as usual.
+"C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected\D2RAccess.exe" %command%
 
-Battle.net: with Battle.net open and signed in, run D2RLoader.exe from the
+Battle.net: with Battle.net open and signed in, run D2RAccess.exe from the
 game folder.
 
 When the mod starts it says "Diablo 2 accessibility loaded".
 
 If the loader warns that there was no sign-in for 30 days and starts without
-mods, that is a Blizzard check the loader keeps on purpose. Start from Steam as
-explained above. With a new account or installation you may need to open the
-game once without the loader, connected to the internet.
+mods, that is a Blizzard check the loader keeps on purpose. D2RAccess.exe
+avoids it by validating online in time; if it says it could not validate, check
+the internet connection and start it again. The launcher writes
+d2rloader\logs\d2r-access-launcher.log. D2RLoader.exe still works on its own.
 
 
 LANGUAGE
 
-The mod speaks in the game's text language. The loader may ignore the language
-chosen in Steam and start the game in English. To choose it, open the file
-d2rloader\config\d2rloader.toml with Notepad (the loader creates it the first
-time it starts) and find these two lines:
+The mod speaks in the game's text language, descriptions included. The loader
+starts the game in English unless it is told the language, whatever Steam says:
+the installer's "Game language" tells it, for the text and the voices. To change
+it later, run the installer again, or open d2rloader\config\d2rloader.toml with
+Notepad and put the language code in both lines:
 
-text_locale = ""
-audio_locale = ""
+text_locale = "esES"
+audio_locale = "esES"
 
-Put the language code between the quotes, in both: enUS English, deDE German,
-frFR French, itIT Italian, esES Spanish (Spain), esMX Spanish (Latin America),
-plPL Polish, ptBR Portuguese (Brazil), ruRU Russian, jaJP Japanese,
-koKR Korean, zhCN Chinese (simplified), zhTW Chinese (traditional).
-Save and start the game again.
+Codes: enUS English, deDE German, frFR French, itIT Italian, esES Spanish
+(Spain), esMX Spanish (Latin America), plPL Polish, ptBR Portuguese (Brazil),
+ruRU Russian, jaJP Japanese, koKR Korean, zhCN Chinese (simplified), zhTW
+Chinese (traditional). Save and start the game again. With text_locale set, the
+game's own "Text language" option does not change the text; with it empty
+(text_locale = "") that option does, and the mod follows it at once.
 
 
 CONTROLS
@@ -97,17 +107,12 @@ In play:
   walks for you; ask again on the way and it starts from where you stand.
   While you walk it, the next leg is said as you come to each turn ("Now
   east, 30"), and "Off the route" once if you leave it.
-- BACK + right stick up: the description of the area you are in, when there is
-  one. Write your own in d2rloader\plugins\d2r-access\descriptions.txt, one
-  line each: the area's name as the game says it, an equals sign, the words
-  ("Rogue Encampment = A ramshackle collection of tents..."). A name two
-  levels share takes the level's number in brackets: "Sewers Level 1 [47]"
-  is Lut Gholein's, "Sewers Level 1 [92]" Kurast's; descriptions-names.txt
-  beside the file lists them that way. Landmarks work
-  the same way ("Hangman's Tree = ..."): their words are said instead of their
-  name the first time they come into reach. Updates never replace that file.
-  "Area and landmark descriptions" (Navigation) turns off the landmark words
-  and the hint said the first time you enter a described area.
+- BACK + right stick up: the description of the area you are in, in the
+  game's language. Landmarks have words too (the Hangman's Tree, the
+  Hellforge): they are said instead of the landmark's name the first time it
+  comes into reach. "Landmark descriptions" (Navigation) turns off the
+  landmark words. New or changed descriptions come with updates of the mod:
+  send them to the developer.
 - BACK+LB: follow or release what the scanner named (beacon). A ping leads you
   there along a real route and the mod says when you arrive.
 - BACK+X: life, mana, stamina (when not full), the arrows or throwing

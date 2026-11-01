@@ -2,6 +2,49 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Descriptions in 13 languages, sealed; the installer adapted — 2026-11-01 (not released)
+
+The user asked four things ([descriptions](docs/descriptions.md#in-every-language-sealed-from-the-source-only-2026-11-01),
+[cinematics](docs/cinematics-audio-description.md), [launch and installer](docs/release-launch.md#the-installer-the-users-mod-installer-adapted-2026-11-01)).
+- Descriptions: `data/descriptions/<locale>.txt`, areas keyed by level Id, 12 languages
+  machine-translated (esMX proofread), sealed with AES-256-GCM by `tools/seal-descriptions` and
+  opened in memory (`Descriptions::OpenBundled`). The player's `descriptions.txt`,
+  `descriptions-names.txt` and the strings layer's landmark words are gone (the user: changed only
+  in the source). 131/131 CTest; installed by the build. **Unverified live.**
+- Cinematics: the start message carries no movie name; the Videos list sends its index
+  (`Cinematics:Play` text `"0"`-`"6"`), and a "classic videos" checkbox swaps in the 2000 videos.
+  Audio description is feasible (7 videos, SRT in 13 languages, ~800 s free of speech); not started.
+- Menus read the widget first (the user: why depend on a JSON file): checkboxes, carousels and
+  dropdowns in cataloged panels, `Settings.json` only as a fallback; the classic-videos checkbox
+  (confirmed live); locked videos by `ButtonWidget` +0x67A (`NativeButtons`, fingerprinted); a
+  dropdown's popup rows from the focused row (DLSS said rows twice)
+  ([native UI](docs/native-ui.md#a-cataloged-checkboxs-own-state-disabled-controls-2026-11-01)).
+  **Confirmed live** (2026-11-01 10:46): `[buttons] Verified.`, the five locked videos said
+  unavailable and no other button, DLSS's rows once each, every value `state=widget` (no
+  `settings` fallback used). The text language carousel changes the game's setting, but the
+  loader's `text_locale` keeps the text in Spanish.
+- The loader cannot log in (Blizzard's 30-day re-authentication). Tested live with the user: the
+  date (`User Last Online`) is written on reaching the main menu online, ~20 s after starting
+  `D2R.exe`, not at exit; staying on "Press any key" does not refresh it ([launch](docs/release-launch.md#asked-again-2026-11-01-can-the-loader-log-in-with-the-account)).
+  The launcher `D2RAccess.exe` (validates online when the date is 20+ days old, then starts the
+  loader) is **confirmed live** on the user's Steam copy with `--validate`: date written 16 s after
+  start, game closed, loader started ([launcher](docs/launcher.md)). Battle.net copies untested.
+- Language (the user, 2026-11-01): with `text_locale = ""` the game's Options choose the text
+  language and the mod follows (`SetTextLanguage` re-detects); the voices follow only
+  `audio_locale`. A first start through the loader is English whatever Steam says, so the
+  installer's "Game language" sets both (the user's call); rerun it to change the language.
+- Self-updater in the launcher (the user, after the PoE 2 mod's): at each start `release.json`
+  from `/releases/latest/download/`, a Yes/No box with the notes, download pinned to the tag,
+  SHA-256, `tar.exe`, copy with rollback, the running exe renamed `.old`; Ctrl+S `update-check`;
+  `test-release.ps1` uploads `release.json`. 132/132 CTest. **Unverified live** until the repo is
+  public; dev builds (no release tag) skip it ([launcher](docs/launcher.md)).
+- Descriptions **confirmed live** in Spanish (`[descriptions] 139 in esES`, BACK+up in Lut Gholein).
+- Installer: the user's `D:\code\tools\mod-installer` with `configs/d2r.toml` (uncommitted there),
+  `dist\D2RAccessInstaller.exe`; Steam's launch option and the desktop shortcut start the launcher.
+  The repo goes public before the first release.
+
+**Next step:** the installer against the real game; the Hangman's Tree's words; commits.
+
 ## Holding Y says how to compare — 2026-11-01 (released as test-2026-11-01 from 24326f4)
 
 Release: 129/129 CTest, 27 entries, 63,014,798 bytes, SHA-256 `672e7002…7e74d0562`; news

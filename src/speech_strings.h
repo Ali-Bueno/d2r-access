@@ -438,6 +438,8 @@ struct Table {
 	const char* stepBeepOff;
 	const char* menuNewsOn; // the main menu's link bar read as it opens
 	const char* menuNewsOff;
+	const char* updateCheckOn; // the launcher looks for a newer release at start (docs/launcher.md)
+	const char* updateCheckOff;
 	const char* wallTonesOn;
 	const char* wallTonesOff;
 	const char* enemyClassSoundsOn;
@@ -549,8 +551,6 @@ struct Table {
 	const char* mainMenu; // the main menu panel's name: the game has no string for it
 	const char* padTypingOn; // typing into a text box with the right stick (pad_typing.h)
 	const char* padTypingOff;
-	const char* hangmanTreeDescription; // the Hangman's Tree the first time it comes into reach (descriptions.h)
-	const char* hellforgeDescription; // the Hellforge the first time it comes into reach
 	const char* descriptionsOn; // landmark descriptions (descriptions.h)
 	const char* descriptionsOff;
 	const char* descriptionHintOn; // the hint after a described area's banner (descriptions.h)
@@ -590,6 +590,16 @@ struct Table {
 	const char* backspaceKey;
 	const char* upperCase; // Caps Lock turned on and off
 	const char* lowerCase;
+	const char* launcherMissingFiles;
+	const char* launcherValidating;
+	const char* launcherSteamTimeout;
+	const char* launcherValidated;
+	const char* launcherFailedStartsAnyway;
+	const char* launcherFailedExpired;
+	const char* launcherUpdateTitle; // the launcher's update boxes; %s are release tags
+	const char* launcherUpdateAsk; // new tag, installed tag; the notes follow
+	const char* launcherUpdated;
+	const char* launcherUpdateFailed;
 };
 
 // Visits every phrase of a table, single fields and array entries alike, in
@@ -635,7 +645,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
-		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.unexploredEverywhereOn, t.unexploredEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction,
+		t.beaconSoundsOn, t.beaconSoundsOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.updateCheckOn, t.updateCheckOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.unexploredEverywhereOn, t.unexploredEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction,
 		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
@@ -652,9 +662,10 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.partyFirstOn, t.partyFirstOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
-		t.hangmanTreeDescription, t.hellforgeDescription, t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
+		t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
 		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
-		t.padQwertyOn, t.padQwertyOff, t.typingStartedQwerty, t.capsLockKey, t.backspaceKey, t.upperCase, t.lowerCase}) visit(s);
+		t.padQwertyOn, t.padQwertyOff, t.typingStartedQwerty, t.capsLockKey, t.backspaceKey, t.upperCase, t.lowerCase,
+		t.launcherMissingFiles, t.launcherValidating, t.launcherSteamTimeout, t.launcherValidated, t.launcherFailedStartsAnyway, t.launcherFailedExpired, t.launcherUpdateTitle, t.launcherUpdateAsk, t.launcherUpdated, t.launcherUpdateFailed}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

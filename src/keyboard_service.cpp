@@ -196,6 +196,7 @@ std::atomic<bool> g_playing{false};
 // While the settings list is open the reading keys (or the pad's right stick)
 // step through it and Space changes a switch; closed, Space is the game's.
 std::atomic<bool> g_settingsOpen{false};
+std::atomic<bool> g_updateCheck{true}; // only saved to settings.txt, for the launcher (docs/launcher.md)
 SettingsList::Menu g_settings;
 Strings::Language g_settingsLanguage{};
 bool g_settingsBuilt = false;
@@ -1953,6 +1954,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{TutorialService::WaitForSounds, TutorialService::SetWaitForSounds, phrase(&T::tutorialSoundWaitOn, &T::tutorialSoundWaitOff), false, "tutorial-sound-wait"},
 		{WeaponSwapService::SetNumber, WeaponSwapService::SetSetNumber, phrase(&T::weaponSetNumberOn, &T::weaponSetNumberOff), false, "weapon-set-number"},
 		{ModalReader::MenuNews, ModalReader::SetMenuNews, phrase(&T::menuNewsOn, &T::menuNewsOff), false, "main-menu-news"},
+		{[] { return g_updateCheck.load(); }, [](bool on) { g_updateCheck = on; }, phrase(&T::updateCheckOn, &T::updateCheckOff), false, "update-check"},
 	}});
 	// Which news may cut in on other speech, kind by kind (a tester and the user, 2026-10-19).
 	using K = SpeechPriority::Kind;

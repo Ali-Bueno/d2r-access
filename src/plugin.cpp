@@ -31,6 +31,7 @@
 #include "native_hit_chance.h"
 #include "native_hover.h"
 #include "native_ui.h"
+#include "native_buttons.h"
 #include "native_waypoints.h"
 #include "native_quest_flags.h"
 #include "native_tooltips.h"
@@ -63,7 +64,6 @@
 
 #include <algorithm>
 #include <array>
-#include <filesystem>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -392,8 +392,8 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 		D2RAccess::AsyncLog::Warn(context, "Localization service unavailable; panel titles will use internal names.");
 	}
 	D2RAccess::Localization::DetectSpeechLanguage(context);
-	if (context->pluginDirectory)
-		D2RAccess::Descriptions::Load(context, std::filesystem::path(context->pluginDirectory) / "d2r-access" / "descriptions.txt");
+	D2RAccess::Descriptions::Load(context, D2RAccess::Descriptions::OpenBundled(context),
+		[] { return D2RAccess::Strings::LocaleCode(D2RAccess::Strings::Selected()); });
 
 	// After Initialize, whose own Shutdown clears it: set before, no phrase was logged.
 	const bool speaking = D2RAccess::ScreenReader::Initialize(context->pluginDirectory);
@@ -418,6 +418,7 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	}
 
 	(void)D2RAccess::NativeWidgets::Initialize(context);
+	(void)D2RAccess::NativeButtons::Initialize(context);
 	D2RAccess::MultiplayerReader::Initialize(context);
 	D2RAccess::MenuNavigation::Initialize(context);
 	(void)D2RAccess::NativeHover::Initialize(context);

@@ -59,6 +59,7 @@ try {
 	foreach ($file in $loaderFiles) { Copy-Into (Join-Path $LoaderDir $file) (Join-Path $stage $file) }
 	foreach ($dir in $loaderDirs) { New-Item -ItemType Directory (Join-Path $stage $dir) -Force | Out-Null }
 	foreach ($dll in $runtimeDlls) { Copy-Into (Join-Path $crt.FullName $dll) (Join-Path $stage $dll) }
+	Copy-Into (Join-Path $buildDir "D2RAccess.exe") (Join-Path $stage "D2RAccess.exe")
 	Copy-Into (Join-Path $buildDir $pluginDll) (Join-Path $stage "d2rloader\plugins\$pluginDll")
 	Copy-Into "third_party\prism\bin\prism.dll" (Join-Path $stage "d2rloader\plugins\d2r-access\prism.dll")
 	Copy-Into "packaging\tester\KEYBOARD.txt" (Join-Path $stage "KEYBOARD.txt")
@@ -102,7 +103,11 @@ try {
 	) -join "`n"
 	$releaseNotes = Join-Path $out "notes.md"
 	[IO.File]::WriteAllText($releaseNotes, $notes, [Text.UTF8Encoding]::new($false))
-	gh release create $tag $zip --target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
+	# The launcher reads this manifest to offer the update (docs/launcher.md, "Self-update").
+	$releaseJson = Join-Path $out "release.json"
+	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $zip -Leaf); sha256 = $zipHash; notes = $notes } | ConvertTo-Json
+	[IO.File]::WriteAllText($releaseJson, $manifest, [Text.UTF8Encoding]::new($false))
+	gh release create $tag $zip $releaseJson --target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
 	if ($LASTEXITCODE) { throw "Publishing failed." }
 	Write-Host "Published $tag. Always-latest link: $latestUrl"
 } finally {
