@@ -112,7 +112,7 @@ In play:
   Hellforge): they are said instead of the landmark's name the first time it
   comes into reach. "Landmark descriptions" (Navigation) turns off the
   landmark words. New or changed descriptions come with updates of the mod:
-  send them to the developer.
+  send them to the developer. Keyboard: Shift+Y.
 - BACK+LB: follow or release what the scanner named (beacon). A ping leads you
   there along a real route and the mod says when you arrive.
 - BACK+X: life, mana, stamina (when not full), the arrows or throwing
@@ -127,7 +127,7 @@ In play:
   a Warlock's demons one by one, "Tainted 2: life 75 percent"), then each
   party member ("Raine: life 80 percent"), with how far and where each one is,
   or the area a party member is in. After the last it starts again; after a
-  pause of 10 seconds it starts again at the mercenary.
+  pause of 10 seconds it starts again at the mercenary. Keyboard: Shift+Z.
 - BACK+LT: the main skill bar, as holding LT reads the other one.
 - BACK+Y: the passages out of the room you are in.
 - BACK+B: area overview: the area, where you stand in it ("northeast edge",
@@ -194,7 +194,8 @@ Keyboard: the full list is in KEYBOARD.txt. To begin with:
   Ctrl+Page Up / Ctrl+Page Down: previous / next category.
 - D: walk to the nearest usable thing and use it.
 - Ctrl+G: radar on or off. Ctrl+T: radar status.
-- Z and X: life and mana.
+- Z and X: life and mana. Shift+Z: your companions, one at a time.
+- Shift+Y: the description of the area you are in.
 
 
 HOW THE MOD DESCRIBES THE MAP
@@ -317,6 +318,8 @@ knowing:
 - Walk, run and stamina alerts (on).
 - Ammunition alerts (on): arrows, bolts or throwing weapons running low.
 - Weapon set number (on): the weapon swap also says "Weapon set 1" or "2".
+- Skill hotkeys (on): on the keyboard, F1 to F8 say the skill they select,
+  only when it changes.
 - Town NPCs listed from anywhere in town (on): every town NPC can be scanned
   and followed from anywhere in town, even before you have seen them.
 - Inventory edge bump (on): a knock when the inventory cursor hits the edge, or leaves the

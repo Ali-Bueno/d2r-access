@@ -81,17 +81,21 @@ The full lists are in the package's `README.txt` and `KEYBOARD.txt`, and in
 | Right stick left / right | Page Up / Down | Scanner: previous / next thing, nearest first |
 | BACK + LB | Ctrl+B | Beacon: follow or release what the scanner named |
 | BACK + right stick down | Ctrl+E | The route to the beacon's or scanner's target |
-| BACK + right stick up | — | Description of the area you are in |
+| BACK + right stick up | Shift+Y | Description of the area you are in |
 | BACK + Y | Ctrl+Y | The ways out of the room you are in |
 | BACK + B | Ctrl+O | Area overview |
 | BACK + X | Z / X | Life, mana, stamina, states on you |
-| BACK + RT | — | Mercenary, summons and party members, one at a time |
+| BACK + RT | Shift+Z | Mercenary, summons and party members, one at a time |
 | Hold LT / BACK + LT | — | The skills on each skill bar |
 | LB (in play) | — | Audible loot filter on or off |
 | BACK + RB | Ctrl+S | The mod's settings list |
 | BACK + right stick left / right | K / L | Tutorial: previous / next message |
 | — | Ctrl+G / Ctrl+T | Radar on or off / radar status |
 | — | D | Walk to the nearest usable thing and use it |
+| — | A / W, held | Fight with the left / right skill; a buff or a summon is cast once where you stand |
+| — | Shift+A, held | Attack in place with the left skill: no walking up, no falling back |
+| — | F1 to F8 | The game's skill keys; the mod says the skill when it changes |
+| LB / RB in the shared stash | Alt+Page Up / Down, Ctrl+Shift+Page Up / Down | Shared stash: previous / next page; ten pages back / forward |
 
 In menus, right stick up reads the detail of what has focus (an item's full description, a
 skill's text) and right stick down the buttons the screen offers.
@@ -131,7 +135,9 @@ See [native UI](docs/native-ui.md) and [in-game text](docs/test-ingame-text.md).
 - Picking up an item says "Item in hand" and where it can go; placing it names the destination.
 - The belt names each cell's D-pad direction, row and potion ([belt](docs/belt.md)).
 - Stash tabs, LT/RT tab changes, the stash's gold, and shop, repair and other NPC service buttons
-  with the game's own labels. Nothing is bought, sold or repaired automatically.
+  with the game's own labels. Nothing is bought, sold or repaired automatically. Set items are
+  said by their set name, a shop's empty categories are skipped, and the shared stash's pages are
+  said as they change ([stash pages](docs/stash-pages.md)).
 - The Horadric Cube says what moves in and out and what Transmute made ([Horadric Cube](docs/horadric-cube.md)).
 - A weapon swap names the set and the weapons now in hand ([weapon swap](docs/weapon-swap.md)).
 - Trading with another player names the partner, both offers, both acceptances and the outcome
@@ -146,7 +152,9 @@ See [inventory and NPC follow-up](docs/inventory-npc-followup.md).
   ([character panel](docs/character-panel.md), [progression](docs/progression.md)).
 - Skill trees move one skill at a time with the D-pad. Each skill says its name, position, points,
   controller binding and the actions available, then its full description, requirements and
-  levels ([skill actions](docs/skill-actions.md)). The mod never spends a point by itself.
+  levels ([skill actions](docs/skill-actions.md)), then the skills it needs a point in
+  ("Prerequisite: 1 skill point in Howl"). The mod never spends a point by itself.
+- On the keyboard, F1 to F8 say the skill they select when it changes ([skill hotkeys](docs/skill-hotkeys.md)).
 - Holding LT reads the six skills on that bar ([skill bar](docs/skill-bar.md)).
 - The mercenary panel, the advanced statistics panel and hiring rows (with each candidate's
   skills) are read row by row.
@@ -234,6 +242,8 @@ language ([audio language audit](docs/audio-language-audit.md)).
 - The mercenary's life and level, summons grouped as the game's portraits show them, and party
   members' life and whereabouts ([summons and corpses](docs/summons-and-corpses-re.md)).
 - Running auras and buffs, worn items breaking, walking and running, and low stamina.
+- On the keyboard, a buff, a summon or a spell that needs no target is cast once where you stand,
+  and Shift+A attacks in place ([skill targeting](docs/battle-skill-targeting.md)).
 - Your corpse and party members' corpses are listed in the scanner
   ([player corpses](docs/player-corpse-re.md)).
 
