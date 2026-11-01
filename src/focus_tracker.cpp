@@ -13,6 +13,7 @@
 #include "localization.h"
 #include "native_memory.h"
 #include "native_ui.h"
+#include "native_value_controls.h"
 #include "native_widgets.h"
 #include "native_focus.h"
 #include "native_skill_navigation.h"
@@ -25,6 +26,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -239,6 +241,8 @@ constexpr const char* MessageAnnouncedTypes[] = { "HDCharacterSelectorWidget" };
 constexpr const char* DropdownPopupItem   = "ItemTemplate";
 constexpr const char* DropdownWidgetType  = "DropdownListWidget";
 constexpr const char* TextInputWidgetType = "InputTextBoxWidget";
+constexpr const char* ToggleWidgetType    = "ToggleButtonWidget";
+constexpr const char* CarouselWidgetType  = "CarouselWidget";
 // A tab bar carries no label of its own in the layouts. What the player is
 // standing on when focus lands there is a tab, so its text is the name --
 // read live, the same way TabReader reads it.
@@ -318,6 +322,9 @@ std::string                  g_lastAnnounced;
 std::string                  g_lastNativeFallbackContext;
 uintptr_t                    g_lastNativeToggleFocus = 0;
 std::optional<bool>          g_lastNativeToggleState;
+// A cataloged checkbox Settings.json does not hold (the Videos list's classic videos): its native
+// state, said again when it changes while focused.
+struct { uintptr_t widget = 0; bool toggled = false; } g_catalogToggle;
 uintptr_t                    g_lastNativeValueFocus = 0;
 std::string                  g_lastNativeValue;
 uintptr_t                    g_lastNativeFallbackFocus = 0;
@@ -673,13 +680,8 @@ int PopupTrackedOption(int visibleRow) {
 	return visibleRow + g_dropdown.scrollOffset;
 }
 
-// Displayed text of the popup slot `visibleRow`, spoken as "W by H" when it
-// is a resolution; "" when native access is unavailable.
-std::string PopupSlotText(int visibleRow) {
-	char slot[32] {};
-	std::snprintf(slot, sizeof(slot), PopupSlotFormat, visibleRow);
-	const std::string path[] = { PopupSlotItems, slot, PopupSlotTextBox };
-	const std::string text   = NativeWidgets::TextAt(DropdownPopupPanel, path);
+// A popup row's text, spoken as "W by H" when it is a resolution.
+std::string SpokenRowText(const std::string& text) {
 	unsigned          width = 0, height = 0;
 	char              trailing = '\0';
 	if (sscanf_s(text.c_str(), "%ux%u%c", &width, &height, &trailing, 1) == 2) {
@@ -689,6 +691,25 @@ std::string PopupSlotText(int visibleRow) {
 	}
 	return text;
 }
+
+// Displayed text of the popup slot `visibleRow`; "" when native access is unavailable.
+std::string PopupSlotText(int visibleRow) {
+	char slot[32] {};
+	std::snprintf(slot, sizeof(slot), PopupSlotFormat, visibleRow);
+	const std::string path[] = { PopupSlotItems, slot, PopupSlotTextBox };
+	return SpokenRowText(NativeWidgets::TextAt(DropdownPopupPanel, path));
+}
+
+// The row the game focuses in the popup and its text; empty when it is not a popup row. Exact
+// whatever the list's scroll, which the row-and-scroll count below only estimates.
+struct FocusedRow { uintptr_t widget = 0; std::string text; };
+FocusedRow PopupFocusedRow() {
+	const NativeMemory::ReadScope scope;
+	const uintptr_t row = NativeUi::CurrentFocus().widget;
+	if (row == 0 || !NativeWidgets::ReadName(row).starts_with("ListItem")) return {};
+	return { row, SpokenRowText(UiText::Clean(NativeWidgets::ReadText(NativeWidgets::FindChild(row, PopupSlotTextBox)))) };
+}
+FocusedRow g_popupRow; // the last row said
 
 // The popup captures focus while open: the highlighted row is the indicator's
 // distance from the first row (all rows share the template's name and size).
@@ -711,6 +732,16 @@ void AnnouncePopupRow(const D2RL::PluginContext* context, const Generated::Panel
 		return;
 	}
 	const int index = PopupTrackedOption(visibleRow);
+	// The focused row said once per row and text: the game reports scroll inputs that move
+	// nothing, so the counted index alone repeated a row (the user, DLSS, 2026-11-01).
+	if (FocusedRow focused = PopupFocusedRow(); !focused.text.empty()) {
+		g_dropdown.popupIndex = index;
+		if (focused.widget == g_popupRow.widget && focused.text == g_popupRow.text) return;
+		g_popupRow = std::move(focused);
+		D2RAccess::AsyncLog::InfoF(context, "[focus] popup row -> \"%s\" (counted option %d)", g_popupRow.text.c_str(), index);
+		ScreenReader::Speak(g_popupRow.text, true);
+		return;
+	}
 	if (g_dropdown.popupIndex && *g_dropdown.popupIndex == index) {
 		return;
 	}
@@ -839,6 +870,39 @@ void LogNativeMiss(const D2RL::PluginContext* context, NativeUi::Focus focus) {
 		NativeUi::Visible(focus.panel) ? 1 : 0, NativeUi::Visible(focus.widget) ? 1 : 0, chain.c_str());
 }
 
+// The focused widget itself: the resolved one, else the game's focus.
+uintptr_t LiveWidget(uintptr_t nativeWidget) {
+	return nativeWidget != 0 ? nativeWidget : NativeUi::CurrentFocus().widget;
+}
+
+// The state a value control shows, read from the widget; each reader checks the widget's class,
+// so a mismatch or a changed build gives "" and Settings.json answers instead (docs/native-ui.md).
+std::string NativeState(const Generated::WidgetEntry& widget, uintptr_t live) {
+	if (live == 0) return {};
+	const NativeMemory::ReadScope scope;
+	// A message can name a control other than the focused one: never read a neighbour's value.
+	if (NativeWidgets::ReadName(live) != widget.name) return {};
+	if (std::strcmp(widget.type, DropdownWidgetType) == 0) return UiText::Clean(NativeUi::DropdownText(live));
+	if (std::strcmp(widget.type, ToggleWidgetType) == 0) {
+		const auto toggled = NativeUi::Toggled(live);
+		return !toggled ? std::string{} : *toggled ? Strings::Current().checked : Strings::Current().unchecked;
+	}
+	if (std::strcmp(widget.type, CarouselWidgetType) == 0) return NativeValueControls::Shown(live);
+	return {};
+}
+
+void SpeakCatalogToggleChange(const D2RL::PluginContext* context, uintptr_t nativeWidget) {
+	if (g_catalogToggle.widget == 0) return;
+	const NativeMemory::ReadScope scope;
+	if (LiveWidget(nativeWidget) != g_catalogToggle.widget) return;
+	const auto toggled = NativeUi::Toggled(g_catalogToggle.widget);
+	if (!toggled || *toggled == g_catalogToggle.toggled) return;
+	g_catalogToggle.toggled = *toggled;
+	const char* state = *toggled ? Strings::Current().checked : Strings::Current().unchecked;
+	D2RAccess::AsyncLog::InfoF(context, "[focus] %s -> \"%s\"", g_lastAnnounced.c_str(), state);
+	ScreenReader::Speak(state, false);
+}
+
 void Announce(const D2RL::PluginContext* context, const Match& match, const Widgets::Rect& indicator, uintptr_t nativeWidget = 0) {
 	const int   characterRow = CharacterRowIndex(match, indicator);
 	std::string id           = std::string(match.panel->panel) + "/" + match.widget->name;
@@ -852,8 +916,10 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		id += "#" + (characterPhrase.empty() ? std::to_string(characterRow) : characterPhrase);
 	}
 	if (id == g_lastAnnounced) {
+		SpeakCatalogToggleChange(context, nativeWidget);
 		return;
 	}
+	g_catalogToggle = {};
 	g_lastAnnounced = std::move(id);
 	g_lastMatchedPanel = match.panel;
 	ControlHints::Offer({}); // a new focus: the last one's controls no longer apply
@@ -906,26 +972,41 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		phrase += ", ";
 		phrase += PercentText(*percent);
 	}
-	// A dropdown shows its option on itself; Settings.json knows only the options panel's.
-	std::string state;
-	if (std::strcmp(match.widget->type, DropdownWidgetType) == 0) {
-		const NativeMemory::ReadScope scope;
-		state = UiText::Clean(NativeUi::DropdownText(nativeWidget != 0 ? nativeWidget : NativeUi::CurrentFocus().widget));
+	// The widget's own state first; Settings.json only when it cannot be read.
+	const uintptr_t live = LiveWidget(nativeWidget);
+	std::string state = NativeState(*match.widget, live);
+	const char* stateSource = "widget";
+	if (state.empty()) {
+		state       = ControlState::Describe(*match.widget, g_lastAnnounced);
+		stateSource = "settings";
 	}
-	if (state.empty()) state = ControlState::Describe(*match.widget, g_lastAnnounced);
+	// A checkbox the game sends no update message for: its changes are watched here.
+	if (std::strcmp(match.widget->type, ToggleWidgetType) == 0 && match.widget->updateCommand == nullptr) {
+		const NativeMemory::ReadScope scope;
+		if (const auto toggled = NativeUi::Toggled(live)) g_catalogToggle = { live, *toggled };
+	}
 	if (!state.empty()) {
 		phrase += ", ";
 		phrase += state;
 	}
+	bool unavailable = false;
 	for (const DisabledWhen& rule : DisabledWhenRules) {
 		if (std::strcmp(rule.panel, match.panel->panel) != 0 || std::strcmp(rule.widget, match.widget->name) != 0) {
 			continue;
 		}
 		const Generated::WidgetEntry* controller = FindWidget(*match.panel, rule.controller);
 		if (controller != nullptr && ControlState::Index(*controller, WidgetId(*match.panel, *controller)) == rule.controllerIndex) {
-			phrase += ", ";
-			phrase += Strings::Current().unavailable;
+			unavailable = true;
 		}
+	}
+	// A control the game itself disabled (a video not unlocked yet in the Videos list).
+	if (!unavailable && nativeWidget != 0) {
+		const NativeMemory::ReadScope scope;
+		unavailable = NativeUi::Enabled(nativeWidget) == false || NativeUi::ButtonDisabled(nativeWidget) == true;
+	}
+	if (unavailable) {
+		phrase += ", ";
+		phrase += Strings::Current().unavailable;
 	}
 	const std::string tooltip = TextForKey(match.widget->tooltipKey);
 	// An options row explains itself in a paragraph. Spoken on arrival it is
@@ -936,7 +1017,8 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	const bool options = IsOptionsPanel(match.panel->panel);
 	const bool extra = !tooltip.empty() && tooltip != label;
 
-	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\"%s coverage=%.2f", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), extra ? (options ? " +detail" : " +tooltip") : "", match.score);
+	D2RAccess::AsyncLog::InfoF(context, "[focus] %s/%s (%s) -> \"%s\"%s coverage=%.2f%s%s", match.panel->panel, match.widget->name, match.widget->type, phrase.c_str(), extra ? (options ? " +detail" : " +tooltip") : "", match.score,
+		state.empty() ? "" : " state=", state.empty() ? "" : stateSource);
 	ScreenReader::Speak(phrase, true);
 	if (std::strcmp(match.widget->type, TextInputWidgetType) == 0) NameFieldHint(context, match.panel->panel);
 	if (options) {
@@ -980,13 +1062,21 @@ void Tick(const D2RL::PluginContext* context) {
 		} else {
 			// A dropdown takes the row picked in its popup; toggles and
 			// carousels step from the player's last horizontal input.
-			if (std::strcmp(pending.widget->type, DropdownWidgetType) == 0 && g_dropdown.id == id && g_dropdown.popupIndex) {
+			const bool dropdown = std::strcmp(pending.widget->type, DropdownWidgetType) == 0;
+			if (dropdown && g_dropdown.id == id && g_dropdown.popupIndex) {
 				ControlState::SetIndex(id, *g_dropdown.popupIndex);
 			} else {
 				ControlState::OnUpdateMessage(*pending.widget, id, pending.before);
 			}
-			const std::string state = ControlState::Describe(*pending.widget, id);
-			D2RAccess::AsyncLog::InfoF(context, "[value] %s -> \"%s\" (last input %d)", id.c_str(), state.c_str(), static_cast<int>(InputDirection::LastHorizontal(1000)));
+			// The value the widget now shows; the popup's counted row or the last input only when
+			// unreadable.
+			std::string state = NativeState(*pending.widget, NativeUi::CurrentFocus().widget);
+			const char* source = "widget";
+			if (state.empty()) {
+				state  = ControlState::Describe(*pending.widget, id);
+				source = "settings";
+			}
+			D2RAccess::AsyncLog::InfoF(context, "[value] %s -> \"%s\" (%s, last input %d)", id.c_str(), state.c_str(), source, static_cast<int>(InputDirection::LastHorizontal(1000)));
 			if (!state.empty()) {
 				ScreenReader::Speak(state, true);
 			} else {
@@ -1230,6 +1320,7 @@ void Reset() {
 	g_scrollAt     = 0;
 	g_lastIndicator.reset();
 	g_lastAnnounced.clear();
+	g_catalogToggle = {};
 	g_lastNativeFallbackContext.clear();
 	g_lastNativeToggleFocus = 0;
 	g_lastNativeToggleState.reset();

@@ -171,3 +171,41 @@ picked in the popup, so `CharacterCreatePanel/GameVersionDropdown` had no value 
 `NativeUi::DropdownText` now reads the option the widget draws on itself (its button caption,
 `+0x818`, the row above), the same text the native fallback already read, and the reader says it
 before falling back to `ControlState`. Confirmed live by the user, 2026-10-31.
+
+## A cataloged checkbox's own state; disabled controls (2026-11-01)
+
+The user, in the main menu's Videos list (`CinematicsModal`): "Ver vídeos clásicos" said no state,
+and videos not unlocked yet did not say so. A cataloged panel took a checkbox's state from
+`Settings.json` only (`ControlState`), which has no key for `LegacyCheckbox`, and marked a control
+unavailable only by `DisabledWhenRules`. Now, in `focus_tracker.cpp` `Announce`:
+- A `ToggleButtonWidget` with no tracked state reads the widget (`NativeUi::Toggled`, the getter
+  at +0xB88 the native fallback already used) and says checked or unchecked; while it stays focused
+  a change is said alone (`[focus] <id> -> "<state>"`).
+- Any natively resolved control whose own enabled flag (+0x50, `NativeUi::Enabled`) is off is said
+  "unavailable". **Unverified live:** that a locked video is a disabled button rather than an
+  enabled one drawn with a lock.
+
+**Every cataloged value control, widget first (2026-11-01).** The user: depending on a JSON file
+for what a control shows is odd. `NativeState` in `focus_tracker.cpp` now reads the widget for
+checkboxes (`NativeUi::Toggled`), option carousels (`NativeValueControls::Shown`, the text the
+game draws) and dropdowns (`NativeUi::DropdownText`), on arrival and one update after a change
+message (`[value] <id> -> "<state>" (widget, ...)`). Each reader checks the widget's class and its
+build check, so anything unreadable falls back to `ControlState` (`Settings.json` plus the last
+left/right), logged `(settings, ...)`. A dropdown's change keeps the popup's row, which is exact;
+sliders keep their handle's position. `ControlState` is still updated, since `DisabledWhenRules`
+read it. **Unverified live** in the Options panels.
+
+**Locked videos, a dropdown's rows, the values' names (2026-11-01, the user's test).**
+- A locked video is an *enabled* widget: the +0x50 flag stayed 1. A one-off comparison of the
+  Videos list's two unlocked and five locked `ButtonWidget`s found `ButtonWidget` +0x67A, set to 1
+  by RVA 0x86EEC0 (which also swaps in the disabled frame), cleared by 0x86EFB0, and tested by the
+  click handler. `NativeUi::ButtonDisabled` reads it for the `ButtonWidget` class only, once
+  `NativeButtons` has fingerprinted both functions (`[buttons] Verified.`); the catalog path then
+  says "unavailable". **Unverified live** after the change.
+- DLSS's popup said a row twice: one press brought two `ScrollController:ManualScrollInput`
+  messages though nothing scrolled, so the counted index (row + scroll) ran ahead. A popup row is
+  now the focused `ListItemN`'s own `TextBox` (`PopupFocusedRow`), said once per row and text,
+  `[focus] popup row -> "<text>" (counted option N)`; the count stays as the fallback.
+- The text language said "Francés" on arrival with Spanish on screen, and value messages with no
+  input read whatever was focused. `NativeState` now reads a widget only when its native name is
+  the catalog entry's, and the arrival log says `state=widget` or `state=settings`.

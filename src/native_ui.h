@@ -27,6 +27,14 @@ std::string InputText(uintptr_t widget);
 // The option a closed dropdown shows; empty when the widget is not a dropdown or it is unreadable.
 std::string DropdownText(uintptr_t widget);
 bool Visible(uintptr_t widget);
+// The widget's own enabled flag (a locked or greyed-out control is false); nothing when unreadable.
+std::optional<bool> Enabled(uintptr_t widget);
+// A ToggleButtonWidget's checked state; nothing for any other widget or when unreadable.
+std::optional<bool> Toggled(uintptr_t widget);
+// A ButtonWidget the game disabled (its click ignored, its disabled frame drawn: a locked video);
+// nothing for any other widget, when unreadable, or until NativeButtons verified the game's code.
+std::optional<bool> ButtonDisabled(uintptr_t widget);
+void SetButtonsVerified(bool verified);
 uintptr_t Parent(uintptr_t widget);
 std::optional<Rect> LocalRect(uintptr_t widget);
 std::vector<uintptr_t> Children(uintptr_t widget);

@@ -95,6 +95,34 @@ std::optional<bool> ToggleState(uintptr_t widget) {
 	return state != 0;
 }
 
+}
+
+std::optional<bool> Enabled(uintptr_t widget) {
+	uint8_t enabled = 0;
+	if (!widget || !Peek(widget + EnabledOffset, enabled) || enabled > 1) return std::nullopt;
+	return enabled != 0;
+}
+
+std::optional<bool> Toggled(uintptr_t widget) {
+	return widget && Classify(widget).name == "ToggleButtonWidget" ? ToggleState(widget) : std::nullopt;
+}
+
+namespace {
+// Set to 1 by RVA 0x86EEC0 and to 0 by 0x86EFB0, read by the click handler (native_buttons.cpp).
+constexpr size_t ButtonDisabledOffset = 0x67A;
+std::atomic<bool> g_buttonsVerified{false};
+}
+
+void SetButtonsVerified(bool verified) { g_buttonsVerified = verified; }
+
+std::optional<bool> ButtonDisabled(uintptr_t widget) {
+	if (!g_buttonsVerified || !widget || Classify(widget).name != "ButtonWidget") return std::nullopt;
+	uint8_t disabled = 0;
+	if (!Peek(widget + ButtonDisabledOffset, disabled) || disabled > 1) return std::nullopt;
+	return disabled != 0;
+}
+
+namespace {
 void MatchType(Type& result, const std::string& name) {
 	// Classify inheritance, never a runtime panel's name. A future subtype uses
 	// the same archetype automatically; unknown widgets still expose child text.
