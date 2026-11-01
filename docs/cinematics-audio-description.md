@@ -157,10 +157,15 @@ never says what is happening there". The model is the Witcher 3 mod
   order in `audio_description_script.h`); the classic box (`CinematicsModal/LegacyCheckbox`,
   `NativeUi::Toggled`) is read at that moment. A movie that starts within 5 s of the choice is that
   video. Confirmed live 2026-11-01 (d2intro hd and classic, Act02start).
-- **Which video, in play** (unverified live): `InGameMoviePlayerPanel/ProgressionHelper`, its
-  `+0x88` state (0 idle, 1 playing, 2 finished) and `+0x8C` index (RE below). Log:
-  `[audiodesc] in play: ProgressionHelper state S, index N, legacy graphics L`. The edition is taken
-  from `Settings.json`'s `Legacy Graphics Mode` (classic when on), an inference.
+- **Which video, in play:** `InGameMoviePlayerPanel/ProgressionHelper`, its `+0x88` state (0 idle,
+  1 playing, 2 finished) and `+0x8C` index (RE below). The index counts in the game's own movie
+  table, **one entry ahead of `Videos`** (`InPlayVideo`, index − 1): bfbeast's Act I → II move,
+  2026-11-01, read index 2 while Desert Journey played, and the plugin, taking it as `Videos` order,
+  described Mephisto's Jungle. The video must also fit the player's act (`InPlayVideo`'s table: an
+  opening as the player leaves or arrives, Terror's End and Search for Baal in Act IV or V,
+  Destruction's End in Act V), else nothing is said. Log: `[audiodesc] in play: ProgressionHelper
+  state S, index N; level L (act A), legacy graphics G`. The edition is taken from `Settings.json`'s
+  `Legacy Graphics Mode` (classic when on), an inference.
 - **Clock:** time since `MoviePlayerMessage:Play` less the start delay, measured live 2026-11-01 by
   matching game screenshots (taken at known times after Play) to the video's frames with SSIM
   (0.998 to 1.0): 2021 intro 1.05 s (three shots, ±0.01), classic intro 0.70 s (three, ±0.05). A
@@ -192,6 +197,9 @@ the class offsets are what the plugin uses). Sonnet RE agent; scratch decompiles
 - In play, `0xEF630` is the handler of a 0x90-byte object (vtable `0x1CC6270`): a base widget is
   0x88 bytes (a TextBoxWidget's text starts at +0x88), so it is `ProgressionVideoHelperWidget` plus
   `+0x88` state and `+0x8C` index, set from the progression message's `*(int*)payload`. Index 5 is
-  followed by 6 (D2x_Intro then D2x_Out). The sender (game logic) was not found.
+  followed by 6: Terror's End then Search for Baal, since the index is the 8-name table's (one entry
+  before the intro, likely the Blizzard logos; the exe has `BlizzardLogos` and `LogoAnim` video
+  names), not `Videos` order (corrected 2026-11-01 from a live log). The sender (game logic) was not
+  found.
 - Playback position: not found (no SRT parser located); probably in a decoder object deeper than the
   probe looked. Next: a depth-3 walk from `MoviePlayer` with snapshots 1 s apart.

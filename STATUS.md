@@ -13,6 +13,18 @@ their dated "Unverified live" notes as history.
 
 **Next step:** unchanged, see the cinematics section below.
 
+## In-play act videos: the wrong video described, fixed — 2026-11-01 (not released)
+
+bfbeast's log (test-2026-11-01-2): at the Act I → II move the plugin read `ProgressionHelper`
+index 2 and described Act03start (Mephisto's Jungle) over Desert Journey. The helper's index
+counts in the game's 8-name movie table, one entry ahead of `Videos`; the old act check (index in
+act..act+2) was too loose to catch it. `InPlayVideo` now maps index − 1 and accepts each video
+only in the acts it can start in ([doc](docs/cinematics-audio-description.md)). 133/133 CTest;
+DLL deployed to the game folder, not tested live.
+
+**Next step:** release it when the user asks; a tester's next act video confirms
+(`[audiodesc] Act02start` or later in the log).
+
 ## Audio description of the cinematics, 2021 and classic — 2026-11-01 (released as test-2026-11-01-2 from 54ff120)
 
 Release: 133/133 CTest, 28 entries, 64,308,849 bytes, SHA-256 `6a332237…5349dbabd`; news

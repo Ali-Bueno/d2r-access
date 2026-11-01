@@ -34,10 +34,21 @@ std::optional<size_t> VideoIndex(std::string_view name) {
 	return std::nullopt;
 }
 
-bool PlausibleInPlay(size_t index, int act) {
-	// Videos 1 to 3 open Acts II to IV, 4 closes Act IV, 5 opens Act V, 6 closes it; the intro (0)
-	// never plays in play.
-	return act >= 0 && index >= 1 && index < Videos.size() && index >= static_cast<size_t>(act) && index <= static_cast<size_t>(act) + 2;
+std::optional<size_t> InPlayVideo(int64_t progressionIndex, int act) {
+	// The game's table has 8 names, one before the intro; its 5 is followed by 6 (RE), which fits
+	// Terror's End then Search for Baal. A tester's Act I to II move read 2 (Desert Journey).
+	constexpr int64_t GameTableOffset = 1;
+	// The acts each video can start in: an act's opening one as the player leaves the act before or
+	// arrives; Terror's End and Search for Baal after Diablo, in Act IV or on the way to Act V;
+	// Destruction's End after Baal. The intro never plays in play.
+	struct Acts { int first, last; };
+	constexpr std::array<Acts, Videos.size()> InPlayActs{{
+		{-1, -1}, {0, 1}, {1, 2}, {2, 3}, {3, 4}, {3, 4}, {4, 4}}};
+	const int64_t video = progressionIndex - GameTableOffset;
+	if (video < 0 || video >= static_cast<int64_t>(Videos.size())) return std::nullopt;
+	const Acts acts = InPlayActs[static_cast<size_t>(video)];
+	if (act < acts.first || act > acts.last || acts.first < 0) return std::nullopt;
+	return static_cast<size_t>(video);
 }
 
 Parsed Parse(std::string_view text) {

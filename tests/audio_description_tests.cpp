@@ -81,14 +81,16 @@ void CheckParse() {
 	Check(VideoIndex("act04END") == 4 && !VideoIndex("intro"), "the Videos list's index by name");
 }
 
-void CheckPlausibleInPlay() {
-	Check(PlausibleInPlay(1, 0) && PlausibleInPlay(1, 1), "Act II's opening leaving Act I or arriving in Act II");
-	Check(PlausibleInPlay(3, 2) && PlausibleInPlay(3, 3), "Act IV's opening leaving Act III or arriving");
-	Check(PlausibleInPlay(4, 3) && PlausibleInPlay(5, 3) && PlausibleInPlay(5, 4) && PlausibleInPlay(6, 4),
+void CheckInPlayVideo() {
+	Check(InPlayVideo(2, 0) == 1u && InPlayVideo(2, 1) == 1u,
+		"index 2 is Act II's opening, leaving Act I (a tester's log) or arriving in Act II");
+	Check(InPlayVideo(3, 1) == 2u && InPlayVideo(4, 2) == 3u && InPlayVideo(4, 3) == 3u, "Acts III and IV's openings");
+	Check(InPlayVideo(5, 3) == 4u && InPlayVideo(6, 3) == 5u && InPlayVideo(6, 4) == 5u && InPlayVideo(7, 4) == 6u,
 		"Act IV's end, Act V's opening and its end");
-	Check(!PlausibleInPlay(0, 0) && !PlausibleInPlay(0, 2), "the intro never plays in play");
-	Check(!PlausibleInPlay(3, 0) && !PlausibleInPlay(1, 3) && !PlausibleInPlay(6, 2), "a video of another act is refused");
-	Check(!PlausibleInPlay(2, -1) && !PlausibleInPlay(7, 4), "an unknown act or index is refused");
+	Check(!InPlayVideo(0, 0) && !InPlayVideo(1, 0), "the logos and the intro never play in play");
+	Check(!InPlayVideo(3, 0) && !InPlayVideo(2, 2) && !InPlayVideo(7, 3) && !InPlayVideo(5, 2),
+		"a video of another act is refused");
+	Check(!InPlayVideo(2, -1) && !InPlayVideo(8, 4) && !InPlayVideo(-1, 0), "an unknown act or index is refused");
 }
 
 void CheckScheduler() {
@@ -167,7 +169,7 @@ void CheckScripts() {
 
 int main() {
 	CheckParse();
-	CheckPlausibleInPlay();
+	CheckInPlayVideo();
 	CheckScheduler();
 	CheckScripts();
 	Passed();

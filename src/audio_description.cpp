@@ -83,11 +83,11 @@ std::optional<Choice> InPlayChoice(const D2RL::PluginContext* context) {
 	SettingsFile::Reload();
 	const bool legacy = SettingsFile::Number("legacygraphicsmode").value_or(0) != 0;
 	const int act = Generated::FindLevelFlags(g_level).act;
-	const bool plausible = state >= 0 && state <= ProgressionLastState && index >= 0 && PlausibleInPlay(static_cast<size_t>(index), act);
+	const std::optional<size_t> video = state >= 0 && state <= ProgressionLastState ? InPlayVideo(index, act) : std::nullopt;
 	AsyncLog::InfoF(context, "[audiodesc] in play: ProgressionHelper state %d, index %d; level %d (act %d), legacy graphics %d%s",
-		state, index, g_level, act + 1, legacy ? 1 : 0, plausible ? "" : ": does not fit, nothing said");
-	if (!plausible) return std::nullopt;
-	return Choice{static_cast<size_t>(index), legacy ? Edition::Classic : Edition::Remastered, Clock::now()};
+		state, index, g_level, act + 1, legacy ? 1 : 0, video ? "" : ": does not fit, nothing said");
+	if (!video) return std::nullopt;
+	return Choice{*video, legacy ? Edition::Classic : Edition::Remastered, Clock::now()};
 }
 }
 

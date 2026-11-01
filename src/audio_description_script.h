@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>
@@ -36,9 +37,10 @@ Parsed Parse(std::string_view text);
 // The video's index in `Videos`, any case.
 std::optional<size_t> VideoIndex(std::string_view name);
 
-// Whether the video at `index` can start in play in Levels.txt act `act` (0 for Act I): an act's
-// closing video plays in it, the next act's opening one as the player leaves or arrives.
-bool PlausibleInPlay(size_t index, int act);
+// The `Videos` index of the act video the game started in play, from ProgressionHelper's index
+// (the game's own movie table, one entry ahead of `Videos`: Act II's opening is 2, live 2026-11-01)
+// and the Levels.txt act the player is in (0 for Act I); nothing when that video cannot start there.
+std::optional<size_t> InPlayVideo(int64_t progressionIndex, int act);
 
 // Speaks a video's cues on its clock: each once, in order; one due more than `LateLimit` ago (a
 // late start, a skip) is dropped, never said late.
