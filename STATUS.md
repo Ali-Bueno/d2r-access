@@ -13,7 +13,7 @@ their dated "Unverified live" notes as history.
 
 **Next step:** unchanged, see the cinematics section below.
 
-## bladestorm360's later fixes, the new ones ported — 2026-11-01 (not released)
+## bladestorm360's later fixes, the new ones ported — 2026-11-01 (released as test-2026-11-01-4 from 0593ec5)
 
 `origin/bladestorm` holds bladestorm360's work from 2026-10-04 to 10-20, never merged (his keyboard
 play itself is in main since `a5a3638`). The user's rule: port only what main lacks; what main
@@ -65,8 +65,12 @@ Tester credits: "Dani" was Raine's name in 17 published release notes; replaced 
 (the README already said Raine), and in `docs/portals.md`, this file and the local news drafts.
 The pad stays as it is (the user, 2026-11-01): no keyboard key for the BACK+X report or LB's filter.
 
-**Next step:** push and a test release when the user says. Check the local `port/bladestorm-npcs`
-before deleting `origin/bladestorm`.
+Release: 137/137 CTest, 28 entries, 64,318,604 bytes, SHA-256 `ea119f46…b5c7bf49`; news
+`../tester-news-draft-2026-11-01d.txt`.
+
+**Next step:** testers' first logs of these: shop tabs, set names, Shift+A against a monster, a self
+buff out of town, more than 5 stash pages. Check the local `port/bladestorm-npcs` before deleting
+`origin/bladestorm`.
 
 ## In-play act videos: the wrong video described, fixed — 2026-11-01 (released as test-2026-11-01-3 from eb658f9)
 
