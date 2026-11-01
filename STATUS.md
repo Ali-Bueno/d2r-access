@@ -45,8 +45,22 @@ said. W with Unsummon logs `skill 3 is not an attack: used once` and casts at th
 "No enemies"; A with Attack says "Sin enemigos"; Shift+A held strikes in place (the game: "Aquí no",
 in town), no character screen. Not live: Shift+A against a monster, a real self buff (out of town).
 
-**Next step:** H by floor coverage and shared stash pages are being ported; then live checks in
-town. Check the local `port/bladestorm-npcs` before deleting the branch.
+Third batch: shared stash pages (`7a98f93`, [stash pages](docs/stash-pages.md)), new because main
+could not reach the page box at all: Alt+PageUp/PageDown a page, Ctrl+Shift+PageUp/PageDown ten
+(the branch's Shift/Ctrl keys are main's compare and reading keys). Calls the loader's page
+command, both bodies fingerprinted. **Live (17:24):** `Verified modifier-independent native page
+commands`; Personal "no disponible", Shared "Página 1/5" -> 2/5 -> 1/5, ten pages clamps at 5/5,
+plain PageUp/PageDown still change tabs. Not live: more than 5 pages (`add_shared_tabs = 0` here).
+Left out: H by floor coverage, which overrides the user's room-by-room rule (decisions 2026-10-14).
+
+Asked by the user the same day (`3dbfad4`): **Shift+Y** the area's description (pad BACK + right
+stick up), **Shift+Z** the next companion (pad BACK+RT). Live: Shift+Y read Lut Gholein's text,
+Shift+Z "Vida del mercenario 100 por ciento. Nivel 19…", Z still life alone. 137/137 CTest.
+The harness can now send PageUp, PageDown, Home and End (`71cce8a`).
+
+**Next step:** push and a test release when the user says. Pad-only still: the full BACK+X report
+(the user chose 2026-09-27 no key for life and mana together; it now holds more), LB's loot
+filter. Check the local `port/bladestorm-npcs` before deleting `origin/bladestorm`.
 
 ## In-play act videos: the wrong video described, fixed — 2026-11-01 (released as test-2026-11-01-3 from eb658f9)
 
