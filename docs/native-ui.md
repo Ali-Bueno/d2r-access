@@ -2,7 +2,7 @@
 
 Implementation date: 2026-09-15. Target: D2R 3.3.93787, D2RCore 1.2.1-beta.
 This is a read-only adapter; no inline hooks or additional runtime libraries.
-Live NVDA/controller validation is still pending. Synthetic native-object and
+Validated in play: testers finished Acts I to V with it (2026-11-01). Synthetic native-object and
 service tests validate memory guards, classification, speech policy and lifecycle.
 
 ## Evidence

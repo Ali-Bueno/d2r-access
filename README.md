@@ -11,7 +11,8 @@ the keyboard, in any of the game's thirteen languages.
 Several testers playing by screen reader have taken characters through the complete game with this
 mod, from the first quest of Act I to the end of Act V, and finished it with no blocking problems:
 menus, character creation, towns and shops, every act's dungeons and quest puzzles, the act bosses
-and the end screen.
+and the end screen, with the controller and with the keyboard, alone and together (see
+[Thanks](#thanks)).
 
 Development continues through frequent test builds shaped by the testers' reports. The newest
 addition, the audio description of the act cinematics, is confirmed from the main menu's Videos
@@ -282,6 +283,18 @@ sounds. The rest of the configuration lives in `d2rloader/config/d2r-access.toml
 - The chat history cannot be reviewed yet.
 
 Known issues and the work in progress are tracked in [`STATUS.md`](STATUS.md).
+
+## Thanks
+
+This mod reached the end of the game thanks to its testers, who played build after build, said
+what went wrong and what they needed, and kept going until the credits rolled.
+
+- **mojsior**, for testing.
+- **bladestorm360**, for testing and for implementing keyboard play, and then finishing the whole
+  game with it.
+- And a special thanks to **bfbeast666** and **Raine**, a couple who reported a huge number of bugs,
+  contributed area descriptions and ideas, finished the game together, and told me about their
+  progress every step of the way.
 
 ## For developers
 

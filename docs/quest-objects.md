@@ -1,7 +1,7 @@
 # Quest objects
 
 The world objects a quest needs used, what the mod does with each, and what
-still needs a live check. D2R 3.3.93787. Classes are `objects.txt` `*ID`,
+still needed a live check (validated in play: testers finished Acts I to V with it, 2026-11-01). D2R 3.3.93787. Classes are `objects.txt` `*ID`,
 handlers its `OperateFn`. "Classic" means the D2MOO reconstruction of 1.10,
 used as a guide only and not read in D2R.
 

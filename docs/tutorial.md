@@ -1,4 +1,4 @@
-# Tutorial for a new character (built 2026-10-21; unverified live)
+# Tutorial for a new character (built 2026-10-21; played by testers, see their tutorial list in STATUS)
 
 The user's idea: when a new character enters the game, a hands-on tutorial teaches the mod's
 commands, above all how to find your way with the radar and the scanner, through the Den of Evil,

@@ -168,7 +168,7 @@ An explicit `access-text dump` still walks the inventory for diagnostics. Tests
 verify scan counts and delivery timing. `[pump] slow accessibility tick` reports
 callbacks over 30 ms, at most once per five seconds, independently of gaps between
 game updates. The user confirmed smooth inventory navigation after SDK logging
-was moved to its own worker (2026-09-15). Tab announcements remain unconfirmed.
+was moved to its own worker (2026-09-15). Tab announcements remain unconfirmed. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 
 The user confirmed axe descriptions at the blacksmith on 2026-09-15. Full equipment
 and storage operations still need live item tests. Cells with no rendered text

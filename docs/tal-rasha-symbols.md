@@ -98,7 +98,7 @@ hidden image/ancestor, invalid frame, unsupported layout, stale/missing details,
 locale changes, repeated entrance composition and portals without markings.
 All 96 CTest suites passed (`--timeout 20`); installed DLL SHA-256
 `BB80B7CD56357267BDE98A2422EC3DB50C4D5921628874F9A962F9A477700196`
-matches the build. Live speech is not yet tested.
+matches the build. Live speech is not yet tested. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 
 User-led check: open the quest log and select **The Seven Tombs**. The objective
 should end with a plain shape name. Home/repeat should include it again. In the

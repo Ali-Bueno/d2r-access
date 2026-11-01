@@ -211,7 +211,7 @@ Recorded so it is not re-investigated:
   `re/D2R.rebuilt.exe` has stale or misplaced data sections (`docs/decompile.md`),
   so missing string references there said nothing about the live quest path.
   The full mapped image exposed the stock builder and packet path described
-  below; its captured text still needs live validation.
+  below; its captured text still needs live validation. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
   The 2026-09-22 live log shows Cain's real objective with
   `QuestLogPanelExpansion closed` and `identified=1` at 23:03:12, but `no panel`
   and `identified=0` at 23:27:07: closing the panel is already supported;
@@ -279,7 +279,7 @@ an update while the journal is unloaded.
 
 The 2026-09-23 build passed all 67 CTest suites, including packet correlation,
 late competing rows, session reset and toggle regressions. Live startup on
-3.3.93787 verified and installed the hook; objective delivery still needs the
+3.3.93787 verified and installed the hook; objective delivery still needs the *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 in-game update check above.
 
 `quest_progress.cpp` contains the text recognition and announcement policy;

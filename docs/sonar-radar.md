@@ -268,7 +268,7 @@ Existing user configuration is preserved. Ctrl+R does not rewrite the file.
 5. Press **A** at an NPC, then **B** to leave; test **Menu/Start**, then **B**.
    Dialogue/offline pause must silence the radar with no burst on return.
 6. Once the camp checks pass, test a narrow door, an outdoor boundary and a
-   waypoint/portal transition. Those remain unverified live.
+   waypoint/portal transition. Those remain unverified live. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 
 Optional console audition: Ctrl+backquote, `access-radar test`, then close the
 console. This tests cue identity independently of terrain availability.

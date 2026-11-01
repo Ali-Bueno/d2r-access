@@ -95,7 +95,7 @@ shared workspace pass; the two new suites contain 50 checks. An isolated copy
 of the Git change also builds and passes both movement suites and localization.
 Build and deployed DLL SHA-256 match:
 `43D2471FCA7C6FB277A8B860B84B8D3DE41A65158CFAB330A4295E5D31276E32`.
-The corrected hook still needs a live controller test; the earlier session used
+The corrected hook still needs a live controller test; the earlier session used *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 the inert classic-helper prototype and does not validate this implementation.
 
 Automated checks exercise native ownership (including a foreign target unit),
@@ -111,4 +111,4 @@ angle snapping would otherwise find a way through. That is a consequence of
 refusing a changed direction and needs a doorway/oblique-wall listening check.
 An offline authoritative unit may be a different instance from the client local
 unit; live validation must rule out delayed correction before claiming all
-wall sliding is eliminated. Special movement skills are not reimplemented.
+wall sliding is eliminated. Special movement skills are not reimplemented. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*

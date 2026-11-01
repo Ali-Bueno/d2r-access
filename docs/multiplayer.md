@@ -292,7 +292,7 @@ Now, in `D2RLoaderMultiplayerPanel` (`menu_navigation.cpp`):
   native selection.
 
 `[menu-navigation] boxes:` now ends with `list:`, the stops in the order up and down take them.
-Unverified live.
+Unverified live. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 
 ## The QWERTY keyboard on the right stick (2026-10-28)
 

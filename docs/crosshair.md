@@ -53,4 +53,4 @@ Live 2026-10-22 (a barbarian, two hours, pad): the target was read in every game
 fell on the monster the HUD plate named, at the plate's distance; the farthest at 20.8
 subtiles, inside the auto-target's limit. Without the repeat rule it beeped 2077 times, 26 in
 ten seconds at peak: in packs the target traded back and forth every third of a second, a beep
-each. Replayed over that log, the 3 s rule leaves 1166. Not yet heard with the rule.
+each. Replayed over that log, the 3 s rule leaves 1166. Not yet heard with the rule. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*

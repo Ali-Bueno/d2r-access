@@ -230,7 +230,7 @@ by the arrival margin, with `walked` off. In a seen town only the gate reaches
 the edge; on ground not seen yet the way guesses toward the nearest stretch,
 and the target moves to the crossing once it loads. Pinned by
 `tests/beacon_service_tests.cpp` (it fails against the old box) and
-`tests/native_level_areas_tests.cpp` for the span. Unverified live.
+`tests/native_level_areas_tests.cpp` for the span. Unverified live. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 
 ## Exploration mode
 

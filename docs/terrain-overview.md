@@ -116,7 +116,7 @@ the Sewers it no longer says 100 while the automap shows blank ground.
   box reports the edge where the rooms stop, which is what the player can walk.
 - Standing on no room at all (never seen in play) speaks the exit review's
   "unavailable" wording rather than guessing.
-- Live validation of the spoken line in an outdoor level is still pending.
+- Validated in play: testers finished Acts I to V with it (2026-11-01).
 
 ## Borders said once, corners are no crossing (2026-10-15)
 

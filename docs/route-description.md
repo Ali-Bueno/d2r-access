@@ -130,7 +130,7 @@ Log: `[route] follow turn|off|end leg=N at=x,y name=X -> <text>`,
 - One level only: a quest in another area is reached exit by exit, each exit
   being a scanner target of its own.
 - Teleport pads are not crossed (the walking plan does not use them).
-- Not verified in the game. Log: `[route] from=x,y to=x,y cells=N doors=N
+- Not verified in the game. Log: `[route] from=x,y to=x,y cells=N doors=N *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
   legs=N guess=0|1 restricted=0|1 -> <text>`, or `[route] none name=...`.
 
 ## The whole length optional; the ground logged (2026-10-20)

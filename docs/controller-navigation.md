@@ -104,7 +104,7 @@ SHA-256 matched at verification:
 `D26B2CA80FF1D58EEA26EC06C1E55005B56C2640AC3CA898A39A06BC19DA9E2B`.
 
 The game was closed during development. The adapter installed successfully in
-the preceding live log; the release correction still needs controller validation.
+the preceding live log; the release correction still needs controller validation. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 In the next load, check `[skill-grid] Verified cursor adapter installed`, then
 one `[skill-grid] Selected ...` per cardinal press, followed by the corresponding
 `[interaction]` skill description with no second move on release. Check

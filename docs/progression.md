@@ -99,7 +99,7 @@ Synergies are drawn only on the skill that receives them: `skilldesc.txt`
 `dsc3` lines, headed by string `Sksyn` ("%s recibe bonus de:"). Resist Fire has
 none; Holy Fire lists Resist Fire (+`Param8` = 21 % fire damage per level) and
 Salvation (+`Param7` = 10 %). The reader keeps every body line, so no filter
-drops them (checked against CASC data, 2026-09-25; live readout still pending).
+drops them (checked against CASC data, 2026-09-25; live readout still pending). *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 
 Only skill descriptions are reordered. The skill name leads, then learned state,
 description, requirements, levels and bonuses in displayed order. Font-size digits
@@ -118,4 +118,4 @@ without reading a prior skill or prematurely speaking just coordinates.
   concurrent radar work: sixteen suites pass. Normal `build.ps1` deployed the DLL;
   its SHA-256 matched the installed artifact.
 - User navigation established the original failure and data sources. A live
-  controller/screen-reader confirmation of the corrected build is still pending.
+  controller/screen-reader confirmation of the corrected build is still pending. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*

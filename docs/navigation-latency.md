@@ -76,7 +76,7 @@ normal cell readout on the next directional movement. Compare `[tabs]` and
 `[interaction]` with `[pump] slow accessibility tick`. The user subsequently
 confirmed smooth inventory navigation on 2026-09-15: “la navegación ya se siente
 fluida por el inventario”. Only that performance checkbox is complete in
-`GEMINI.md`; tab announcements still await confirmation. The inventory itself
+`GEMINI.md`; tab announcements still await confirmation. The inventory itself *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
 need not contain tabs: the observed controller strip belongs to its overlay.
 
 ## Keyboard build lag report (2026-10-05)
