@@ -1,0 +1,284 @@
+# D2R Access: the area and landmark descriptions in Italian, translated from enUS.txt.
+# A line missing here is said in English. Format and rules: enUS.txt, docs/descriptions.md
+#
+# Act I
+#
+Campo delle Scolte [1] = Questo accampamento è un fatiscente ammasso di tende e carri che offre a malapena riparo dalle intemperie. Solo poche Sorelle dell'Occhio Cieco sono riuscite a fuggire fin qui dal condannato Monastero, e ora sono costrette a dividere questo luogo desolato con mucche e galline.
+#
+Hangman's Tree = Un albero alto e avvizzito si erge in mezzo al Cimitero, con cadaveri in putrefazione appesi ai rami, mentre i morti si trascinano ai suoi piedi.
+#
+Lande Insanguinate [2] = Questa palude selvaggia è una distesa aperta punteggiata di cespugli bassi e alberi storpi. Un tempo i feroci rattospini erano l'unico pericolo; ora i non morti e i branchi di Caduti sono una seria minaccia per chiunque sia così sciocco da lasciare la sicurezza del Campo delle Scolte.
+#
+Antro del Male [8] = Akara ha fatto bene a mandarti in questo luogo cupo. Già dall'ingresso senti l'incessante cicalare di innumerevoli mostri che si preparano a saccheggiare il Campo delle Scolte. Ma qui c'è anche qualcos'altro in agguato. Il fetore della morte, o della non morte, aleggia pesante nell'aria.
+#
+Cimitero [17] = Questo cimitero dimenticato è caduto in rovina, con le sue piccole cripte e l'elaborata recinzione di ferro battuto che si sgretolano, arrugginite. I morti si sono rialzati e si trascinano sotto un grottesco albero dell'Impiccato, pronti a fare a pezzi i visitatori incauti.
+#
+Mausoleo [19] = Questa catacomba oscura è piena dei resti di morti senza nome, ricchezze dimenticate e non morti crudeli. Cercatori di tesori, state in guardia!
+#
+Cripta [18] = Nessuna luce penetra l'ombra di questa tomba, tranne le fiamme che divorano i cadaveri in fiamme di antiche Scolte. Forse c'è un tesoro, ma di certo ci sono terrori famelici in attesa di dilaniare gli intrusi incauti.
+#
+Pianure Gelate [3] = I casolari abbandonati di quest'area parlano di tempi più semplici, di raccolti e bestiame. Ora l'esercito di Diablo ha rivendicato questi campi, che pullulano di Scolte demoniache, non morti e Caduti.
+#
+Caverna L1 [9] = Nessuno entra in questo buco dimenticato da secoli. Chissà quali orrori vi hanno messo radici?
+#
+Caverna L2 [13] = La luce del sole non ha mai toccato questa parte della caverna. Ti chiedi: chi mantiene accese le torce?
+#
+Campo di Pietra [4] = Il Santuario nasconde molti luoghi di potere. In questa landa cosparsa di rocce si erge un antico cerchio di pietre. Nessuno sa con certezza quale fosse il suo significato né quali riti pagani vi si celebrassero.
+#
+Tristram [38] = Di Tristram resta solo un triste ammasso di rovine in fiamme, invaso dai mostri sulla scia di Diablo.
+#
+Passaggio Sotterraneo L1 [10] = Entrando ti rendi conto della vastità di questo sistema di caverne a labirinto, con i suoi numerosi vicoli ciechi e passaggi tortuosi brulicanti di orrori inquieti. Non c'è alcuna garanzia che ne uscirai vivo.
+#
+Passaggio Sotterraneo L2 [14] = L'aria in questa parte della caverna è umida e stagnante. Sei certo che qui non ci sia alcun collegamento con la superficie, solo altri mostri inquieti in cerca della tua carne.
+#
+Foresta Oscura [5] = Chiamare foresta questo rado ammasso di alberi pietosi sarebbe generoso. Eppure brulica di vita demoniaca. Da qualche parte al centro si trova l'inafferrabile Albero di Inifuss, in attesa di essere scoperto di nuovo.
+#
+Buco L1 [11] = L'area intorno a Tristram è crivellata di queste caverne buie e insondabili. Cosa cercavano i minatori di Kanduras? E, ancora più importante, cosa hanno risvegliato quando l'hanno trovato?
+#
+Buco L2 [15] = Quanto sarà profondo questo buco? Speri che quaggiù ci sia più di semplici inquietanti formazioni rocciose, torce sfrigolanti e altri mostri.
+#
+Abisso L1 [12] = Pareti di pietra deformi sembrano chiudersi su di te da ogni lato mentre ti addentri con cautela in questo labirinto abbandonato dalla luce.
+#
+Abisso L2 [16] = Sei ben consapevole delle innumerevoli tonnellate di roccia a meno di un braccio sopra la tua testa. Basterebbe un terremoto, o un'esplosione involontaria, per seppellirti vivo quaggiù, chiuso per sempre con gli orrori che chiamano casa questo abisso senz'ombra di luce.
+#
+Palude Nera [6] = Raffiche di vento pungente ti accarezzano il viso come il tocco incorporeo di un fantasma. In lontananza incombe il moncone sgretolato di una torre crollata, che ti chiama come chiamò tutte le fanciulle innocenti che la Contessa attirò alla rovina.
+#
+Torre Dimenticata [20] = La folla famelica che urlava per la morte della Contessa ha ripulito questa cantina. Restano solo alcuni barili sfondati nell'angolo sud-est. Guardandoti intorno, noti un buco spalancato nella parete a nord-ovest. Sembra molto recente. E dal modo in cui sono caduti i rozzi blocchi di pietra, capisci che qualcuno, o qualcosa, è riuscito a irrompere dalle prigioni nascoste più in basso.
+#
+Sotterraneo della Torre L1 [21] = Mentre entri nei livelli più profondi della cantina, il fetore metallico del sangue ti assale le narici. Guardando in basso, vedi il tuo piede in una pozza di quello che sembra sangue appena versato. Com'è possibile? Se la misera rovina di sopra è un indizio, la Contessa deve essere morta secoli fa.
+#
+Sotterraneo della Torre L2 [22] = Scendi più a fondo nel labirinto della Contessa. Un liquido orribile gocciola dalle pareti irregolari e la luce delle candele brilla su pozze cremisi, e negli occhi delle abominazioni che aspettano di dilaniarti.
+#
+Sotterraneo della Torre L3 [23] = Mentre trascini il tuo corpo stanco e dolorante sempre più a fondo in questo incubo, i tuoi piedi risvegliano echi vuoti su lastre di marmo sbiadite incastonate nel pavimento. Come se il fetore di sangue sempre peggiore non bastasse, passi accanto ai cadaveri in fiamme di Scolte morte, e l'odore soffocante di carne bruciata rende ancora più difficile trovare fiato per gridare.
+#
+Sotterraneo della Torre L4 [24] = Riesci a malapena a respirare. Senti il sapore del sangue sulle labbra. È il tuo? O le viscere dell'ultimo Uomo Capra che hai sventrato per raggiungere un altro intrico di sale in rovina e corridoi in fiamme, pieni della risata vuota di inseguitori spettrali?
+#
+Sotterraneo della Torre L5 [25] = All'improvviso i corridoi si aprono, scaraventandoti in una strana cacofonia di lusso e atrocità. Davanti a te scorgi un'oscena vasca dorata che trabocca di sangue immobile. Enormi torce fanno proiettare alla doppia fila di pilastri che incorniciano il bagno della Contessa ombre che danzano come impazzite, contorcendosi al ritmo della sua risata beffarda.
+#
+Altopiano di Tamoe [7] = Le imponenti mura del Monastero dell'Occhio Cieco dominano l'altopiano spazzato dal vento. Apparentemente inespugnabili, ti fanno tremare al pensiero dell'esercito che le ha conquistate e ha scacciato le Sorelle con sprezzante facilità. Poi una consapevolezza più gelida ti colpisce: ora sei tu a dover assaltare questa casa di preghiera fortificata.
+#
+Atrio del Monastero [26] = Ovunque ci sono segni di battaglia mentre entri con cautela nei severi colonnati dell'Atrio del Monastero. Armi spezzate, candelabri rovesciati e scie cremisi raccontano una storia macabra.
+#
+Chiostro Esterno [27] = Raggiungi un magnifico cortile, la cui bellezza è appena deturpata dagli onnipresenti segni di battaglia. Al centro si erge una gloriosa fontana che raffigura tre Scolte schiena contro schiena, che tengono a bada nemici invisibili con le armi spianate.
+#
+Caserma [28] = Dopo la calma grandiosità del cortile, la Caserma è un caotico dedalo di corridoi tortuosi, dormitori saccheggiati e magazzini ingombri. File di barili offrono nascondigli perfetti ai numerosi nemici che hanno preso possesso di questo luogo. Come si può trovare la strada giusta, per non parlare di una piccola fucina che custodisce un martello incantato?
+#
+Prigione L1 [29] = Questa cripta sotterranea è enorme, buia e fredda. Barbari strumenti di tortura sono in bella vista. Ti chiedi: cosa facevano qui sotto le Sorelle? E dove sono ora i prigionieri?
+#
+Prigione L2 [30] = I tuoi passi fanno risuonare echi vuoti dalle pareti. Quanto è grande questo posto? Le gabbie davanti a cui sei passato potrebbero contenere con facilità la popolazione di una piccola città. E la prigione scende ancora più giù.
+#
+Prigione L3 [31] = Un'aura di disperazione quasi tangibile satura questo luogo. Qui non c'è luce, né speranza, solo i resti in decomposizione di prigionieri morti da tempo.
+#
+Chiostro Interno [32] = Tiri un sospiro di sollievo vedendo di nuovo il cielo aperto. Sei arrivato nel cuore del Chiostro. Davanti a te scorgi la guglia imponente della Cattedrale dell'Occhio Cieco.
+#
+Cattedrale [33] = Nessuna calda luce di candela può nascondere le scene di brutalità gratuita inflitte a questa casa di preghiera. Cadaveri, sparpagliati come giocattoli scartati con noncuranza, marciscono dove sono caduti e pozze di sangue si sono formate sui pavimenti di marmo un tempo immacolati.
+#
+Catacombe L1 [34] = Tra i corridoi fiancheggiati da grandi casse che immortalano i defunti onorati delle Sorelle, ti sorprende trovare accoglienti biblioteche, sale di meditazione e altri luoghi di riflessione, ora del tutto profanati dalle orde predatrici di Andariel.
+#
+Catacombe L2 [35] = Questo livello delle catacombe sembra molto più antico di quello sopra. I luoghi di introspezione sono scomparsi, sostituiti da pareti spoglie e stanze vuote per ospitare i morti.
+#
+Catacombe L3 [36] = La polvere dei secoli ricopre ogni superficie, rendendo ancora più evidente dove artigli demoniaci hanno disturbato i morti, che ora riversano la loro ira sia sui demoni sia sugli intrusi.
+#
+Catacombe L4 [37] = La presenza di Andariel ha contorto la terra stessa in una visione d'inferno. Escrescenze ossee frastagliate e deformi perforano il suolo, lasciando al loro passaggio voragini spalancate e impregnate di sangue. L'aria si fa densa del fetore di zolfo e di qualcosa di ancora più vile.
+#
+# Act II
+#
+Lut Gholein [40] = Arrostita dall'implacabile sole del deserto sorge Lut Gholein, una piccola città portuale attorno a un vivace mercato. I continui attacchi dei mostri hanno costretto gli abitanti ad accucciarsi nelle loro case. Solo anime coraggiose o disperate osano mettere piede sulle sue strade acciottolate, figuriamoci nella Landa Rocciosa là fuori.
+#
+Fogne L1 [47] = Nel momento in cui scendi nelle fogne, un fetore denso ti colpisce così forte da bloccarsi in gola. Va ben oltre il familiare marciume di rifiuti e scarti. Una dolcezza pesante e malsana aleggia nell'aria, come se una peste innaturale si fosse infiltrata direttamente nei mattoni viscidi e nelle grate arrugginite che faticano a contenere la sporcizia della città.
+#
+Fogne L2 [48] = Il tuo olfatto si era arreso a metà del primo livello delle fogne, perciò ci è voluto un attimo per accorgerti che il fetore era cambiato. Non era più solo la miscela nauseabonda di rifiuti e tossine acide a cui ti eri abituato. Ora l'inconfondibile marciume della decomposizione si insinuava nel cocktail infernale. Stringendo i denti, prosegui. Forse sconfiggendo il mostro in agguato in fondo a questa cisterna infernale potrai finalmente purgare questo marciume.
+#
+Fogne L3 [49] = Questa era sicuramente la parte più profonda delle fogne. L'antica muratura cedeva sotto il peso dei secoli, e sei rabbrividito al pensiero di cosa potesse annidarsi nel liquido torbido visibile attraverso le grate arrugginite e rotte. Hai maledetto gli sciocchi morti da tempo che avevano pensato fosse una buona idea seppellire un antico male sotto una città viva.
+#
+Landa Rocciosa [41] = Il deserto aveva reclamato molto più delle terre fertili intorno a Lut Gholein. Alla vista di decine di cadaveri essiccati legati a pali, con le uniformi di un rosso vivo sbiadite dal sole e incrostate di sabbia e sangue secco, hai capito che la landa aveva imposto un tributo altrettanto brutale al popolo della città.
+#
+Tomba di Pietra L1 [55] = Tiri un sospiro di sollievo quando le ombre di questa tomba semisepolta ti abbracciano, e gli spessi blocchi di arenaria ti proteggono senza sforzo dal caldo spietato del mondo esterno. Solo dopo i primi passi incerti in questi corridoi echeggianti ti rendi conto di non essere solo. Tutt'altro. Questa tomba trabocca di vigore empio, e i suoi occupanti si trascinano verso di te con uno scopo privo di mente.
+#
+Tomba di Pietra L2 [59] = La grandezza sbiadita dell'antica nobiltà permea questo livello della tomba. Persino i non morti indossano abiti degni di cortigiani e servitori, una vuota parodia delle loro vite passate. Puoi solo sperare che addentrarti tanto nella Tomba di Pietra ti ricompensi con almeno una frazione della loro ricchezza perduta.
+#
+Colline Aride [42] = Attraversare l'ardente deserto della Landa Rocciosa è stato faticoso, ma ora il terreno sale in pendenza, rendendo ogni passo avanti ancora più duro. Tornare indietro non è un'opzione. Devi trovare le Sale dei Morti, nascoste tra queste colline aride infestate da predatori affamati.
+#
+Sale dei Morti L1 [56] = Non sai bene cosa sia peggio: il caldo rovente del deserto là fuori o l'aria umida e gelida, che ghiaccia fino alle ossa, di questo mausoleo dimenticato da Dio. Le poche torce ancora accese, sfrigolanti, offrono solo una luce scarsa e le ombre si contorcono di una minaccia senza vita.
+#
+Sale dei Morti L2 [57] = La marea di orrori non si placa. Hai trovato le scale per i livelli più profondi delle Sale, ma i non morti continuano ad arrivare, i loro gemiti famelici che echeggiano sulle pareti dipinte e sbiadite e sulle statue in rovina.
+#
+Sale dei Morti L3 [60] = Senti una corrente arcana saturare l'aria. Il Cubo Horadrico deve essere da qualche parte qui, nascosto nel profondo di questo labirinto da incubo scavato nella pietra inflessibile.
+#
+Oasi Lontana [43] = Quest'area del deserto pullula di vita. Sorgenti alimentano rigogliose palme che offrono ombra dal sole, e allevano sciami di insetti succhiasangue. Poi qualcosa di arancione e grande come un cavallo si agita nel sottobosco.
+#
+Covo delle Larve L1 [62] = Spingi il corpo attraverso un orifizio troppo stretto, solo per ritrovarti in un labirinto claustrofobico, ricoperto di bava, di tunnel intricati e pieni di insetti. La bava cola dalle pareti e si coagula in spessi strati che ricoprono i tunnel adiacenti.
+#
+Covo delle Larve L2 [63] = I tunnel si estendono all'infinito. La bava si infiltra nei tuoi vestiti e negli stivali, trasformando ogni passo in un incubo sciacquettante. E più in fondo, in questo folle intrico di passaggi claustrofobici, attende l'abominio che ha creato questi tunnel.
+#
+Covo delle Larve L3 [64] = Hai penetrato la parte più profonda dell'alveare e la resistenza degli abitanti si irrigidisce in modo evidente. Qualunque cosa stiano proteggendo, la troverai e la annienterai.
+#
+Città Perduta [44] = Le rovine sventrate di case un tempo graziose spuntano dalla sabbia che le ha inghiottite decenni fa. Bande di mostri selvaggi ti braccano per vicoli stretti e strade deserte.
+#
+Antichi Tunnel [65] = La tua curiosità ti ha condotto in quelli che credevi tunnel prosciugati e pieni di sabbia ma, con tuo sgomento, sei inciampato in un'altra cisterna squallida e intrisa di fetore, abitata da briganti maleodoranti e non morti in putrefazione.
+#
+Valle dei Serpenti [45] = Statue serpentine fiancheggiano l'elaborato ingresso di un tempio, illuminato dalla luce tremolante delle torce. L'aria porta l'odore di cuoio secco e senti il sibilo frenetico delle Vipere Artigliate infuriate.
+#
+Tempio delle Vipere L1 [58] = Scendi nella tana sotterranea delle Vipere Artigliate, deciso a interrompere una volta per tutte il loro indicibile rituale. Sibilando e sputando, le guardie si precipitano a fermarti!
+#
+Tempio delle Vipere L2 [61] = Un altare contaminato nel cuore del tempio è la fonte dell'oscurità innaturale che le Vipere Artigliate hanno portato sulla terra.
+#
+Harem L1 [50] = Scendi in un dedalo di stanze riccamente decorate. Aliti di profumi esotici ti solleticano le narici, un contrasto stridente con le tombe e le fogne immonde che ti sei lasciato alle spalle. Sete diafane giacciono scartate con noncuranza sui tappeti. Le stanze sono grandiose, ma completamente vuote. L'improvvisa assenza di vita è assordante.
+#
+Harem L2 [51] = La guardia decapitata, ancora inginocchiata ai piedi delle scale, non ti sorprende, ne è solo la cupa conferma. Le legioni dell'Inferno sono arrivate qui prima di te. E, a giudicare dal sangue viscoso e raccolto in pozze che dipinge il pavimento, non hanno lasciato superstiti.
+#
+Sotterranei del Palazzo L1 [52] = Il lusso saccheggiato dell'harem lascia il posto a utilitari magazzini e cantine da vino. Con tua sorpresa, la maggior parte delle provviste è ancora intatta. Le forze dell'Inferno chiaramente non sono interessate a datteri, carne secca o vini d'annata.
+#
+Sotterranei del Palazzo L2 [53] = Le cantine si estendono nell'oscurità, apparentemente senza fine. La ricchezza di provviste accumulata qui potrebbe sfamare l'intera città per anni. Ti chiedi: Jerhyn avrebbe mai condiviso questa abbondanza con il suo popolo affamato, o l'avrebbe lasciata marcire nel buio?
+#
+Sotterranei del Palazzo L3 [54] = L'aria diventa innaturalmente fredda mentre scendi al terzo livello. L'intenso odore di vino e carne secca è sostituito da un gelo sterile e metallico. Lo spazio stesso sembra teso, qui; una vibrazione bassa e ronzante echeggia tra le pietre, attirandoti verso il centro della cripta, dove le ombre sembrano deformarsi e ripiegarsi verso l'interno.
+#
+Santuario Arcano [74] = La solida pietra sotto i tuoi piedi è sparita, sostituita da una sostanza liscia e terribilmente fredda che risuona come vetro cavo a ogni passo. Qui non ci sono pareti, solo un vuoto infinito e terrificante. Quando parli o ti muovi, i tuoi suoni non tornano in eco; precipitano in un silenzio senza fondo che ti fa fischiare le orecchie, come se la stanza si estendesse senza fine in ogni direzione. L'aria è completamente immobile, ma porta il debole ronzio statico di una magia instabile.
+#
+Canyon dei Maghi [46] = Attraversi il portale e vieni colpito all'istante da un muro di calore brutale e soffocante. Il silenzio sterile del vuoto va in frantumi. L'ululante vento del deserto ti rimbomba nelle orecchie, portando l'odore aspro e abrasivo di polvere cotta dal sole e di ozono. Sotto i tuoi stivali il vetro risonante è sparito, sostituito dal pesante e stridente scricchiolio di sabbia grossolana. L'aria è densa e pesante, e preme sulla pelle come un peso fisico dopo l'assenza di peso del santuario. Sei tornato nel mondo dei mortali, ma il deserto ti vuole morto.
+#
+Tomba di Tal Rasha [66] = Hai trovato la vera tomba di Tal Rasha. Non è solo un monumento all'antico mago, ma una prigione sotterranea per il Primo Maligno che scelse di legare nella propria carne. L'aria è densa dell'odore di polvere antica, liquido d'imbalsamazione e del debole, amaro sapore della malizia di un demone intrappolato.
+Tomba di Tal Rasha [67] = Hai trovato la vera tomba di Tal Rasha. Non è solo un monumento all'antico mago, ma una prigione sotterranea per il Primo Maligno che scelse di legare nella propria carne. L'aria è densa dell'odore di polvere antica, liquido d'imbalsamazione e del debole, amaro sapore della malizia di un demone intrappolato.
+Tomba di Tal Rasha [68] = Hai trovato la vera tomba di Tal Rasha. Non è solo un monumento all'antico mago, ma una prigione sotterranea per il Primo Maligno che scelse di legare nella propria carne. L'aria è densa dell'odore di polvere antica, liquido d'imbalsamazione e del debole, amaro sapore della malizia di un demone intrappolato.
+Tomba di Tal Rasha [69] = Hai trovato la vera tomba di Tal Rasha. Non è solo un monumento all'antico mago, ma una prigione sotterranea per il Primo Maligno che scelse di legare nella propria carne. L'aria è densa dell'odore di polvere antica, liquido d'imbalsamazione e del debole, amaro sapore della malizia di un demone intrappolato.
+Tomba di Tal Rasha [70] = Hai trovato la vera tomba di Tal Rasha. Non è solo un monumento all'antico mago, ma una prigione sotterranea per il Primo Maligno che scelse di legare nella propria carne. L'aria è densa dell'odore di polvere antica, liquido d'imbalsamazione e del debole, amaro sapore della malizia di un demone intrappolato.
+Tomba di Tal Rasha [71] = Hai trovato la vera tomba di Tal Rasha. Non è solo un monumento all'antico mago, ma una prigione sotterranea per il Primo Maligno che scelse di legare nella propria carne. L'aria è densa dell'odore di polvere antica, liquido d'imbalsamazione e del debole, amaro sapore della malizia di un demone intrappolato.
+Tomba di Tal Rasha [72] = Hai trovato la vera tomba di Tal Rasha. Non è solo un monumento all'antico mago, ma una prigione sotterranea per il Primo Maligno che scelse di legare nella propria carne. L'aria è densa dell'odore di polvere antica, liquido d'imbalsamazione e del debole, amaro sapore della malizia di un demone intrappolato.
+#
+Cripta di Tal Rasha [73] = Dopo aver sconfitto Duriel, hai finalmente un momento per osservare ciò che ti circonda. Questa parte della tomba è molto più antica della già antica muratura all'ingresso. A nord-ovest scorgi un arco quasi invisibile che conduce all'ultima dimora di Tal Rasha. Cosa potrebbe attenderti là dentro?
+#
+# Act III
+#
+Zona Portuale di Kurast [75] = Questo antico porto è sul punto di essere divorato dalle rigogliose giungle dei Nahantu. Acqua salmastra di palude, densa di alghe, ribolle pigramente sotto traballanti ponti di legno che collegano diverse isolette e fatiscenti capanne di paglia. Il caldo è denso e opprimente, e a ogni respiro ti sembra di inalare un liquido nauseante.
+#
+Foresta del Ragno [76] = Il poco sollievo che la brezza marina del porto offriva svanisce nel momento in cui ti immergi nella giungla quasi impenetrabile. Solo piccole strisce di terra percorribile fiancheggiano un fiume torbido, e vieni subito assalito dai feroci abitanti della foresta primordiale, che abbiano due, quattro o molte zampe.
+#
+Caverna del Ragno [85] = Le pareti di questo claustrofobico buco nel terreno sono drappeggiate di spessi strati di seta di ragno. Lungi dall'essere lisce, vedi grossi bozzoli strettamente avvolti sulle pareti e sul pavimento, alcuni dei quali si contorcono e si dimenano disperatamente mentre ti insinui accanto a loro.
+#
+Covo degli Aracnidi [84] = Questa caverna è praticamente indistinguibile dall'altra tana infestata di ragni, eppure, mentre ti insinui nei suoi corridoi ovattati e intessuti di seta, il cuore ti manca un battito ogni volta che un bozzolo davanti a cui passi sussulta violentemente. È una povera vittima che cerca di liberarsi? O un nuovo orrore a otto zampe in attesa di essere vomitato in questo mondo?
+#
+Grande Palude [77] = Il fiume si frammenta e scorre in una pianura paludosa di canali stretti e isole acquitrinose. Lo stridulo cinguettio degli uccelli è un costante promemoria del pericolo. Ogni cespuglio che fruscia, ogni ramoscello che si spezza potrebbe essere il preludio a un altro diluvio di assalti frenetici.
+#
+Giungla Scorticatrice [78] = Come a dimostrare la stranezza di questo luogo, continui a notare le rovine poco profonde di una civiltà caduta che spuntano dal fogliame soffocante, ora completamente invase dai minuscoli e impazziti Scorticatori che danno il nome a questo tratto di giungla. Antiche fondamenta di pietra sono sopraffatte da fragili capanne di paglia, e i dardi delle cerbottane non smettono di arrivare.
+#
+Abisso Paludoso L1 [86] = La palude ha reclamato con violenza questo antico tempio, inondando ogni passaggio di fango alto fino alle caviglie. Spesso lichene pende da archi di pietra un tempo meravigliosi, e le torce sfrigolano con una tinta verdastra e malsana, bruciando i gas fetidi che gli abitanti di questo scavo, o i loro resti, esalano.
+#
+Abisso Paludoso L2 [87] = L'aria quaggiù è stagnante e fetida; senti sapore di marciume e decomposizione a ogni respiro. Le pietre sono viscide di un icore indicibile, e ogni torcia ancora accesa non fa che approfondire le ombre oltre, che brulicano di orrori assassini. Pensavi di essere il cacciatore, qui, ma la tua sicurezza vacilla in fretta.
+#
+Abisso Paludoso L3 [90] = La discesa termina in un'oscurità totale e soffocante. Il fango alto fino alle caviglie lascia il posto a un pavimento allagato, dove l'acqua gelida e stagnante ti sciabordano contro gli stinchi a ogni passo. Le pareti si restringono in uno stretto e claustrofobico labirinto di pietra in sgretolamento. In lontananza, un basso ronzio innaturale rompe il silenzio, guidandoti verso un debole bagliore dorato che si riflette sull'acqua sporca. Il tesoro è vicino, ma lo è anche ciò che si aggira nell'incavo più profondo di questo abisso.
+#
+Kurast Inferiore [79] = La periferia di Kurast se la passa solo di poco meglio del porto. Ovunque guardi, vedi segni di vite bruscamente interrotte: pasti a metà coperti di muffa, vasi e ceste rovesciati con il contenuto sparso senza cura e corpi lasciati a marcire dove sono stati uccisi.
+#
+Bazar di Kurast [80] = I resti invasi dalla vegetazione del quartiere del mercato di Kurast sono un campo di battaglia in più di un senso. L'assalto della giungla alla civiltà continua, con mostri feroci e sciami di insetti che fanno sentire struggentemente la loro presenza. Ma è la sanità mentale stessa a essere sotto attacco, come dimostrano le bande vaganti di cultisti che ululano come folli.
+#
+Fogne L1 [92] = Il suono dell'acqua corrente ti accoglie mentre entri in un altro sistema fognario infestato di mostri. Rispetto al caldo paludoso e opprimente di fuori, è quasi piacevole, se non fosse per l'orribile fetore che sale dai molti canali e pozze.
+#
+Fogne L2 [93] = Hai raggiunto la cisterna più profonda delle fogne. L'acqua drenata da poco cola ancora lungo le pareti viscide, e ogni passo incauto vicino alla pozza centrale è un invito al disastro. All'improvviso, uno spruzzo violento rompe la quiete del gocciolio. Qualcosa di enorme si agita nella pozza centrale: un lungo corpo sinuoso si solleva, le sue squame bagnate che strisciano sulla pietra. Sibila e si dirige dritto verso di te!
+#
+Tempio Dimenticato [97] = Un mare di candele e torce illumina questo luogo di culto un tempo maestoso. È stato completamente profanato dai servi impazziti di Mefisto. Altari e spazi rituali annegano nel sangue.
+#
+Kurast Superiore [81] = Man mano che le basse capanne e le case lunghe lasciano il posto a imponenti edifici di pietra, il numero di cultisti selvaggi sembra salire in modo esponenziale. In lontananza vedi gli imponenti templi di Travincal svettare sulla volta della giungla, ma la strada per arrivarci sarà senza dubbio sorvegliata dai folli adoratori di Mefisto.
+#
+Sotterraneo Scorticatore L1 [88] = C'è un accenno di sale nell'aria mentre entri in questa antica catacomba. Altre strane fragranze ti solleticano il naso, alcune note erbacee e l'inconfondibile morso della morte. Addentrandoti nelle camere e nei corridoi del sotterraneo, ti rendi conto che gli Scorticatori lo usano per mummificare i loro morti.
+#
+Sotterraneo Scorticatore L2 [89] = La corruzione di Mefisto ha del tutto contaminato la terra, contorcendo e deformando tutto ciò che tocca. Ciò che avrebbe dovuto restare morto ora si agita, compresi tutti gli Scorticatori defunti che si sono rialzati per tornare a vagare.
+#
+Sotterraneo Scorticatore L3 [91] = Il livello più profondo del sotterraneo è uno straziante labirinto di corridoi senza uscita, camere allagate e trappole perfide, che proteggono i folli rituali che gli stregoni impazziti degli Scorticatori celebrano quaggiù.
+#
+Tempio Abbandonato [95] = Un vento pungente fischia attraverso le fenditure della muratura screpolata. La maggior parte delle torce e delle candele che illuminavano gli altri templi di Kurast si è spenta. E a differenza degli altri templi che hai violato finora, nessuno è venuto subito a ucciderti. Con cautela, ti insinui più a fondo nella rovina. Questo silenzio innaturale non è destinato a durare.
+#
+Tempio in Rovina [94] = Ti sorprende vedere l'icona dell'Occhio Cieco impressa su stendardi e santuari in questo tempio. Cosa ci fanno alcune Sorelle così a oriente? Mentre avanzi, senti una donna strillare e ululare per avere sangue. Qualunque fosse la sua missione originaria, la follia di Mefisto l'ha reclamata come tutti gli altri.
+#
+Reliquiario Dimenticato [96] = La giungla si sta riprendendo questo tempio: spesse liane e radici hanno sfondato enormi muri di pietra e voraci abitanti della giungla ne hanno fatto la loro tana.
+#
+Strada per Kurast [82] = Questo massiccio ponte di pietra è un'incredibile impresa ingegneristica; dritto come una freccia, attraversa una vasta distesa di acqua di piena che separa la città santa di Travincal dalla Kurast secolare.
+#
+Tempio Antico [98] = Quasi senti il peso dell'acqua premere contro le pareti di questo tempio sommerso. Minuscoli rivoli filtrano da ogni imperfezione della pietra e l'acqua si raccoglie in pozzanghere basse sul pavimento. È solo questione di tempo prima che tutta la forza dell'inondazione esterna inghiotta per sempre questa cripta sommersa.
+#
+Reliquiario Abbandonato [99] = Ancor prima che le fogne intasate allagassero le parti basse di Kurast, questa cripta dimenticata era già in rovina. Non passerà molto prima che l'intrico invaso di radici, liane e pietra incrinata ceda, permettendo all'immensa massa d'acqua di spazzare via questo tempio un tempo sacro e tutti coloro che vi si annidano.
+#
+Travincal [83] = La severa grandezza di Travincal ti coglie impreparato solo per un istante. La città santa dei Zakarum sembra quasi intatta dalla corruzione di Mefisto. Ma poi i cultisti ululanti ti si scagliano contro con incantesimi e acciaio, e l'illusione di pace va in frantumi.
+#
+Prigione dell'Odio L1 [100] = Il fetore del sangue, tragicamente familiare, ti colpisce come un pugno ramato mentre scendi nell'antica prigione di Mefisto. Niente nel tuo estenuante viaggio avrebbe potuto prepararti all'enorme volume di liquido cremisi che trasuda dalle pareti e ribolle in ampie pozze.
+#
+Prigione dell'Odio L2 [101] = Man mano che ti avvicini lentamente al cuore della corruzione di Mefisto, il puro odio che emana da ogni lastra, ogni pilastro, ogni pozza gorgogliante di sangue assale la tua sanità mentale.
+#
+Prigione dell'Odio L3 [102] = Un fossato gorgogliante di sangue contorto taglia in due questa enorme camera, attraversato solo da un cupo ponte di ossa e pietra. All'estremità opposta, sospeso sopra una piazza profanata di teschi, pende il portale per l'Inferno. Come una lacrima sanguinante nel tessuto della realtà, il suo sinistro ronzio sfida ogni ragione.
+#
+# Act IV
+#
+La Fortezza del Pandemonio [103] = Attraversi il portale e inciampi in una sala spoglia scolpita in pietra grigio ardesia e metalli per cui nessun mortale ha un nome. Le uniche fonti di calore sono un camino ruggente e diversi grandi bracieri. Senza di essi, la Fortezza del Pandemonio sarebbe inospitale quanto le lande di cenere al di là.
+#
+Steppe Esterne [104] = Una vasta pianura coperta di fine cenere grigia si estende verso l'orizzonte. Guglie e archi spezzati avvolti in enormi catene sono gli unici elementi che spezzano la monotonia instupidente, mentre anime perdute sono incatenate a rocce e a monconi di pilastri spezzati. Di tanto in tanto una fenditura nel terreno vomita vapori solforosi.
+#
+Pianure della Disperazione [105] = I cambiamenti del paesaggio sono molto graduali: il terreno sale e scende secondo rigidi schemi geometrici a gradini, e gli archi sparsi alla rinfusa sono sostituiti da quelle che sembrano rovine di edifici titanici. Ciò che resta uguale è l'opprimente senso di miseria eterna e immutabile che permea ogni centimetro di questa pianura.
+#
+Città Dannata [106] = Della città non resta altro che le fondamenta decapitate di edifici rigidamente allineati. Ti chiedi: chi ha costruito queste strutture e a quale scopo? Chi sarebbe stato così pazzo da tentare di stabilirsi in questa landa dimenticata da Dio?
+#
+Fiume Infuocato [107] = Questa deve essere la visione più pura dell'Inferno che hai incontrato finora. Frammenti spezzati di ossidiana formano insidiose isole che galleggiano in un oceano di lava. Enormi palle di fuoco si levano dalla materia fusa che ti circonda. Il calore è disumano e minaccia di arrostirti vivo dentro l'armatura. Eppure la tua volontà prevale. Vai avanti. Diablo deve essere fermato!
+#
+Hellforge = Due gigantesche armature sorvegliano questa antica fucina. È l'unico luogo conosciuto in tutta la creazione abbastanza potente da frantumare una Pietra dell'Anima.
+#
+Il Santuario del Caos [108] = La tana di Diablo è come una distorta parodia a forma di croce di una grande cattedrale nel cuore dell'Inferno. Cumuli di teschi sono ammassati presso ogni parete e pilastro, gli archi sono anneriti e deformati e al centro di tutto, circondato da cinque sigilli empi, siede un enorme pentagramma.
+#
+# Act V - Lord Of Destruction
+#
+Harrogath [109] = L'aria fresca e tersa di montagna lenisce la tua anima dopo la prova che hai appena attraversato. Harrogath è un'imponente città fortezza, con solide case di pietra dai tetti innevati che promettono calore e sicurezza. Anche dietro le sue massicce mura senti il frastuono della battaglia. La guerra contro Baal è più vicina di quanto pensi.
+#
+Colline Insanguinate [110] = A pochi passi dalle mura fortificate di Harrogath vieni colpito dal brutale caos della guerra. Trincee scavate in fretta deturpano la terra martoriata mentre le catapulte fanno piovere proiettili magici esplosivi su amici e nemici senza distinzione, e Barbari impavidi combattono una disperata azione di retroguardia per fermare le inarrestabili orde di Baal.
+#
+Altopiani del Gelo [111] = Questa terra di nessuno ghiacciata è un letale labirinto di antiche fortificazioni di pietra, riadattate e riparate dalle orde di Baal. Mura e barricate in rovina tagliano il paesaggio gelido creando angoli ciechi e vicoli ciechi, dove branchi di mostri aspettano di tenderti un'imboscata dalle ombre.
+#
+Plateau dell'Arreat [112] = Gli Altopiani del Gelo lasciano il posto a una sconfinata tundra alpina spazzata dal vento, un tempo incontaminata e ora profondamente segnata dalla guerra. L'aria pungente di montagna è soffocata dal fetore sulfureo dell'Inferno. Attraverso le distese rocciose spolverate di neve, portali demoniaci squarciano la terra ghiacciata, e Folletti cinguettanti hanno eretto rozzi tuguri in fiamme, infestando la regione in branchi predatori.
+#
+Abisso dell'Acheronte [126] = I cieli aperti svaniscono, sostituiti dai corridoi opprimenti di un'officina d'assedio infernale. Pesanti pareti di ossidiana nera come la pece e di osso bruciato formano un labirinto claustrofobico sopra laghi di fuoco. Carri d'assedio di ferro bruciato ed enormi catapulte cuociono nel caldo intenso, irradiando un calore rovente che rende pericolosa al tatto ogni superficie metallica.
+#
+Abaddon [125] = Attraversare il portale ti immerge in un campo di raccolta sotterraneo per gli eserciti dell'Inferno. Stretti corridoi di pietra vulcanica e gabbie di ferro scuro formano caserme infernali alla deriva su un oceano di lava. L'aria rovente riecheggia del pesante clangore delle armature e delle strida folli delle coorti demoniache in attesa della loro marcia sulla montagna.
+#
+Passaggio Cristallino [113] = L'aria fresca e tersa è stata una compagna costante durante la tua salita sul Monte Arreat. Ma nel momento in cui entri in questa caverna, il freddo affonda i denti in ogni centimetro di pelle scoperta. La luce sparsa delle torce si rifrange sulle pareti e sui pavimenti ricoperti di ghiaccio. Ogni suono risuona troppo forte per il tuo comfort, avvertendo ogni predatore a portata d'orecchio della tua presenza.
+#
+Fiume Gelido [114] = Così in profondità nelle caverne, restare fermi è una condanna a morte. Il tuo corpo, gelato fino alle ossa, trema senza controllo mentre metti un piede davanti all'altro, sempre acutamente consapevole del liquido torbido che gorgoglia proprio accanto agli stretti sentieri ghiacciati lungo i quali combatti.
+#
+Sentiero Ghiacciato [115] = Queste caverne gelide sembrano non finire mai. Pareti incrostate di ghiaccio a perdita d'occhio. Cadaveri congelati giacciono sparpagliati con noncuranza e orrori demoniaci sono in marcia.
+#
+Tempio di Nihlathak [121] = Un profondo senso di sbagliato ti avvolge mentre esci dal portale che porta al rifugio nascosto del traditore. Arrivi in un cortile di pietra freddo e chiuso. Davanti a te si trova l'austera facciata di pietra del tempio, che nasconde un terribile segreto. Il terreno ghiacciato intorno a te è inquietantemente silenzioso, disseminato di cadaveri immobili e insepolti.
+#
+Sale dell'Angoscia [122] = Entri nel sacro luogo di sepoltura dei Barbari e rimani stupefatto dalla sua vastità. Le pareti sono uno strano miscuglio di superfici di pietra grezza e pilastri splendidamente scolpiti. Ampi passaggi svaniscono in un fioco crepuscolo e strani aromi erbacei riempiono l'aria. È ovvio che un tempo questo era un luogo di culto degli antenati, ma ora è completamente profanato.
+#
+Sale del Dolore [123] = Scendendo più a fondo, il sacro silenzio delle tombe lascia il posto a un peso soffocante. L'aria qui è sensibilmente più calda, densa del sapore metallico del sangue fresco e dei deboli lamenti echeggianti dei dannati. Sebbene i pilastri di pietra siano gli stessi, gli ampi passaggi sembrano più stretti, soffocati da una presenza aggressiva e chiacchierona in agguato nel buio. La profanazione qui non è più antica: sta avvenendo adesso.
+#
+Sale di Vaught [124] = Hai raggiunto il cuore marcio del rifugio del traditore, al centro di una grande croce a quattro punte, con un lungo corridoio che si estende in ciascuna direzione cardinale. In fondo a una di queste oscure ali, il traditore bastardo attende il suo giusto giudizio!
+#
+Caverna dei Viandanti [116] = Il tuo respiro esce in rapide nuvolette bianche mentre abbassi le armi dopo la prima imboscata. Il freddo pungente si condensa in brina sulla tua armatura, e quel poco di luce che le poche torce offrono luccica sulle antiche pareti incrostate di ghiaccio. Sotto la crosta gelata del pavimento, il cupo ruggito vuoto di corsi d'acqua subglaciali riecheggia nel buio, scolpendo la caverna in una precaria rete di ponti di ghiaccio.
+#
+Tundra Congelata [117] = Dopo aver arrancato per quelle che sono sembrate ore in tunnel gelati e angusti, l'improvvisa vastità della Tundra Congelata ti colpisce con forza innaturale. La neve fresca non riesce a coprire la brutalità che gli eserciti di Baal hanno inflitto al sacro Monte Arreat e alla sua gente. Stringi i denti e ti prepari ad assaltare le fortificazioni sparse che l'orda demoniaca ha reclamato come proprie.
+#
+Abisso Infernale [127] = Queste isole di ossidiana che fluttuano in un mare infinito di lava sono una sorta di centro di comando infernale. Ruggenti Capi Lumaca frustano i loro subordinati in un frenetico delirio schiumante di sangue. Decimare questi aguzzini infernali scalfirà di sicuro i piani d'invasione di Baal.
+#
+Via degli Antichi [118] = La vetta non può essere lontana. Ancora una volta entri in un sistema di tunnel cavernosi, con pareti e pavimento ricoperti di ghiaccio scintillante. Fa freddo, sì, ma c'è anche qualcos'altro, un ronzio appena percettibile di magia a stento trattenuta. Qualunque cosa ci sia più avanti, è sicuramente una fonte di potere immenso.
+#
+Sotterraneo di Ghiaccio [119] = Mentre ti addentri in un'altra crepa gelida e senza fondo, orde infinite di yeti, non morti e demoni ti assalgono. Quali ricchezze devono proteggere!
+#
+Sommità dell'Arreat [120] = Il cielo vasto e infinito ti circonda mentre emergi sulla vetta. Davanti a te incombe lo strano e alieno forte della Pietra del Mondo, la cui architettura primordiale è diversa da qualunque cosa tu abbia visto nei tuoi lunghi viaggi. Tre statue imponenti raffiguranti i leggendari Antichi Talic, Korlic e Madawc circondano quella che è chiaramente un'arena rituale. Per entrare nel forte dovrai dimostrare il tuo valore a questi Antichi!
+#
+Forte della Pietra del Mondo L1 [128] = Ora che sei all'interno del suo sacro salone, è dolorosamente ovvio che nessuna mano mortale ha costruito questo forte. Anzi, sembra più cresciuto che costruito, con titanici pilastri ricavati da singoli blocchi di pietra e nessuna fessura visibile dove le pietre sono state unite.
+#
+Forte della Pietra del Mondo L2 [129] = I segni dell'incursione di Baal sono visibili ovunque. Nessun corridoio senza Barbari brutalmente profanati, sacrificati in orribili rituali, nessuna camera senza tracce di presenza demoniaca. E permea l'aria il battito pulsante di un'enorme fonte di potere.
+#
+Forte della Pietra del Mondo L3 [130] = Frastagliate formazioni di cristallo esplodono dal pavimento, pulsando di un fuoco innato. La risata beffarda di Baal è accompagnata da assalti sempre più brutali dei suoi demoniaci servitori.
+#
+Trono della Distruzione [131] = Lo strano bagliore simile a fuoco che hai visto prima nelle formazioni di cristallo ora permea ogni superficie e senti la Pietra del Mondo pulsare attraverso le suole degli stivali. La presenza di Baal aleggia nell'aria come un fetore nauseabondo.
+#
+Sale della Pietra del Mondo [132] = La magia sfrenata della Pietra del Mondo ti striscia sulla pelle mentre entri in questa vasta cripta. A nord-est, grande quanto un piccolo forte, si trova la Pietra del Mondo stessa, un glorioso cristallo rosso. Noti viticci scuri e oleosi che serpeggiano tra le sue sfaccettature naturali, chiaro segno della corruzione di Baal.
+#
+Livello Bovino Segreto [39] = Questo ampio pascolo aperto è il regno dell'inafferrabile e temuto Re Bovino e della sua corte bovina. L'aria è fragrante e tersa, e il caldo sole ti accarezza la pelle. Eppure qualcosa qui non va affatto.
+#
+Tana della Matrona [133] = L'influenza dell'Inferno ha deformato quest'area oltre ogni riconoscimento.
+#
+Sabbie Dimenticate [134] = L'influenza dell'Inferno ha deformato quest'area oltre ogni riconoscimento.
+#
+Fornace del Dolore [135] = L'influenza dell'Inferno ha deformato quest'area oltre ogni riconoscimento.
+#
+Tristram [136] = L'influenza dell'Inferno ha deformato quest'area oltre ogni riconoscimento.
+#
+Sommità Colossale [137] = L'influenza dell'Inferno ha deformato quest'area oltre ogni riconoscimento.

@@ -1,72 +1,98 @@
 #include "descriptions.h"
 #include "test_support.h"
 
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <string>
+
 using namespace D2RAccess;
 
-int main() {
+namespace {
+// The last Id in Levels.txt (Colossal Summit); every level from 1 has English words.
+constexpr int LastLevel = 137;
+
+std::string ReadFile(const std::filesystem::path& path) {
+	std::ifstream input(path, std::ios::binary);
+	std::stringstream text;
+	text << input.rdbuf();
+	return text.str();
+}
+
+void CheckBook() {
 	Descriptions::Book book;
-	book.Parse("# notes are skipped\r\n"
-		"Rogue Encampment = Tents and wagons.\r\n"
+	const size_t rejected = book.Parse("# notes are skipped\r\n"
+		"Rogue Encampment [1] = Tents and wagons.\r\n"
 		"  hangman's tree=A withered tree.  \n"
 		"no separator here\n"
 		" = no name\n"
-		"Cold Plains =\n");
-	Check(book.Size() == 2, "notes, lines without a name or words, and lines without = are passed over");
-	Check(book.Find("rogue encampment") == "Tents and wagons.", "names match whatever their case");
-	Check(book.Find("Cold Plains").empty() && book.Find("Cold Plains", "built in") == "built in",
-		"an area without words falls back to the mod's own, else nothing");
-	Check(book.Find("Hangman's Tree", "built in") == "A withered tree.", "the player's words win over the mod's");
+		"Cold Plains [3] =\n"
+		"Blood Moor = A name without an Id.\n");
+	Check(rejected == 3, "lines without a name, words or = are counted as rejected");
+	Check(book.Size() == 3, "the rest are kept");
+	Check(book.FindArea(1) == "Tents and wagons.", "an area by its level's Id");
+	Check(book.FindArea(2).empty() && book.FindArea(3).empty() && book.FindArea(0).empty(),
+		"an area answers by its Id alone");
+	Check(book.Find("Hangman's Tree", "built in") == "A withered tree.", "a landmark by its name, any case");
+	Check(book.Find("Stairs", "built in") == "built in", "the mod's own words where the book has none");
 
 	Check(book.FirstTime("Hangman's Tree", "built in") == "A withered tree.", "a landmark's words the first time");
 	Check(book.FirstTime("HANGMAN'S TREE", "built in").empty(), "only its name after that");
 	Check(book.FirstTime("Stairs", "").empty(), "a landmark without words is said by its name");
 
-	Check(book.HintDue(1, "Rogue Encampment", "Entering The Rogue Encampment"), "the hint the first time a described area is entered");
-	Check(!book.HintDue(1, "Rogue Encampment", "Entering The Rogue Encampment"), "not again");
-	Check(!book.HintDue(2, "Blood Moor", "Entering The Blood Moor"), "no hint where nothing is written");
+	Check(book.HintDue(1) && !book.HintDue(1), "the hint the first time a described area is entered, not again");
+	Check(!book.HintDue(3), "no hint where nothing is written");
 
-	// The file saved while the game runs (a tester, 2026-10-19): changed words are news again.
-	Descriptions::Book live;
-	live.Parse("Hangman's Tree = A withered tree.\nCold Plains = Grass.\n");
-	(void)live.FirstTime("Hangman's Tree", "");
-	(void)live.HintDue(3, "Cold Plains", "Entering The Cold Plains");
-	live.Replace("Hangman's Tree = A withered tree.\nCold Plains = Tall grass.\nDen of Evil = A cave.\n");
-	Check(live.FirstTime("Hangman's Tree", "").empty(), "words that did not change are not said again");
-	Check(live.HintDue(3, "Cold Plains", "Entering The Cold Plains") && live.Find("Den of Evil") == "A cave.", "changed and new words are");
-	live.Replace("Den of Evil = A cave.\n");
-	Check(live.Find("Cold Plains").empty() && live.Size() == 1, "a line taken out is gone");
+	book.Replace("Rogue Encampment [1] = Zelte.\nHangman's Tree = Ein Baum.\nCold Plains [3] = Gras.\n");
+	Check(book.FindArea(1) == "Zelte." && book.FindArea(3) == "Gras.", "another language's words");
+	Check(book.FirstTime("Hangman's Tree", "").empty() && !book.HintDue(1),
+		"what was said or hinted in one language is not again in another");
+	Check(book.HintDue(3), "a newly described area still gets its hint");
 
-	// An area as its banner names it (a tester, 2026-10-19: "The Cave Level 1" said nothing).
-	Descriptions::Book areas;
-	areas.Parse("The Cave Level 1 = A damp cave.\nSwampy Pit Level 1 = A swamp.\nEntering The Hole Level 1 = A hole.\n");
-	Check(areas.FindArea(9, "Cave Level 1", "Entering The Cave Level 1") == "A damp cave.", "the banner's article is accepted");
-	Check(areas.FindArea(11, "Hole Level 1", "Entering The Hole Level 1") == "A hole.", "and the banner's whole text");
-	Check(areas.FindArea(12, "Pit Level 1", "Entering The Pit Level 1").empty(), "another area ending in the same words is not it");
-	Check(areas.FindArea(9, "Cave Level 1", "Entering The Blood Moor").empty(), "nor is a key the current banner does not say");
-	areas.Parse("Cave Level 1 = The level's own name wins.\n");
-	Check(areas.FindArea(9, "Cave Level 1", "Entering The Cave Level 1") == "The level's own name wins.", "the level's own name first");
-
-	// The mod's book is read first, the player's after it (a tester's words shipped, 2026-10-23).
-	Descriptions::Book shipped;
-	shipped.Parse("Blood Moor = The mod's moor.\nCold Plains = The mod's plains.");
-	shipped.Parse("Blood Moor = My moor.\n");
-	Check(shipped.Find("Blood Moor") == "My moor." && shipped.Find("Cold Plains") == "The mod's plains.",
-		"the player's line replaces the mod's, the mod's others stay");
-	shipped.Replace("Blood Moor = The mod's moor.\nCold Plains = The mod's plains.\n"); // the player's file emptied
-	Check(shipped.Find("Blood Moor") == "The mod's moor.", "the player's line taken out leaves the mod's");
-
-	// A level of its own by its Levels.txt Id (a tester, 2026-10-24: Act II's and Act III's "Sewers Level 1").
 	Descriptions::Book sewers;
-	sewers.Parse("Sewers Level 1 [47] = Lut Gholein's.\nKurast sewers [92] = Kurast's.\nSewers Level 1 = Any other.\nTown [1x] = Not an Id.\n");
-	Check(sewers.FindArea(47, "Sewers Level 1", "Entering The Sewers Level 1") == "Lut Gholein's."
-		&& sewers.FindArea(92, "Sewers Level 1", "Entering The Sewers Level 1") == "Kurast's.", "each level its own words, whatever name is written");
-	Check(sewers.FindArea(93, "Sewers Level 2", "Entering The Sewers Level 2").empty()
-		&& sewers.FindArea(5, "Sewers Level 1", "") == "Any other.", "a level without its own line falls back to the name");
-	Check(sewers.Find("Town [1x]") == "Not an Id.", "brackets without a number are part of the name");
-	sewers.Parse("Sewers [47] = Mine.\n");
-	Check(sewers.FindArea(47, "Sewers Level 1", "") == "Mine.", "a later line for the same Id replaces the first");
-	Check(sewers.HintDue(92, "Sewers Level 1", "") && sewers.HintDue(47, "Sewers Level 1", "")
-		&& !sewers.HintDue(47, "Sewers Level 1", ""), "each level gets its hint once");
+	sewers.Parse("Sewers Level 1 [47] = Lut Gholein's.\nSewers Level 1 [92] = Kurast's.\nAny words [47] = Mine.\n");
+	Check(sewers.FindArea(92) == "Kurast's.", "two levels sharing a name keep their own words");
+	Check(sewers.FindArea(47) == "Mine.", "a later line for the same Id replaces the first");
+}
+
+void CheckLayers() {
+	const SealedText::Texts texts{{"enUS", "Blood Moor [2] = A moor.\nCold Plains [3] = Plains.\n"},
+		{"deDE", "Blutmoor [2] = Ein Moor.\n"}};
+	Descriptions::Book german;
+	german.Parse(Descriptions::Layered(texts, "deDE"));
+	Check(german.FindArea(2) == "Ein Moor." && german.FindArea(3) == "Plains.",
+		"a language's own words, English where it has none");
+	Descriptions::Book french;
+	french.Parse(Descriptions::Layered(texts, "frFR"));
+	Check(french.FindArea(2) == "A moor.", "a language without a file is English");
+	Check(Descriptions::Layered(texts, "enUS") == texts.at("enUS"), "English is read once");
+	Check(Descriptions::Layered({}, "deDE").empty(), "nothing when the words could not be opened");
+}
+
+// The files the plugin is sealed from: every line well formed, every level in English, and no
+// language with a line English lacks (a mistyped Id).
+void CheckData() {
+	SealedText::Texts texts;
+	for (const auto& entry : std::filesystem::directory_iterator(D2R_DESCRIPTIONS_DIR))
+		if (entry.path().extension() == ".txt") texts[entry.path().stem().string()] = ReadFile(entry.path());
+	Check(texts.contains("enUS"), "the English file is there");
+	Descriptions::Book english;
+	Check(english.Parse(texts.at("enUS")) == 0, "every English line is a note or name = words");
+	for (int level = 1; level <= LastLevel; ++level)
+		if (english.FindArea(level).empty()) Check(false, "level " + std::to_string(level) + " has English words");
+	for (const auto& [locale, text] : texts) {
+		Descriptions::Book book;
+		Check(book.Parse(text) == 0, locale + ": every line is a note or name = words");
+		for (const auto& [key, words] : book.Entries())
+			Check(english.Entries().contains(key), locale + ": \"" + key + "\" is also in English");
+	}
+}
+}
+
+int main() {
+	CheckBook();
+	CheckLayers();
+	CheckData();
 	Passed();
 	return 0;
 }

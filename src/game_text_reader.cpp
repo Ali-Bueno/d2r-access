@@ -123,7 +123,7 @@ void Speak(const D2RL::PluginContext* context, const UiText::Readout& readout, c
 // (a tester, 2026-10-16), after its name.
 void AreaHint(const D2RL::PluginContext* context, std::string_view area) {
 	constexpr uint32_t ViewGlyph = 0xE006; // Strings::Table::controllerButtons[6], "View"
-	if (!Descriptions::HintDue(UiText::Clean(area))) return;
+	if (!Descriptions::HintDue()) return;
 	const auto button = ControllerText::Button(ViewGlyph);
 	char hint[300]{};
 	std::snprintf(hint, sizeof hint, Strings::Current().areaDescriptionHint, std::string(button).c_str());
@@ -280,10 +280,7 @@ bool Tick(const D2RL::PluginContext* context) {
 	if (!area.Empty()) {
 		const auto announcement = g_areaReader.Update(area, now);
 		Speak(context, area, announcement, !owns && !g_interactionFocus);
-		if (!announcement.text.empty()) {
-			Descriptions::NoteBanner(UiText::Clean(area.body));
-			AreaHint(context, area.body);
-		}
+		if (!announcement.text.empty()) AreaHint(context, area.body);
 	} else g_areaReader.Reset();
 	for (const auto& notice : g_notices.Update(notices, now, deliveries)) {
 		const auto text = NameSpeaker(TradeService::FixNotice(notice));

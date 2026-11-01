@@ -1,0 +1,284 @@
+# D2R Access: the area and landmark descriptions in Portuguese (Brazil), translated from enUS.txt.
+# A line missing here is said in English. Format and rules: enUS.txt, docs/descriptions.md
+#
+# Act I
+#
+Acampamento Renegado [1] = Este acampamento é um amontoado precário de tendas e carroças que mal protege contra as intempéries. Apenas algumas Irmãs do Olho Cego conseguiram fugir até aqui do condenado Monastério, e agora são obrigadas a dividir este lugar desolado com vacas e galinhas.
+#
+Hangman's Tree = Uma árvore alta e murcha se ergue no meio do Cemitério, com cadáveres em putrefação pendurados nos galhos, enquanto os mortos se arrastam sob ela.
+#
+Charco Sangrento [2] = Este pântano selvagem é um terreno aberto salpicado de arbustos baixos e árvores retorcidas. Um dia, os ferozes ratos-ouriço eram o único perigo; agora, mortos-vivos e bandos de Caídos representam uma séria ameaça a qualquer tolo que deixe a segurança do Acampamento Renegado.
+#
+Covil do Mal [8] = Akara estava certa em enviar você a este lugar sombrio. Já da entrada se ouve o grasnar incessante de incontáveis monstros que se preparam para saquear o Acampamento Renegado. Mas há algo mais à espreita aqui. O fedor da morte, ou da não morte, paira pesado no ar.
+#
+Cemitério [17] = Este cemitério esquecido caiu em ruínas, com suas pequenas criptas e a elaborada cerca de ferro forjado desmoronando, enferrujadas. Os mortos se ergueram e se arrastam sob uma grotesca Árvore do Enforcado, prontos para despedaçar os visitantes incautos.
+#
+Mausoléu [19] = Esta catacumba obscura está repleta dos restos de mortos sem nome, riquezas esquecidas e mortos-vivos cruéis. Caçadores de tesouros, cuidado!
+#
+Cripta [18] = Nenhuma luz penetra a escuridão desta tumba, exceto as chamas que consomem os corpos em brasa de antigas Renegadas. Pode haver tesouros, mas com certeza há terrores famintos à espera para despedaçar os invasores descuidados.
+#
+Planície Gélida [3] = As cabanas abandonadas desta área falam de uma época mais simples, de plantações e criação de gado. Agora o exército de Diablo reivindicou estes campos, que fervilham de Renegadas demoníacas, mortos-vivos e Caídos.
+#
+Caverna Nível 1 [9] = Ninguém entra neste buraco maldito no chão há eras. Quem sabe que horrores criaram raízes?
+#
+Caverna Nível 2 [13] = A luz do sol nunca tocou esta parte da caverna. Você se pergunta: quem mantém as tochas acesas?
+#
+Campo Rochoso [4] = O Santuário esconde muitos lugares de poder. Neste ermo coberto de pedras se ergue um antigo círculo de pedras. Ninguém sabe ao certo qual era o seu significado nem que rituais pagãos eram realizados aqui.
+#
+Tristram [38] = Tudo o que resta de Tristram é um triste amontoado de ruínas em chamas, inundado por monstros na esteira de Diablo.
+#
+Passagem Subterrânea Nível 1 [10] = Ao entrar, você percebe o tamanho deste vasto sistema de cavernas em forma de labirinto, cujos numerosos becos sem saída e passagens sinuosas estão repletos de horrores inquietos. Não há garantia de que você saia vivo.
+#
+Passagem Subterrânea Nível 2 [14] = O ar nesta parte da caverna é úmido e viciado. Você tem certeza de que aqui não há ligação com a superfície, apenas mais monstros inquietos atrás da sua carne.
+#
+Floresta Sombria [5] = Chamar este aglomerado esparso de árvores lamentáveis de floresta seria generosidade. Mesmo assim, ele fervilha de vida demoníaca. Em algum lugar no centro está a esquiva Árvore de Inifuss, esperando para ser descoberta de novo.
+#
+Buraco Nível 1 [11] = A região ao redor de Tristram é cravejada destas cavernas escuras e insondáveis. O que os mineiros de Kanduras estavam cavando? E, mais importante, o que despertaram quando encontraram?
+#
+Buraco Nível 2 [15] = Até onde vai este buraco? Você espera que haja mais aqui embaixo do que apenas formações rochosas perturbadoras, tochas bruxuleantes e mais monstros.
+#
+Fosso Nível 1 [12] = Paredes de pedra disformes parecem se fechar sobre você de todos os lados enquanto você avança com cautela neste labirinto abandonado pela luz.
+#
+Fosso Nível 2 [16] = Você sente claramente as incontáveis toneladas de rocha a menos de um braço acima da sua cabeça. Basta um tremor, ou uma explosão acidental, para enterrá-lo vivo aqui embaixo, preso para sempre com os horrores que chamam este poço sem luz de lar.
+#
+Charco Tenebroso [6] = Rajadas de vento cortante acariciam seu rosto como o toque incorpóreo de um fantasma. Ao longe, o toco desmoronado de uma torre caída se ergue, chamando você como chamou todas as donzelas inocentes que a Condessa atraiu para a perdição.
+#
+Torre Esquecida [20] = A turba faminta que uivava pela morte da Condessa deixou este porão limpo. Só restam alguns barris arrombados no canto sudeste. Olhando ao redor, você nota um buraco escancarado na parede noroeste. Parece muito recente. E pelo jeito como os blocos grosseiros de pedra caíram, você percebe que alguém, ou alguma coisa, conseguiu irromper das masmorras escondidas lá embaixo.
+#
+Porão da Torre Nível 1 [21] = Ao entrar nos níveis mais profundos do porão, o fedor metálico de sangue assalta suas narinas. Olhando para baixo, você vê seu pé dentro de uma poça do que parece sangue recém-derramado. Como isso é possível? Se a triste ruína lá em cima serve de indício, a Condessa deve ter morrido séculos atrás.
+#
+Porão da Torre Nível 2 [22] = Você desce mais fundo no labirinto da Condessa. Um líquido horrendo pinga das paredes irregulares e a luz das velas cintila em poças carmesim, e nos olhos das abominações que esperam para despedaçar você.
+#
+Porão da Torre Nível 3 [23] = Enquanto arrasta seu corpo cansado e dolorido cada vez mais fundo neste pesadelo, seus pés despertam ecos ocos em placas de mármore desbotadas, embutidas no chão. Como se o fedor de sangue, cada vez pior, não bastasse, você passa pelos corpos em brasa de Renegadas mortas, e o cheiro sufocante de carne queimada torna ainda mais difícil achar fôlego para gritar.
+#
+Porão da Torre Nível 4 [24] = Você mal consegue respirar. Sente gosto de sangue nos lábios. É o seu? Ou são as tripas do último Caprino que você estripou para chegar a mais um conjunto de salões desmoronados e corredores em chamas, cheios da risada oca de perseguidores fantasmagóricos?
+#
+Porão da Torre Nível 5 [25] = De repente os corredores se abrem e expelem você numa estranha cacofonia de luxo e atrocidade. Adiante, você avista uma obscena bacia dourada transbordando de sangue parado. Tochas enormes fazem a fileira dupla de pilares que emoldura o banho da Condessa projetar sombras que dançam como loucas, contorcendo-se ao ritmo da sua risada provocadora.
+#
+Planalto Tamoe [7] = As imponentes muralhas do Monastério do Olho Cego se erguem sobre as terras altas varridas pelo vento. Aparentemente inexpugnáveis, deixam você tremendo só de pensar no exército que as conquistou e expulsou as Irmãs com desprezível facilidade. Então, uma constatação mais fria o atinge: agora é você quem tem a missão de atacar esta casa de oração fortificada.
+#
+Portão do Monastério [26] = Há sinais de batalha por toda parte enquanto você entra com cuidado nas austeras colunatas do Portão do Monastério. Armas quebradas, castiçais tombados e rastros carmesim contam uma história terrível.
+#
+Claustro Externo [27] = Você chega a um magnífico pátio, cuja beleza mal é desfigurada pelos onipresentes sinais de batalha. Uma gloriosa fonte ergue-se no centro, mostrando três Renegadas de costas umas para as outras, mantendo inimigos invisíveis à distância com as armas em punho.
+#
+Quartel [28] = Depois da serena grandiosidade do pátio, o Quartel é um labirinto caótico de corredores sinuosos, dormitórios saqueados e depósitos entulhados. Fileiras de barris oferecem esconderijos perfeitos para os inúmeros inimigos que tomaram este lugar. Como alguém vai encontrar o caminho certo, que dirá uma pequena forja que guarda um martelo encantado?
+#
+Prisão Nível 1 [29] = Esta câmara subterrânea é enorme, escura e fria. Instrumentos bárbaros de tortura estão à vista. Você se pergunta: o que as Irmãs faziam aqui embaixo? E onde estão os prisioneiros agora?
+#
+Prisão Nível 2 [30] = Seus passos arrancam ecos ocos das paredes. Quão grande é este lugar? As jaulas pelas quais você passou poderiam abrigar com facilidade a população de uma cidade pequena. E a prisão ainda desce mais.
+#
+Prisão Nível 3 [31] = Uma aura de desespero quase palpável satura este lugar. Aqui não há luz, nem esperança, apenas os restos em decomposição de prisioneiros mortos há muito tempo.
+#
+Claustro Interno [32] = Você suspira aliviado ao ver o céu aberto de novo. Chegou ao coração do Claustro. Adiante, você avista a torre imponente da Catedral do Olho Cego.
+#
+Catedral [33] = Nenhuma luz cálida de velas consegue disfarçar as cenas de brutalidade gratuita que atingiram esta casa de oração. Corpos, espalhados como brinquedos descartados sem cuidado, apodrecem onde caíram, e poças de sangue se formaram sobre o piso de mármore antes imaculado.
+#
+Catacumbas Nível 1 [34] = Entre os corredores ladeados por grandes esquifes que eternizam os mortos honrados das Irmãs, você se surpreende ao encontrar bibliotecas aconchegantes, salas de meditação e outros lugares de reflexão, agora completamente profanados pelas hordas saqueadoras de Andariel.
+#
+Catacumbas Nível 2 [35] = Este nível das catacumbas parece muito mais antigo que o de cima. Sumiram os lugares de introspecção, substituídos por paredes nuas e salas vazias para abrigar os mortos.
+#
+Catacumbas Nível 3 [36] = A poeira de séculos cobre todas as superfícies aqui, o que deixa ainda mais óbvio onde garras demoníacas perturbaram os mortos, que agora descarregam sua ira tanto sobre demônios quanto sobre intrusos.
+#
+Catacumbas Nível 4 [37] = A presença de Andariel retorceu a própria terra numa visão do inferno. Crescimentos ósseos irregulares e disformes perfuram o chão, deixando poços escancarados e encharcados de sangue em seu rastro. O ar se adensa com o fedor de enxofre e de algo ainda mais vil.
+#
+# Act II
+#
+Lut Gholein [40] = Assando sob o sol implacável do deserto fica Lut Gholein, uma pequena cidade portuária em torno de um mercado animado. Os constantes ataques de monstros forçaram os habitantes a se encolher dentro de casa. Apenas almas corajosas ou desesperadas ousam pôr os pés em suas ruas de pedra, quanto mais no Ermo Rochoso lá fora.
+#
+Esgoto Nível 1 [47] = No instante em que você desce aos esgotos, um fedor espesso o atinge com tanta força que fica preso na garganta. Isso vai muito além do cheiro familiar de lixo e dejetos. Uma doçura pesada e doentia se agarra ao ar, como se uma praga sobrenatural tivesse se infiltrado direto nos tijolos viscosos e nas grades enferrujadas que lutam para conter a sujeira da cidade.
+#
+Esgoto Nível 2 [48] = Seu olfato havia se rendido na metade do primeiro nível dos esgotos, então demorou um instante para você perceber que o fedor tinha mudado. Já não era só a mistura nauseante de lixo e toxinas ácidas a que você se acostumara. Agora o inconfundível cheiro de decomposição se misturava ao coquetel infernal. Cerrando os dentes, você segue em frente. Talvez, ao derrotar o monstro à espreita no fundo desta cisterna infernal, você enfim consiga purgar esta podridão.
+#
+Esgoto Nível 3 [49] = Esta certamente era a parte mais profunda dos esgotos. A antiga alvenaria cedia sob o peso dos séculos, e você estremeceu ao pensar no que poderia estar à espreita no líquido turvo visível através das grades enferrujadas e quebradas. Você amaldiçoou os tolos mortos há muito tempo que acharam que enterrar um mal antigo sob uma cidade viva era uma boa ideia.
+#
+Ermo Rochoso [41] = O deserto havia tomado muito mais do que as terras férteis ao redor de Lut Gholein. Ao ver dezenas de cadáveres ressecados amarrados a estacas, com os uniformes vermelho-vivo desbotados pelo sol e cobertos de areia e sangue seco, você percebeu que os ermos haviam cobrado um preço igualmente brutal do povo da cidade.
+#
+Tumba Pétrea Nível 1 [55] = Você suspira aliviado quando as sombras desta tumba semienterrada o abraçam, e os grossos blocos de arenito o protegem sem esforço do calor impiedoso lá fora. Só depois dos primeiros passos hesitantes por estes corredores ressoantes você percebe que não está sozinho. Longe disso. Esta tumba transborda de vigor profano, e seus ocupantes se arrastam em sua direção com um propósito sem mente.
+#
+Tumba Pétrea Nível 2 [59] = A grandeza desbotada da antiga nobreza permeia este nível da tumba. Até os mortos-vivos vestem trajes dignos de cortesãos e criados, uma zombaria vazia das vidas que tiveram. Você só pode esperar que se aprofundar tanto na Tumba Pétrea lhe renda ao menos uma fração da riqueza perdida.
+#
+Colinas Áridas [42] = Atravessar o deserto escaldante do Ermo Rochoso foi árduo, mas agora o terreno sobe em declive, tornando cada passo ainda mais difícil. Voltar atrás não é uma opção. Você precisa encontrar os Salões dos Mortos, escondidos entre estas colinas áridas infestadas de predadores famintos.
+#
+Salões dos Mortos Nível 1 [56] = Você não sabe bem o que é pior: o calor escaldante do deserto lá fora ou o ar úmido e gélido, que congela até os ossos, deste mausoléu abandonado por Deus. As poucas tochas ainda acesas, que crepitam, oferecem só uma iluminação escassa, e as sombras se contorcem com uma ameaça sem vida.
+#
+Salões dos Mortos Nível 2 [57] = A maré de horrores não cede. Você encontrou as escadas para os níveis mais profundos dos Salões, mas os mortos-vivos não param de vir, e seus gemidos famintos ecoam nas paredes pintadas e desbotadas e nas estátuas desmoronando.
+#
+Salões dos Mortos Nível 3 [60] = Você sente uma corrente arcana saturar o ar. O Cubo Horádrico tem que estar por aqui, escondido nas profundezas deste labirinto de pesadelos, talhado em pedra inflexível.
+#
+Oásis Longínquo [43] = Esta região do deserto fervilha de vida. Nascentes alimentam palmeiras exuberantes que dão sombra contra o sol, e criam enxames de insetos sugadores de sangue. Então algo laranja e do tamanho de um cavalo se mexe no mato.
+#
+Covil de Vermes Nível 1 [62] = Você espreme o corpo por um orifício estreito demais, só para acabar num labirinto claustrofóbico, coberto de gosma, de túneis emaranhados e cheios de insetos. A gosma pinga das paredes e coagula em camadas grossas que cobrem os túneis adjacentes.
+#
+Covil de Vermes Nível 2 [63] = Os túneis se estendem sem fim. A gosma penetra nas suas roupas e botas, transformando cada passo num pesadelo chapinhante. E mais fundo, nesta espiral enlouquecedora de passagens claustrofóbicas, aguarda a abominação que criou estes túneis.
+#
+Covil de Vermes Nível 3 [64] = Você penetrou na parte mais profunda da colmeia, e a resistência dos habitantes endurece de forma notável. Seja lá o que estiverem guardando, você vai encontrar e aniquilar.
+#
+Cidade Perdida [44] = As ruínas estripadas de casas antes pitorescas despontam da areia que as engoliu décadas atrás. Bandos de monstros selvagens perseguem você por vielas estreitas e vias desertas.
+#
+Túneis Ancestrais [65] = Sua curiosidade levou você ao que acreditava serem túneis secos e cheios de areia, mas, para seu desânimo, você tropeçou em outra cisterna imunda e encharcada de fedor, habitada por bandidos malcheirosos e mortos-vivos apodrecidos.
+#
+Vale das Cobras [45] = Estátuas serpentinas ladeiam a elaborada entrada de um templo, banhadas pela luz bruxuleante das tochas. O ar traz o cheiro de couro seco e você ouve o sibilo frenético das Víboras da Garra enfurecidas.
+#
+Templo da Víbora da Garra Nível 1 [58] = Você desce ao covil subterrâneo das Víboras da Garra, decidido a interromper de uma vez por todas o ritual indizível delas. Sibilando e cuspindo, os guardas correm para detê-lo!
+#
+Templo da Víbora da Garra Nível 2 [61] = Um altar profanado no coração do templo é a origem da escuridão sobrenatural que as Víboras da Garra lançaram sobre a terra.
+#
+Harém Nível 1 [50] = Você desce a um labirinto de câmaras luxuosamente decoradas. Fiapos de perfumes exóticos fazem cócegas no seu nariz, um contraste chocante com as tumbas e esgotos imundos que você deixou para trás. Sedas diáfanas jazem descartadas sem cuidado sobre os tapetes. Os cômodos são grandiosos, mas totalmente vazios. A súbita ausência de vida é ensurdecedora.
+#
+Harém Nível 2 [51] = O guarda decapitado ainda ajoelhado ao pé da escada não traz surpresa, apenas uma confirmação sombria. As legiões do Inferno chegaram aqui antes de você. E, vendo o sangue pegajoso e empoçado que pinta o chão, não deixaram sobreviventes.
+#
+Porão do Palácio Nível 1 [52] = O luxo saqueado do harém dá lugar a depósitos utilitários e adegas. Para sua surpresa, a maior parte das provisões continua intacta. As forças do Inferno claramente não se interessam por tâmaras, carne seca ou vinho envelhecido.
+#
+Porão do Palácio Nível 2 [53] = As adegas se estendem pela escuridão, aparentemente sem fim. A fartura de provisões guardada aqui poderia sustentar a cidade inteira por anos. Você se pergunta: será que Jerrin algum dia teria dividido essa fartura com seu povo faminto, ou a deixaria apodrecer no escuro?
+#
+Porão do Palácio Nível 3 [54] = O ar fica anormalmente frio à medida que você desce ao terceiro nível. O forte cheiro de vinho e carne seca é substituído por um frio estéril e metálico. O próprio espaço parece esticado aqui; uma vibração grave e zumbidora ecoa pelas pedras, atraindo você para o centro da câmara, onde as sombras parecem se deformar e ser puxadas para dentro.
+#
+Santuário Arcano [74] = A pedra sólida sob seus pés sumiu, substituída por uma substância lisa e terrivelmente fria, que ressoa como vidro oco a cada passo. Aqui não há paredes, só um vazio terrível e infinito. Quando você fala ou se move, seus sons não voltam em eco; eles caem num silêncio sem fundo que faz seus ouvidos estalarem, como se o salão se estendesse para sempre em todas as direções. O ar está completamente parado, mas carrega o leve zumbido estático de uma magia volátil.
+#
+Cânion dos Magi [46] = Você atravessa o portal e é atingido de imediato por uma muralha de calor brutal e sufocante. O silêncio estéril do vazio se estilhaça. O vento uivante do deserto bate nos seus ouvidos, trazendo o cheiro áspero e abrasivo de poeira assada pelo sol e de ozônio. Sob suas botas, o vidro ressoante sumiu, substituído pelo estalo pesado e rangente de areia grossa. O ar é espesso e pesado, pressionando sua pele como um peso físico depois da leveza do santuário. Você voltou ao mundo dos mortais, mas o deserto quer você morto.
+#
+Tumba de Tal Rasha [66] = Você encontrou a verdadeira tumba de Tal Rasha. Ela não é apenas um monumento ao antigo mago, mas uma prisão subterrânea para o Mal Supremo que ele escolheu aprisionar na própria carne. O ar está carregado do cheiro de poeira antiga, líquido de embalsamamento e do leve e amargo sabor da malícia de um demônio aprisionado.
+Tumba de Tal Rasha [67] = Você encontrou a verdadeira tumba de Tal Rasha. Ela não é apenas um monumento ao antigo mago, mas uma prisão subterrânea para o Mal Supremo que ele escolheu aprisionar na própria carne. O ar está carregado do cheiro de poeira antiga, líquido de embalsamamento e do leve e amargo sabor da malícia de um demônio aprisionado.
+Tumba de Tal Rasha [68] = Você encontrou a verdadeira tumba de Tal Rasha. Ela não é apenas um monumento ao antigo mago, mas uma prisão subterrânea para o Mal Supremo que ele escolheu aprisionar na própria carne. O ar está carregado do cheiro de poeira antiga, líquido de embalsamamento e do leve e amargo sabor da malícia de um demônio aprisionado.
+Tumba de Tal Rasha [69] = Você encontrou a verdadeira tumba de Tal Rasha. Ela não é apenas um monumento ao antigo mago, mas uma prisão subterrânea para o Mal Supremo que ele escolheu aprisionar na própria carne. O ar está carregado do cheiro de poeira antiga, líquido de embalsamamento e do leve e amargo sabor da malícia de um demônio aprisionado.
+Tumba de Tal Rasha [70] = Você encontrou a verdadeira tumba de Tal Rasha. Ela não é apenas um monumento ao antigo mago, mas uma prisão subterrânea para o Mal Supremo que ele escolheu aprisionar na própria carne. O ar está carregado do cheiro de poeira antiga, líquido de embalsamamento e do leve e amargo sabor da malícia de um demônio aprisionado.
+Tumba de Tal Rasha [71] = Você encontrou a verdadeira tumba de Tal Rasha. Ela não é apenas um monumento ao antigo mago, mas uma prisão subterrânea para o Mal Supremo que ele escolheu aprisionar na própria carne. O ar está carregado do cheiro de poeira antiga, líquido de embalsamamento e do leve e amargo sabor da malícia de um demônio aprisionado.
+Tumba de Tal Rasha [72] = Você encontrou a verdadeira tumba de Tal Rasha. Ela não é apenas um monumento ao antigo mago, mas uma prisão subterrânea para o Mal Supremo que ele escolheu aprisionar na própria carne. O ar está carregado do cheiro de poeira antiga, líquido de embalsamamento e do leve e amargo sabor da malícia de um demônio aprisionado.
+#
+Câmara de Tal Rasha [73] = Depois de derrotar Duriel, você finalmente tem um momento para observar o que o cerca. Esta parte da tumba é muito mais antiga que a já antiga alvenaria da entrada. A noroeste, você avista um arco quase invisível que leva ao local de descanso final de Tal Rasha. O que poderá aguardar lá dentro?
+#
+# Act III
+#
+Docas de Kurast [75] = Este antigo porto está prestes a ser devorado pelas exuberantes selvas Nahantu. Água salobra de pântano, espessa de algas, agita-se vagarosamente sob pontes de madeira frágeis que ligam várias ilhotas e cabanas de palha precárias. O calor é denso e opressivo, e a cada respiração parece que você inala um líquido nauseante.
+#
+Floresta Aracnídea [76] = O pouco de alívio que a brisa do mar nas docas oferecia some no instante em que você mergulha na selva quase impenetrável. Apenas pequenas faixas de terra transitável ladeiam um rio turvo, e você é imediatamente cercado pelos ferozes habitantes da floresta primitiva, tenham duas, quatro ou muitas patas.
+#
+Caverna Aracnídea [85] = As paredes deste buraco claustrofóbico no chão estão cobertas por grossas camadas de seda de aranha. Longe de lisas, você vê casulos grossos e bem enrolados nas paredes e no chão, alguns se contorcendo e se debatendo desesperadamente enquanto você passa de fininho.
+#
+Covil Aracnídeo [84] = Esta caverna é praticamente idêntica à outra espelunca infestada de aranhas, mas, enquanto você se esgueira por seus corredores abafados e cobertos de seda, seu coração dá um salto sempre que um casulo pelo qual passa se agita com violência. Será uma pobre vítima tentando se libertar? Ou um novo horror de oito patas à espera de ser expelido para este mundo?
+#
+Grande Charco [77] = O rio se divide e flui para uma planície alagadiça de canais estreitos e ilhas pantanosas. O pio estridente dos pássaros é um lembrete constante do perigo. Cada arbusto que farfalha, cada galho que estala, pode ser o prelúdio de mais um dilúvio de ataques frenéticos.
+#
+Selva dos Esfoladores [78] = Como se quisesse provar o quanto este lugar é errado, você continua notando as ruínas rasas de uma civilização caída despontando da folhagem sufocante, agora completamente tomadas pelos minúsculos e enlouquecidos Esfoladores que dão nome a este trecho da selva. Antigas fundações de pedra foram invadidas por cabanas de palha frágeis, e os dardos de zarabatana não param de chegar.
+#
+Fosso Pantanoso Nível 1 [86] = O pântano tomou este antigo templo com violência, inundando todas as passagens com lama até os tornozelos. Líquen espesso pende de arcos de pedra antes maravilhosos, e as tochas crepitam com um tom esverdeado e doentio, queimando os gases fétidos que os habitantes desta cavidade, ou o que sobrou deles, exalam.
+#
+Fosso Pantanoso Nível 2 [87] = O ar aqui embaixo é estagnado e fétido; você sente gosto de podridão e decomposição a cada respiração. As pedras estão escorregadias de um icor indizível, e cada tocha ainda acesa só aprofunda as sombras mais além, que fervilham de horrores assassinos. Você achava que era o caçador aqui, mas sua confiança diminui depressa.
+#
+Fosso Pantanoso Nível 3 [90] = A descida termina numa escuridão total e sufocante. A lama até os tornozelos dá lugar a um piso alagado, onde água gelada e parada bate nas suas canelas a cada passo. As paredes se estreitam num labirinto apertado e claustrofóbico de pedra desmoronando. Ao longe, um zumbido grave e sobrenatural rompe o silêncio, guiando você até um tênue brilho dourado refletido na água imunda. O tesouro está perto, mas também aquilo que espreita o recanto mais profundo deste poço.
+#
+Kurast Inferior [79] = Os arredores de Kurast estão só um pouco melhores que as docas. Para onde quer que você olhe, vê sinais de vidas interrompidas bruscamente: refeições pela metade cobertas de mofo, vasos e cestos tombados com o conteúdo espalhado sem cuidado e corpos deixados para apodrecer onde foram mortos.
+#
+Bazar de Kurast [80] = Os restos tomados pelo mato do distrito comercial de Kurast são um campo de batalha em mais de um sentido. O ataque da selva à civilização continua, com monstros ferozes e enxames de insetos marcando sua presença de forma comovente. Mas a própria sanidade está sob ataque, como mostram os bandos errantes de cultistas que uivam feito loucos.
+#
+Esgoto Nível 1 [92] = O som de água corrente recebe você ao entrar em mais um sistema de esgotos infestado de monstros. Comparado ao calor pantanoso e opressivo lá de fora, é quase agradável, não fosse o fedor horrendo que sobe dos muitos canais e poças.
+#
+Esgoto Nível 2 [93] = Você chegou à cisterna mais profunda dos esgotos. A água drenada há pouco ainda escorre pelas paredes viscosas, e cada passo descuidado perto da poça central é um convite ao desastre. De repente, um respingo violento rompe a quietude do gotejar. Algo enorme se agita na poça central: um corpo longo e sinuoso se ergue, com as escamas molhadas raspando na pedra. Ele sibila e vai direto para cima de você!
+#
+Templo Esquecido [97] = Um mar de velas e tochas ilumina este antigo lugar de culto, outrora majestoso. Ele foi totalmente profanado pelos asseclas enlouquecidos de Mefisto. Altares e espaços rituais se afogam em sangue.
+#
+Kurast Superior [81] = À medida que cabanas baixas e casas longas dão lugar a imponentes edifícios de pedra, o número de cultistas selvagens parece subir exponencialmente. Ao longe, você vê os imponentes templos de Travincal se erguerem acima do dossel da selva, mas o caminho até lá sem dúvida será guardado pelos adoradores desvairados de Mefisto.
+#
+Masmorra dos Esfoladores Nível 1 [88] = Há um toque de sal no ar quando você entra nesta antiga catacumba. Outras fragrâncias estranhas fazem cócegas no seu nariz, algumas notas herbais e o inconfundível sabor da morte. Ao avançar pelas câmaras e corredores da masmorra, você percebe que os Esfoladores a usam para mumificar seus mortos.
+#
+Masmorra dos Esfoladores Nível 2 [89] = A corrupção de Mefisto sujou completamente a terra, torcendo e deformando tudo o que toca. O que deveria jazer morto agora se agita, incluindo todos os Esfoladores falecidos que se ergueram para voltar a caçar.
+#
+Masmorra dos Esfoladores Nível 3 [91] = O nível mais profundo da masmorra é um labirinto angustiante de corredores sem saída, câmaras alagadas e armadilhas perversas, protegendo quaisquer rituais insanos que os loucos Feiticeiros dos Esfoladores realizam aqui embaixo.
+#
+Ádito Abandonado [95] = Um vento cortante assobia por frestas na alvenaria rachada. A maioria das tochas e velas que iluminaram outros templos de Kurast se apagou. E, ao contrário dos outros templos que você invadiu até agora, ninguém veio matá-lo de imediato. Com cuidado, você se esgueira mais fundo na ruína. Este silêncio sobrenatural certamente não vai durar muito.
+#
+Templo Arruinado [94] = Você se surpreende ao ver o ícone do Olho Cego estampado em estandartes e santuários neste templo. O que algumas Irmãs estão fazendo tão a leste? Conforme avança, você ouve uma mulher gritando e uivando por sangue. Qualquer que tenha sido a missão original dela, a loucura de Mefisto a reivindicou como a todos os outros.
+#
+Relicário Esquecido [96] = A selva está retomando este templo: grossas trepadeiras e raízes romperam enormes paredes de pedra, e famintos habitantes da selva fizeram deste lugar seu covil.
+#
+Passagem de Kurast [82] = Esta enorme ponte de pedra é uma façanha impressionante de engenharia; reta como uma flecha, cruza uma vasta extensão de águas de enchente que separa a cidade sagrada de Travincal da Kurast secular.
+#
+Ádito Arruinado [98] = Você quase sente o peso da água pressionar as paredes deste templo submerso. Pequenos filetes escorrem por cada imperfeição da pedra, e a água se acumula em poças rasas no chão. É só uma questão de tempo até que toda a força da enchente lá fora engula esta câmara afundada para sempre.
+#
+Relicário Abandonado [99] = Mesmo antes de os esgotos entupidos inundarem as partes baixas de Kurast, esta câmara esquecida já havia entrado em ruína. Não vai demorar até que a malha tomada pelo mato de raízes, trepadeiras e pedra rachada ceda, permitindo que o imenso corpo de água leve embora este templo antes sagrado e todos que espreitam em seu interior.
+#
+Travincal [83] = A austera grandeza de Travincal pega você desprevenido por apenas um segundo. A cidade sagrada dos Zakarum parece quase intocada pela corrupção de Mefisto. Mas então os cultistas uivantes avançam contra você com feitiços e aço, e a ilusão de paz se estilhaça.
+#
+Cárcere do Ódio Nível 1 [100] = O fedor de sangue, tragicamente familiar, atinge você como um punho de cobre ao descer para a antiga prisão de Mefisto. Nada em sua árdua jornada poderia ter preparado você para o volume imenso de líquido carmesim que escorre das paredes e ferve em amplas poças.
+#
+Cárcere do Ódio Nível 2 [101] = À medida que você avança, devagar, para o coração da corrupção de Mefisto, o puro ódio que emana de cada laje, de cada pilar, de cada poça borbulhante de sangue assalta sua sanidade.
+#
+Cárcere do Ódio Nível 3 [102] = Um fosso borbulhante de sangue contorcido divide esta enorme câmara, atravessado apenas por uma sombria ponte de osso e pedra. No outro extremo, flutuando sobre uma praça profanada de crânios, paira o portal para o Inferno. Como uma lágrima sangrando no tecido da realidade, seu zumbido sinistro desafia toda a razão.
+#
+# Act IV
+#
+A Fortaleza Pandemônio [103] = Você atravessa o portal e cambaleia para um salão sombrio, talhado em pedra cinza-ardósia e metais para os quais nenhum mortal tem nome. As únicas fontes de calor são uma lareira rugindo e várias grandes tigelas de fogo. Sem elas, a Fortaleza Pandemônio seria tão inóspita quanto os ermos de cinzas lá fora.
+#
+Estepes Externas [104] = Uma vasta planície coberta de fina cinza cinzenta se estende até o horizonte. Torres e arcos quebrados, envoltos em enormes correntes, são a única coisa que quebra a monotonia entorpecedora, enquanto almas perdidas estão acorrentadas a rochas e a tocos de pilares quebrados. De vez em quando, uma fenda no chão expele vapores sulfúricos.
+#
+Planície do Desespero [105] = As mudanças na paisagem são muito graduais: o chão sobe e desce em padrões geométricos rígidos, como degraus, e os arcos espalhados ao acaso são substituídos pelo que parecem ruínas de construções titânicas. O que permanece igual é a opressiva sensação de miséria eterna e imutável que permeia cada centímetro desta planície.
+#
+Cidade dos Condenados [106] = Nada resta da cidade além das fundações decapitadas de prédios rigidamente alinhados. Você se pergunta: quem construiu estas estruturas e com que fim? Quem seria louco o bastante para tentar se estabelecer neste ermo abandonado por Deus?
+#
+Rio de Chamas [107] = Esta deve ser a visão mais pura do Inferno que você encontrou até agora. Pedaços quebrados de obsidiana formam ilhas traiçoeiras que nadam num oceano de lava. Enormes bolas de fogo sobem da matéria derretida que cerca você. O calor é desumano e ameaça assar você vivo dentro da armadura. E, mesmo assim, sua vontade prevalece. Você segue em frente. Diablo precisa ser detido!
+#
+Hellforge = Duas armaduras gigantescas guardam esta antiga forja. É o único lugar conhecido em toda a criação com poder suficiente para estilhaçar uma Pedra das Almas.
+#
+O Santuário do Caos [108] = O covil de Diablo é como uma zombaria retorcida, em forma de cruz, de uma grande catedral no coração do Inferno. Pilhas de crânios foram empilhadas perto de cada parede e pilar, os arcos estão enegrecidos e deformados e, no centro de tudo, cercado por cinco selos profanos, fica um enorme pentagrama.
+#
+# Act V - Lord Of Destruction
+#
+Harrogath [109] = O ar frio e cortante da montanha acalma sua alma depois da provação que você acabou de enfrentar. Harrogath é uma impressionante cidade-fortaleza, com casas de pedra robustas de telhados cobertos de neve que prometem calor e segurança. Mesmo atrás de suas muralhas maciças, você ouve o estrondo da batalha. A guerra contra Baal está mais perto do que você pensa.
+#
+Colinas Sangrentas [110] = A poucos passos das muralhas fortificadas de Harrogath, o caos brutal da guerra atinge você. Trincheiras cavadas às pressas marcam a terra cheia de cicatrizes enquanto catapultas despejam mísseis mágicos explosivos sobre amigos e inimigos igualmente, e bárbaros intrépidos travam uma desesperada ação de retaguarda para deter as hordas implacáveis de Baal.
+#
+Terras Altas Gélidas [111] = Esta terra de ninguém congelada é um labirinto mortal de antigas fortificações de pedra, reaproveitadas e reparadas pelas hordas de Baal. Muros e barricadas em ruínas cortam a paisagem gelada, criando esquinas cegas e becos sem saída, onde bandos de monstros esperam para emboscar você das sombras.
+#
+Platô de Arreat [112] = As Terras Altas Gélidas dão lugar a uma extensa tundra alpina varrida pelo vento, antes intocada e agora profundamente marcada pela guerra. O ar cortante da montanha está sufocado pelo fedor sulfuroso do Inferno. Pelas extensões rochosas, salpicadas de neve, portais demoníacos rasgam a terra congelada, e Diabretes tagarelas ergueram choupanas grosseiras e em chamas, infestando a terra em bandos saqueadores.
+#
+Fosso de Aqueron [126] = Os céus abertos desaparecem, substituídos pelos corredores opressivos de uma oficina de cerco infernal. Pesadas paredes de obsidiana negra como piche e osso chamuscado formam um labirinto claustrofóbico sobre lagos de fogo. Carroças de cerco de ferro chamuscado e enormes catapultas assam no calor intenso, irradiando um calor escaldante que torna perigosa ao toque qualquer superfície metálica.
+#
+Abadom [125] = Atravessar o portal mergulha você num campo de reunião subterrâneo dos exércitos do Inferno. Corredores apertados de pedra vulcânica e jaulas de ferro escuro formam quartéis infernais à deriva num oceano de lava. O ar escaldante ecoa com o pesado tinir de armaduras e o guincho enlouquecido de coortes demoníacas à espera de sua marcha para a montanha.
+#
+Passagem Cristalina [113] = O ar fresco e cortante foi um companheiro constante na sua subida ao Monte Arreat. Mas, no momento em que você entra nesta caverna, o frio finca os dentes em cada centímetro de pele exposta. A luz esparsa das tochas se refrata nas paredes e pisos cobertos de gelo. Todo som ecoa alto demais para o conforto, alertando qualquer predador ao alcance do ouvido de que você está ali.
+#
+Rio Congelado [114] = Tão fundo nas cavernas, ficar parado é uma sentença de morte. Seu corpo, gelado até os ossos, treme sem controle enquanto você coloca um pé diante do outro, sempre muito atento ao líquido turvo que borbulha bem ao lado das estreitas passarelas geladas por onde você luta.
+#
+Trilha Glacial [115] = Estas cavernas geladas parecem não ter fim. Paredes incrustadas de gelo a perder de vista. Cadáveres congelados jazem espalhados sem cuidado e horrores demoníacos estão em marcha.
+#
+Templo de Nilatak [121] = Uma profunda sensação de estranheza envolve você ao sair do portal que leva ao refúgio escondido do traidor. Você chega a um pátio de pedra frio e fechado. Adiante está a austera fachada de pedra do templo, escondendo um terrível segredo. O chão congelado ao seu redor está inquietantemente silencioso, coberto de cadáveres imóveis e insepultos.
+#
+Salões da Angústia [122] = Você entra no sagrado cemitério dos Bárbaros e fica impressionado com o tamanho desta câmara. As paredes são uma curiosa mistura de superfícies de pedra bruta e pilares lindamente esculpidos. Amplas passagens somem no crepúsculo fraco e estranhos aromas herbais enchem o ar. É óbvio que este lugar já foi usado para o culto aos ancestrais, mas agora está totalmente profanado.
+#
+Salões da Dor [123] = Descendo mais fundo, o silêncio sagrado das tumbas dá lugar a um peso sufocante. O ar aqui é visivelmente mais quente, espesso com o gosto metálico de sangue fresco e os fracos lamentos ecoantes dos condenados. Embora os pilares de pedra continuem os mesmos, as amplas passagens parecem mais apertadas, sufocadas por uma presença agressiva e tagarela à espreita no escuro. A profanação aqui já não é antiga: está acontecendo agora mesmo.
+#
+Salões de Vaught [124] = Você chegou ao coração podre do refúgio do traidor, de pé no centro de uma grande cruz de quatro pontas, com um longo corredor se estendendo em cada direção cardeal. No fim de um desses braços sombrios, o traidor desgraçado aguarda seu julgamento!
+#
+Caverna do Errante [116] = Sua respiração sai em rápidas baforadas brancas enquanto você abaixa as armas depois da primeira emboscada. O frio cortante se acumula como geada na sua armadura, e o pouco de luz que as poucas tochas dão brilha nas antigas paredes incrustadas de gelo. Sob a crosta congelada do piso, o rugido profundo e oco de cursos de água subglaciais ecoa pela escuridão, transformando a caverna numa precária teia de pontes de gelo.
+#
+Tundra Congelada [117] = Depois de se arrastar por túneis congelados e apertados durante o que pareceram horas, a súbita vastidão da Tundra Congelada atinge você com uma força sobrenatural. A neve fresca não consegue cobrir a brutalidade que os exércitos de Baal infligiram ao sagrado Monte Arreat e seu povo. Você range os dentes e se prepara para tomar de assalto as fortificações espalhadas que a horda demoníaca tomou para si.
+#
+Fosso Infernal [127] = Estas ilhas de obsidiana flutuando num mar infinito de lava são uma espécie de centro de comando infernal. Chefes-lesma rugindo chicoteiam seus subordinados até um frenesi espumante de sangue. Dizimar estes feitores infernais certamente abrirá uma brecha nos planos de invasão de Baal.
+#
+Caminho dos Ancestrais [118] = O cume não deve estar longe. Mais uma vez, você entra num sistema de túneis cavernosos, com paredes e piso cobertos de gelo cintilante. Faz frio, sim, mas há algo mais, um zumbido quase imperceptível de magia mal contida. Seja o que for que esteja adiante, certamente é uma fonte de poder tremendo.
+#
+Porão Gélido [119] = Ao mergulhar em mais uma fenda gelada e sem fundo, hordas intermináveis de yetis, mortos-vivos e demônios atacam você. Que riquezas devem estar guardando!
+#
+Cume de Arreat [120] = O céu vasto e infinito cerca você ao emergir no cume. Adiante surge a estranho e alienígena forte da Pedra do Mundo, com uma arquitetura primordial diferente de tudo o que você viu em suas longas viagens. Três estátuas imponentes que representam os lendários Ancestrais Talic, Korlic e Madawc cercam o que claramente é uma arena ritualística. Para entrar no Forte, você terá que provar seu valor a estes Ancestrais!
+#
+Forte da Pedra do Mundo Nível 1 [128] = Agora que está dentro de seu salão sagrado, fica dolorosamente óbvio que nenhuma mão mortal construiu este forte. Na verdade, ele parece mais cultivado do que construído, com pilares titânicos moldados de peças únicas de pedra e nenhuma fresta visível onde as pedras foram unidas.
+#
+Forte da Pedra do Mundo Nível 2 [129] = Os sinais da incursão de Baal são visíveis por toda parte. Não há corredor sem Bárbaros brutalmente profanados, sacrificados em rituais horríveis, nem câmara sem sinais de presença demoníaca. E, impregnando o ar, o batimento pulsante de alguma enorme fonte de poder.
+#
+Forte da Pedra do Mundo Nível 3 [130] = Formações de cristal irregulares irrompem do chão, pulsando com um fogo inato. A risada provocadora de Baal é acompanhada por ataques cada vez mais brutais de seus lacaios demoníacos.
+#
+Trono da Destruição [131] = O estranho brilho de fogo que você viu antes nas formações de cristal agora impregna todas as superfícies, e você sente a Pedra do Mundo pulsar através das solas das botas. A presença de Baal paira no ar como um fedor nauseante.
+#
+Câmara da Pedra do Mundo [132] = A magia indomada da Pedra do Mundo rasteja pela sua pele ao entrar nesta vasta câmara. A nordeste, do tamanho de um pequeno forte, está a própria Pedra do Mundo, um glorioso cristal vermelho. Você nota tentáculos escuros e oleosos serpenteando por suas facetas naturais, sinal claro da corrupção de Baal.
+#
+O Nível Secreto da Vaca [39] = Este pasto amplo e aberto é o reino do esquivo e temido Rei Vaca e de sua corte bovina. O ar é perfumado e fresco, e a luz quente do sol acaricia sua pele. E, mesmo assim, algo está muito errado aqui.
+#
+Covil da Matriarca [133] = A influência do Inferno deformou esta área a ponto de torná-la irreconhecível.
+#
+Areias Esquecidas [134] = A influência do Inferno deformou esta área a ponto de torná-la irreconhecível.
+#
+Fornalha da Dor [135] = A influência do Inferno deformou esta área a ponto de torná-la irreconhecível.
+#
+Tristram [136] = A influência do Inferno deformou esta área a ponto de torná-la irreconhecível.
+#
+Cume Colossal [137] = A influência do Inferno deformou esta área a ponto de torná-la irreconhecível.

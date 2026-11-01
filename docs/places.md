@@ -315,7 +315,7 @@ Other layouts were not measured this way; no other report places an interior wro
 **The Hellforge** (a tester): feature `Hellforge`, the River of Flame's `SoulStoneForge` object in
 `act4/lava/forgee.ds1` and `forgew.ds1`, named with the game's own word (objects.json "Hellforge").
 The first time it comes into reach its words are said instead, as the Hangman's Tree's
-(`hellforgeDescription`, translated; also in `data/descriptions.txt`). Not a tracker entry: the
+(since 2026-11-01 in `data/descriptions/<locale>.txt` only, [descriptions](descriptions.md)). Not a tracker entry: the
 object itself is already listed.
 
 **The pentagram** (a tester): feature `Pentagram`, a tracker entry like the cliff stairs, at the

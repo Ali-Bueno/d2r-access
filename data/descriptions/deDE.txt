@@ -1,0 +1,284 @@
+# D2R Access: the area and landmark descriptions in German, translated from enUS.txt.
+# A line missing here is said in English. Format and rules: enUS.txt, docs/descriptions.md
+#
+# Act I
+#
+Lager der Jägerinnen [1] = Dieses Lager ist eine baufällige Ansammlung von Zelten und Wagen, die kaum Schutz vor den Elementen bietet. Nur wenige Schwestern des Blinden Auges konnten aus dem verlorenen Kloster hierher fliehen und müssen diesen trostlosen Ort nun mit Kühen und Hühnern teilen.
+#
+Hangman's Tree = Ein hoher, verdorrter Baum steht mitten auf dem Friedhof, an seinen Ästen baumeln verwesende Leichen, während die Toten darunter umherschlurfen.
+#
+Blutmoor [2] = Dieses sumpfige Ödland ist ein weites, offenes Gelände mit niedrigen Büschen und verkrüppelten Bäumen. Einst waren wilde Stachelratten die einzige Gefahr, jetzt sind Untote und Rudel von Gefallenen eine ernste Bedrohung für jeden Narren, der die Sicherheit des Lagers der Jägerinnen verlässt.
+#
+Höhle des Bösen [8] = Akara hatte recht, dich an diesen düsteren Ort zu schicken. Schon vom Eingang aus hörst du das unablässige Schnattern unzähliger Monster, die sich darauf vorbereiten, das Lager der Jägerinnen zu plündern. Doch hier lauert noch etwas anderes. Der Gestank des Todes, oder des Untodes, hängt schwer in der Luft.
+#
+Friedhof [17] = Dieser vergessene Friedhof ist zerfallen, seine kleinen Grüfte und der kunstvolle schmiedeeiserne Zaun bröckeln und rosten. Die Toten haben sich erhoben und schlurfen unter einem grotesken Henkersbaum umher, bereit, ahnungslose Besucher in Stücke zu reißen.
+#
+Mausoleum [19] = Diese düstere Katakombe ist voller Überreste namenloser Toter, vergessener Reichtümer und grausamer Untoter. Schatzsucher, nimm dich in Acht!
+#
+Krypta [18] = Kein Licht dringt in die Schatten dieser Gruft, außer den Flammen, die die brennenden Leichen früherer Jägerinnen verzehren. Vielleicht gibt es Schätze, aber ganz sicher warten hier gierige Schrecken darauf, unvorsichtige Eindringlinge zu zerfetzen.
+#
+Kalte Ebene [3] = Die verlassenen Katen dieser Gegend erzählen von einer einfacheren Zeit, von Ackerbau und Viehzucht. Nun hat Diablos Armee diese Felder an sich gerissen, und sie wimmeln von dämonischen Jägerinnen, Untoten und Gefallenen.
+#
+Grotte, Ebene 1 [9] = Seit Ewigkeiten hat niemand dieses verlassene Loch im Boden betreten. Wer weiß, welche Schrecken dort Wurzeln geschlagen haben?
+#
+Grotte, Ebene 2 [13] = Nie hat Sonnenlicht diesen Teil der Höhle berührt. Du fragst dich: Wer hält die Fackeln am Brennen?
+#
+Feld der Steine [4] = Die Zuflucht birgt viele Orte der Macht. In diesem felsübersäten Ödland steht ein uralter Steinkreis. Niemand weiß genau, was er einst bedeutete oder welche heidnischen Rituale hier abgehalten wurden.
+#
+Tristram [38] = Von Tristram ist nur ein trauriger Haufen brennender Ruinen übrig, überflutet von Monstern in Diablos Gefolge.
+#
+Unterirdischer Durchgang, Ebene 1 [10] = Beim Eintreten wird dir die Größe dieses weitläufigen, labyrinthartigen Höhlensystems bewusst, dessen zahlreiche Sackgassen und gewundene Gänge vor ruhelosen Schrecken wimmeln. Es gibt keine Garantie, dass du lebend hindurchkommst.
+#
+Unterirdischer Durchgang, Ebene 2 [14] = Die Luft in diesem Teil der Höhle ist klamm und abgestanden. Du bist sicher, dass es hier keine Verbindung zur Oberfläche gibt, nur weitere ruhelose Monster, die es auf dein Fleisch abgesehen haben.
+#
+Dunkelwald [5] = Diese lockere Ansammlung jämmerlicher Bäume einen Wald zu nennen, wäre großzügig. Und doch wimmelt sie von dämonischem Leben. Irgendwo in ihrer Mitte steht der schwer fassbare Inifussbaum und wartet darauf, wiederentdeckt zu werden.
+#
+Loch, Ebene 1 [11] = Die Gegend um Tristram ist durchlöchert von diesen dunklen, unergründlichen Höhlen. Wonach haben die Bergleute von Kanduras gegraben? Und, noch wichtiger, was haben sie geweckt, als sie es fanden?
+#
+Loch, Ebene 2 [15] = Wie tief reicht dieses Loch eigentlich? Du hoffst, dass hier unten mehr ist als nur beunruhigende Felsformationen, flackernde Fackeln und weitere Monster.
+#
+Grube, Ebene 1 [12] = Unförmige Steinwände scheinen sich von allen Seiten auf dich zu schieben, während du dich vorsichtig tiefer in dieses lichtverlassene Labyrinth vorwagst.
+#
+Grube, Ebene 2 [16] = Du bist dir der unzähligen Tonnen Fels, weniger als eine Armlänge über deinem Kopf, überdeutlich bewusst. Ein Beben oder eine unbeabsichtigte Explosion würde genügen, um dich hier unten lebendig zu begraben, für immer eingeschlossen mit den Schrecken, die diese lichtlose Grube ihr Zuhause nennen.
+#
+Schwarzmoor [6] = Beißende Windstöße streicheln dein Gesicht wie die körperlose Berührung eines Geistes. In der Ferne ragt der zerfallene Stumpf eines eingestürzten Turms auf und lockt dich, so wie er all die unschuldigen Mädchen lockte, die die Gräfin ins Verderben führte.
+#
+Vergessener Turm [20] = Der gierige Mob, der nach dem Tod der Gräfin brüllte, hat diesen Keller blank geräumt. Nur ein paar eingetretene Fässer sind in der Südostecke übrig. Als du dich umsiehst, bemerkst du ein klaffendes Loch in der Nordwestwand. Es sieht sehr frisch aus. Und so, wie die groben Feldsteinbrocken gefallen sind, erkennst du, dass jemand, oder etwas, aus den darunter verborgenen Verliesen ausgebrochen ist.
+#
+Turmkeller, Ebene 1 [21] = Als du in die tieferen Kellerebenen vordringst, greift der metallische Gestank von Blut deine Nase an. Beim Blick nach unten siehst du deinen Fuß in einer Pfütze von etwas, das wie frisch vergossenes Blut aussieht. Wie ist das überhaupt möglich? Wenn die elende Ruine darüber ein Hinweis ist, muss die Gräfin vor Jahrhunderten gestorben sein.
+#
+Turmkeller, Ebene 2 [22] = Du steigst tiefer in das Labyrinth der Gräfin hinab. Grässliche Flüssigkeit tropft von unebenen Wänden, und Kerzenlicht glitzert auf purpurroten Lachen und in den Augen der Abscheulichkeiten, die darauf warten, dich zu zerfetzen.
+#
+Turmkeller, Ebene 3 [23] = Während du deinen müden, schmerzenden Körper immer tiefer in diesen Albtraum schleppst, wecken deine Schritte hohle Echos auf verblassten Marmorplatten im Boden. Als wäre der sich stetig verschlimmernde Blutgestank nicht schlimm genug, gehst du an den brennenden Leichen toter Jägerinnen vorbei, und der erstickende Geruch verbrannten Fleisches macht es noch schwerer, genug Atem zum Schreien zu finden.
+#
+Turmkeller, Ebene 4 [24] = Du kannst kaum atmen. Du schmeckst Blut auf deinen Lippen. Ist es dein eigenes? Oder die Eingeweide des letzten Ziegenmenschen, den du ausgeweidet hast, um zu einem weiteren Gewirr aus bröckelnden Hallen und brennenden Gängen zu gelangen, erfüllt vom hohlen Lachen geisterhafter Verfolger?
+#
+Turmkeller, Ebene 5 [25] = Plötzlich öffnen sich die Gänge und spucken dich in eine bizarre Kakophonie aus Luxus und Gräuel aus. Voraus erspähst du ein obszönes vergoldetes Becken, das von stillem Blut überläuft. Riesige Fackeln lassen die doppelte Reihe von Säulen, die das Bad der Gräfin einrahmen, wahnsinnig tanzende Schatten werfen, die sich im Takt ihres höhnischen Lachens winden.
+#
+Tamohochland [7] = Die gewaltigen Mauern des Klosters vom Blinden Auge ragen über das windgepeitschte Hochland. Sie wirken uneinnehmbar und lassen dich zittern bei dem Gedanken an die Armee, die sie erobert und die Schwestern mit verächtlicher Leichtigkeit vertrieben hat. Dann trifft dich eine kältere Erkenntnis: Jetzt bist du derjenige, der dieses befestigte Gotteshaus stürmen soll.
+#
+Klosterpforte [26] = Überall sind Spuren des Kampfes, während du vorsichtig die strengen Säulengänge der Klosterpforte betrittst. Zerbrochene Waffen, umgestürzte Kerzenständer und purpurrote Spuren erzählen eine grausige Geschichte.
+#
+Äußeres Kloster [27] = Du erreichst einen prachtvollen Innenhof, dessen Schönheit durch die allgegenwärtigen Zeichen des Kampfes kaum entstellt wird. In seiner Mitte steht ein herrlicher Brunnen, der drei Jägerinnen Rücken an Rücken zeigt, die mit gezückten Waffen unsichtbare Feinde in Schach halten.
+#
+Kaserne [28] = Nach der ruhigen Pracht des Innenhofs ist die Kaserne ein chaotisches Labyrinth aus verwinkelten Gängen, geplünderten Schlafsälen und vollgestellten Lagerräumen. Reihen von Fässern bieten perfekte Verstecke für die zahlreichen Feinde, die diesen Ort in Besitz genommen haben. Wie soll jemand den richtigen Weg finden, geschweige denn eine kleine Schmiede mit einem verzauberten Hammer?
+#
+Gefängnis, Ebene 1 [29] = Dieses unterirdische Gewölbe ist riesig, dunkel und kalt. Barbarische Folterwerkzeuge liegen offen da. Du fragst dich: Was haben die Schwestern hier unten getan? Und wo sind die Gefangenen jetzt?
+#
+Gefängnis, Ebene 2 [30] = Deine Schritte werfen hohle Echos von den Wänden. Wie groß ist dieser Ort? Die Käfige, an denen du vorbeigegangen bist, könnten mühelos die Bevölkerung einer Kleinstadt fassen. Und das Gefängnis führt noch tiefer.
+#
+Gefängnis, Ebene 3 [31] = Eine fast greifbare Aura der Verzweiflung durchdringt diesen Ort. Hier gibt es kein Licht, keine Hoffnung, nur die verwesenden Überreste längst toter Gefangener.
+#
+Inneres Kloster [32] = Du atmest erleichtert auf, als du wieder den offenen Himmel erblickst. Du hast das Herz des Klosters erreicht. Voraus erspähst du den aufragenden Turm der Kathedrale vom Blinden Auge.
+#
+Kathedrale [33] = Kein warmes Kerzenlicht kann die Szenen mutwilliger Brutalität verbergen, die diesem Gotteshaus zugefügt wurden. Tote Körper, wie achtlos weggeworfenes Spielzeug verstreut, verrotten dort, wo sie gefallen sind, und auf dem einst makellosen Marmorboden haben sich Blutlachen gebildet.
+#
+Katakomben, Ebene 1 [34] = Zwischen den Gängen, die von prächtigen Sarkophagen gesäumt sind, die die geehrten Toten der Schwestern verewigen, findest du überrascht gemütliche Bibliotheken, Meditationskammern und andere Orte der Besinnung, jetzt völlig entweiht von Andariels plündernden Horden.
+#
+Katakomben, Ebene 2 [35] = Diese Ebene der Katakomben wirkt viel älter als die darüber. Die Orte der Einkehr sind verschwunden, ersetzt durch kahle Wände und leere Räume für die Toten.
+#
+Katakomben, Ebene 3 [36] = Der Staub von Jahrhunderten bedeckt hier jede Oberfläche, was noch deutlicher macht, wo dämonische Klauen die Toten gestört haben, die ihren Zorn nun an Dämonen und Eindringlingen gleichermaßen auslassen.
+#
+Katakomben, Ebene 4 [37] = Andariels Gegenwart hat das Land selbst zu einem Abbild der Hölle verdreht. Gezackte, missgebildete Knochenwucherungen durchbohren die Erde und hinterlassen klaffende, blutgetränkte Gruben. Die Luft verdichtet sich vom Gestank nach Schwefel und etwas noch Abscheulicherem.
+#
+# Act II
+#
+Lut Gholein [40] = Unter der unbarmherzigen Wüstensonne brütet Lut Gholein, eine kleine Hafenstadt rund um einen lebhaften Markt. Ständige Monsterangriffe haben die Bewohner gezwungen, sich in ihren Häusern zu verkriechen. Nur Mutige oder Verzweifelte wagen sich auf die Kopfsteinpflasterstraßen, geschweige denn in die Felsige Öde draußen.
+#
+Kanalisation, Ebene 1 [47] = In dem Moment, in dem du in die Kanalisation hinabsteigst, trifft dich ein dicker Gestank so heftig, dass er dir im Hals stecken bleibt. Das geht weit über die vertraute Fäulnis von Müll und Unrat hinaus. Eine schwere, kränkliche Süße hängt in der Luft, als wäre eine widernatürliche Seuche direkt in die schleimigen Ziegel und die rostigen Gitter eingesickert, die den Schmutz der Stadt kaum zurückhalten.
+#
+Kanalisation, Ebene 2 [48] = Dein Geruchssinn hatte auf halbem Weg durch die erste Ebene der Kanalisation kapituliert, und so dauerte es einen Moment, bis du merktest, dass sich der Gestank verändert hatte. Es war nicht mehr nur die magenumdrehende Mischung aus Unrat und säurehaltigen Giften, an die du dich gewöhnt hattest. Jetzt mischte sich der unverkennbare Geruch von Verwesung in den höllischen Cocktail. Mit zusammengebissenen Zähnen gehst du weiter. Vielleicht kannst du, wenn du das Monster besiegst, das am Grund dieser höllischen Zisterne lauert, endlich diese Fäulnis tilgen.
+#
+Kanalisation, Ebene 3 [49] = Dies war sicher der tiefste Teil der Kanalisation. Das uralte Mauerwerk gab unter dem Gewicht der Jahrhunderte nach, und du schaudertest bei dem Gedanken, was in der trüben Flüssigkeit lauern mochte, die durch die rostigen, zerbrochenen Gitter zu sehen war. Du verfluchtest die längst toten Narren, die es für eine gute Idee gehalten hatten, ein uraltes Übel unter einer lebendigen Stadt zu begraben.
+#
+Felsige Öde [41] = Die Wüste hatte weit mehr an sich gerissen als nur das fruchtbare Land rund um Lut Gholein. Beim Anblick Dutzender ausgedörrter Leichen, die an Pfähle gebunden waren, deren leuchtend rote Uniformen sonnengebleicht und von Sand und getrocknetem Blut verkrustet waren, erkanntest du, dass die Öde von den Menschen der Stadt einen ebenso brutalen Tribut gefordert hatte.
+#
+Steingrab, Ebene 1 [55] = Du atmest erleichtert auf, als die Schatten dieser halb versunkenen Gruft dich umfangen und die dicken Sandsteinblöcke dich mühelos vor der gnadenlosen Hitze draußen schützen. Erst nach deinen ersten zögernden Schritten durch diese hallenden Gänge erkennst du, dass du nicht allein bist. Ganz und gar nicht. Diese Gruft strotzt vor unheiliger Kraft, und ihre Bewohner schlurfen mit sinnlosem Zweck auf dich zu.
+#
+Steingrab, Ebene 2 [59] = Die verblasste Pracht des alten Adels durchdringt diese Ebene der Gruft. Selbst die Untoten tragen Gewänder, wie sie Höflingen und Dienern gebühren, ein hohler Hohn auf ihr früheres Leben. Du kannst nur hoffen, dass dich das tiefe Eindringen in das Steingrab zumindest mit einem Bruchteil ihres verlorenen Reichtums belohnt.
+#
+Verdorrte Hügel [42] = Das Durchqueren der brennenden Wüste der Felsigen Öde war mühsam, doch jetzt steigt das Land an, und jeder Schritt vorwärts wird noch schwerer. Umkehren ist keine Option. Du musst die Hallen der Toten finden, die zwischen diesen trockenen Hügeln versteckt sind, die von hungrigen Raubtieren verseucht sind.
+#
+Hallen der Toten, Ebene 1 [56] = Du bist dir nicht sicher, was schlimmer ist: die sengende Hitze der Wüste draußen oder die klamme, knochenkalte Luft dieses gottverlassenen Mausoleums. Die wenigen noch brennenden, flackernden Fackeln spenden nur spärliches Licht, und die Schatten winden sich vor lebloser Bedrohung.
+#
+Hallen der Toten, Ebene 2 [57] = Die Flut der Schrecken lässt nicht nach. Du hast die Stufen in die tieferen Ebenen der Hallen gefunden, doch die Untoten kommen unablässig weiter, ihr hungriges Stöhnen hallt von den verblassten bemalten Wänden und den bröckelnden Statuen wider.
+#
+Hallen der Toten, Ebene 3 [60] = Du spürst, wie ein arkaner Strom die Luft durchdringt. Der Horadrimwürfel muss hier irgendwo sein, tief verborgen in diesem albtraumerfüllten Labyrinth, das aus unnachgiebigem Stein gehauen wurde.
+#
+Ferne Oase [43] = Dieses Wüstengebiet wimmelt von Leben. Quellen speisen üppige Palmen, die Schatten vor der Sonne spenden, und brüten Schwärme blutsaugender Insekten aus. Dann regt sich etwas Orangefarbenes von der Größe eines Pferdes im Gestrüpp.
+#
+Wurmgruft, Ebene 1 [62] = Du zwängst deinen Körper durch eine viel zu enge Öffnung, nur um in einem schleimbedeckten, klaustrophobischen Gewirr aus verschlungenen, von Käfern wimmelnden Tunneln zu landen. Schleim tropft von den Wänden und gerinnt zu dicken Schichten, die die angrenzenden Tunnel bedecken.
+#
+Wurmgruft, Ebene 2 [63] = Die Tunnel scheinen endlos. Schleim sickert in deine Kleidung und Stiefel und macht jeden Schritt zu einem schmatzenden Albtraum. Und tiefer in diesem wahnsinnig machenden Gewirr klaustrophobischer Gänge wartet die Abscheulichkeit, die diese Tunnel geschaffen hat.
+#
+Wurmgruft, Ebene 3 [64] = Du bist in den tiefsten Teil des Stocks eingedrungen, und der Widerstand der Bewohner verhärtet sich spürbar. Was auch immer sie bewachen, du wirst es finden und vernichten.
+#
+Vergessene Stadt [44] = Die ausgeweideten Ruinen einst malerischer Häuser ragen aus dem Sand, der sie vor Jahrzehnten verschluckt hat. Banden wilder Monster stellen dir in engen Gassen und verlassenen Straßen nach.
+#
+Alte Tunnels [65] = Deine Neugier führte dich in das, was du für ausgetrocknete, sandgefüllte Tunnel hieltest, doch zu deinem Entsetzen bist du in eine weitere verkommene, stinkgetränkte Zisterne gestolpert, die von stinkenden Banditen und verwesenden Untoten bewohnt wird.
+#
+Tal der Schlangen [45] = Schlangenförmige Statuen flankieren den kunstvollen Eingang eines Tempels, der in flackerndes Fackellicht getaucht ist. Die Luft trägt den Geruch getrockneten Leders, und du hörst das rasende Zischen wütender Klauenvipern.
+#
+Tempel der Klauenvipern, Ebene 1 [58] = Du steigst in den unterirdischen Bau der Klauenvipern hinab, entschlossen, ihr unaussprechliches Ritual ein für alle Mal zu stören. Zischend und spuckend eilen Wächter herbei, um dich aufzuhalten!
+#
+Tempel der Klauenvipern, Ebene 2 [61] = Ein entweihter Altar im Herzen des Tempels ist die Quelle der widernatürlichen Finsternis, die die Klauenvipern über das Land gebracht haben.
+#
+Harem, Ebene 1 [50] = Du steigst in ein Labyrinth aus prunkvoll verzierten Kammern hinab. Schwaden exotischer Düfte kitzeln deine Nase, ein schroffer Gegensatz zu den widerlichen Gräbern und der Kanalisation, die du hinter dir gelassen hast. Durchscheinende Seide liegt achtlos weggeworfen auf den Teppichen. Die Räume sind prächtig, aber völlig leer. Das plötzliche Fehlen von Leben ist ohrenbetäubend.
+#
+Harem, Ebene 2 [51] = Der kopflose Wächter, der noch immer am Fuß der Treppe kniet, überrascht dich nicht, er bestätigt nur das Schlimmste. Die Legionen der Hölle sind dir hierher zuvorgekommen. Und dem klebrigen, sich sammelnden Blut nach zu urteilen, das den Boden färbt, haben sie keine Überlebenden zurückgelassen.
+#
+Palastkeller, Ebene 1 [52] = Der geplünderte Luxus des Harems weicht nüchternen Lagerräumen und Weinkellern. Zu deiner Überraschung sind die meisten Vorräte noch unversehrt. Die Mächte der Hölle sind offensichtlich weder an Datteln noch an Trockenfleisch oder altem Wein interessiert.
+#
+Palastkeller, Ebene 2 [53] = Die Keller erstrecken sich in die Dunkelheit, scheinbar ohne Ende. Der hier aufgespeicherte Reichtum an Vorräten könnte die ganze Stadt jahrelang ernähren. Du fragst dich: Hätte Jerhyn diese Fülle jemals mit seinem hungernden Volk geteilt, oder hätte er sie im Dunkeln verrotten lassen?
+#
+Palastkeller, Ebene 3 [54] = Die Luft wird unnatürlich kalt, während du in die dritte Ebene hinabsteigst. Der schwere Geruch von Wein und Trockenfleisch weicht einer sterilen, metallischen Kälte. Der Raum selbst fühlt sich hier gedehnt an; eine tiefe, summende Vibration hallt durch die Steine und zieht dich zur Mitte des Gewölbes, wo sich die Schatten zu verzerren und nach innen zu ziehen scheinen.
+#
+Geheime Zuflucht [74] = Der feste Stein unter deinen Füßen ist verschwunden, ersetzt durch eine glatte, eisig kalte Substanz, die bei jedem Schritt wie hohles Glas klingt. Hier gibt es keine Wände, nur eine schreckliche, unendliche Leere. Wenn du sprichst oder dich bewegst, kommen deine Geräusche nicht als Echo zurück; sie versinken in einer bodenlosen Stille, die deine Ohren knacken lässt, als würde sich der Raum in alle Richtungen endlos erstrecken. Die Luft ist völlig still, trägt aber das schwache, statische Summen unbeständiger Magie.
+#
+Schlucht der Magier [46] = Du trittst durch das Portal und wirst sofort von einer Wand aus brutaler, erstickender Hitze getroffen. Die sterile Stille der Leere zerbricht. Der heulende Wüstenwind dröhnt in deinen Ohren und trägt den scharfen, ätzenden Geruch von sonnengebackenem Staub und Ozon heran. Unter deinen Stiefeln ist das klingende Glas verschwunden, ersetzt durch das schwere, knirschende Knacken groben Sandes. Die Luft ist dick und schwer und drückt auf deine Haut wie ein körperliches Gewicht, nach der Schwerelosigkeit der Zuflucht. Du bist in die Welt der Sterblichen zurückgekehrt, doch die Wüste will dich tot sehen.
+#
+Tal Rashas Grab [66] = Du hast das wahre Grab von Tal Rasha gefunden. Es ist nicht bloß ein Denkmal für den uralten Magier, sondern ein unterirdisches Gefängnis für das Große Übel, das er in seinem eigenen Fleisch zu binden wählte. Die Luft ist dick vom Geruch uralten Staubs, Einbalsamierungsflüssigkeit und dem schwachen, bitteren Beigeschmack der Bosheit eines gefangenen Dämons.
+Tal Rashas Grab [67] = Du hast das wahre Grab von Tal Rasha gefunden. Es ist nicht bloß ein Denkmal für den uralten Magier, sondern ein unterirdisches Gefängnis für das Große Übel, das er in seinem eigenen Fleisch zu binden wählte. Die Luft ist dick vom Geruch uralten Staubs, Einbalsamierungsflüssigkeit und dem schwachen, bitteren Beigeschmack der Bosheit eines gefangenen Dämons.
+Tal Rashas Grab [68] = Du hast das wahre Grab von Tal Rasha gefunden. Es ist nicht bloß ein Denkmal für den uralten Magier, sondern ein unterirdisches Gefängnis für das Große Übel, das er in seinem eigenen Fleisch zu binden wählte. Die Luft ist dick vom Geruch uralten Staubs, Einbalsamierungsflüssigkeit und dem schwachen, bitteren Beigeschmack der Bosheit eines gefangenen Dämons.
+Tal Rashas Grab [69] = Du hast das wahre Grab von Tal Rasha gefunden. Es ist nicht bloß ein Denkmal für den uralten Magier, sondern ein unterirdisches Gefängnis für das Große Übel, das er in seinem eigenen Fleisch zu binden wählte. Die Luft ist dick vom Geruch uralten Staubs, Einbalsamierungsflüssigkeit und dem schwachen, bitteren Beigeschmack der Bosheit eines gefangenen Dämons.
+Tal Rashas Grab [70] = Du hast das wahre Grab von Tal Rasha gefunden. Es ist nicht bloß ein Denkmal für den uralten Magier, sondern ein unterirdisches Gefängnis für das Große Übel, das er in seinem eigenen Fleisch zu binden wählte. Die Luft ist dick vom Geruch uralten Staubs, Einbalsamierungsflüssigkeit und dem schwachen, bitteren Beigeschmack der Bosheit eines gefangenen Dämons.
+Tal Rashas Grab [71] = Du hast das wahre Grab von Tal Rasha gefunden. Es ist nicht bloß ein Denkmal für den uralten Magier, sondern ein unterirdisches Gefängnis für das Große Übel, das er in seinem eigenen Fleisch zu binden wählte. Die Luft ist dick vom Geruch uralten Staubs, Einbalsamierungsflüssigkeit und dem schwachen, bitteren Beigeschmack der Bosheit eines gefangenen Dämons.
+Tal Rashas Grab [72] = Du hast das wahre Grab von Tal Rasha gefunden. Es ist nicht bloß ein Denkmal für den uralten Magier, sondern ein unterirdisches Gefängnis für das Große Übel, das er in seinem eigenen Fleisch zu binden wählte. Die Luft ist dick vom Geruch uralten Staubs, Einbalsamierungsflüssigkeit und dem schwachen, bitteren Beigeschmack der Bosheit eines gefangenen Dämons.
+#
+Tal Rashas Kammer [73] = Nachdem du Duriel besiegt hast, hast du endlich einen Moment, um dich umzusehen. Dieser Teil der Gruft ist viel älter als das ohnehin uralte Mauerwerk davor. Im Nordwesten erspähst du einen kaum sichtbaren Torbogen, der zur letzten Ruhestätte von Tal Rasha führt. Was mag dich darin erwarten?
+#
+# Act III
+#
+Docks von Kurast [75] = Dieser uralte Hafen steht kurz davor, vom üppigen Dschungel der Nahantu verschlungen zu werden. Brackiges Sumpfwasser, dick von Algen, wälzt sich träge unter wackligen Holzbrücken, die mehrere kleine Inseln und baufällige Strohhütten verbinden. Die Hitze ist schwer und drückend, und mit jedem Atemzug ist dir, als würdest du eine widerliche Flüssigkeit einatmen.
+#
+Spinnenwald [76] = Die wenige Erfrischung, die die Meeresbrise an den Docks bot, ist verschwunden, sobald du in den fast undurchdringlichen Dschungel eintauchst. Nur schmale Streifen begehbaren Landes säumen einen trüben Fluss, und sofort fallen die wilden Bewohner des Urwalds über dich her, ob sie nun zwei, vier oder viele Beine haben.
+#
+Spinnenhöhle [85] = Die Wände dieser klaustrophobischen Höhle im Boden sind mit dicken Lagen von Spinnenseide verhangen. Alles andere als glatt, siehst du dicke, fest gewickelte Kokons an den Wänden und auf dem Boden, von denen sich einige verzweifelt winden und zucken, während du dich vorbeischleichst.
+#
+Spinnenmonstergruft [84] = Diese Höhle ist von der anderen spinnenverseuchten Hölle kaum zu unterscheiden, doch während du durch ihre gedämpften, seidenverhangenen Gänge schleichst, setzt dein Herz jedes Mal aus, wenn ein Kokon, an dem du vorbeigehst, heftig zuckt. Ist das ein armes Opfer, das sich zu befreien versucht? Oder ein frischer achtbeiniger Schrecken, der darauf wartet, in diese Welt ausgespuckt zu werden?
+#
+Großes Moor [77] = Der Fluss spaltet sich und strömt in ein sumpfiges Tiefland aus schmalen Kanälen und morastigen Inseln. Das schrille Gezwitscher der Vögel ist eine ständige Mahnung an die Gefahr. Jeder raschelnde Busch, jeder knackende Zweig könnte das Vorspiel zu einer weiteren Flut hektischer Angriffe sein.
+#
+Schinderdschungel [78] = Als wollte der Ort seine Falschheit beweisen, bemerkst du immer wieder die flachen Ruinen einer untergegangenen Zivilisation, die durch das erstickende Laub lugen, jetzt völlig überrannt von den winzigen, wahnsinnigen Schindern, die diesem Dschungelabschnitt seinen Namen geben. Alte Steinfundamente werden von windigen Strohhütten überwuchert, und die Blasrohrpfeile hören einfach nicht auf zu kommen.
+#
+Sumpfloch, Ebene 1 [86] = Der Sumpf hat diesen uralten Tempel gewaltsam in Besitz genommen und jeden Gang mit knöcheltiefem Morast überflutet. Dicke Flechten hängen von einst wundervollen Steinbögen, und die Fackeln flackern in einem kränklichen, grünlichen Schimmer und verbrennen die fauligen Gase, die die Bewohner dieser Grabung, oder ihre Überreste, ausdünsten.
+#
+Sumpfloch, Ebene 2 [87] = Die Luft hier unten ist abgestanden und faulig; du schmeckst Fäulnis und Verwesung bei jedem Atemzug. Die Steine sind glitschig von unsagbarem Ichor, und jede noch brennende Fackel vertieft nur die Schatten dahinter, die vor mörderischen Schrecken wimmeln. Du dachtest, du seist hier der Jäger, doch dein Selbstvertrauen schwindet schnell.
+#
+Sumpfloch, Ebene 3 [90] = Der Abstieg endet in völliger, erstickender Dunkelheit. Der knöcheltiefe Morast weicht einem überfluteten Boden, wo eiskaltes, stehendes Wasser bei jedem Schritt gegen deine Schienbeine schwappt. Die Wände verengen sich zu einem engen, klaustrophobischen Labyrinth aus bröckelndem Stein. In der Ferne durchschneidet ein tiefes, widernatürliches Summen die Stille und führt dich zu einem schwachen goldenen Schimmer, der sich im schmutzigen Wasser spiegelt. Der Schatz ist nah, aber auch das, was im tiefsten Winkel dieser Grube lauert.
+#
+Unterkurast [79] = Die Randgebiete von Kurast schneiden nur ein wenig besser ab als die Docks. Wohin du auch blickst, siehst du Zeichen jäh unterbrochenen Lebens: halb aufgegessene Mahlzeiten voller Schimmel, umgestürzte Vasen und Körbe, deren Inhalt achtlos verstreut ist, und Leichen, die dort verrotten, wo sie erschlagen wurden.
+#
+Basar von Kurast [80] = Die überwucherten Überreste von Kurasts Marktviertel sind in mehr als einer Hinsicht ein Schlachtfeld. Der Angriff des Dschungels auf die Zivilisation dauert noch an, während bösartige Monster und Insektenschwärme ergreifend ihre Gegenwart spüren lassen. Doch der Verstand selbst steht unter Angriff, wie die umherstreifenden Banden wahnsinnig heulender Kultisten beweisen.
+#
+Kanalisation, Ebene 1 [92] = Das Geräusch fließenden Wassers begrüßt dich, als du in eine weitere monsterverseuchte Kanalisation vordringst. Verglichen mit der drückenden, sumpfigen Hitze draußen ist sie fast angenehm, wäre da nicht der grässliche Gestank, der aus den vielen Kanälen und Becken aufsteigt.
+#
+Kanalisation, Ebene 2 [93] = Du hast dich bis in die tiefste Zisterne der Kanalisation vorgearbeitet. Das erst kürzlich abgelassene Wasser sickert noch immer an den glitschigen Wänden herab, und jeder unvorsichtige Schritt nahe dem mittleren Becken ist eine Einladung zur Katastrophe. Plötzlich durchbricht ein heftiges Platschen die tropfende Stille. Etwas Gewaltiges regt sich im mittleren Becken: Ein langer, geschmeidiger Körper erhebt sich, seine nassen Schuppen schaben über den Stein. Es zischt und hält direkt auf dich zu!
+#
+Vergessener Tempel [97] = Ein Meer aus Kerzen und Fackeln erhellt diesen einst majestätischen Andachtsort. Er wurde von Mephistos wahnsinnigen Schergen völlig entweiht. Altäre und Ritualstätten ertrinken in Blut.
+#
+Oberkurast [81] = Während niedrige Hütten und Langhäuser beeindruckenden Steinbauten weichen, scheint die Zahl der wilden Kultisten exponentiell zu steigen. In der Ferne siehst du die gewaltigen Tempel von Travincal über das Blätterdach des Dschungels ragen, doch der Weg dorthin wird zweifellos von Mephistos wirren Anbetern bewacht.
+#
+Schinderdungeon, Ebene 1 [88] = Ein Hauch von Salz liegt in der Luft, als du diese uralte Katakombe betrittst. Andere seltsame Düfte kitzeln deine Nase, einige Kräuternoten und der unverkennbare Biss des Todes. Als du dich in die Kammern und Gänge des Verlieses vorarbeitest, erkennst du, dass die Schinder es nutzen, um ihre Toten zu mumifizieren.
+#
+Schinderdungeon, Ebene 2 [89] = Mephistos Verderbnis hat das Land völlig besudelt und alles verdreht und verformt, was es berührt. Was tot hätte bleiben sollen, regt sich nun, darunter alle verstorbenen Schinder, die sich erhoben haben, um wieder umherzustreifen.
+#
+Schinderdungeon, Ebene 3 [91] = Die tiefste Ebene des Verlieses ist ein quälendes Labyrinth aus Sackgassen, überfluteten Kammern und boshaften Fallen, die jene wahnsinnigen Rituale schützen, die die irren Hexendoktoren der Schinder hier unten vollziehen.
+#
+Verlassenes Heiligtum [95] = Beißender Wind pfeift durch Lücken im rissigen Mauerwerk. Die meisten Fackeln und Kerzen, die andere Tempel in Kurast erhellten, sind erloschen. Und anders als bei den anderen Tempeln, die du bisher durchbrochen hast, kam niemand sofort, um dich zu töten. Vorsichtig schleichst du tiefer in die Ruine. Diese widernatürliche Stille wird gewiss nicht lange anhalten.
+#
+Zerfallener Tempel [94] = Du bist überrascht, das Zeichen des Blinden Auges auf Bannern und Schreinen in diesem Tempel zu sehen. Was machen einige der Schwestern so weit im Osten? Während du voranschreitest, hörst du eine Frau, die schreit und nach Blut heult. Was auch immer ihre ursprüngliche Mission war, Mephistos Wahnsinn hat sie ergriffen wie alle anderen.
+#
+Vergessener Reliquienschrein [96] = Der Dschungel erobert diesen Tempel zurück: Dicke Ranken und Wurzeln haben mächtige Steinmauern durchbrochen, und gierige Dschungelbewohner haben diesen Ort zu ihrem Bau gemacht.
+#
+Damm von Kurast [82] = Diese gewaltige Steinbrücke ist eine erstaunliche Ingenieurleistung; schnurgerade wie ein Pfeil überquert sie eine weite Hochwasserfläche, die die heilige Stadt Travincal vom weltlichen Kurast trennt.
+#
+Zerfallenes Heiligtum [98] = Du kannst fast spüren, wie das Gewicht des Wassers gegen die Wände dieses versunkenen Tempels drückt. Winzige Rinnsale sickern durch jede Unebenheit im Stein, und Wasser sammelt sich in flachen Pfützen auf dem Boden. Es ist nur eine Frage der Zeit, bis die volle Wucht der Flut draußen dieses versunkene Gewölbe für immer verschlingt.
+#
+Verlassener Reliquienschrein [99] = Schon bevor die verstopfte Kanalisation die unteren Teile von Kurast überflutete, war dieses vergessene Gewölbe verfallen. Es wird nicht lange dauern, bis das überwucherte Geflecht aus Wurzeln, Ranken und rissigem Stein nachgibt und die gewaltige Wassermasse diesen einst heiligen Tempel und alle, die darin lauern, hinwegspült.
+#
+Travincal [83] = Die strenge Pracht von Travincal überrumpelt dich nur für einen Augenblick. Die heilige Stadt der Zakarum wirkt von Mephistos Verderbnis fast unberührt. Doch dann stürmen die heulenden Kultisten mit Zauberei und Stahl auf dich zu, und die Illusion des Friedens zerbricht.
+#
+Kerker des Hasses, Ebene 1 [100] = Der tragisch vertraute Gestank von Blut trifft dich wie eine kupferne Faust, als du in Mephistos ehemaliges Gefängnis hinabsteigst. Nichts auf deiner kräftezehrenden Reise hätte dich auf die schiere Menge purpurroter Flüssigkeit vorbereiten können, die aus den Wänden sickert und in weiten Lachen brodelt.
+#
+Kerker des Hasses, Ebene 2 [101] = Je näher du dem Herzen von Mephistos Verderbnis kommst, desto stärker greift der pure Hass, der von jeder Steinplatte, jeder Säule und jeder gluckernden Blutlache ausgeht, deinen Verstand an.
+#
+Kerker des Hasses, Ebene 3 [102] = Ein gurgelnder Graben aus sich windendem Blut teilt diese riesige Kammer, überquert nur von einer düsteren Brücke aus Knochen und Stein. Am anderen Ende, über einem entweihten Platz aus Schädeln schwebend, hängt das Portal zur Hölle. Wie ein blutender Riss im Gefüge der Wirklichkeit trotzt sein unheilvolles Summen jeder Vernunft.
+#
+# Act IV
+#
+Die Festung des Wahnsinns [103] = Du trittst durch das Portal und stolperst in eine karge Halle, aus schiefergrauem Stein und Metallen gehauen, für die kein Sterblicher einen Namen hat. Die einzigen Wärmequellen sind ein prasselnder Kamin und mehrere große Feuerschalen. Ohne sie wäre die Festung des Wahnsinns so unwirtlich wie die aschenen Ödländer jenseits.
+#
+Äußere Steppe [104] = Eine weite Ebene, bedeckt mit feiner grauer Asche, erstreckt sich bis zum Horizont. Zerbrochene Türme und Bögen, in riesige Ketten gehüllt, sind das Einzige, was die abstumpfende Eintönigkeit unterbricht, während verlorene Seelen an Felsen und Stümpfe zerbrochener Säulen gekettet sind. Hin und wieder spuckt ein Riss im Boden Schwefeldämpfe aus.
+#
+Ebene der Verzweiflung [105] = Die Wechsel der Landschaft sind sehr allmählich: Der Boden steigt und fällt in strengen geometrischen, treppenartigen Mustern, und die wahllos verstreuten Bögen werden durch etwas ersetzt, das wie die Ruinen titanischer Gebäude aussieht. Gleich bleibt das bedrückende Gefühl ewigen, unveränderlichen Elends, das jeden Zoll dieser Ebene durchdringt.
+#
+Stadt der Verdammten [106] = Von der Stadt sind nur die geköpften Fundamente streng angeordneter Gebäude übrig. Du fragst dich: Wer hat diese Bauten errichtet und zu welchem Zweck? Wer wäre verrückt genug, zu versuchen, sich in diesem gottverlassenen Ödland niederzulassen?
+#
+Flammenfluss [107] = Dies muss die reinste Vision der Hölle sein, der du bisher begegnet bist. Zerbrochene Obsidianbrocken bilden tückische Inseln, die in einem Ozean aus Lava treiben. Riesige Feuerbälle steigen aus der geschmolzenen Masse auf, die dich umgibt. Die Hitze ist unmenschlich und droht, dich in deiner Rüstung lebendig zu braten. Und doch setzt sich dein Wille durch. Du gehst weiter. Diablo muss aufgehalten werden!
+#
+Hellforge = Zwei gigantische Rüstungen bewachen diese uralte Schmiede. Es ist der einzige bekannte Ort in der ganzen Schöpfung, der mächtig genug ist, einen Seelenstein zu zerschmettern.
+#
+Das Chaossanktuarium [108] = Diablos Hort ist wie eine kreuzförmige, verdrehte Verhöhnung einer großen Kathedrale im Herzen der Hölle. An jeder Wand und Säule sind Schädelhaufen gestapelt, die Bögen sind geschwärzt und verzerrt, und im Zentrum von allem, umgeben von fünf unheiligen Siegeln, sitzt ein riesiges Pentagramm.
+#
+# Act V - Lord Of Destruction
+#
+Harrogath [109] = Die kühle, klare Bergluft beruhigt deine Seele nach der Tortur, die du gerade durchgemacht hast. Harrogath ist eine beeindruckende Festungsstadt, deren robuste Steinhäuser mit schneebedeckten Dächern Wärme und Sicherheit versprechen. Selbst hinter ihren gewaltigen Mauern hörst du den Lärm der Schlacht. Der Krieg gegen Baal ist näher, als du denkst.
+#
+Blutiges Vorgebirge [110] = Nur wenige Schritte vor Harrogaths befestigten Mauern trifft dich das brutale Chaos des Krieges. Hastig ausgehobene Gräben entstellen die vernarbte Erde, während Katapulte explosive magische Geschosse auf Freund und Feind gleichermaßen herabregnen lassen und standhafte Barbaren einen verzweifelten Rückzugskampf führen, um Baals unerbittliche Horden aufzuhalten.
+#
+Eishochland [111] = Dieses gefrorene Niemandsland ist ein tödliches Labyrinth aus uralten Steinbefestigungen, von Baals Horden umgenutzt und instand gesetzt. Bröckelnde Mauern und Barrikaden durchziehen die eisige Landschaft und schaffen blinde Ecken und Sackgassen, wo Monsterrudel darauf lauern, dich aus den Schatten zu überfallen.
+#
+Arreathochebene [112] = Das Eishochland weicht einer weitläufigen, windgepeitschten alpinen Tundra, einst unberührt, nun tief vom Krieg gezeichnet. Die beißende Bergluft ist erstickt vom schwefligen Gestank der Hölle. Über die felsigen, schneebestäubten Weiten reißen dämonische Portale die gefrorene Erde auf, und schnatternde Kobolde haben grobe, brennende Hütten errichtet und überschwemmen das Land in plündernden Rudeln.
+#
+Grube von Acheron [126] = Der weite Himmel verschwindet, ersetzt durch die bedrückenden Gänge einer höllischen Belagerungswerkstatt. Schwere Wände aus pechschwarzem Obsidian und versengtem Knochen bilden ein klaustrophobisches Labyrinth über Feuerseen. Versengte eiserne Belagerungswagen und massive Katapulte backen in der intensiven Hitze und strahlen eine sengende Wärme ab, die jede Metalloberfläche gefährlich zum Anfassen macht.
+#
+Abaddon [125] = Der Schritt durch das Portal stürzt dich in einen unterirdischen Sammelplatz für Höllenarmeen. Enge Gänge aus vulkanischem Stein und dunkle Eisenkäfige bilden höllische Kasernen, die auf einem Ozean aus Lava treiben. Die sengende Luft hallt wider vom schweren Klirren von Rüstungen und dem irren Kreischen dämonischer Kohorten, die auf ihren Marsch auf den Berg warten.
+#
+Kristalldurchgang [113] = Kühle, klare Luft war ein ständiger Begleiter bei deinem Aufstieg auf den Berg Arreat. Doch in dem Moment, in dem du diese Höhle betrittst, gräbt sich die Kälte in jeden Zoll freiliegender Haut. Verstreutes Fackellicht bricht sich an den eisbedeckten Wänden und Böden. Jedes Geräusch hallt viel zu laut für deinen Geschmack und macht jedes Raubtier in Hörweite auf deine Anwesenheit aufmerksam.
+#
+Frostfluss [114] = So tief in den Höhlen ist Stillstehen ein Todesurteil. Dein bis auf die Knochen durchgefrorener Körper zittert unkontrolliert, während du einen Fuß vor den anderen setzt, stets scharf bewusst der trüben Flüssigkeit, die direkt neben den schmalen, eisigen Pfaden gurgelt, auf denen du dich vorwärtskämpfst.
+#
+Gletscherweg [115] = Diese frostigen Höhlen scheinen endlos weiterzugehen. Eisverkrustete Wände, so weit das Auge reicht. Gefrorene Leichen liegen achtlos verstreut, und dämonische Schrecken sind auf dem Vormarsch.
+#
+Nihlathaks Tempel [121] = Ein tiefes Gefühl des Unrechts umfängt dich, als du das Portal zur versteckten Zuflucht des Verräters verlässt. Du erreichst einen kalten, umschlossenen Steinhof. Voraus liegt die strenge Steinfassade des Tempels, die ein schreckliches Geheimnis verbirgt. Der gefrorene Boden um dich herum ist beunruhigend still, übersät mit regungslosen, unbestatteten Leichen.
+#
+Hallen der Qual [122] = Du betrittst den heiligen Begräbnisplatz der Barbaren und bist von der schieren Größe dieses Gewölbes überwältigt. Die Wände sind eine seltsame Mischung aus grob behauenen Steinflächen und wunderschön geschnitzten Säulen. Breite Gänge verschwinden im Zwielicht, und fremde Kräuterdüfte erfüllen die Luft. Es ist offensichtlich, dass dies einst ein Ort der Ahnenverehrung war, doch nun ist er völlig entweiht.
+#
+Hallen der Schmerzen [123] = Beim weiteren Abstieg weicht die heilige Stille der Gräber einem erdrückenden Gewicht. Die Luft ist hier spürbar wärmer, dick vom metallischen Beigeschmack frischen Bluts und dem schwachen, hallenden Wehklagen der Verdammten. Während die Steinsäulen gleich bleiben, wirken die breiten Gänge enger, erstickt von einer aggressiven, schnatternden Präsenz, die im Dunkeln lauert. Die Entweihung hier ist nicht mehr alt: Sie geschieht gerade jetzt.
+#
+Hallen von Vaught [124] = Du hast das verrottete Herz der Zuflucht des Verräters erreicht und stehst im Zentrum eines großen vierzackigen Kreuzes, von dem sich in jede Himmelsrichtung ein langer Gang erstreckt. Am Ende eines dieser dunklen Flügel erwartet der verräterische Bastard sein verdientes Urteil!
+#
+Flockenhöhle [116] = Dein Atem steigt in raschen weißen Wölkchen auf, während du nach dem ersten Hinterhalt die Waffen senkst. Die beißende Kälte sammelt sich als Raureif auf deiner Rüstung, und das wenige Licht der paar Fackeln glitzert auf uralten, eisverkrusteten Wänden. Unter der gefrorenen Kruste des Bodens hallt das tiefe, hohle Tosen subglazialer Wasserläufe durch die Dunkelheit und zerteilt die Höhle in ein unsicheres Netz aus Eisbrücken.
+#
+Gefrorene Tundra [117] = Nachdem du dich gefühlt stundenlang durch gefrorene, enge Tunnel geschleppt hast, trifft dich die plötzliche Weite der Gefrorenen Tundra mit widernatürlicher Wucht. Frischer Schnee vermag die Brutalität nicht zu verdecken, die Baals Armeen dem heiligen Berg Arreat und seinem Volk zugefügt haben. Du beißt die Zähne zusammen und bereitest dich darauf vor, die verstreuten Befestigungen zu stürmen, die die dämonische Horde als ihre eigenen beansprucht hat.
+#
+Infernogrube [127] = Diese Obsidianinseln, die in einem unendlichen Meer aus Lava treiben, sind eine Art höllisches Kommandozentrum. Brüllende Schneckenbosse peitschen ihre Untergebenen in einen blutschäumenden Rausch. Diese höllischen Antreiber zu dezimieren wird Baals Invasionsplänen gewiss einen Dämpfer versetzen.
+#
+Der Weg der Urahnen [118] = Der Gipfel kann nicht mehr weit sein. Wieder betrittst du ein höhlenartiges Tunnelsystem, Wände und Boden mit glitzerndem Eis überzogen. Es ist kalt, ja, aber da ist noch etwas anderes, ein kaum wahrnehmbares Summen kaum gebändigter Magie. Was auch immer vor dir liegt, es ist gewiss eine Quelle gewaltiger Macht.
+#
+Eiskeller [119] = Als du dich in eine weitere bodenlose, eisige Spalte vorwagst, fallen unendliche Horden von Yetis, Untoten und Dämonen über dich her. Welche Reichtümer sie wohl bewachen müssen!
+#
+Gipfel des Arreat [120] = Der weite, endlose Himmel umgibt dich, als du den Gipfel erreichst. Voraus ragt der seltsame, fremdartige Weltsteinturm auf, deren urzeitliche Architektur sich von allem unterscheidet, was du auf deinen langen Reisen gesehen hast. Drei hoch aufragende Statuen der legendären Urahnen Talic, Korlic und Madawc umgeben das, was eindeutig eine rituelle Arena sein soll. Um den Turm zu betreten, musst du dich vor diesen Urahnen beweisen!
+#
+Weltsteinturm, Ebene 1 [128] = Nun, da du in seiner heiligen Halle bist, ist schmerzlich offensichtlich, dass keine sterbliche Hand diesen Turm erbaut hat. Wenn überhaupt, sieht er eher gewachsen als gebaut aus, mit titanischen Säulen aus einzelnen Steinstücken und ohne sichtbare Lücken dort, wo Steine zusammengefügt wurden.
+#
+Weltsteinturm, Ebene 2 [129] = Die Zeichen von Baals Einfall sind überall sichtbar. Kein Gang ohne brutal entweihte Barbaren, in grauenhaften Ritualen geopfert, keine Kammer ohne Spuren dämonischer Gegenwart. Und die Luft durchdringt der pulsierende Herzschlag einer gewaltigen Machtquelle.
+#
+Weltsteinturm, Ebene 3 [130] = Gezackte Kristallformationen brechen aus dem Boden, pulsierend von einem inneren Feuer. Baals höhnisches Lachen wird von immer brutaleren Angriffen seiner dämonischen Schergen begleitet.
+#
+Thron der Zerstörung [131] = Das seltsame feuerartige Leuchten, das du zuvor in den Kristallformationen gesehen hast, durchdringt nun jede Oberfläche, und du spürst den Weltstein durch die Sohlen deiner Stiefel pulsieren. Baals Gegenwart hängt wie ein ekelerregender Gestank in der Luft.
+#
+Die Kammer des Weltsteins [132] = Die ungezügelte Magie des Weltsteins kriecht über deine Haut, als du dieses weite Gewölbe betrittst. Im Nordosten, so groß wie eine kleine Festung, steht der Weltstein selbst, ein herrlicher roter Kristall. Du bemerkst dunkle, ölige Ranken, die sich durch seine natürlichen Facetten winden, ein deutliches Zeichen von Baals Verderbnis.
+#
+Das Geheime Kuhlevel [39] = Diese weite, offene Weide ist das Reich des schwer fassbaren und gefürchteten Kuhkönigs und seines Rinderhofs. Die Luft ist duftend und klar, und warmes Sonnenlicht streichelt deine Haut. Und doch stimmt hier etwas ganz und gar nicht.
+#
+Matronenhöhle [133] = Der Einfluss der Hölle hat dieses Gebiet bis zur Unkenntlichkeit verzerrt.
+#
+Die Vergessenen Sande [134] = Der Einfluss der Hölle hat dieses Gebiet bis zur Unkenntlichkeit verzerrt.
+#
+Glutofen der Pein [135] = Der Einfluss der Hölle hat dieses Gebiet bis zur Unkenntlichkeit verzerrt.
+#
+Tristram [136] = Der Einfluss der Hölle hat dieses Gebiet bis zur Unkenntlichkeit verzerrt.
+#
+Kolossaler Gipfel [137] = Der Einfluss der Hölle hat dieses Gebiet bis zur Unkenntlichkeit verzerrt.

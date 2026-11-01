@@ -1042,16 +1042,6 @@ std::string LevelName(uint32_t levelId) {
 	return ReadLevelTable(tables) ? LevelText(tables, levelId, LevelNameKey) : std::string{};
 }
 
-std::vector<std::pair<uint32_t, std::string>> LevelNames() {
-	const NativeMemory::ReadScope scope;
-	Tables tables;
-	std::vector<std::pair<uint32_t, std::string>> levels;
-	if (!ReadLevelTable(tables)) return levels;
-	for (uint32_t id = 1; id < tables.levelCount; ++id)
-		if (auto name = LevelText(tables, id, LevelNameKey); !name.empty()) levels.emplace_back(id, std::move(name));
-	return levels;
-}
-
 std::string TownPresets() {
 	std::lock_guard lock(g_townPresetsMutex);
 	return g_townPresets;

@@ -1,0 +1,284 @@
+# D2R Access: the area and landmark descriptions in Polish, translated from enUS.txt.
+# A line missing here is said in English. Format and rules: enUS.txt, docs/descriptions.md
+#
+# Act I
+#
+Obozowisko Łotrzyc [1] = Obóz to nędzny zbiór namiotów i wozów, które ledwie chronią przed pogodą. Tylko garstce Sióstr Niewidzącego Oka udało się uciec tu z skazanego na zagładę klasztoru, a teraz muszą dzielić to smutne miejsce z krowami i kurami.
+#
+Hangman's Tree = Wysokie, uschnięte drzewo stoi pośrodku Cmentarza. Z jego konarów zwisają gnijące zwłoki, a pod nim włóczą się ożywieńcy.
+#
+Krwawe Wrzosowisko [2] = Te bagniste pustkowia to otwarta ziemia, poznaczona niskimi krzewami i powykrzywianymi drzewami. Dawniej jedynym zagrożeniem były tu dzikie kolczaste szczury, teraz jest nim nieumarli i watahy Upadłych, groźne dla każdego, kto głupio opuści bezpieczny Obóz Łotrzyc.
+#
+Siedlisko Zła [8] = Akara miała rację, wysyłając cię w to ponure miejsce. Już od wejścia słyszysz nieustanny chichot niezliczonych potworów szykujących się do złupienia Obozu Łotrzyc. Ale w tym miejscu czai się coś jeszcze. W powietrzu wisi ciężki smród śmierci, albo życia po śmierci.
+#
+Cmentarz [17] = Ten zapomniany cmentarz popadł w ruinę, a jego małe krypty i misterne kute ogrodzenie kruszą się i rdzewieją. Umarli powstali i błąkają się pod groteskowym Drzewem Szubienicznym, gotowi rozszarpać nieostrożnych gości.
+#
+Mauzoleum [19] = Ta mroczna katakumba jest pełna szczątków bezimiennych zmarłych, zapomnianych bogactw i okrutnych nieumarłych. Łowcy skarbów, miejcie się na baczności!
+#
+Krypta [18] = Do tej krypty nie dociera żadne światło, prócz ognia trawiącego płonące zwłoki dawnych Łotrzyc. Może leżą tu skarby, ale na pewno czyhają też żądne krwi potwory, gotowe rozedrzeć nieostrożnych intruzów.
+#
+Zimna Równina [3] = Opuszczone chaty na tych terenach przypominają prostsze czasy, kiedy tu siano zboże i hodowano bydło. Teraz armia Diablo zawładnęła polami, a roi się od demonicznych Łotrzyc, nieumarłych i Upadłych.
+#
+Jaskinia – Poziom 1 [9] = Nikt od wieków nie wszedł do tej zapomnianej dziury w ziemi. Kto wie, jakie okropności zapuściły tu korzenie?
+#
+Jaskinia – Poziom 2 [13] = Światło słońca nigdy nie dotknęło tej części jaskini. Zastanawiasz się, kto podtrzymuje pochodnie?
+#
+Kamienne Pole [4] = Sanktuarium skrywa wiele miejsc mocy. Na tej usianej głazami pustaci wznosi się wysoko starożytny kamienny krąg. Nikt nie wie, co dawniej znaczył ani jakie pogańskie rytuały tu odprawiano.
+#
+Tristram [38] = Z Tristram została tylko żałosna garść płonących ruin, zalanych przez potwory idące śladem Diablo.
+#
+Podziemny Tunel – Poziom 1 [10] = Gdy wchodzisz, zdajesz sobie sprawę z ogromu tego labiryntu jaskiń, a jego liczne ślepe zaułki i kręte korytarze roją się od niespokojnych potworów. Nikt nie zagwarantuje, że wyjdziesz stąd żywy.
+#
+Podziemny Tunel – Poziom 2 [14] = Powietrze w tej części jaskini jest wilgotne i stęchłe. Wszystko wskazuje, że nie ma tu połączenia z powierzchnią, są tylko kolejne niespokojne potwory żądne twojego ciała.
+#
+Mroczna Knieja [5] = Nazwanie tego luźnego skupiska żałosnych drzew lasem byłoby hojnością. A jednak aż tętni demonicznym życiem. Gdzieś pośrodku stoi nieuchwytne Drzewo Inifussa, czekające, by ktoś odnalazł je na nowo.
+#
+Jama – Poziom 1 [11] = Okolice Tristram są podziurawione takimi ciemnymi, bezdennymi jaskiniami. Czego szukali górnicy z Kanduras? I co ważniejsze, co obudzili, kiedy to znaleźli?
+#
+Jama – Poziom 2 [15] = Jak głęboko sięga ta jama? Masz nadzieję, że na dole czeka coś więcej niż niepokojące formacje skalne, skwierczące pochodnie i kolejne potwory.
+#
+Czeluść – Poziom 1 [12] = Powykrzywiane kamienne ściany zdają się zamykać wokół ciebie ze wszystkich stron, gdy ostrożnie schodzisz głębiej w ten pozbawiony światła labirynt.
+#
+Czeluść – Poziom 2 [16] = Doskonale wiesz, że niezliczone tony skały wiszą mniej niż na wyciągnięcie ręki nad twoją głową. Wystarczy trzęsienie ziemi albo przypadkowy wybuch, by pogrzebać cię tu żywcem, na zawsze zamkniętego z okropieństwami, które nazywają tę ciemną czeluść domem.
+#
+Czarne Moczary [6] = Przenikliwe podmuchy wiatru głaszczą twoją twarz jak eteryczny dotyk ducha. W oddali majaczy rozpadający się kikut zawalonej wieży, wabiący cię tak, jak wabił wszystkie niewinne dziewice, które Hrabina zwabiła na zgubę.
+#
+Zapomniana Wieża [20] = Wściekły tłum, który wył o śmierć Hrabiny, ogołocił tę piwnicę do czysta. W południowo-wschodnim kącie zostało tylko kilka wywalonych beczek. Rozglądając się, dostrzegasz w północno-zachodniej ścianie ziejącą dziurę. Wygląda na całkiem świeżą. A po tym, jak powypadały surowe kamienne bryły, rozumiesz, że ktoś albo coś wyrwało się z ukrytych poniżej lochów.
+#
+Piwnice pod Wieżą – Poziom 1 [21] = Gdy schodzisz do głębszych poziomów piwnic, metaliczny smród krwi uderza w twoje nozdrza. Patrzysz w dół i widzisz, że stoisz w kałuży czegoś, co wygląda na świeżo przelaną krew. Jak to w ogóle możliwe? Jeśli ruina na górze jest jakąkolwiek wskazówką, Hrabina musiała umrzeć wieki temu.
+#
+Piwnice pod Wieżą – Poziom 2 [22] = Schodzisz głębiej w labirynt Hrabiny. Upiorna ciecz kapie z nierównych ścian, a światło świec błyska na karmazynowych kałużach i w oczach plugastw, które czekają, by cię rozerwać.
+#
+Piwnice pod Wieżą – Poziom 3 [23] = Gdy wlokąc zmęczone, obolałe ciało, schodzisz coraz głębiej w ten koszmar, twoje stopy budzą głuche echa na wyblakłych marmurowych płytach wpuszczonych w posadzkę. Jakby nie dość było narastającego smrodu krwi, mijasz płonące zwłoki martwych Łotrzyc, a duszący odór palonego ciała jeszcze bardziej utrudnia złapanie tchu, by krzyknąć.
+#
+Piwnice pod Wieżą – Poziom 4 [24] = Ledwie możesz oddychać. Czujesz krew na wargach. Czy to twoja? A może wnętrzności ostatniego Kozłoluda, którego trzeba było wypatroszyć, by dotrzeć do kolejnych kruszących się sal i płonących korytarzy, wypełnionych głuchym śmiechem upiornych prześladowców.
+#
+Piwnice pod Wieżą – Poziom 5 [25] = Nagle korytarze otwierają się i wyrzucają cię w dziwaczną kakofonię przepychu i okrucieństwa. Przed sobą dostrzegasz obscenicznie złoconą misę, przelewającą się nieruchomą krwią. Ogromne pochodnie sprawiają, że podwójny rząd filarów okalających kąpielisko Hrabiny rzuca wściekle tańczące cienie, wijące się w rytm jej szyderczego śmiechu.
+#
+Wyżyna Tamoe [7] = Potężne mury Klasztoru Niewidzącego Oka wznoszą się nad smaganą wiatrem wyżyną. Wydają się nie do zdobycia i dreszcz przechodzi cię na myśl o armii, która zdobyła je i wypędziła Siostry z pogardliwą łatwością. Potem uderza cię zimniejsza myśl: teraz to ty masz szturmować ten warowny dom modlitwy.
+#
+Klasztorna Brama [26] = Wszędzie widać ślady walki, gdy ostrożnie wchodzisz w surowe kolumnady Klasztornej Bramy. Połamana broń, przewrócone stojaki na świece i szkarłatne smugi opowiadają upiorną historię.
+#
+Zewnętrzny Monastyr [27] = Docierasz na wspaniały dziedziniec, którego piękno ledwie szpecą wszechobecne ślady walki. Pośrodku stoi okazała fontanna, ukazująca trzy Łotrzyce plecami do siebie, które gotową do walki bronią powstrzymują niewidzialnych wrogów.
+#
+Koszary [28] = Po spokojnej okazałości dziedzińca Koszary to chaotyczny labirynt krętych korytarzy, splądrowanych dormitoriów i zagraconych składzików. Stosy beczek zapewniają doskonałe kryjówki licznym wrogom, którzy zajęli to miejsce. Jak ktokolwiek ma znaleźć właściwą drogę, a co dopiero niewielką kuźnię z zaczarowanym młotem?
+#
+Więzienie – Poziom 1 [29] = To podziemne sklepienie jest ogromne, ciemne i zimne. Barbarzyńskie narzędzia tortur leżą na widoku. Zastanawiasz się, co Siostry tu robiły. I gdzie są teraz więźniowie?
+#
+Więzienie – Poziom 2 [30] = Twoje kroki budzą głuche echa na ścianach. Jak wielkie jest to miejsce? Klatki, obok których przechodzisz, pomieściłyby z łatwością mieszkańców małego miasta. A więzienie schodzi jeszcze głębiej.
+#
+Więzienie – Poziom 3 [31] = Prawie namacalna aura rozpaczy przesyca to miejsce. Nie ma tu światła ani nadziei, są tylko rozkładające się szczątki dawno zmarłych więźniów.
+#
+Wewnętrzny Monastyr [32] = Z ulgą wzdychasz, widząc znów otwarte niebo. Docierasz do serca Monastyru. Przed sobą dostrzegasz strzelistą iglicę Katedry Niewidzącego Oka.
+#
+Katedra [33] = Żadne ciepłe światło świec nie zakryje scen bezsensownego okrucieństwa, jakich doświadczył ten dom modlitwy. Martwe ciała, porozrzucane jak niedbale porzucone zabawki, gniją tam, gdzie padły, a na dawniej nieskazitelnych marmurowych posadzkach zebrały się kałuże krwi.
+#
+Katakumby – Poziom 1 [34] = Wśród korytarzy wzdłuż których stoją wspaniałe trumny uwieczniające czcigodnych zmarłych Sióstr, ze zdumieniem znajdujesz przytulne biblioteki, komnaty medytacji i inne miejsca zadumy, teraz doszczętnie zbezczeszczone przez grasujące hordy Andariel.
+#
+Katakumby – Poziom 2 [35] = Ten poziom katakumb wydaje się znacznie starszy od poprzedniego. Zniknęły miejsca zadumy, zastąpione gołymi ścianami i pustymi salami na zmarłych.
+#
+Katakumby – Poziom 3 [36] = Kurz wieków pokrywa tu każdą powierzchnię, tym wyraźniej pokazując, gdzie demoniczne szpony poruszyły zmarłych, którzy teraz wylewają swój gniew zarówno na demony, jak i na intruzów.
+#
+Katakumby – Poziom 4 [37] = Obecność Andariel przekształciła samą ziemię w wizję piekła. Postrzępione, powykrzywiane narośle z kości przebijają ziemię, zostawiając za sobą ziejące, przesiąknięte krwią doły. Powietrze gęstnieje od zapachu siarki i czegoś jeszcze podlejszego.
+#
+# Act II
+#
+Lut Gholein [40] = Lut Gholein, małe portowe miasto wokół tętniącego życiem targu, smaży się pod bezlitosnym pustynnym słońcem. Nieustanne ataki potworów zmusiły mieszkańców do kulenia się w domach. Tylko odważni albo zdesperowani ośmielają się stanąć na brukowanych ulicach, a co dopiero na Skalnym Pustkowiu za murami.
+#
+Kanały – Poziom 1 [47] = W chwili, gdy schodzisz do kanałów, gęsty smród uderza cię tak mocno, że więźnie w gardle. To daleko więcej niż znajomy odór śmieci i nieczystości. Ciężka, mdląca słodycz wisi w powietrzu, jakby nienaturalna zaraza wsiąkła prosto w oślizgłe cegły i zardzewiałe kraty, które z trudem powstrzymują nieczystości miasta.
+#
+Kanały – Poziom 2 [48] = Twój węch skapitulował w połowie pierwszego poziomu kanałów, więc dopiero po chwili zauważasz, że smród się zmienił. To już nie tylko przyprawiająca o mdłości mieszanka śmieci i żrących trucizn, do której nos zdążył przywyknąć. Teraz w ten piekielny koktajl wsącza się niewątpliwy odór rozkładu. Zaciskając zęby, idziesz dalej. Może pokonanie potwora czyhającego na dnie tej piekielnej cysterny wreszcie oczyści tę zgniliznę.
+#
+Kanały – Poziom 3 [49] = To z pewnością najgłębsza część kanałów. Starożytne cegły uginały się pod ciężarem wieków, a ty drżysz na myśl, co może czaić się w mętnej cieczy widocznej przez zardzewiałe, połamane kraty. Przeklinasz dawno zmarłych głupców, którzy uznali, że pogrzebanie starożytnego zła pod żywym miastem to dobry pomysł.
+#
+Skalne Pustkowie [41] = Pustynia pochłonęła znacznie więcej niż żyzne ziemie wokół Lut Gholein. Na widok dziesiątek wysuszonych zwłok przywiązanych do pali, w jaskrawoczerwonych mundurach wyblakłych od słońca i zlepionych piaskiem i zaschniętą krwią, rozumiesz, że pustkowie zebrało równie brutalny haracz z mieszkańców miasta.
+#
+Kamienny Grobowiec – Poziom 1 [55] = Z ulgą wzdychasz, gdy cienie tego na wpół zasypanego grobowca otulają cię, a grube bloki piaskowca z łatwością osłaniają przed bezlitosnym upałem na zewnątrz. Dopiero po kilku ostrożnych krokach po echających korytarzach rozumiesz, że nie jesteś sam. Wręcz przeciwnie. Grobowiec aż kipi bezbożną żywotnością, a jego mieszkańcy człapią ku tobie z bezmyślną determinacją.
+#
+Kamienny Grobowiec – Poziom 2 [59] = Wyblakła wspaniałość dawnej szlachty przenika ten poziom grobowca. Nawet nieumarli noszą stroje godne dworzan i sług, puste szyderstwo z ich dawnego życia. Możesz mieć tylko nadzieję, że zejście tak głęboko w Kamienny Grobowiec nagrodzi cię choć ułamkiem ich utraconego bogactwa.
+#
+Suche Wzgórza [42] = Wędrówka przez płonącą pustynię Skalnego Pustkowia była męcząca, ale teraz ziemia wznosi się ku górze i każdy krok naprzód jest jeszcze cięższy. Powrót nie wchodzi w grę. Musisz odnaleźć Sale Umarłych ukryte pośród tych suchych wzgórz, zamieszkanych przez wygłodniałe drapieżniki.
+#
+Sale Umarłych – Poziom 1 [56] = Trudno rozstrzygnąć, co jest gorsze: palący żar pustyni na zewnątrz czy przenikliwie zimne, wilgotne powietrze tego bogu ducha winnego mauzoleum. Nieliczne wciąż płonące pochodnie dają tylko skąpe światło, a cienie wiją się nieumarłą groźbą.
+#
+Sale Umarłych – Poziom 2 [57] = Fala okropieństw nie ustępuje. Docierasz do schodów na głębsze poziomy Sal, ale nieumarli wciąż nadchodzą, a ich głodne jęki odbijają się echem od wyblakłych malowanych ścian i kruszących się posągów.
+#
+Sale Umarłych – Poziom 3 [60] = Czujesz, jak tajemniczy prąd przesyca powietrze. Kostka Horadrimów musi gdzieś tu być, ukryta głęboko w tym pełnym koszmarów labiryncie wykutym w nieustępliwym kamieniu.
+#
+Daleka Oaza [43] = Ten pustynny obszar tętni życiem. Źródła zasilają bujne palmy, które dają cień przed słońcem, i płodzą roje krwiopijnych owadów. Aż nagle w zaroślach porusza się coś pomarańczowego, wielkości konia.
+#
+Robacze Gniazdo – Poziom 1 [62] = Przeciskasz ciało przez zdecydowanie zbyt wąski otwór, by znaleźć się w pokrytym szlamem, klaustrofobicznym labiryncie splątanych, pełnych robactwa tuneli. Szlam kapie ze ścian i krzepnie w grube warstwy pokrywające sąsiednie tunele.
+#
+Robacze Gniazdo – Poziom 2 [63] = Tunele ciągną się w nieskończoność. Szlam wsiąka w ubranie i buty, zamieniając każdy krok w chlupoczący koszmar. A głębiej w tym obłąkańczym splocie klaustrofobicznych przejść czeka plugastwo, które stworzyło te tunele.
+#
+Robacze Gniazdo – Poziom 3 [64] = Docierasz do najgłębszej części ula, a opór mieszkańców wyraźnie się wzmaga. Cokolwiek strzegą, odnajdziesz to i unicestwisz.
+#
+Zaginione Miasto [44] = Wypatroszone ruiny dawniej urokliwych domów wystają z piasku, który pochłonął je dziesięciolecia temu. Watahy dzikich potworów tropią cię wąskimi zaułkami i opustoszałymi ulicami.
+#
+Prastare Tunele [65] = Ciekawość zawiodła cię do tuneli, które wyglądały na wyschnięte i wypełnione piaskiem, lecz ku twemu rozczarowaniu okazują się kolejną nędzną, przesiąkniętą smrodem cysterną, zamieszkaną przez cuchnących zbójców i gnijących nieumarłych.
+#
+Dolina Węży [45] = Wężowate posągi flankują misterne wejście do świątyni, skąpane w migotliwym blasku pochodni. Powietrze niesie zapach suszonej skóry i słyszysz szaleńczy syk rozwścieczonych Żmijoszponów.
+#
+Świątynia Żmijoszponów – Poziom 1 [58] = Schodzisz do podziemnej siedziby Żmijoszponów, zdecydowany raz na zawsze przerwać ich niewysłowiony rytuał. Strażnicy, sycząc i plując, rzucają się, by cię powstrzymać!
+#
+Świątynia Żmijoszponów – Poziom 2 [61] = Zbrukany ołtarz w sercu świątyni jest źródłem nienaturalnej ciemności, jaką Żmijoszpony sprowadziły na tę ziemię.
+#
+Harem – Poziom 1 [50] = Schodzisz do labiryntu bogato zdobionych komnat. Smugi egzotycznych perfum łaskoczą twoje nozdrza, co jest rażącym kontrastem z plugawymi grobowcami i kanałami, które zostawiasz za sobą. Przejrzyste jedwabie leżą niedbale porzucone na dywanach. Pokoje są wspaniałe, ale zupełnie puste... Nagły brak życia ogłusza.
+#
+Harem – Poziom 2 [51] = Bezgłowy strażnik wciąż klęczący u stóp schodów nie jest niespodzianką, tylko ponurym potwierdzeniem. Legiony Piekieł były tu przed tobą. A po lepkiej krwi, która zastygła w kałużach na podłodze, widać, że nie zostawiły żadnych ocalałych.
+#
+Pałacowe Piwnice – Poziom 1 [52] = Zbezczeszczony przepych haremu ustępuje użytkowym spiżarniom i piwnicom z winem. Ku twemu zdziwieniu większość zapasów pozostała nietknięta. Siły Piekieł najwyraźniej nie interesują się daktylami, suszonym mięsem ani wytrawnym winem.
+#
+Pałacowe Piwnice – Poziom 2 [53] = Piwnice ciągną się w ciemność, zdają się nie mieć końca. Bogactwo zapasów ukrytych tu mogłoby wyżywić całe miasto przez lata. Zastanawiasz się, czy Jerhyn kiedykolwiek podzieliłby się tym dobrem z głodującym ludem, czy zostawiłby je na zgnicie w ciemności.
+#
+Pałacowe Piwnice – Poziom 3 [54] = Powietrze robi się nienaturalnie zimne, gdy schodzisz na trzeci poziom. Ciężki zapach wina i suszonego mięsa zastępuje sterylny, metaliczny chłód. Sama przestrzeń wydaje się tu rozciągnięta, a niskie, brzęczące drżenie odbija się echem od kamieni i przyciąga cię do środka sklepienia, gdzie cienie zdają się wyginać i zapadać do wewnątrz.
+#
+Tajemne Sanktuarium [74] = Twardego kamienia pod stopami już nie ma, zastąpiła go gładka, przejmująco zimna substancja, która przy każdym kroku dźwięczy jak puste szkło. Nie ma tu ścian, jest tylko przerażająca, nieskończona pustka. Gdy mówisz albo się ruszasz, dźwięki nie wracają echem, lecz spadają w bezdenną ciszę, od której zatykają ci się uszy, jakby ta przestrzeń ciągnęła się w nieskończoność w każdą stronę. Powietrze jest zupełnie nieruchome, a jednak niesie słaby, statyczny pomruk niestabilnej magii.
+#
+Kanion Magów [46] = Przechodzisz przez portal i od razu uderza cię ściana brutalnego, duszącego upału. Sterylna cisza pustki pęka. Wyjący pustynny wiatr uderza w uszy, niosąc ostry, szorstki zapach spieczonego słońcem pyłu i ozonu. Pod twoimi butami dzwoniące szkło znikło, zastąpione ciężkim, zgrzytliwym chrzęstem grubego piasku. Powietrze jest gęste i ciężkie, napiera na skórę jak fizyczny ciężar po nieważkości sanktuarium. Wracasz do świata śmiertelników, ale pustynia pragnie twojej śmierci.
+#
+Grobowiec Tal Rashy [66] = To prawdziwy grobowiec Tal Rashy. To nie tylko pomnik dawnego maga, ale podziemne więzienie dla Władcy Zła, którego zamknął we własnym ciele. Powietrze jest gęste od zapachu starożytnego kurzu, płynu balsamującego i słabej, gorzkiej nuty złośliwości uwięzionego demona.
+Grobowiec Tal Rashy [67] = To prawdziwy grobowiec Tal Rashy. To nie tylko pomnik dawnego maga, ale podziemne więzienie dla Władcy Zła, którego zamknął we własnym ciele. Powietrze jest gęste od zapachu starożytnego kurzu, płynu balsamującego i słabej, gorzkiej nuty złośliwości uwięzionego demona.
+Grobowiec Tal Rashy [68] = To prawdziwy grobowiec Tal Rashy. To nie tylko pomnik dawnego maga, ale podziemne więzienie dla Władcy Zła, którego zamknął we własnym ciele. Powietrze jest gęste od zapachu starożytnego kurzu, płynu balsamującego i słabej, gorzkiej nuty złośliwości uwięzionego demona.
+Grobowiec Tal Rashy [69] = To prawdziwy grobowiec Tal Rashy. To nie tylko pomnik dawnego maga, ale podziemne więzienie dla Władcy Zła, którego zamknął we własnym ciele. Powietrze jest gęste od zapachu starożytnego kurzu, płynu balsamującego i słabej, gorzkiej nuty złośliwości uwięzionego demona.
+Grobowiec Tal Rashy [70] = To prawdziwy grobowiec Tal Rashy. To nie tylko pomnik dawnego maga, ale podziemne więzienie dla Władcy Zła, którego zamknął we własnym ciele. Powietrze jest gęste od zapachu starożytnego kurzu, płynu balsamującego i słabej, gorzkiej nuty złośliwości uwięzionego demona.
+Grobowiec Tal Rashy [71] = To prawdziwy grobowiec Tal Rashy. To nie tylko pomnik dawnego maga, ale podziemne więzienie dla Władcy Zła, którego zamknął we własnym ciele. Powietrze jest gęste od zapachu starożytnego kurzu, płynu balsamującego i słabej, gorzkiej nuty złośliwości uwięzionego demona.
+Grobowiec Tal Rashy [72] = To prawdziwy grobowiec Tal Rashy. To nie tylko pomnik dawnego maga, ale podziemne więzienie dla Władcy Zła, którego zamknął we własnym ciele. Powietrze jest gęste od zapachu starożytnego kurzu, płynu balsamującego i słabej, gorzkiej nuty złośliwości uwięzionego demona.
+#
+Komnata Tal Rashy [73] = Po pokonaniu Duriela wreszcie masz chwilę, by rozejrzeć się wokół. Ta część grobowca jest znacznie starsza niż już starożytny kamień z przodu. Na północnym zachodzie dostrzegasz niemal niewidoczny łuk prowadzący do miejsca ostatniego spoczynku Tal Rashy. Co może czekać cię w środku?
+#
+# Act III
+#
+Doki Kurast [75] = Ten starożytny port lada chwila pochłonie bujne dżungle Nahantu. Słonawa woda bagienna, gęsta od glonów, leniwie kłębi się pod chwiejnymi drewnianymi mostami łączącymi kilka małych wysp i lichych słomianych chat. Upał jest gęsty i przytłaczający, a każdy oddech przypomina wdychanie mdlącej cieczy.
+#
+Las Pająków [76] = Resztka orzeźwienia, jaką dawała nad dokami morska bryza, znika w chwili, gdy zanurzasz się w niemal nieprzebytą dżunglę. Tylko wąskie pasy przejezdnej ziemi otaczają mętną rzekę, a ty od razu jesteś atakowany przez groźnych mieszkańców pierwotnego lasu, czy mają dwie, cztery, czy wiele nóg.
+#
+Grota Pająków [85] = Ściany tej klaustrofobicznej dziury w ziemi są obwieszone grubymi płachtami pajęczyny. Ściany nie są gładkie: dostrzegasz grube, ciasno owinięte kokony na ścianach i podłodze, a niektóre z nich rozpaczliwie się wiją i szamoczą, gdy się skradasz obok.
+#
+Legowisko Arachnidów [84] = Ta jaskinia jest praktycznie nie do odróżnienia od innej obłożonej pająkami dziury, ale gdy skradasz się jej stłumionymi, oplecionymi jedwabiem korytarzami, serce zamiera ci za każdym razem, gdy mijany kokon gwałtownie drgnie. Czy to biedna ofiara próbuje się wyrwać? A może świeże ośmionogie okropieństwo czeka, by przyjść na ten świat?
+#
+Wielkie Moczary [77] = Rzeka rozpada się i wpada na bagnistą nizinę wąskich kanałów i podmokłych wysepek. Przenikliwy świergot ptaków jest stałym przypomnieniem o niebezpieczeństwie. Każdy szelest krzaka, każdy trzask gałązki może być preludium do kolejnej fali szaleńczych ataków.
+#
+Dżungla Łupieżców [78] = Jakby na dowód, że to miejsce jest wynaturzone, wciąż dostrzegasz płytkie ruiny upadłej cywilizacji wyzierające spośród dusząco gęstej roślinności, teraz całkiem opanowane przez oszalałe, drobne Łupieżce, od których ta część dżungli wzięła nazwę. Stare kamienne fundamenty zajęły lichutkie słomiane chaty, a strzałki z dmuchawek nie przestają latać.
+#
+Bagienna Czeluść – Poziom 1 [86] = Bagno brutalnie przejęło tę starożytną świątynię, zalewając każdy korytarz błotem po kostki. Gruby porost zwisa z niegdyś wspaniałych kamiennych łuków, a pochodnie skwierczą chorobliwym, zielonkawym blaskiem, spalając jakiekolwiek plugawe gazy wydzielają mieszkańcy tej nory albo ich resztki.
+#
+Bagienna Czeluść – Poziom 2 [87] = Powietrze tu na dole jest zastałe i zepsute, w każdym oddechu czujesz zgniliznę i rozkład. Kamienie są śliskie od niewysłowionej posoki, a każda wciąż płonąca pochodnia tylko pogłębia cienie w oddali, które roją się od morderczych okropieństw. Zdawało się, że to ty jesteś tu łowcą, ale pewność siebie szybko cię opuszcza.
+#
+Bagienna Czeluść – Poziom 3 [90] = Zejście kończy się w całkowitej, duszącej ciemności. Błoto po kostki ustępuje zalanej posadzce, gdzie lodowata, stęchła woda chlupie o twoje golenie przy każdym kroku. Ściany zwężają się w ciasny, klaustrofobiczny labirynt kruszącego się kamienia. W oddali niski, nienaturalny pomruk przecina ciszę, prowadząc cię ku słabemu, złotemu blaskowi odbijającemu się w brudnej wodzie. Skarb jest blisko, ale blisko jest też to, co czyha w najgłębszej jamie tej czeluści.
+#
+Dolne Kurast [79] = Obrzeża Kurast radzą sobie tylko trochę lepiej niż doki. Gdzie nie spojrzysz, widzisz ślady życia brutalnie przerwanego: napoczęte posiłki pokryte pleśnią, przewrócone wazy i kosze z niedbale rozsypaną zawartością oraz ciała pozostawione na gnicie tam, gdzie je zabito.
+#
+Bazar Kurast [80] = Zarośnięte pozostałości dzielnicy targowej Kurast są polem bitwy pod wieloma względami. Atak dżungli na cywilizację wciąż trwa, a wściekłe potwory i roje owadów dojmująco dają znać o sobie. Ale samo poczytalność jest atakowana, o czym świadczą wędrujące bandy szaleńczo wyjących kultystów.
+#
+Kanały – Poziom 1 [92] = Dźwięk płynącej wody wita cię, gdy wchodzisz do kolejnego pełnego potworów systemu kanałów. W porównaniu z bagnistym, przytłaczającym upałem na zewnątrz jest tu niemal przyjemnie, gdyby nie upiorny smród unoszący się z licznych kanałów i basenów.
+#
+Kanały – Poziom 2 [93] = Docierasz do najgłębszej cysterny kanałów. Niedawno spuszczona woda wciąż sączy się po śliskich ścianach, a każdy nieostrożny krok przy centralnym basenie zaprasza katastrofę. Nagle gwałtowny plusk przerywa kapiącą ciszę. W centralnym basenie porusza się coś ogromnego, wznosi się długie, wijące się ciało, a mokre łuski zgrzytają o kamień. Syczy i rusza prosto na ciebie!
+#
+Zapomniana Świątynia [97] = Morze świec i pochodni oświetla to niegdyś majestatyczne miejsce kultu. Zostało całkowicie zbezczeszczone przez oszalałych sługusów Mefista. Ołtarze i miejsca rytuałów toną we krwi.
+#
+Górne Kurast [81] = Gdy niskie chaty i długie domy ustępują imponującym kamiennym gmachom, liczba dzikich kultystów rośnie wykładniczo. W oddali widzisz potężne świątynie Travincal wznoszące się ponad koronami dżungli, ale droga tam będzie z pewnością strzeżona przez obłąkanych czcicieli Mefista.
+#
+Podziemia Łupieżców – Poziom 1 [88] = W powietrzu czuć nutę soli, gdy wchodzisz do tej starożytnej katakumby. Inne dziwne aromaty łaskoczą twój nos, nuty ziołowe i niezaprzeczalny zapach śmierci. Gdy zagłębiasz się w komnaty i korytarze lochu, rozumiesz, że Łupieżce mumifikują tu swoich zmarłych.
+#
+Podziemia Łupieżców – Poziom 2 [89] = Zepsucie Mefista doszczętnie skaziło ziemię, wypaczając i wykręcając wszystko, czego dotknęło. To, co miało leżeć martwe, znów się porusza, w tym wszyscy polegli Łupieżcy, którzy powstali, by znów wyruszyć na łowy.
+#
+Podziemia Łupieżców – Poziom 3 [91] = Najgłębszy poziom lochu to przerażający labirynt ślepych korytarzy, zalanych komnat i podłych pułapek, chroniących wszelkie szalone rytuały odprawiane tu przez obłąkanych szamanów Łupieżców.
+#
+Opuszczona Kaplica [95] = Przenikliwy wiatr gwiżdże w szczelinach popękanych murów. Większość pochodni i świec, które oświetlały inne świątynie Kurast, zgasła. I w przeciwieństwie do innych świątyń na twojej drodze nikt od razu nie rzucił się, by cię zabić. Ostrożnie skradasz się głębiej w ruinę. Ta nienaturalna cisza z pewnością nie potrwa długo.
+#
+Zrujnowana Świątynia [94] = Ze zdziwieniem widzisz ikonę Niewidzącego Oka wyhaftowaną na sztandarach i wymalowaną na kapliczkach w tej świątyni. Co robią tu, tak daleko na wschodzie, niektóre z Sióstr? Gdy posuwasz się naprzód, słyszysz kobietę wrzeszczącą i wyjącą po krew. Jakakolwiek była jej pierwotna misja, szaleństwo Mefista pochłonęło ją jak wszystkich innych.
+#
+Zapomniany Relikwiarz [96] = Dżungla odbiera tę świątynię: grube pnącza i korzenie przebiły masywne kamienne mury, a żarłoczni mieszkańcy dżungli uczynili to miejsce swoim legowiskiem.
+#
+Grobla Kurast [82] = Ten ogromny kamienny most to zadziwiające osiągnięcie inżynierii. Prosty jak strzała przecina rozległy zalew wód powodziowych, oddzielając święte miasto Travincal od świeckiego Kurast.
+#
+Zrujnowana Kaplica [98] = Niemal czujesz ciężar wody napierający na ściany tej zatopionej świątyni. Maleńkie strumyczki sączą się przez każdą szczelinę w kamieniu, a woda zbiera się w płytkich kałużach na posadzce. To tylko kwestia czasu, zanim pełna siła powodzi na zewnątrz pochłonie to zatopione sklepienie na zawsze.
+#
+Opuszczony Relikwiarz [99] = Jeszcze zanim zatkane kanały zalały dolne części Kurast, to zapomniane sklepienie popadło w ruinę. Niedługo splątana sieć korzeni, pnączy i popękanego kamienia zawiedzie, pozwalając ogromnej masie wody zmyć tę niegdyś świętą świątynię i wszystkich, którzy się w niej czają.
+#
+Travincal [83] = Surowa wspaniałość Travincal zaskakuje cię na krótką chwilę. Święte miasto Zakarum wygląda na prawie nietknięte przez zepsucie Mefista. Ale wtedy wyjący kultyści szarżują na ciebie z czarami i stalą, a złudzenie pokoju pryska.
+#
+Kazamaty Nienawiści – Poziom 1 [100] = Tragicznie znajomy smród krwi uderza cię jak miedziana pięść, gdy schodzisz do dawnego więzienia Mefista. Nic w twojej wyczerpującej podróży nie mogło cię przygotować na ogrom szkarłatnej cieczy sączącej się ze ścian i kłębiącej się w szerokich kałużach.
+#
+Kazamaty Nienawiści – Poziom 2 [101] = Gdy coraz bardziej zbliżasz się do serca zepsucia Mefista, sama nienawiść promieniująca z każdej płyty, każdego filaru, każdej bulgoczącej kałuży krwi atakuje twój rozum.
+#
+Kazamaty Nienawiści – Poziom 3 [102] = Bulgocząca fosa wijącej się krwi przecina tę ogromną komnatę na pół, a przeprawić można się tylko ponurym mostem z kości i kamienia. Na dalekim końcu, nad zbezczeszczonym placem czaszek, wisi portal do Piekła. Niczym krwawiąca rana w tkaninie rzeczywistości, jego złowieszczy pomruk przeczy wszelkiemu rozsądkowi.
+#
+# Act IV
+#
+Forteca Pandemonium [103] = Przechodzisz przez portal i potykasz się w ponurej sali wykutej z łupkowoszarego kamienia i metali, których żaden śmiertelnik nie potrafi nazwać. Jedynym źródłem ciepła są ryczący kominek i kilka dużych czasz z ogniem. Bez nich Forteca Pandemonium byłaby równie niegościnna jak popielate pustkowia za nią.
+#
+Zewnętrzne Stepy [104] = Rozległa równina pokryta drobnym szarym popiołem ciągnie się ku horyzontowi. Połamane iglice i łuki owinięte ogromnymi łańcuchami są jedynymi cechami przełamującymi ogłupiającą monotonię, a zagubione dusze są przykute do skał i pni złamanych filarów. Od czasu do czasu szczelina w ziemi wyrzuca siarkowe opary.
+#
+Równina Rozpaczy [105] = Zmiany krajobrazu są bardzo powolne: ziemia wznosi się i opada w ścisłych geometrycznych wzorach przypominających schody, a bezładnie rozrzucone łuki zastępują coś, co wygląda na ruiny jakichś tytanicznych budowli. Niezmienne pozostaje przytłaczające poczucie niezmiennej, wiecznej nędzy przenikającej każdy centymetr tej równiny.
+#
+Miasto Potępionych [106] = Z miasta nie zostało nic prócz ściętych fundamentów sztywno rozmieszczonych budynków. Zastanawiasz się, kto zbudował te struktury i w jakim celu? Kto byłby na tyle szalony, by próbować osiedlić się na tym bogu ducha winnym pustkowiu?
+#
+Rzeka Płomieni [107] = To musi być najczystsza wizja Piekła, jaką dotąd dane ci było zobaczyć. Połamane bryły obsydianu tworzą zdradliwe wyspy pływające w oceanie lawy. Ogromne kule ognia wznoszą się ze stopionej materii wokół ciebie. Upał jest nieludzki i grozi upieczeniem cię żywcem w zbroi. A jednak twoja wola przeważa. Idziesz dalej. Diablo musi zostać powstrzymany!
+#
+Hellforge = Dwie gigantyczne zbroje strzegą tej starożytnej kuźni. To jedyne znane w całym stworzeniu miejsce dość potężne, by rozbić Kamień Duszy.
+#
+Sanktuarium Chaosu [108] = Siedziba Diablo jest jak krzyżowa, wypaczona kpina z wielkiej katedry w sercu Piekła. Stosy czaszek ułożono przy każdej ścianie i filarze, łuki są poczerniałe i wypaczone, a pośrodku tego wszystkiego, otoczony pięcioma bezbożnymi pieczęciami, leży ogromny pentagram.
+#
+# Act V - Lord Of Destruction
+#
+Harrogath [109] = Chłodne, rześkie górskie powietrze koi twoją duszę po właśnie zakończonej próbie. Harrogath to imponujące miasto-twierdza, a krępe kamienne domy z ośnieżonymi dachami obiecują ciepło i bezpieczeństwo. Nawet za jego masywnymi murami słychać zgiełk bitwy. Wojna z Baalem jest bliżej, niż myślisz.
+#
+Krwawe Wzgórza [110] = Zaledwie kilka kroków za warownymi murami Harrogath uderza cię brutalny chaos wojny. Pospiesznie wykopane okopy szpecą poranioną ziemię, a katapulty zasypują deszczem wybuchowych magicznych pocisków zarówno przyjaciół, jak i wrogów, podczas gdy dzielni Barbarzyńcy toczą rozpaczliwą walkę ariergardy, by powstrzymać niepowstrzymane hordy Baala.
+#
+Zlodowaciała Wyżyna [111] = Ta zamarznięta ziemia niczyja to śmiertelny labirynt starożytnych kamiennych umocnień, odnowionych i naprawionych przez hordy Baala. Kruszące się mury i barykady przecinają lodowy krajobraz, tworząc ślepe zakręty i zaułki, gdzie watahy potworów czekają, by napaść na ciebie z cieni.
+#
+Płaskowyż Arreat [112] = Zlodowaciała Wyżyna ustępuje rozległej, smaganej wiatrem górskiej tundrze, niegdyś nietkniętej, a teraz głęboko okaleczonej wojną. Przenikliwe górskie powietrze dławi siarkowy smród Piekła. Na skalistych, przyprószonych śniegiem przestrzeniach demoniczne portale rozdzierają zmarzniętą ziemię, a skrzeczące chochliki wzniosły prymitywne, płonące nory, roją się po okolicy w grasujących watahach.
+#
+Otchłań Acheronu [126] = Szerokie, otwarte niebo znika, zastąpione przytłaczającymi korytarzami piekielnego warsztatu oblężniczego. Ciężkie ściany z czarnego jak smoła obsydianu i spalonej kości tworzą klaustrofobiczny labirynt nad jeziorami ognia. Osmalone żelazne wozy oblężnicze i masywne katapulty piekną się w intensywnym upale, promieniując palącym żarem, który sprawia, że każda metalowa powierzchnia jest niebezpieczna w dotyku.
+#
+Abaddon [125] = Przejście przez portal pogrąża cię w podziemnym placu zbiórki armii Piekieł. Ciasne korytarze z wulkanicznego kamienia i ciemne żelazne klatki tworzą piekielne koszary dryfujące na oceanie lawy. Rozżarzone powietrze rozbrzmiewa ciężkim szczękiem zbroi i szaleńczym skrzeczeniem demonicznych kohort czekających na marsz na górę.
+#
+Kryształowe Przejście [113] = Chłodne, rześkie powietrze było twoim stałym towarzyszem podczas wspinaczki na Górę Arreat. Ale w chwili, gdy wchodzisz do tej jaskini, zimno wbija zęby w każdy odsłonięty centymetr twojej skóry. Rozproszone światło pochodni załamuje się na pokrytych lodem ścianach i posadzkach. Każdy dźwięk odbija się echem zbyt głośno, by czuć się komfortowo, i alarmuje każdego drapieżnika w zasięgu słuchu o twojej obecności.
+#
+Zamarznięta Rzeka [114] = Tak głęboko w jaskiniach stanie w miejscu to wyrok śmierci. Twoje przemarznięte ciało drży niekontrolowanie, gdy stawiasz jedną stopę przed drugą, zawsze świadom mętnej cieczy bulgoczącej tuż obok wąskich, lodowatych ścieżek, którymi się przebijasz.
+#
+Lodowy Trakt [115] = Te mroźne jaskinie zdają się ciągnąć w nieskończoność. Pokryte lodem ściany, jak okiem sięgnąć. Zamarznięte zwłoki leżą niedbale porozrzucane, a demoniczne okropieństwa maszerują.
+#
+Świątynia Nihlathaka [121] = Głębokie poczucie nieprawidłowości ogarnia cię, gdy wychodzisz z portalu prowadzącego do ukrytej kryjówki zdrajcy. Docierasz na zimny, zamknięty kamienny dziedziniec. Przed tobą leży surowa kamienna fasada świątyni, skrywająca straszliwy sekret. Zamarznięta ziemia wokół jest niepokojąco cicha, usiana nieruchomymi, niepogrzebanymi zwłokami.
+#
+Sale Cierpienia [122] = Wchodzisz na święte barbarzyńskie miejsce pochówku i jesteś pod wrażeniem ogromu tego sklepienia. Ściany to osobliwa mieszanka surowych kamiennych powierzchni i pięknie rzeźbionych filarów. Szerokie przejścia znikają w przyćmionym półmroku, a w powietrzu unoszą się dziwne zapachy ziół. Oczywiste jest, że kiedyś było to miejsce kultu przodków, ale teraz jest doszczętnie zbezczeszczone.
+#
+Sale Bólu [123] = Schodząc głębiej, święta cisza grobowców ustępuje duszącemu ciężarowi. Powietrze jest tu wyraźnie cieplejsze, gęste od metalicznego smaku świeżej krwi i słabych, rozbrzmiewających zawodzeń potępionych. Choć kamienne filary pozostają takie same, szerokie przejścia wydają się ciaśniejsze, zduszone przez agresywną, skrzeczącą obecność czającą się w mroku. Profanacja nie jest tu już dawna: dzieje się naprawdę.
+#
+Sale Nieszczęścia [124] = Docierasz do zgniłego serca kryjówki zdrajcy, stoisz pośrodku wielkiego, czteroramiennego krzyża, z długim korytarzem rozciągającym się w każdym kierunku świata. Na końcu jednego z tych ciemnych skrzydeł zdradziecki drań czeka na zasłużony sąd!
+#
+Grota Tułaczy [116] = Twój oddech wydobywa się w szybkich białych obłokach, gdy opuszczasz broń po pierwszej zasadzce. Przenikliwy mróz osadza się jako szron na twojej zbroi, a to niewiele światła, które dają nieliczne pochodnie, błyszczy na starożytnych, pokrytych lodem ścianach. Pod zamarzniętą skorupą posadzki głęboki, głuchy ryk podlodowcowych cieków wodnych odbija się echem w ciemności, rzeźbiąc jaskinię w niepewną sieć lodowych mostów.
+#
+Zamarznięta Tundra [117] = Po godzinach brnięcia przez zamarznięte, ciasne tunele nagła rozległość Zamarzniętej Tundry uderza cię z nienaturalną siłą. Świeży śnieg nie zdoła przykryć brutalności, jaką armie Baala wyrządziły świętej Górze Arreat i jej ludowi. Zaciskasz zęby i szykujesz się do szturmu na rozproszone umocnienia, które demoniczna horda uznała za swoje.
+#
+Piekielna Czeluść [127] = Te wyspy obsydianu unoszące się na nieskończonym morzu lawy to jakieś piekielne centrum dowodzenia. Ryczące Ślimacze Bossy batożą swoich podwładnych do krwawo pieniącego się szału. Wybicie tych piekielnych nadzorców z pewnością nadszarpnie plany inwazji Baala.
+#
+Droga Starożytnych [118] = Szczyt nie może być już daleko. Po raz kolejny wchodzisz do jaskiniowego systemu tuneli, a ściany i posadzka pokryte są lśniącym lodem. Jest zimno, owszem, ale jest też coś jeszcze, ledwie wyczuwalny pomruk ledwie powstrzymywanej magii. Cokolwiek czeka dalej, z pewnością jest źródłem ogromnej mocy.
+#
+Lodowa Piwnica [119] = Gdy zagłębiasz się w kolejną bezdenną lodową szczelinę, niekończące się hordy yeti, nieumarłych i demonów atakują cię. Jakie bogactwa muszą strzec!
+#
+Szczyt Arreat [120] = Rozległe, bezkresne niebo otacza cię, gdy wyłaniasz się na szczycie. Przed tobą majaczy dziwna, obca twierdza Kamienia Świata, a jej prastara architektura nie przypomina niczego, co widziałeś podczas swojej długiej wędrówki. Trzy strzeliste posągi przedstawiające legendarnych Starożytnych: Talika, Korlika i Madoka otaczają to, co najwyraźniej ma być rytualną areną. Aby wejść do Twierdzy, będziesz musiał wykazać się przed tymi Starożytnymi!
+#
+Twierdza Kamienia Świata – Poziom 1 [128] = Teraz, gdy jesteś w jej świętej sali, boleśnie oczywiste jest, że żadna śmiertelna ręka nie zbudowała tej twierdzy. Jeśli już, wygląda raczej na wyhodowaną niż zbudowaną: tytaniczne filary ukształtowane z pojedynczych kawałków kamienia i żadnych widocznych szczelin tam, gdzie kamienie zostały połączone.
+#
+Twierdza Kamienia Świata – Poziom 2 [129] = Ślady inwazji Baala widać wszędzie. Nie ma korytarza bez brutalnie zbezczeszczonych Barbarzyńców złożonych w ofierze w straszliwych rytuałach, nie ma komnaty bez śladów demonicznej obecności. A powietrze przenika pulsujące bicie serca jakiegoś ogromnego źródła mocy.
+#
+Twierdza Kamienia Świata – Poziom 3 [130] = Postrzępione formacje kryształów wystrzeliwują z posadzki, pulsując wrodzonym ogniem. Szyderczemu śmiechowi Baala towarzyszą coraz brutalniejsze ataki jego demonicznych sług.
+#
+Tron Zniszczenia [131] = Dziwna, ognista poświata, którą było widać wcześniej w formacjach kryształów, przenika teraz każdą powierzchnię, a ty czujesz pulsowanie Kamienia Świata przez podeszwy butów. Obecność Baala wisi w powietrzu jak mdlący smród.
+#
+Komnata Kamienia Świata [132] = Nieskrępowana magia Kamienia Świata pełznie po twojej skórze, gdy wchodzisz do tego rozległego sklepienia. Na północnym wschodzie, wielkości małej twierdzy, znajduje się sam Kamień Świata, wspaniały czerwony kryształ. Zauważasz ciemne, oleiste macki wijące się przez jego naturalne fasety, wyraźny znak zepsucia Baala.
+#
+Sekretny krowi poziom [39] = Ta szeroka, otwarta pastwisko to królestwo nieuchwytnego i budzącego grozę Krowiego Króla i jego bydlęcego dworu. Powietrze jest wonne i rześkie, a ciepłe słońce głaszcze twoją skórę. A jednak coś jest tu bardzo nie tak.
+#
+Legowisko Matrony [133] = Wpływ Piekieł wypaczył ten obszar nie do poznania.
+#
+Zapomniane Piaski [134] = Wpływ Piekieł wypaczył ten obszar nie do poznania.
+#
+Piec Bólu [135] = Wpływ Piekieł wypaczył ten obszar nie do poznania.
+#
+Tristram [136] = Wpływ Piekieł wypaczył ten obszar nie do poznania.
+#
+Wierzchołek Kolosów [137] = Wpływ Piekieł wypaczył ten obszar nie do poznania.

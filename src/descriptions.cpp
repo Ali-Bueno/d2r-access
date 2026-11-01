@@ -2,32 +2,15 @@
 
 #include "async_log.h"
 
-#include <windows.h>
 #include <algorithm>
 #include <atomic>
-#include <fstream>
 #include <mutex>
-#include <sstream>
-
-extern "C" IMAGE_DOS_HEADER __ImageBase; // this plugin's own module, which carries the mod's descriptions
 
 namespace D2RAccess::Descriptions {
 namespace {
 constexpr std::string_view Separator = "=";
 constexpr char Note = '#';
-// Written once when the file is missing, so the player finds how to fill it.
-constexpr std::string_view Template =
-	"# D2R Access descriptions: your own words for an area or a landmark.\n"
-	"# One per line: the name as the mod says it, an equals sign, then the words.\n"
-	"# An area's words are read with Back and right stick up while you are there;\n"
-	"# a landmark's replace its name the first time it comes into reach.\n"
-	"# Lines starting with # are notes. Updates of the mod never replace this file.\n"
-	"# The mod comes with words for many places; a line here replaces its words.\n"
-	"# A change is read a second after you save it, while the game runs.\n"
-	"# Every name the mod answers to is in descriptions-names.txt, written as you play.\n"
-	"#\n"
-	"# Rogue Encampment = A ramshackle collection of tents and wagons...\n"
-	"# Hangman's Tree = A tall, withered tree stands in the middle of the Burial Grounds...\n";
+constexpr std::string_view English = "enUS";
 
 std::string_view Trim(std::string_view text) {
 	constexpr std::string_view Blank = " \t\r\n";
@@ -36,58 +19,25 @@ std::string_view Trim(std::string_view text) {
 	return text.substr(first, text.find_last_not_of(Blank) - first + 1);
 }
 
-// Rewritten each game, in the game's language: the names the book answers to.
-constexpr std::string_view NamesFile = "descriptions-names.txt";
-constexpr std::string_view NamesHeader =
-	"# D2R Access: every name descriptions.txt answers to, in the game's language.\n"
-	"# Copy a name as it is, add an equals sign, then your words. Written anew each time you play.\n";
-// How often a request for words looks for a saved change of the file.
-constexpr uint64_t RecheckMs = 1000;
-
 std::mutex g_mutex;
 Book g_book;
+SealedText::Texts g_texts;
+std::string g_locale;                         // the language g_book was read in
+std::string_view (*g_localeOf)() = nullptr;  // the game's language now
 std::atomic<bool> g_enabled{true};
 std::atomic<bool> g_hint{false};
 const D2RL::PluginContext* g_context = nullptr;
-std::filesystem::path g_file;
-std::filesystem::file_time_type g_written{};
-uint64_t g_checkedMs = 0;
-std::string g_banner; // the last area banner, "Entering The Cave Level 1"
-int g_level = 0;       // the level the player is in (NoteLevel), and its name
-std::string g_levelName;
-// The mod's own book (data/descriptions.txt, embedded by CMakeLists.txt), read before the player's.
-constexpr wchar_t BundledResource[] = L"DESCRIPTIONS";
-std::string g_bundled;
+int g_level = 0; // the level the player is in (NoteLevel)
 
-std::string ReadBundled() {
-	const auto module = reinterpret_cast<HMODULE>(&__ImageBase);
-	const HRSRC info = FindResourceW(module, BundledResource, reinterpret_cast<LPCWSTR>(RT_RCDATA));
-	const HGLOBAL handle = info ? LoadResource(module, info) : nullptr;
-	const auto* bytes = handle ? static_cast<const char*>(LockResource(handle)) : nullptr;
-	return bytes ? std::string(bytes, SizeofResource(module, info)) : std::string{};
-}
-
-std::string ReadBook(const std::filesystem::path& file) {
-	std::ifstream input(file, std::ios::binary);
-	std::stringstream text;
-	text << input.rdbuf();
-	std::string content = text.str();
-	if (content.starts_with("\xEF\xBB\xBF")) content.erase(0, 3); // Notepad's byte-order mark
-	return content;
-}
-
-// The book again if the file was saved since it was read. Caller holds g_mutex.
-void Refresh() {
-	const uint64_t now = GetTickCount64();
-	if (g_file.empty() || now - g_checkedMs < RecheckMs) return;
-	g_checkedMs = now;
-	std::error_code error;
-	const auto written = std::filesystem::last_write_time(g_file, error);
-	if (error || written == g_written) return;
-	g_written = written;
-	g_book.Replace(g_bundled + '\n' + ReadBook(g_file));
-	AsyncLog::InfoF(g_context, "[descriptions] %zu read again from %s, saved while playing", g_book.Size(),
-		g_file.filename().string().c_str());
+// The book in the game's language, read again when it changed. Caller holds g_mutex.
+void Follow() {
+	if (!g_localeOf) return;
+	const auto locale = g_localeOf();
+	if (locale == g_locale) return;
+	g_locale = locale;
+	g_book.Replace(Layered(g_texts, locale));
+	AsyncLog::InfoF(g_context, "[descriptions] %zu in %s (%s)", g_book.Size(), g_locale.c_str(),
+		g_texts.contains(g_locale) ? "its own words, English under them" : "English only");
 }
 }
 
@@ -99,37 +49,35 @@ std::string Fold(std::string_view name) {
 
 std::string LevelKey(int level) { return "[" + std::to_string(level) + "]"; }
 
-namespace {
-// "sewers level 1 [47]" is kept as "[47]": the name before the Id is the writer's own.
-std::string Keyed(std::string folded) {
+std::string Book::Keyed(std::string_view name) {
+	std::string folded = Fold(name);
 	const auto open = folded.rfind('[');
-	if (open == std::string::npos || folded.back() != ']' || open + 2 >= folded.size()
+	if (open == std::string::npos || folded.empty() || folded.back() != ']' || open + 2 >= folded.size()
 		|| (open > 0 && folded[open - 1] != ' ')) return folded;
 	const std::string_view digits = std::string_view(folded).substr(open + 1, folded.size() - open - 2);
 	if (digits.size() > 4 || !std::all_of(digits.begin(), digits.end(), [](char c) { return c >= '0' && c <= '9'; })) return folded;
 	return LevelKey(std::stoi(std::string(digits)));
 }
-}
 
-void Book::Parse(std::string_view text) {
+size_t Book::Parse(std::string_view text) {
+	size_t rejected = 0;
 	while (!text.empty()) {
 		const auto end = text.find('\n');
 		const auto line = Trim(text.substr(0, end));
 		text = end == std::string_view::npos ? std::string_view{} : text.substr(end + 1);
 		if (line.empty() || line.front() == Note) continue;
 		const auto split = line.find(Separator);
-		if (split == std::string_view::npos) continue;
-		const auto key = Keyed(Fold(line.substr(0, split)));
-		const auto words = Trim(line.substr(split + Separator.size()));
-		if (!key.empty() && !words.empty()) entries_[key] = std::string(words);
+		const auto key = split == std::string_view::npos ? std::string{} : Keyed(line.substr(0, split));
+		const auto words = split == std::string_view::npos ? std::string_view{} : Trim(line.substr(split + Separator.size()));
+		if (key.empty() || words.empty()) { ++rejected; continue; }
+		entries_[key] = std::string(words);
 	}
+	return rejected;
 }
 
 void Book::Replace(std::string_view text) {
 	Book fresh;
 	fresh.Parse(text);
-	for (const auto& [key, words] : fresh.entries_)
-		if (const auto old = entries_.find(key); old == entries_.end() || old->second != words) { told_.erase(key); hinted_.erase(key); }
 	entries_ = std::move(fresh.entries_);
 }
 
@@ -138,27 +86,9 @@ std::string Book::Find(std::string_view name, std::string_view builtIn) const {
 	return found != entries_.end() ? found->second : std::string(builtIn);
 }
 
-namespace {
-// `text` ends with the whole words of `tail`.
-bool EndsWithWords(std::string_view text, std::string_view tail) {
-	return !tail.empty() && text.ends_with(tail) && (text.size() == tail.size() || text[text.size() - tail.size() - 1] == ' ');
-}
-}
-
-std::string Book::AreaKey(int level, std::string_view name, std::string_view banner) const {
-	if (level > 0 && entries_.contains(LevelKey(level))) return LevelKey(level);
-	const auto folded = Fold(name), shown = Fold(banner);
-	if (folded.empty()) return {};
-	if (entries_.contains(folded)) return folded;
-	std::string best;
-	for (const auto& [key, words] : entries_)
-		if (EndsWithWords(key, folded) && EndsWithWords(shown, key) && key.size() > best.size()) best = key;
-	return best;
-}
-
-std::string Book::FindArea(int level, std::string_view name, std::string_view banner) const {
-	const auto key = AreaKey(level, name, banner);
-	return key.empty() ? std::string{} : entries_.at(key);
+std::string Book::FindArea(int level) const {
+	const auto found = level > 0 ? entries_.find(LevelKey(level)) : entries_.end();
+	return found != entries_.end() ? found->second : std::string{};
 }
 
 std::string Book::FirstTime(std::string_view name, std::string_view builtIn) {
@@ -167,77 +97,49 @@ std::string Book::FirstTime(std::string_view name, std::string_view builtIn) {
 	return words;
 }
 
-bool Book::HintDue(int level, std::string_view name, std::string_view banner) {
-	const auto key = AreaKey(level, name, banner);
-	return !key.empty() && hinted_.insert(key).second;
+bool Book::HintDue(int level) {
+	return level > 0 && entries_.contains(LevelKey(level)) && hinted_.insert(LevelKey(level)).second;
 }
 
-void Load(const D2RL::PluginContext* context, const std::filesystem::path& file) {
-	std::error_code error;
-	if (!std::filesystem::exists(file, error)) {
-		std::ofstream(file, std::ios::binary) << Template;
-		AsyncLog::InfoF(context, "[descriptions] %s written", file.filename().string().c_str());
-	}
+std::string Layered(const SealedText::Texts& texts, std::string_view locale) {
+	const auto english = texts.find(std::string(English));
+	std::string text = english != texts.end() ? english->second : std::string{};
+	if (const auto own = texts.find(std::string(locale)); locale != English && own != texts.end())
+		text.append(1, '\n').append(own->second);
+	return text;
+}
+
+void Load(const D2RL::PluginContext* context, SealedText::Texts texts, std::string_view (*locale)()) {
 	std::lock_guard lock(g_mutex);
 	g_context = context;
-	g_file = file;
-	g_written = std::filesystem::last_write_time(file, error);
-	g_checkedMs = GetTickCount64();
+	g_texts = std::move(texts);
+	g_localeOf = locale;
+	g_locale.clear();
 	g_book = {};
-	g_bundled = ReadBundled();
-	g_book.Parse(g_bundled);
-	const size_t bundled = g_book.Size();
-	g_book.Parse(ReadBook(file));
-	AsyncLog::InfoF(context, "[descriptions] %zu come with the mod, %zu with %s", bundled, g_book.Size(),
-		file.filename().string().c_str());
+	AsyncLog::InfoF(context, "[descriptions] %zu languages come with the mod", g_texts.size());
+	Follow();
 }
 
-void WriteNames(const std::vector<std::string>& areas, const std::vector<std::string>& landmarks) {
-	std::filesystem::path path;
-	{
-		std::lock_guard lock(g_mutex);
-		if (g_file.empty()) return;
-		path = g_file.parent_path() / NamesFile;
-	}
-	std::ofstream out(path, std::ios::binary);
-	out << NamesHeader << "\n# Areas\n";
-	for (const auto& name : areas) out << name << '\n';
-	out << "\n# Landmarks\n";
-	for (const auto& name : landmarks) out << name << '\n';
-	AsyncLog::InfoF(g_context, "[descriptions] %zu area and %zu landmark names written to %s", areas.size(), landmarks.size(),
-		path.filename().string().c_str());
-}
-
-std::string Find(std::string_view name, std::string_view builtIn) {
+std::string FindArea(int level) {
 	std::lock_guard lock(g_mutex);
-	Refresh();
-	return g_book.Find(name, builtIn);
+	Follow();
+	return g_book.FindArea(level);
 }
-std::string FindArea(int level, std::string_view name) {
-	std::lock_guard lock(g_mutex);
-	Refresh();
-	return g_book.FindArea(level, name, g_banner);
-}
-void NoteBanner(std::string_view banner) {
-	std::lock_guard lock(g_mutex);
-	g_banner = banner;
-}
-void NoteLevel(int level, std::string name) {
+void NoteLevel(int level) {
 	std::lock_guard lock(g_mutex);
 	g_level = level;
-	g_levelName = std::move(name);
 }
 std::string FirstTime(std::string_view name, std::string_view builtIn) {
 	if (!g_enabled) return {};
 	std::lock_guard lock(g_mutex);
-	Refresh();
+	Follow();
 	return g_book.FirstTime(name, builtIn);
 }
-bool HintDue(std::string_view banner) {
+bool HintDue() {
 	if (!g_hint) return false;
 	std::lock_guard lock(g_mutex);
-	Refresh();
-	return g_book.HintDue(g_level, g_levelName, banner);
+	Follow();
+	return g_book.HintDue(g_level);
 }
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool on) { g_enabled = on; }

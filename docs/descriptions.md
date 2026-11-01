@@ -17,7 +17,7 @@ lengthening every announcement.
   its own switch, off, since 2026-10-26: below). Words asked for with BACK + right stick up are
   said either way.
 
-## Words that come with the mod (2026-10-24)
+## Words that come with the mod (2026-10-24; per language since 2026-11-01, below)
 
 `data/descriptions.txt`: the tester's words for Act I and Act II (67 areas and the Hangman's Tree),
 in the player's file format, English names. CMake embeds it in the DLL as RCDATA `DESCRIPTIONS`
@@ -27,7 +27,7 @@ the mod's words back. With the game in another language the names do not match a
 (the strings layer's `hangmanTreeDescription` still is). Names are per level name, so "Sewers Level
 1" also answers in Act III's sewers. Log: `[descriptions] N come with the mod, M with descriptions.txt`.
 
-## The player's file
+## The player's file (removed 2026-11-01, below)
 
 `d2rloader/plugins/d2r-access/descriptions.txt`, written with notes when missing, never shipped,
 so an update keeps it. One line per place: the name as the mod says it (any case), `=`, the words;
@@ -104,3 +104,27 @@ the cows, and one placeholder ("Hell's influence has warped this area beyond all
 for the three Pandemonium areas, `Tristram [136]` and Colossal Summit, until the tester has been
 there. Duriel's Lair is "Tal Rasha's Chamber" and Kurast Docktown "Kurast Docks" in the game's
 own words, as the file has them.
+
+## In every language, sealed, from the source only (2026-11-01)
+
+The user: the words were English only (the names above matched only an English game), and they
+should be changed only in this repository, by the tester or another contributor.
+- **Files:** `data/descriptions/<locale>.txt`, one per language the mod speaks. `enUS.txt` is the
+  source; every other file falls back to it line by line (`Layered`). An area's line is
+  `Name [Id] = words`: only the Levels.txt Id counts, the name is for the writer. A landmark keeps
+  its English name as key in every file (`Hangman's Tree = ...`); `place_service.cpp` looks it up by
+  the enUS `placeFeatures` name; the strings layer's `hangmanTreeDescription` and
+  `hellforgeDescription` are gone, so no description is left in plain text. The other languages were machine-translated from English with the
+  game's own names (`game-data/local/lng/strings/*.json`).
+- **Sealed:** `tools/seal-descriptions` (built and run by CMake) packs every file and seals the lot
+  with AES-256-GCM (Windows CNG, `bcrypt`), with a new random key each time the files change; the
+  plugin embeds the blob (RCDATA `DESCRIPTIONS`) and the generated `descriptions_key.h`.
+  `Descriptions::OpenBundled` opens it in memory; an altered byte fails the tag and no words are
+  said (`[descriptions] none: the sealed words were altered`). The key is in the DLL, so this stops a
+  resource or hex editor, not a determined reverse engineer.
+- **Language:** the book follows the language the mod speaks (`Strings::Selected`), read again when
+  it changes (`[descriptions] N in deDE (its own words, English under them)`).
+- **The player's `descriptions.txt` is gone**, with `descriptions-names.txt` and the live re-read:
+  nothing outside the source changes the words. Old copies in the plugin folder are ignored.
+- **Checks:** `descriptions-tests` reads every file: each line a note or `name = words`, every level 1
+  to 137 in English, no language with a key English lacks (a mistyped Id).

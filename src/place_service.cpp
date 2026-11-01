@@ -244,15 +244,6 @@ std::vector<std::string> Towards(const Lifecycle& state, const Reading& reading)
 	return targets;
 }
 
-// The words a landmark comes with, said the first time it comes into reach.
-const char* LandmarkWords(PlaceFeature feature, const Strings::Table& strings) {
-	switch (feature) {
-	case PlaceFeature::HangmanTree: return strings.hangmanTreeDescription;
-	case PlaceFeature::Hellforge: return strings.hellforgeDescription;
-	default: return "";
-	}
-}
-
 // The spoken line; one piece per change, never the same word twice in a row
 // (a forge piece holding an anvil is one "forge").
 std::string Phrase(const Reading& reading, const Places::Change& change, const std::vector<std::string>& towards) {
@@ -271,8 +262,10 @@ std::string Phrase(const Reading& reading, const Places::Change& change, const s
 		for (const auto& target : towards) add(target);
 	}
 	if (change.feature) {
-		const std::string_view name = strings.placeFeatures[static_cast<size_t>(Places::Spoken(spot.feature))];
-		told = Descriptions::FirstTime(name, LandmarkWords(spot.feature, strings));
+		const auto spoken = static_cast<size_t>(Places::Spoken(spot.feature));
+		const std::string_view name = strings.placeFeatures[spoken];
+		// The words are kept under the landmark's English name, whatever the game's language.
+		told = Descriptions::FirstTime(Strings::For(Strings::Language::enUS).placeFeatures[spoken], {});
 		add(told.empty() ? name : std::string_view(told));
 	}
 	std::string line;
@@ -381,32 +374,6 @@ bool Register(const D2RL::PluginContext* context) {
 	return g_supported;
 }
 
-namespace {
-// The names a description can be given, written in the first game of a run and
-// again when the language changes (a tester, 2026-10-19: "The Cave Level 1" is "Cave Level 1").
-std::optional<Strings::Language> g_namesFor;
-uint64_t g_namesRetry = 0;
-void WriteDescriptionNames() {
-	const uint64_t now = GetTickCount64();
-	if (g_namesFor == Strings::Selected() || now < g_namesRetry) return;
-	g_namesRetry = now + PollMs;
-	const auto levels = NativeEntities::LevelNames();
-	if (levels.empty()) return;
-	g_namesFor = Strings::Selected();
-	// A name two levels share is listed per level with its Id, the line that answers there alone.
-	std::vector<std::string> areas;
-	for (const auto& [id, name] : levels) {
-		const bool shared = std::count_if(levels.begin(), levels.end(), [&](const auto& other) { return other.second == name; }) > 1;
-		auto listed = shared ? name + " " + Descriptions::LevelKey(static_cast<int>(id)) : name;
-		if (std::find(areas.begin(), areas.end(), listed) == areas.end()) areas.push_back(std::move(listed));
-	}
-	std::vector<std::string> landmarks;
-	for (const char* name : Strings::Current().placeFeatures)
-		if (std::find(landmarks.begin(), landmarks.end(), name) == landmarks.end()) landmarks.emplace_back(name);
-	Descriptions::WriteNames(areas, landmarks);
-}
-}
-
 void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	const auto command = g_command.exchange(Command::None);
 	Lifecycle state;
@@ -427,7 +394,6 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		AsyncLog::InfoF(context, "[places] enabled=%u supported=%u", g_enabled ? 1u : 0u, g_supported ? 1u : 0u);
 		return;
 	}
-	if (state.ready) WriteDescriptionNames();
 	if (!g_supported || !g_enabled) return;
 	const uint64_t now = GetTickCount64();
 	if (uiOwnsSpeech || now - g_nextPoll < PollMs) return;

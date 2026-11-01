@@ -844,7 +844,7 @@ namespace {
 // BACK + right stick up: the hand-written words of the area the player is in (a tester, 2026-10-16).
 void DescribeArea(const D2RL::PluginContext* context, int level) {
 	const auto name = level > 0 ? NativeEntities::LevelName(static_cast<uint32_t>(level)) : std::string{};
-	std::string text = name.empty() ? std::string{} : Descriptions::FindArea(level, name);
+	std::string text = Descriptions::FindArea(level);
 	if (text.empty()) {
 		char none[300]{};
 		std::snprintf(none, sizeof none, Strings::Current().noAreaDescription, name.c_str());
@@ -875,7 +875,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (state.revision != g_revision) {
 		g_revision = state.revision;
 		OnLifecycle(state, now);
-		Descriptions::NoteLevel(state.level, state.level > 0 ? NativeEntities::LevelName(static_cast<uint32_t>(state.level)) : std::string{});
+		Descriptions::NoteLevel(state.level);
 	}
 	if (command == Command::Exploration || command == Command::FullAssistance) {
 		Release("navigation-mode");
