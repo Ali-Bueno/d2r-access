@@ -23,6 +23,7 @@
 //   Ctrl + arrows            read line by line: up and down a line, left and
 //                            right the first and the last (InputDirection::PostLineStep).
 //   PageUp, PageDown         the tab before and after, in a menu that has tabs.
+//   Alt+PageUp/PageDown      the shared stash's page before and after; Ctrl+Shift ten pages.
 //   Home, End                the menu before and after: character, inventory,
 //                            skill tree, quest log, game menu.
 //   backslash                say it again (Home says it again in play).
@@ -36,7 +37,9 @@
 // gives the menu back to the game's controller focus, a pad plugged in late included.
 // docs/keyboard-play.md
 namespace D2RAccess::KeyboardMenu {
-enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail };
+// The last four are the shared stash's pages: Alt+PageUp/PageDown by one, Ctrl+Shift by ten (docs/stash-pages.md).
+enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail,
+	PagePrevious, PageNext, PageBack, PageForward };
 
 // After KeyboardService::Tick and before the readers, so what is read is
 // where the cursor ends up.

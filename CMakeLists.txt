@@ -50,6 +50,8 @@ add_library(d2r-access SHARED
 	src/grid_edge.cpp
 	src/grid_edge_service.cpp
 	src/stash_count.cpp
+	src/stash_pages.cpp
+	src/native_stash_pages.cpp
 	src/sound_glossary.cpp
 	src/character_saves.cpp
 	src/code_dump.cpp
@@ -612,6 +614,12 @@ if(BUILD_TESTING)
 	d2r_test(stash-count-tests tests/stash_count_tests.cpp src/stash_count.cpp)
 	target_link_libraries(stash-count-tests PRIVATE D2RLPlugin::D2RLPlugin)
 	add_test(NAME stash-count COMMAND stash-count-tests)
+	d2r_test(native-stash-pages-tests tests/native_stash_pages_tests.cpp src/native_memory.cpp src/async_log.cpp)
+	target_link_libraries(native-stash-pages-tests PRIVATE D2RLPlugin::D2RLPlugin version)
+	add_test(NAME native-stash-pages COMMAND native-stash-pages-tests)
+	d2r_test(stash-pages-tests tests/stash_pages_tests.cpp src/stash_pages.cpp src/ui_text.cpp src/speech_strings.cpp)
+	target_link_libraries(stash-pages-tests PRIVATE D2RLPlugin::D2RLPlugin)
+	add_test(NAME stash-pages COMMAND stash-pages-tests)
 	d2r_test(quest-log-tests tests/quest_log_tests.cpp src/quest_log.cpp)
 	add_test(NAME quest-log COMMAND quest-log-tests)
 	d2r_test(quest-progress-tests tests/quest_progress_tests.cpp src/quest_progress.cpp src/quest_log.cpp src/ui_text.cpp src/speech_strings.cpp)
