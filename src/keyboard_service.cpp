@@ -5,6 +5,7 @@
 #include "character_stats_reader.h"
 #include "focus_tracker.h"
 #include "auto_walk.h"
+#include "battle/skill_cast.h"
 #include "beacon.h"
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
@@ -1299,8 +1300,8 @@ bool Shooting(const D2RL::PluginContext* context, uint64_t now) {
 
 Generated::SkillAttack KindOf(Hand hand) {
 	const int skill = NativeActions::SelectedSkill(hand);
-	// A skill that cannot be read is fought with as the plain Attack would be.
-	return skill < 0 ? Generated::SkillAttack::Weapon : Generated::SkillAttackFor(skill);
+	// An unknown skill must not inherit Attack's enemy requirement.
+	return Generated::SkillAttackFor(skill);
 }
 
 CombatTarget::Reach ReachOf(const D2RL::PluginContext* context, Hand hand, uint64_t now) {
@@ -1339,15 +1340,23 @@ void BeginFight(const D2RL::PluginContext* context, const Lifecycle& state, Hand
 	if (!Ready()) return;
 	const int skill = NativeActions::SelectedSkill(hand);
 	if (KindOf(hand) == Generated::SkillAttack::None) {
-		// Not an attack: a cry, an armour, a summons. Used once, where the
-		// monster held stands when there is one, where the player stands otherwise.
-		Scene scene;
-		if (!Look(state, scene, false)) return;
-		bool moved = false;
-		const auto ranked = Monsters(scene);
-		const auto* target = g_lock.Held() ? g_lock.Keep(ranked, moved) : nullptr;
+		// Not an attack: a cry, an armour, a summons. Used once. A self buff needs
+		// neither terrain nor an enemy; the game owns town, mana and form rules.
+		End("one-shot skill", true);
 		AsyncLog::InfoF(g_context, "[keyboard] skill %d is not an attack: used once", skill);
-		(void)NativeActions::SkillAt(hand, target ? target->entity.position : scene.world.player);
+		if (Generated::SkillRequiresEnemy(skill)) {
+			// Some non-attacks (Blood Oath) still need a hostile unit.
+			Scene scene;
+			bool moved = false;
+			if (Look(state, scene, false)) {
+				const auto ranked = Monsters(scene);
+				if (const auto* target = g_lock.Keep(ranked, moved)) {
+					(void)NativeActions::SkillOn(hand, static_cast<Unit>(target->entity.unit), target->entity.id);
+					return;
+				}
+			}
+			ScreenReader::Speak(Strings::Current().targetNone, true);
+		} else (void)NativeActions::SkillHere(hand);
 		return;
 	}
 	End("fight", false);
@@ -1365,15 +1374,31 @@ void BeginFight(const D2RL::PluginContext* context, const Lifecycle& state, Hand
 
 void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
 	const auto& strings = Strings::Current();
+	// Shift is the game's stand-still: polled here so it can change during a hold.
+	const bool stationary = g_hand == Hand::Left && (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+	const auto missing = SkillCast::MissingEnemy(NativeActions::SelectedSkill(g_hand), stationary);
+	auto untargeted = [&] {
+		if (g_closing || g_backing) { g_closing = g_backing = false; (void)NativeActions::Halt(); }
+		if (missing == SkillCast::WithoutEnemy::Report) {
+			if (!g_saidNone) ScreenReader::Speak(strings.targetNone, true);
+			g_saidNone = true;
+		} else if (now >= g_nextStrike) {
+			g_nextStrike = now + StrikeMs;
+			(void)NativeActions::SkillHere(g_hand);
+			// Optional-target spells cast once; a stationary hold keeps striking.
+			if (missing == SkillCast::WithoutEnemy::CastHere) End("untargeted skill", false);
+		}
+	};
 	Scene scene;
-	if (!Look(state, scene, false)) return;
+	if (!Look(state, scene, false)) {
+		if (missing != SkillCast::WithoutEnemy::Report) untargeted();
+		return;
+	}
 	const auto ranked = Monsters(scene);
 	bool moved = false;
 	const auto* target = g_lock.Keep(ranked, moved);
 	if (!target) {
-		if (!g_saidNone) ScreenReader::Speak(strings.targetNone, true);
-		g_saidNone = true;
-		if (g_closing || g_backing) { g_closing = g_backing = false; (void)NativeActions::Halt(); }
+		untargeted();
 		return;
 	}
 	g_saidNone = false;
@@ -1382,6 +1407,15 @@ void Fight(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 		AsyncLog::InfoF(g_context, "[keyboard] fight: now id=%u name=%s", target->entity.id, target->entity.name.c_str());
 		ScreenReader::Speak(target->entity.name, false);
 		g_walker.Start();
+	}
+	if (stationary) {
+		// Before chase and retreat; the stand-still command does not walk up either.
+		if (g_closing || g_backing) { g_closing = g_backing = false; (void)NativeActions::Halt(); }
+		if (now >= g_nextStrike) {
+			g_nextStrike = now + StrikeMs;
+			(void)NativeActions::SkillOn(g_hand, static_cast<Unit>(target->entity.unit), target->entity.id, true);
+		}
+		return;
 	}
 	const auto reach = ReachOf(context, g_hand, now);
 	if (reach.ranged) {
@@ -2263,7 +2297,9 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 			return D2RL::Input::ActionResult::Handled;
 		}
 	}
-	// Out of a menu a click with Shift, Ctrl or Alt, and the cube's key, are the game's keys.
+	// Shift+A is the equip click in a menu (above); in play it attacks in place.
+	if (command == Command::ClickLeft && event->binding.modifier == D2RL::Input::Modifier::Shift) command = Command::Attack;
+	// Other modified clicks and the cube's key are the game's keys out of a menu.
 	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort
 		|| command == Command::FillBelt || command == Command::Repair)
 		return D2RL::Input::ActionResult::Ignored;
@@ -2375,7 +2411,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-settings-change", "Open the group or change the setting (settings list open)", Key::Space, Modifier::None, Command::SettingsChange},
 			Entry{"keyboard-settings-back", "Back to the groups (settings list open)", Key::Backspace, Modifier::None, Command::SettingsBack},
 			Entry{"keyboard-settings-lower", "Lower the setting (settings list open)", Key::Space, Modifier::Shift, Command::SettingsLower},
-			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
+			Entry{"keyboard-click-shift", "Shift+A: attack in place in play; left click with Shift (equip) in a menu", Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
 			Entry{"keyboard-click-alt", "Menu: left click with Alt", Key::A, Modifier::Alt, Command::ClickLeft},
 			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},

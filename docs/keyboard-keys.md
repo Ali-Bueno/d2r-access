@@ -19,6 +19,7 @@ before adding one, and read this file first.
 | arrows, held | walk |
 | A, held | fight with the left skill: only a monster on screen, as a click would (`22e2739`) |
 | W, held | fight with the right skill: only a monster on screen |
+| Shift+A, held | fight with the left skill in place: strikes the locked monster or the spot you stand on, no chase, no fall back; in a menu it stays the equip click (bladestorm360, 97cb7c4; [skill targeting](battle-skill-targeting.md)) |
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand (the game's S opens the right hand's) |
 | Tab, Shift+Tab | next monster, previous monster, on screen |
@@ -74,7 +75,7 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Ctrl+Left, Ctrl+Right | the first line, the last line, the same way |
 | Shift+Up, Shift+Down | the line before, the line after, as the game draws the tooltip with Shift held, which is the regular one: "+2 to Sacrifice" (the user, 2026-09-29; the game shows ranges only with Ctrl, the user, 2026-09-30). After the compare key reads the equipped item they walk that item's lines instead, until the compare key reads the highlighted one again or the cursor moves |
 | Shift+Left, Shift+Right | the first line, the last line, the same way |
-| PageUp, PageDown | the tab before, the tab after; in a shop a category with no stock is disabled and skipped (bladestorm360, 97cb7c4) |
+| PageUp, PageDown | the tab before, the tab after; in a shop a category with no stock is disabled and skipped (bladestorm360, 97cb7c4; [skill targeting](battle-skill-targeting.md)) |
 | Home, End | the menu before, the menu after |
 | Ctrl+PageUp | a skill's lines, opened and closed |
 | Ctrl+PageDown | an item's size; a skill's points left |
