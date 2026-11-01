@@ -173,9 +173,11 @@ In menus:
 - On an inventory item, hold Y (triangle on a PlayStation controller) and,
   without letting go, move the LEFT stick: left reads the item, right the
   equipped one it compares with, up detail, down controls. The right stick
-  keeps its usual reading and does not compare; releasing Y ends it. To hear
-  the equipped one as soon as Y shows it, turn on "Equipped item comparison
-  read aloud" in the settings list (Items and menus).
+  keeps its usual reading and does not compare; releasing Y ends it. Holding
+  Y says "Comparing" and how the left stick reads it ("Compare hint while Y
+  is held" in the settings list turns that off). To hear the equipped one as
+  soon as Y shows it, turn on "Equipped item comparison read aloud" in the
+  settings list (Items and menus).
 - In the skill tree the D-pad moves one skill at a time.
 - On the character screen with points to spend, focus starts on Strength's
   plus button; the right stick reads the statistics.

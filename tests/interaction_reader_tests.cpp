@@ -918,7 +918,17 @@ int main() {
 	Check(speech == std::vector<std::string>{"Guantes"}, "the item reads as usual");
 	Check(PadFilter::leftStickArms > 0, "an inventory item arms the left stick for a held Y");
 	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; InputDirection::holdingY = true; Settle();
-	Check(speech.empty(), "holding compare reads nothing by itself");
+	Check(speech == std::vector<std::string>{Strings::Current().compareHint}, "holding Y says how the left stick reads the comparison");
+	ClearSpeech(); Settle();
+	Check(speech.empty(), "and once");
+	// The keyboard compares with its own keys: no word of the left stick.
+	InputDirection::holdingY = false; tooltip.extras.clear(); Settle();
+	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; Settle();
+	Check(speech.empty(), "a comparison drawn without Y held gives no hint");
+	InteractionReader::SetCompareHint(false); InputDirection::holdingY = true; tooltip.extras.clear(); Settle();
+	ClearSpeech(); tooltip.extras = {"Defensa: 3\nGuantes de cuero\nActualmente equipado"}; Settle();
+	Check(speech.empty(), "with the hint off, holding compare reads nothing by itself");
+	InteractionReader::SetCompareHint(true);
 	// With compare-aloud on, the equipped item is read as the game draws it (a tester, 2026-10-13).
 	InteractionReader::SetCompareAloud(true);
 	tooltip.extras.clear(); Settle();

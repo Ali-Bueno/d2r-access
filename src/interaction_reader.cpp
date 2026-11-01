@@ -191,6 +191,7 @@ std::string g_itemLogged;
 // "Item in hand" and "Placed in", a switch of the settings list; on unless turned off.
 std::atomic<bool> g_handSpeech{true};
 std::atomic<bool> g_compareAloud{false}; // see CompareAloud
+std::atomic<bool> g_compareHint{true};   // see CompareHint
 
 // The equipped-item records last logged, so [compare] is written once per
 // change. Diagnosis only: what the game draws beside a held compare is not
@@ -1186,7 +1187,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	else OfferAside(0, {});
 	const auto tooltip = NativeTooltips::Latest(now);
 	bool renderedDescription = false;
-	std::string skillAddition, comparisonNow;
+	std::string skillAddition, comparisonNow, compareHint;
 	const std::string tableHeadline = progression.skill && !progression.name.empty()
 		? ProgressionText::SkillReadout(progression.name, AutoDetail::Enabled() ? progression.points : std::string{}, progression.help).headline
 		: std::string{};
@@ -1266,9 +1267,13 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				}
 			}
 			if (const auto comparison = TooltipText::Comparison(tooltip.extras); comparison != g_compareLogged) {
+				const bool appeared = g_compareLogged.empty();
 				g_compareLogged = comparison;
 				if (!comparison.empty()) D2RAccess::AsyncLog::InfoF(context, "[compare] drawn -> \"%s\"", comparison.c_str());
 				if (!comparison.empty() && g_compareAloud.load(std::memory_order_relaxed)) comparisonNow = Equipped(tooltip.extras);
+				// Only a pad's Y: the keyboard compares with its own keys, not the left stick.
+				else if (!comparison.empty() && appeared && g_compareHint.load(std::memory_order_relaxed)
+					&& InputDirection::FaceButtonHeld(InputDirection::FaceButton::Y)) compareHint = Strings::Current().compareHint;
 			}
 			// With autodetail the cells the item takes up follow the name and a
 			// stack's or tome's count, ahead of any price; otherwise they wait for
@@ -1596,6 +1601,10 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		D2RAccess::AsyncLog::InfoF(context, "[compare] aloud -> \"%s\"", comparisonNow.c_str());
 		ScreenReader::Speak(comparisonNow, announcement.text.empty());
 	}
+	if (!compareHint.empty()) {
+		D2RAccess::AsyncLog::InfoF(context, "[compare] hint -> \"%s\"", compareHint.c_str());
+		ScreenReader::Speak(compareHint, false);
+	}
 	if (helpFollows) ControlHints::SpeakAfter(context, help);
 	if (!cursorNotice.empty()) ScreenReader::Speak(cursorNotice, false);
 	return inventory || button || stats;
@@ -1656,6 +1665,8 @@ bool HandSpeech() { return g_handSpeech; }
 void SetHandSpeech(bool enabled) { g_handSpeech = enabled; }
 bool CompareAloud() { return g_compareAloud; }
 void SetCompareAloud(bool enabled) { g_compareAloud = enabled; }
+bool CompareHint() { return g_compareHint; }
+void SetCompareHint(bool enabled) { g_compareHint = enabled; }
 
 void SetItemLogging(bool enabled) { g_logItems.store(enabled, std::memory_order_relaxed); }
 bool ItemLogging() { return g_logItems.load(std::memory_order_relaxed); }

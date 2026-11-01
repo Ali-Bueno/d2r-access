@@ -30,6 +30,10 @@ void SetHandSpeech(bool enabled);
 // user chose compare on demand, hold Y and the left stick (2026-10-03).
 bool CompareAloud();
 void SetCompareAloud(bool enabled);
+// Whether holding Y says how the left stick reads the comparison, when it is
+// not read aloud. A settings-list switch, on by default (the user, 2026-11-01).
+bool CompareHint();
+void SetCompareHint(bool enabled);
 // Whether each item tooltip is written to the log ([item]). Off by default --
 // logged on every poll it filled a session's log to 12 MB (the user,
 // 2026-09-22) -- and once per change when on. Console: access-itemlog on|off.

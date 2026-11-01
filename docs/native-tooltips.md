@@ -63,6 +63,12 @@ compare read at all. Switch `compare-aloud` (Ctrl+S, Items and menus, off by def
 user's choice) reads it as it appears: the game's `currentEquip` heading, then each equipped
 record (`[compare] aloud -> "..."`).
 
+2026-11-01, the user: pressed Y and moved the right stick, and nothing compared. Holding Y now
+says, as the comparison appears, how the left stick reads it (`Strings::compareHint`,
+`[compare] hint -> "..."`), once per comparison drawn, only while a pad's Y is held (the
+keyboard compares with Shift+Page Up/Down) and only when `compare-aloud` is off, which reads the
+equipped item instead. Switch `compare-hint` (Ctrl+S, Items and menus), on by default.
+
 The user's unidentified Leather Armor log at 13:48:42 contains defense 17,
 durability 24/24, maximum sockets 2 and required strength 15, with the stock
 unidentified marker. Those are rendered game text; no hidden item-affix query is

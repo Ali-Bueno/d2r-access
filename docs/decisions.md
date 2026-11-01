@@ -3,6 +3,14 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-11-01 — Holding Y says how to compare
+
+The user pressed Y and used the right stick, as a tester did on 2026-10-13. Built and unit-tested.
+- **Holding Y says "Comparing" and how the left stick reads it** (`compare-hint`, on by default)
+  ([native tooltips](native-tooltips.md)). Compare stays on demand, the user's choice of
+  2026-10-03. Rejected: reading the comparison on Y alone (that is `compare-aloud`, off), and
+  the hint for the keyboard, which compares with Shift+Page Up/Down.
+
 ## 2026-10-31 — A pad plugged in late, and a closed dropdown's option
 
 Two bugs the user found. Built and unit-tested only.

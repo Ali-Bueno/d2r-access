@@ -78,9 +78,11 @@ while Y is down, and holding it reads nothing by itself. While Y is held the
 - up: its detail; down: the controls.
 
 The right stick is unchanged (detail up, controls down), so it does not read the
-comparison. Releasing Y ends it. With **Equipped item comparison read aloud**
-turned on in the Ctrl+S settings list (off by default) the equipped item is read
-as soon as Y shows the comparison. From the keyboard, Shift+Page Up reads the
+comparison. Releasing Y ends it. As Y shows the comparison the mod says so and
+how the left stick reads it ("Comparing. Left stick: right, the equipped item;
+left, this item"); **Compare hint while Y is held** in the Ctrl+S settings list
+turns that off. With **Equipped item comparison read aloud** turned on there (off
+by default) the equipped item is read instead, as soon as Y shows the comparison. From the keyboard, Shift+Page Up reads the
 whole item and Shift+Page Down the equipped one. Unidentified items expose only the text
 the game renders: basic damage/defense and requirements, with magic properties
 remaining hidden until identification. Empty grid cells retain coordinate feedback. See
