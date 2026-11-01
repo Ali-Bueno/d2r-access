@@ -268,6 +268,24 @@ int main() {
 	Check(NativeUi::GridCell(slot.Address()).x == -1, "equipment does not masquerade as a grid");
 	Widget tabs("TabBarWidget", "AnyTabs"), tab0("TextBoxWidget", "Text0", "Personal"), tab1("TextBoxWidget", "Text1", "Comp.");
 	tabs.Add(tab0); tabs.Add(tab1); tabs.Put<int32_t>(0x16C4, 1);
+	// Availability comes from the game's per-slot flags, never from caption text (bladestorm360, 97cb7c4).
+	Widget shopTabs("TabBarWidget", "tabs");
+	shopTabs.Put<int32_t>(0x558, 4); shopTabs.Put<int32_t>(0x16C4, 1);
+	for (int index = 0; index < 4; ++index) shopTabs.Put<uint8_t>(0x1788 + index, 1);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == 2, "an enabled second Weapons slot stays reachable");
+	shopTabs.Put<uint8_t>(0x178A, 0);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == 3, "a disabled tab is skipped going forward");
+	shopTabs.Put<int32_t>(0x16C4, 3);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), -1) == 1, "a disabled tab is skipped going back");
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == 3, "the last tab is the edge");
+	shopTabs.Put<int32_t>(0x558, 9);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 1) == -1, "the tab count is bounded before reading flags");
+	shopTabs.Put<int32_t>(0x558, 4); shopTabs.Put<uint8_t>(0x1788, 9);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), -1) == -1, "an invalid flag byte fails closed");
+	shopTabs.Put<uint8_t>(0x1788, 1);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), 0) == -1, "a zero step is no tab action");
+	shopTabs.Put<uint8_t>(0x51, 0);
+	Check(NativeUi::AdjacentTab(shopTabs.Address(), -1) == -1, "a hidden tab bar cannot be cycled");
 	Check(NativeUi::Snapshot(tabs.Address(), 0).nodes.front().text == "Comp.", "tabs read the selected runtime label");
 	tabs.Put<int32_t>(0x544, 0);
 	Check(NativeUi::SelectedTabText(tabs.Address()) == "Comp.", "tab activation index differs from the FocusableWidget hover index");

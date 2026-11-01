@@ -61,7 +61,9 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | D | right click: use, read, open, buy, drink |
 | Shift+A | left click with Shift: equip, unequip, a potion to the belt |
 | Ctrl+A | left click with Ctrl: sell, drop, move to the stash or the cube |
+| Alt+A | left click with Alt: the game's offline stat/skill reset shortcut when enabled with `-enablerespec` (bladestorm360, 32eb755) |
 | Shift+D | right click with Shift |
+| Alt+D | right click with Alt |
 | Ctrl+D | right click with Ctrl. Until 2026-09-28 it was autodetail's switch, which is now only in the Ctrl+S list (the user's choice) |
 | W | nothing: it is kept from the game, whose W swaps weapons |
 | Y | swap weapons |
@@ -72,7 +74,7 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Ctrl+Left, Ctrl+Right | the first line, the last line, the same way |
 | Shift+Up, Shift+Down | the line before, the line after, as the game draws the tooltip with Shift held, which is the regular one: "+2 to Sacrifice" (the user, 2026-09-29; the game shows ranges only with Ctrl, the user, 2026-09-30). After the compare key reads the equipped item they walk that item's lines instead, until the compare key reads the highlighted one again or the cursor moves |
 | Shift+Left, Shift+Right | the first line, the last line, the same way |
-| PageUp, PageDown | the tab before, the tab after |
+| PageUp, PageDown | the tab before, the tab after; in a shop a category with no stock is disabled and skipped (bladestorm360, 97cb7c4) |
 | Home, End | the menu before, the menu after |
 | Ctrl+PageUp | a skill's lines, opened and closed |
 | Ctrl+PageDown | an item's size; a skill's points left |

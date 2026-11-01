@@ -41,6 +41,19 @@ int main() {
 		Check(split.detail.find("Bloodletter") == std::string::npos, "the name is not repeated in the detail");
 	}
 
+	// A set item names itself in palette 3 and its base type in 2 (bladestorm360, 97cb7c4).
+	const auto set = TooltipText::Read(
+		std::string(Title) + "Other Set Piece\n" + Title + "Set Collection\n"
+		+ Font0 + "One-Hand Damage: 3 to 8\n" + Title + "Sabre\n"
+		+ std::string(Title).substr(0, 3) + "3Angelic Sickle");
+	const auto setSplit = TooltipText::Split(set, BaseStats, {}, {}, {}, {}, true);
+	Check(setSplit.name == "Angelic Sickle", "a set item's name is the first line drawn, not its palette-2 base type");
+	Check(setSplit.detail == "Sabre. One-Hand Damage: 3 to 8. Set Collection. Other Set Piece", "the other set lines keep their order");
+	const std::vector<std::string> setPrices{"Cost:"};
+	const auto soldSet = TooltipText::Split(TooltipText::Read(std::string(Title) + "Sabre\n"
+		+ std::string(Title).substr(0, 3) + "3Angelic Sickle\nCost: 100"), BaseStats, setPrices, {}, {}, {}, true);
+	Check(soldSet.headline == "Angelic Sickle. Cost: 100", "a vendor price does not replace a set item's name");
+
 	// Detail keeps the order it was stored in, so it reads as the screen drew it.
 	const auto ordered = TooltipText::Split(TooltipText::Read(Stored()), BaseStats);
 	Check(ordered.detail == "Short Sword. One-Hand Damage: 7 to 15. Required Strength: 25. +15 to Attack Rating. Sell price: 84 gold",

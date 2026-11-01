@@ -9,6 +9,7 @@ struct Details {
 	uintptr_t tab = 0; // a skill's branch (its TabWidget)
 	bool classTree = false; // the branch is one of the class's trees, not General Skills
 	std::string name; // table name available before the skill tooltip renders
+	std::vector<std::string> prerequisites; // localized names of the skills it needs a point in
 	std::string points, value;
 	std::string help;     // part of the readout: the skill's current binding
 	std::string controls; // what the buttons do here -- a control hint (control_hints.h)

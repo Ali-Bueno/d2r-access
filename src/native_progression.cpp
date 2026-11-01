@@ -91,7 +91,9 @@ Details Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 			char phrase[100]{};
 			std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, cell.y + 1, cell.x + 1);
 			result.readout.coordinates = phrase;
-			result.name = NativeSkillBar::ClassSkillName(tree, cell.y + 1, cell.x + 1);
+			auto skill = NativeSkillBar::ClassSkillAt(tree, cell.y + 1, cell.x + 1);
+			result.name = std::move(skill.name);
+			result.prerequisites = std::move(skill.prerequisites);
 		}
 	} else return result;
 	result.readout.context = NativeWidgets::ReadName(focus.panel);

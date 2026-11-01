@@ -12,277 +12,280 @@ namespace D2RAccess::Generated {
 
 inline constexpr int SkillTreeClasses = 8, SkillTreePages = 3, SkillTreeRows = 6, SkillTreeColumns = 3;
 
+inline constexpr uint16_t NoRequiredSkill = 0xFFFF;
+
 struct TreeSkill {
 	uint8_t playerClass, page, row, column;
 	uint16_t skill;
+	std::array<uint16_t, 3> required; // reqskill1..3; NoRequiredSkill for an unused one
 };
 
 // Sorted by class, page, row and column.
 inline constexpr std::array<TreeSkill, 240> SkillTree{{
 	// ama, page 1
-	{0, 1, 1, 2, 6}, // Magic Arrow
-	{0, 1, 1, 3, 7}, // Fire Arrow
-	{0, 1, 2, 1, 11}, // Cold Arrow
-	{0, 1, 2, 2, 12}, // Multiple Shot
-	{0, 1, 3, 3, 16}, // Exploding Arrow
-	{0, 1, 4, 1, 21}, // Ice Arrow
-	{0, 1, 4, 2, 22}, // Guided Arrow
-	{0, 1, 5, 2, 26}, // Strafe
-	{0, 1, 5, 3, 27}, // Immolation Arrow
-	{0, 1, 6, 1, 31}, // Freezing Arrow
+	{0, 1, 1, 2, 6, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Magic Arrow
+	{0, 1, 1, 3, 7, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Fire Arrow
+	{0, 1, 2, 1, 11, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Cold Arrow
+	{0, 1, 2, 2, 12, {6, NoRequiredSkill, NoRequiredSkill}}, // Multiple Shot
+	{0, 1, 3, 3, 16, {7, 12, NoRequiredSkill}}, // Exploding Arrow
+	{0, 1, 4, 1, 21, {11, NoRequiredSkill, NoRequiredSkill}}, // Ice Arrow
+	{0, 1, 4, 2, 22, {11, 12, NoRequiredSkill}}, // Guided Arrow
+	{0, 1, 5, 2, 26, {22, NoRequiredSkill, NoRequiredSkill}}, // Strafe
+	{0, 1, 5, 3, 27, {16, NoRequiredSkill, NoRequiredSkill}}, // Immolation Arrow
+	{0, 1, 6, 1, 31, {21, NoRequiredSkill, NoRequiredSkill}}, // Freezing Arrow
 	// ama, page 2
-	{0, 2, 1, 1, 8}, // Inner Sight
-	{0, 2, 1, 3, 9}, // Critical Strike
-	{0, 2, 2, 2, 13}, // Dodge
-	{0, 2, 3, 1, 17}, // Slow Missiles
-	{0, 2, 3, 2, 18}, // Avoid
-	{0, 2, 4, 3, 23}, // Penetrate
-	{0, 2, 5, 1, 28}, // Dopplezon
-	{0, 2, 5, 2, 29}, // Evade
-	{0, 2, 6, 1, 32}, // Valkyrie
-	{0, 2, 6, 3, 33}, // Pierce
+	{0, 2, 1, 1, 8, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Inner Sight
+	{0, 2, 1, 3, 9, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Critical Strike
+	{0, 2, 2, 2, 13, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Dodge
+	{0, 2, 3, 1, 17, {8, NoRequiredSkill, NoRequiredSkill}}, // Slow Missiles
+	{0, 2, 3, 2, 18, {13, NoRequiredSkill, NoRequiredSkill}}, // Avoid
+	{0, 2, 4, 3, 23, {9, NoRequiredSkill, NoRequiredSkill}}, // Penetrate
+	{0, 2, 5, 1, 28, {17, NoRequiredSkill, NoRequiredSkill}}, // Dopplezon
+	{0, 2, 5, 2, 29, {18, NoRequiredSkill, NoRequiredSkill}}, // Evade
+	{0, 2, 6, 1, 32, {28, 29, NoRequiredSkill}}, // Valkyrie
+	{0, 2, 6, 3, 33, {23, NoRequiredSkill, NoRequiredSkill}}, // Pierce
 	// ama, page 3
-	{0, 3, 1, 1, 10}, // Jab
-	{0, 3, 2, 2, 14}, // Power Strike
-	{0, 3, 2, 3, 15}, // Poison Javelin
-	{0, 3, 3, 1, 19}, // Impale
-	{0, 3, 3, 3, 20}, // Lightning Bolt
-	{0, 3, 4, 2, 24}, // Charged Strike
-	{0, 3, 4, 3, 25}, // Plague Javelin
-	{0, 3, 5, 1, 30}, // Fend
-	{0, 3, 6, 2, 34}, // Lightning Strike
-	{0, 3, 6, 3, 35}, // Lightning Fury
+	{0, 3, 1, 1, 10, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Jab
+	{0, 3, 2, 2, 14, {10, NoRequiredSkill, NoRequiredSkill}}, // Power Strike
+	{0, 3, 2, 3, 15, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Poison Javelin
+	{0, 3, 3, 1, 19, {10, NoRequiredSkill, NoRequiredSkill}}, // Impale
+	{0, 3, 3, 3, 20, {15, NoRequiredSkill, NoRequiredSkill}}, // Lightning Bolt
+	{0, 3, 4, 2, 24, {14, 20, NoRequiredSkill}}, // Charged Strike
+	{0, 3, 4, 3, 25, {20, NoRequiredSkill, NoRequiredSkill}}, // Plague Javelin
+	{0, 3, 5, 1, 30, {19, NoRequiredSkill, NoRequiredSkill}}, // Fend
+	{0, 3, 6, 2, 34, {24, NoRequiredSkill, NoRequiredSkill}}, // Lightning Strike
+	{0, 3, 6, 3, 35, {25, NoRequiredSkill, NoRequiredSkill}}, // Lightning Fury
 	// sor, page 1
-	{1, 1, 1, 2, 36}, // Fire Bolt
-	{1, 1, 1, 3, 37}, // Warmth
-	{1, 1, 2, 1, 41}, // Inferno
-	{1, 1, 3, 1, 46}, // Blaze
-	{1, 1, 3, 2, 47}, // Fire Ball
-	{1, 1, 4, 1, 51}, // Fire Wall
-	{1, 1, 4, 3, 52}, // Enchant
-	{1, 1, 5, 2, 56}, // Meteor
-	{1, 1, 6, 2, 61}, // Fire Mastery
-	{1, 1, 6, 3, 62}, // Hydra
+	{1, 1, 1, 2, 36, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Fire Bolt
+	{1, 1, 1, 3, 37, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Warmth
+	{1, 1, 2, 1, 41, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Inferno
+	{1, 1, 3, 1, 46, {41, NoRequiredSkill, NoRequiredSkill}}, // Blaze
+	{1, 1, 3, 2, 47, {36, NoRequiredSkill, NoRequiredSkill}}, // Fire Ball
+	{1, 1, 4, 1, 51, {46, NoRequiredSkill, NoRequiredSkill}}, // Fire Wall
+	{1, 1, 4, 3, 52, {37, 47, NoRequiredSkill}}, // Enchant
+	{1, 1, 5, 2, 56, {47, 51, NoRequiredSkill}}, // Meteor
+	{1, 1, 6, 2, 61, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Fire Mastery
+	{1, 1, 6, 3, 62, {52, NoRequiredSkill, NoRequiredSkill}}, // Hydra
 	// sor, page 2
-	{1, 2, 1, 2, 38}, // Charged Bolt
-	{1, 2, 2, 1, 42}, // Static Field
-	{1, 2, 2, 3, 43}, // Telekinesis
-	{1, 2, 3, 1, 48}, // Nova
-	{1, 2, 3, 2, 49}, // Lightning
-	{1, 2, 4, 2, 53}, // Chain Lightning
-	{1, 2, 4, 3, 54}, // Teleport
-	{1, 2, 5, 1, 57}, // Thunder Storm
-	{1, 2, 5, 3, 58}, // Energy Shield
-	{1, 2, 6, 2, 63}, // Lightning Mastery
+	{1, 2, 1, 2, 38, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Charged Bolt
+	{1, 2, 2, 1, 42, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Static Field
+	{1, 2, 2, 3, 43, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Telekinesis
+	{1, 2, 3, 1, 48, {42, NoRequiredSkill, NoRequiredSkill}}, // Nova
+	{1, 2, 3, 2, 49, {38, NoRequiredSkill, NoRequiredSkill}}, // Lightning
+	{1, 2, 4, 2, 53, {49, NoRequiredSkill, NoRequiredSkill}}, // Chain Lightning
+	{1, 2, 4, 3, 54, {43, NoRequiredSkill, NoRequiredSkill}}, // Teleport
+	{1, 2, 5, 1, 57, {48, 53, NoRequiredSkill}}, // Thunder Storm
+	{1, 2, 5, 3, 58, {54, 53, NoRequiredSkill}}, // Energy Shield
+	{1, 2, 6, 2, 63, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Lightning Mastery
 	// sor, page 3
-	{1, 3, 1, 2, 39}, // Ice Bolt
-	{1, 3, 1, 3, 40}, // Frozen Armor
-	{1, 3, 2, 1, 44}, // Frost Nova
-	{1, 3, 2, 2, 45}, // Ice Blast
-	{1, 3, 3, 3, 50}, // Shiver Armor
-	{1, 3, 4, 2, 55}, // Glacial Spike
-	{1, 3, 5, 1, 59}, // Blizzard
-	{1, 3, 5, 3, 60}, // Chilling Armor
-	{1, 3, 6, 1, 64}, // Frozen Orb
-	{1, 3, 6, 2, 65}, // Cold Mastery
+	{1, 3, 1, 2, 39, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Ice Bolt
+	{1, 3, 1, 3, 40, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Frozen Armor
+	{1, 3, 2, 1, 44, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Frost Nova
+	{1, 3, 2, 2, 45, {39, NoRequiredSkill, NoRequiredSkill}}, // Ice Blast
+	{1, 3, 3, 3, 50, {45, 40, NoRequiredSkill}}, // Shiver Armor
+	{1, 3, 4, 2, 55, {45, NoRequiredSkill, NoRequiredSkill}}, // Glacial Spike
+	{1, 3, 5, 1, 59, {44, 55, NoRequiredSkill}}, // Blizzard
+	{1, 3, 5, 3, 60, {50, NoRequiredSkill, NoRequiredSkill}}, // Chilling Armor
+	{1, 3, 6, 1, 64, {59, NoRequiredSkill, NoRequiredSkill}}, // Frozen Orb
+	{1, 3, 6, 2, 65, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Cold Mastery
 	// nec, page 1
-	{2, 1, 1, 2, 66}, // Amplify Damage
-	{2, 1, 2, 1, 71}, // Dim Vision
-	{2, 1, 2, 3, 72}, // Weaken
-	{2, 1, 3, 2, 76}, // Iron Maiden
-	{2, 1, 3, 3, 77}, // Terror
-	{2, 1, 4, 1, 81}, // Confuse
-	{2, 1, 4, 2, 82}, // Life Tap
-	{2, 1, 5, 1, 86}, // Attract
-	{2, 1, 5, 3, 87}, // Decrepify
-	{2, 1, 6, 2, 91}, // Lower Resist
+	{2, 1, 1, 2, 66, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Amplify Damage
+	{2, 1, 2, 1, 71, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Dim Vision
+	{2, 1, 2, 3, 72, {66, NoRequiredSkill, NoRequiredSkill}}, // Weaken
+	{2, 1, 3, 2, 76, {66, NoRequiredSkill, NoRequiredSkill}}, // Iron Maiden
+	{2, 1, 3, 3, 77, {72, NoRequiredSkill, NoRequiredSkill}}, // Terror
+	{2, 1, 4, 1, 81, {71, NoRequiredSkill, NoRequiredSkill}}, // Confuse
+	{2, 1, 4, 2, 82, {76, NoRequiredSkill, NoRequiredSkill}}, // Life Tap
+	{2, 1, 5, 1, 86, {81, NoRequiredSkill, NoRequiredSkill}}, // Attract
+	{2, 1, 5, 3, 87, {77, NoRequiredSkill, NoRequiredSkill}}, // Decrepify
+	{2, 1, 6, 2, 91, {82, 87, NoRequiredSkill}}, // Lower Resist
 	// nec, page 2
-	{2, 2, 1, 2, 67}, // Teeth
-	{2, 2, 1, 3, 68}, // Bone Armor
-	{2, 2, 2, 1, 73}, // Poison Dagger
-	{2, 2, 2, 2, 74}, // Corpse Explosion
-	{2, 2, 3, 3, 78}, // Bone Wall
-	{2, 2, 4, 1, 83}, // Poison Explosion
-	{2, 2, 4, 2, 84}, // Bone Spear
-	{2, 2, 5, 3, 88}, // Bone Prison
-	{2, 2, 6, 1, 92}, // Poison Nova
-	{2, 2, 6, 2, 93}, // Bone Spirit
+	{2, 2, 1, 2, 67, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Teeth
+	{2, 2, 1, 3, 68, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Bone Armor
+	{2, 2, 2, 1, 73, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Poison Dagger
+	{2, 2, 2, 2, 74, {67, NoRequiredSkill, NoRequiredSkill}}, // Corpse Explosion
+	{2, 2, 3, 3, 78, {68, NoRequiredSkill, NoRequiredSkill}}, // Bone Wall
+	{2, 2, 4, 1, 83, {73, 74, NoRequiredSkill}}, // Poison Explosion
+	{2, 2, 4, 2, 84, {74, NoRequiredSkill, NoRequiredSkill}}, // Bone Spear
+	{2, 2, 5, 3, 88, {78, 84, NoRequiredSkill}}, // Bone Prison
+	{2, 2, 6, 1, 92, {83, NoRequiredSkill, NoRequiredSkill}}, // Poison Nova
+	{2, 2, 6, 2, 93, {84, NoRequiredSkill, NoRequiredSkill}}, // Bone Spirit
 	// nec, page 3
-	{2, 3, 1, 1, 69}, // Skeleton Mastery
-	{2, 3, 1, 3, 70}, // Raise Skeleton
-	{2, 3, 2, 2, 75}, // Clay Golem
-	{2, 3, 3, 1, 79}, // Golem Mastery
-	{2, 3, 3, 3, 80}, // Raise Skeletal Mage
-	{2, 3, 4, 2, 85}, // BloodGolem
-	{2, 3, 5, 1, 89}, // Summon Resist
-	{2, 3, 5, 2, 90}, // IronGolem
-	{2, 3, 6, 2, 94}, // FireGolem
-	{2, 3, 6, 3, 95}, // Revive
+	{2, 3, 1, 1, 69, {70, NoRequiredSkill, NoRequiredSkill}}, // Skeleton Mastery
+	{2, 3, 1, 3, 70, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Raise Skeleton
+	{2, 3, 2, 2, 75, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Clay Golem
+	{2, 3, 3, 1, 79, {75, NoRequiredSkill, NoRequiredSkill}}, // Golem Mastery
+	{2, 3, 3, 3, 80, {70, NoRequiredSkill, NoRequiredSkill}}, // Raise Skeletal Mage
+	{2, 3, 4, 2, 85, {75, NoRequiredSkill, NoRequiredSkill}}, // BloodGolem
+	{2, 3, 5, 1, 89, {79, NoRequiredSkill, NoRequiredSkill}}, // Summon Resist
+	{2, 3, 5, 2, 90, {85, NoRequiredSkill, NoRequiredSkill}}, // IronGolem
+	{2, 3, 6, 2, 94, {90, NoRequiredSkill, NoRequiredSkill}}, // FireGolem
+	{2, 3, 6, 3, 95, {80, 90, NoRequiredSkill}}, // Revive
 	// pal, page 1
-	{3, 1, 1, 1, 96}, // Sacrifice
-	{3, 1, 1, 3, 97}, // Smite
-	{3, 1, 2, 2, 101}, // Holy Bolt
-	{3, 1, 3, 1, 106}, // Zeal
-	{3, 1, 3, 3, 107}, // Charge
-	{3, 1, 4, 1, 111}, // Vengeance
-	{3, 1, 4, 2, 112}, // Blessed Hammer
-	{3, 1, 5, 1, 116}, // Conversion
-	{3, 1, 5, 3, 117}, // Holy Shield
-	{3, 1, 6, 2, 121}, // Fist of the Heavens
+	{3, 1, 1, 1, 96, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Sacrifice
+	{3, 1, 1, 3, 97, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Smite
+	{3, 1, 2, 2, 101, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Holy Bolt
+	{3, 1, 3, 1, 106, {96, NoRequiredSkill, NoRequiredSkill}}, // Zeal
+	{3, 1, 3, 3, 107, {97, NoRequiredSkill, NoRequiredSkill}}, // Charge
+	{3, 1, 4, 1, 111, {106, NoRequiredSkill, NoRequiredSkill}}, // Vengeance
+	{3, 1, 4, 2, 112, {101, NoRequiredSkill, NoRequiredSkill}}, // Blessed Hammer
+	{3, 1, 5, 1, 116, {111, NoRequiredSkill, NoRequiredSkill}}, // Conversion
+	{3, 1, 5, 3, 117, {107, 112, NoRequiredSkill}}, // Holy Shield
+	{3, 1, 6, 2, 121, {112, 116, NoRequiredSkill}}, // Fist of the Heavens
 	// pal, page 2
-	{3, 2, 1, 1, 98}, // Might
-	{3, 2, 2, 2, 102}, // Holy Fire
-	{3, 2, 2, 3, 103}, // Thorns
-	{3, 2, 3, 1, 108}, // Blessed Aim
-	{3, 2, 4, 1, 113}, // Concentration
-	{3, 2, 4, 2, 114}, // Holy Freeze
-	{3, 2, 5, 2, 118}, // Holy Shock
-	{3, 2, 5, 3, 119}, // Sanctuary
-	{3, 2, 6, 1, 122}, // Fanaticism
-	{3, 2, 6, 3, 123}, // Conviction
+	{3, 2, 1, 1, 98, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Might
+	{3, 2, 2, 2, 102, {98, NoRequiredSkill, NoRequiredSkill}}, // Holy Fire
+	{3, 2, 2, 3, 103, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Thorns
+	{3, 2, 3, 1, 108, {98, NoRequiredSkill, NoRequiredSkill}}, // Blessed Aim
+	{3, 2, 4, 1, 113, {108, NoRequiredSkill, NoRequiredSkill}}, // Concentration
+	{3, 2, 4, 2, 114, {102, NoRequiredSkill, NoRequiredSkill}}, // Holy Freeze
+	{3, 2, 5, 2, 118, {114, NoRequiredSkill, NoRequiredSkill}}, // Holy Shock
+	{3, 2, 5, 3, 119, {103, 114, NoRequiredSkill}}, // Sanctuary
+	{3, 2, 6, 1, 122, {113, NoRequiredSkill, NoRequiredSkill}}, // Fanaticism
+	{3, 2, 6, 3, 123, {119, NoRequiredSkill, NoRequiredSkill}}, // Conviction
 	// pal, page 3
-	{3, 3, 1, 1, 99}, // Prayer
-	{3, 3, 1, 3, 100}, // Resist Fire
-	{3, 3, 2, 2, 104}, // Defiance
-	{3, 3, 2, 3, 105}, // Resist Cold
-	{3, 3, 3, 1, 109}, // Cleansing
-	{3, 3, 3, 3, 110}, // Resist Lightning
-	{3, 3, 4, 2, 115}, // Vigor
-	{3, 3, 5, 1, 120}, // Meditation
-	{3, 3, 6, 2, 124}, // Redemption
-	{3, 3, 6, 3, 125}, // Salvation
+	{3, 3, 1, 1, 99, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Prayer
+	{3, 3, 1, 3, 100, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Resist Fire
+	{3, 3, 2, 2, 104, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Defiance
+	{3, 3, 2, 3, 105, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Resist Cold
+	{3, 3, 3, 1, 109, {99, NoRequiredSkill, NoRequiredSkill}}, // Cleansing
+	{3, 3, 3, 3, 110, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Resist Lightning
+	{3, 3, 4, 2, 115, {109, 104, NoRequiredSkill}}, // Vigor
+	{3, 3, 5, 1, 120, {109, NoRequiredSkill, NoRequiredSkill}}, // Meditation
+	{3, 3, 6, 2, 124, {115, NoRequiredSkill, NoRequiredSkill}}, // Redemption
+	{3, 3, 6, 3, 125, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Salvation
 	// bar, page 1
-	{4, 1, 1, 2, 126}, // Bash
-	{4, 1, 2, 1, 132}, // Leap
-	{4, 1, 2, 3, 133}, // Double Swing
-	{4, 1, 3, 2, 139}, // Stun
-	{4, 1, 3, 3, 140}, // Double Throw
-	{4, 1, 4, 1, 143}, // Leap Attack
-	{4, 1, 4, 2, 144}, // Concentrate
-	{4, 1, 5, 3, 147}, // Frenzy
-	{4, 1, 6, 1, 151}, // Whirlwind
-	{4, 1, 6, 2, 152}, // Berserk
+	{4, 1, 1, 2, 126, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Bash
+	{4, 1, 2, 1, 132, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Leap
+	{4, 1, 2, 3, 133, {126, NoRequiredSkill, NoRequiredSkill}}, // Double Swing
+	{4, 1, 3, 2, 139, {126, NoRequiredSkill, NoRequiredSkill}}, // Stun
+	{4, 1, 3, 3, 140, {133, NoRequiredSkill, NoRequiredSkill}}, // Double Throw
+	{4, 1, 4, 1, 143, {132, NoRequiredSkill, NoRequiredSkill}}, // Leap Attack
+	{4, 1, 4, 2, 144, {139, NoRequiredSkill, NoRequiredSkill}}, // Concentrate
+	{4, 1, 5, 3, 147, {140, NoRequiredSkill, NoRequiredSkill}}, // Frenzy
+	{4, 1, 6, 1, 151, {143, 144, NoRequiredSkill}}, // Whirlwind
+	{4, 1, 6, 2, 152, {144, NoRequiredSkill, NoRequiredSkill}}, // Berserk
 	// bar, page 2
-	{4, 2, 1, 1, 127}, // Blade Mastery
-	{4, 2, 1, 2, 128}, // Axe Mastery
-	{4, 2, 1, 3, 129}, // Mace Mastery
-	{4, 2, 2, 1, 134}, // Pole Arm Mastery
-	{4, 2, 2, 2, 135}, // Throwing Mastery
-	{4, 2, 2, 3, 136}, // Spear Mastery
-	{4, 2, 3, 1, 141}, // Increased Stamina
-	{4, 2, 4, 3, 145}, // Iron Skin
-	{4, 2, 5, 1, 148}, // Increased Speed
-	{4, 2, 6, 3, 153}, // Natural Resistance
+	{4, 2, 1, 1, 127, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Blade Mastery
+	{4, 2, 1, 2, 128, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Axe Mastery
+	{4, 2, 1, 3, 129, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Mace Mastery
+	{4, 2, 2, 1, 134, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Pole Arm Mastery
+	{4, 2, 2, 2, 135, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Throwing Mastery
+	{4, 2, 2, 3, 136, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Spear Mastery
+	{4, 2, 3, 1, 141, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Increased Stamina
+	{4, 2, 4, 3, 145, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Iron Skin
+	{4, 2, 5, 1, 148, {141, NoRequiredSkill, NoRequiredSkill}}, // Increased Speed
+	{4, 2, 6, 3, 153, {145, NoRequiredSkill, NoRequiredSkill}}, // Natural Resistance
 	// bar, page 3
-	{4, 3, 1, 1, 130}, // Howl
-	{4, 3, 1, 3, 131}, // Find Potion
-	{4, 3, 2, 1, 137}, // Taunt
-	{4, 3, 2, 2, 138}, // Shout
-	{4, 3, 3, 3, 142}, // Find Item
-	{4, 3, 4, 1, 146}, // Battle Cry
-	{4, 3, 5, 2, 149}, // Battle Orders
-	{4, 3, 5, 3, 150}, // Grim Ward
-	{4, 3, 6, 1, 154}, // War Cry
-	{4, 3, 6, 2, 155}, // Battle Command
+	{4, 3, 1, 1, 130, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Howl
+	{4, 3, 1, 3, 131, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Find Potion
+	{4, 3, 2, 1, 137, {130, NoRequiredSkill, NoRequiredSkill}}, // Taunt
+	{4, 3, 2, 2, 138, {130, NoRequiredSkill, NoRequiredSkill}}, // Shout
+	{4, 3, 3, 3, 142, {131, NoRequiredSkill, NoRequiredSkill}}, // Find Item
+	{4, 3, 4, 1, 146, {137, NoRequiredSkill, NoRequiredSkill}}, // Battle Cry
+	{4, 3, 5, 2, 149, {138, NoRequiredSkill, NoRequiredSkill}}, // Battle Orders
+	{4, 3, 5, 3, 150, {142, NoRequiredSkill, NoRequiredSkill}}, // Grim Ward
+	{4, 3, 6, 1, 154, {146, 149, NoRequiredSkill}}, // War Cry
+	{4, 3, 6, 2, 155, {149, NoRequiredSkill, NoRequiredSkill}}, // Battle Command
 	// dru, page 1
-	{5, 1, 1, 2, 221}, // Raven
-	{5, 1, 1, 3, 222}, // Plague Poppy
-	{5, 1, 2, 1, 226}, // Oak Sage
-	{5, 1, 2, 2, 227}, // Summon Spirit Wolf
-	{5, 1, 3, 3, 231}, // Cycle of Life
-	{5, 1, 4, 1, 236}, // Heart of Wolverine
-	{5, 1, 4, 2, 237}, // Summon Fenris
-	{5, 1, 5, 3, 241}, // Vines
-	{5, 1, 6, 1, 246}, // Spirit of Barbs
-	{5, 1, 6, 2, 247}, // Summon Grizzly
+	{5, 1, 1, 2, 221, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Raven
+	{5, 1, 1, 3, 222, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Plague Poppy
+	{5, 1, 2, 1, 226, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Oak Sage
+	{5, 1, 2, 2, 227, {221, NoRequiredSkill, NoRequiredSkill}}, // Summon Spirit Wolf
+	{5, 1, 3, 3, 231, {222, NoRequiredSkill, NoRequiredSkill}}, // Cycle of Life
+	{5, 1, 4, 1, 236, {226, NoRequiredSkill, NoRequiredSkill}}, // Heart of Wolverine
+	{5, 1, 4, 2, 237, {226, 227, NoRequiredSkill}}, // Summon Fenris
+	{5, 1, 5, 3, 241, {231, NoRequiredSkill, NoRequiredSkill}}, // Vines
+	{5, 1, 6, 1, 246, {236, NoRequiredSkill, NoRequiredSkill}}, // Spirit of Barbs
+	{5, 1, 6, 2, 247, {237, NoRequiredSkill, NoRequiredSkill}}, // Summon Grizzly
 	// dru, page 2
-	{5, 2, 1, 1, 223}, // Wearwolf
-	{5, 2, 1, 2, 224}, // Shape Shifting
-	{5, 2, 2, 3, 228}, // Wearbear
-	{5, 2, 3, 1, 232}, // Feral Rage
-	{5, 2, 3, 3, 233}, // Maul
-	{5, 2, 4, 1, 238}, // Rabies
-	{5, 2, 4, 2, 239}, // Fire Claws
-	{5, 2, 5, 2, 242}, // Hunger
-	{5, 2, 5, 3, 243}, // Shock Wave
-	{5, 2, 6, 1, 248}, // Fury
+	{5, 2, 1, 1, 223, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Wearwolf
+	{5, 2, 1, 2, 224, {223, NoRequiredSkill, NoRequiredSkill}}, // Shape Shifting
+	{5, 2, 2, 3, 228, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Wearbear
+	{5, 2, 3, 1, 232, {223, NoRequiredSkill, NoRequiredSkill}}, // Feral Rage
+	{5, 2, 3, 3, 233, {228, NoRequiredSkill, NoRequiredSkill}}, // Maul
+	{5, 2, 4, 1, 238, {232, NoRequiredSkill, NoRequiredSkill}}, // Rabies
+	{5, 2, 4, 2, 239, {232, 233, NoRequiredSkill}}, // Fire Claws
+	{5, 2, 5, 2, 242, {239, NoRequiredSkill, NoRequiredSkill}}, // Hunger
+	{5, 2, 5, 3, 243, {233, NoRequiredSkill, NoRequiredSkill}}, // Shock Wave
+	{5, 2, 6, 1, 248, {238, NoRequiredSkill, NoRequiredSkill}}, // Fury
 	// dru, page 3
-	{5, 3, 1, 1, 225}, // Firestorm
-	{5, 3, 2, 1, 229}, // Molten Boulder
-	{5, 3, 2, 3, 230}, // Arctic Blast
-	{5, 3, 3, 1, 234}, // Eruption
-	{5, 3, 3, 3, 235}, // Cyclone Armor
-	{5, 3, 4, 2, 240}, // Twister
-	{5, 3, 5, 1, 244}, // Volcano
-	{5, 3, 5, 2, 245}, // Tornado
-	{5, 3, 6, 1, 249}, // Armageddon
-	{5, 3, 6, 2, 250}, // Hurricane
+	{5, 3, 1, 1, 225, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Firestorm
+	{5, 3, 2, 1, 229, {225, NoRequiredSkill, NoRequiredSkill}}, // Molten Boulder
+	{5, 3, 2, 3, 230, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Arctic Blast
+	{5, 3, 3, 1, 234, {229, NoRequiredSkill, NoRequiredSkill}}, // Eruption
+	{5, 3, 3, 3, 235, {230, NoRequiredSkill, NoRequiredSkill}}, // Cyclone Armor
+	{5, 3, 4, 2, 240, {235, NoRequiredSkill, NoRequiredSkill}}, // Twister
+	{5, 3, 5, 1, 244, {234, NoRequiredSkill, NoRequiredSkill}}, // Volcano
+	{5, 3, 5, 2, 245, {240, NoRequiredSkill, NoRequiredSkill}}, // Tornado
+	{5, 3, 6, 1, 249, {244, NoRequiredSkill, NoRequiredSkill}}, // Armageddon
+	{5, 3, 6, 2, 250, {245, NoRequiredSkill, NoRequiredSkill}}, // Hurricane
 	// ass, page 1
-	{6, 1, 1, 2, 251}, // Fire Trauma
-	{6, 1, 2, 1, 256}, // Shock Field
-	{6, 1, 2, 3, 257}, // Blade Sentinel
-	{6, 1, 3, 1, 261}, // Charged Bolt Sentry
-	{6, 1, 3, 2, 262}, // Wake of Fire Sentry
-	{6, 1, 4, 3, 266}, // Blade Fury
-	{6, 1, 5, 1, 271}, // Lightning Sentry
-	{6, 1, 5, 2, 272}, // Inferno Sentry
-	{6, 1, 6, 1, 276}, // Death Sentry
-	{6, 1, 6, 3, 277}, // Blade Shield
+	{6, 1, 1, 2, 251, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Fire Trauma
+	{6, 1, 2, 1, 256, {251, NoRequiredSkill, NoRequiredSkill}}, // Shock Field
+	{6, 1, 2, 3, 257, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Blade Sentinel
+	{6, 1, 3, 1, 261, {256, NoRequiredSkill, NoRequiredSkill}}, // Charged Bolt Sentry
+	{6, 1, 3, 2, 262, {251, NoRequiredSkill, NoRequiredSkill}}, // Wake of Fire Sentry
+	{6, 1, 4, 3, 266, {257, 262, NoRequiredSkill}}, // Blade Fury
+	{6, 1, 5, 1, 271, {261, NoRequiredSkill, NoRequiredSkill}}, // Lightning Sentry
+	{6, 1, 5, 2, 272, {262, NoRequiredSkill, NoRequiredSkill}}, // Inferno Sentry
+	{6, 1, 6, 1, 276, {271, NoRequiredSkill, NoRequiredSkill}}, // Death Sentry
+	{6, 1, 6, 3, 277, {266, NoRequiredSkill, NoRequiredSkill}}, // Blade Shield
 	// ass, page 2
-	{6, 2, 1, 2, 252}, // Claw Mastery
-	{6, 2, 1, 3, 253}, // Psychic Hammer
-	{6, 2, 2, 1, 258}, // Quickness
-	{6, 2, 3, 2, 263}, // Weapon Block
-	{6, 2, 3, 3, 264}, // Cloak of Shadows
-	{6, 2, 4, 1, 267}, // Fade
-	{6, 2, 4, 2, 268}, // Shadow Warrior
-	{6, 2, 5, 3, 273}, // Mind Blast
-	{6, 2, 6, 1, 278}, // Venom
-	{6, 2, 6, 2, 279}, // Shadow Master
+	{6, 2, 1, 2, 252, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Claw Mastery
+	{6, 2, 1, 3, 253, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Psychic Hammer
+	{6, 2, 2, 1, 258, {252, NoRequiredSkill, NoRequiredSkill}}, // Quickness
+	{6, 2, 3, 2, 263, {252, NoRequiredSkill, NoRequiredSkill}}, // Weapon Block
+	{6, 2, 3, 3, 264, {253, NoRequiredSkill, NoRequiredSkill}}, // Cloak of Shadows
+	{6, 2, 4, 1, 267, {258, NoRequiredSkill, NoRequiredSkill}}, // Fade
+	{6, 2, 4, 2, 268, {264, 263, NoRequiredSkill}}, // Shadow Warrior
+	{6, 2, 5, 3, 273, {264, NoRequiredSkill, NoRequiredSkill}}, // Mind Blast
+	{6, 2, 6, 1, 278, {267, NoRequiredSkill, NoRequiredSkill}}, // Venom
+	{6, 2, 6, 2, 279, {268, NoRequiredSkill, NoRequiredSkill}}, // Shadow Master
 	// ass, page 3
-	{6, 3, 1, 2, 254}, // Tiger Strike
-	{6, 3, 1, 3, 255}, // Dragon Talon
-	{6, 3, 2, 1, 259}, // Fists of Fire
-	{6, 3, 2, 3, 260}, // Dragon Claw
-	{6, 3, 3, 2, 265}, // Cobra Strike
-	{6, 3, 4, 1, 269}, // Claws of Thunder
-	{6, 3, 4, 3, 270}, // Dragon Tail
-	{6, 3, 5, 1, 274}, // Blades of Ice
-	{6, 3, 5, 3, 275}, // Dragon Flight
-	{6, 3, 6, 2, 280}, // Royal Strike
+	{6, 3, 1, 2, 254, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Tiger Strike
+	{6, 3, 1, 3, 255, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Dragon Talon
+	{6, 3, 2, 1, 259, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Fists of Fire
+	{6, 3, 2, 3, 260, {255, NoRequiredSkill, NoRequiredSkill}}, // Dragon Claw
+	{6, 3, 3, 2, 265, {254, NoRequiredSkill, NoRequiredSkill}}, // Cobra Strike
+	{6, 3, 4, 1, 269, {259, NoRequiredSkill, NoRequiredSkill}}, // Claws of Thunder
+	{6, 3, 4, 3, 270, {260, NoRequiredSkill, NoRequiredSkill}}, // Dragon Tail
+	{6, 3, 5, 1, 274, {269, NoRequiredSkill, NoRequiredSkill}}, // Blades of Ice
+	{6, 3, 5, 3, 275, {270, NoRequiredSkill, NoRequiredSkill}}, // Dragon Flight
+	{6, 3, 6, 2, 280, {265, 274, NoRequiredSkill}}, // Royal Strike
 	// war, page 1
-	{7, 1, 1, 1, 374}, // Demonic Mastery
-	{7, 1, 1, 3, 373}, // Summon Goatman
-	{7, 1, 2, 1, 378}, // Blood Oath
-	{7, 1, 2, 2, 375}, // Death Mark
-	{7, 1, 3, 3, 376}, // Summon Tainted
-	{7, 1, 4, 2, 380}, // Blood Boil
-	{7, 1, 4, 3, 377}, // Summon Defiler
-	{7, 1, 5, 2, 379}, // Engorge
-	{7, 1, 6, 1, 381}, // Consume
-	{7, 1, 6, 3, 382}, // Bind Demon
+	{7, 1, 1, 1, 374, {373, NoRequiredSkill, NoRequiredSkill}}, // Demonic Mastery
+	{7, 1, 1, 3, 373, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Summon Goatman
+	{7, 1, 2, 1, 378, {374, NoRequiredSkill, NoRequiredSkill}}, // Blood Oath
+	{7, 1, 2, 2, 375, {373, NoRequiredSkill, NoRequiredSkill}}, // Death Mark
+	{7, 1, 3, 3, 376, {373, NoRequiredSkill, NoRequiredSkill}}, // Summon Tainted
+	{7, 1, 4, 2, 380, {375, NoRequiredSkill, NoRequiredSkill}}, // Blood Boil
+	{7, 1, 4, 3, 377, {376, NoRequiredSkill, NoRequiredSkill}}, // Summon Defiler
+	{7, 1, 5, 2, 379, {380, NoRequiredSkill, NoRequiredSkill}}, // Engorge
+	{7, 1, 6, 1, 381, {378, NoRequiredSkill, NoRequiredSkill}}, // Consume
+	{7, 1, 6, 3, 382, {379, 377, NoRequiredSkill}}, // Bind Demon
 	// war, page 2
-	{7, 2, 1, 1, 383}, // Levitate
-	{7, 2, 1, 3, 385}, // Hex Bane
-	{7, 2, 2, 2, 391}, // Cleave
-	{7, 2, 3, 1, 388}, // Echoing Strike
-	{7, 2, 3, 3, 389}, // Hex Purge
-	{7, 2, 4, 1, 390}, // Blade Warp
-	{7, 2, 4, 2, 387}, // Psychic Ward
-	{7, 2, 5, 2, 384}, // Eldritch Blast
-	{7, 2, 5, 3, 386}, // Hex Siphon
-	{7, 2, 6, 2, 392}, // Mirrored Blades
+	{7, 2, 1, 1, 383, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Levitate
+	{7, 2, 1, 3, 385, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Hex Bane
+	{7, 2, 2, 2, 391, {383, NoRequiredSkill, NoRequiredSkill}}, // Cleave
+	{7, 2, 3, 1, 388, {383, NoRequiredSkill, NoRequiredSkill}}, // Echoing Strike
+	{7, 2, 3, 3, 389, {385, NoRequiredSkill, NoRequiredSkill}}, // Hex Purge
+	{7, 2, 4, 1, 390, {388, NoRequiredSkill, NoRequiredSkill}}, // Blade Warp
+	{7, 2, 4, 2, 387, {391, NoRequiredSkill, NoRequiredSkill}}, // Psychic Ward
+	{7, 2, 5, 2, 384, {387, NoRequiredSkill, NoRequiredSkill}}, // Eldritch Blast
+	{7, 2, 5, 3, 386, {389, NoRequiredSkill, NoRequiredSkill}}, // Hex Siphon
+	{7, 2, 6, 2, 392, {390, 384, NoRequiredSkill}}, // Mirrored Blades
 	// war, page 3
-	{7, 3, 1, 3, 395}, // Miasma Bolt
-	{7, 3, 2, 1, 394}, // Ring of Fire
-	{7, 3, 2, 2, 393}, // Sigil Lethargy
-	{7, 3, 3, 2, 396}, // Sigil Rancor
-	{7, 3, 3, 3, 399}, // Miasma Chains
-	{7, 3, 4, 1, 398}, // Flame Wave
-	{7, 3, 5, 2, 400}, // Sigil Death
-	{7, 3, 5, 3, 397}, // Enhanced Entropy
-	{7, 3, 6, 1, 401}, // Apocalypse
-	{7, 3, 6, 3, 402}, // Abyss
+	{7, 3, 1, 3, 395, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Miasma Bolt
+	{7, 3, 2, 1, 394, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Ring of Fire
+	{7, 3, 2, 2, 393, {NoRequiredSkill, NoRequiredSkill, NoRequiredSkill}}, // Sigil Lethargy
+	{7, 3, 3, 2, 396, {393, NoRequiredSkill, NoRequiredSkill}}, // Sigil Rancor
+	{7, 3, 3, 3, 399, {395, NoRequiredSkill, NoRequiredSkill}}, // Miasma Chains
+	{7, 3, 4, 1, 398, {394, NoRequiredSkill, NoRequiredSkill}}, // Flame Wave
+	{7, 3, 5, 2, 400, {396, NoRequiredSkill, NoRequiredSkill}}, // Sigil Death
+	{7, 3, 5, 3, 397, {399, NoRequiredSkill, NoRequiredSkill}}, // Enhanced Entropy
+	{7, 3, 6, 1, 401, {398, 400, NoRequiredSkill}}, // Apocalypse
+	{7, 3, 6, 3, 402, {397, NoRequiredSkill, NoRequiredSkill}}, // Abyss
 }};
 
 }

@@ -1,14 +1,23 @@
 #include "native_progression.h"
+#include "native_skill_bar.h"
 #include "native_controller_help.h"
 #include "native_widgets.h"
 #include "progression_text.h"
 #include "speech_strings.h"
 #include "test_support.h"
 
+#include <algorithm>
+#include <cstdio>
 #include <map>
 
 namespace {
 using namespace D2RAccess;
+std::string Required(const char* name) {
+	char line[200]{};
+	std::snprintf(line, sizeof(line), Strings::Current().skillPrerequisite, name);
+	return line;
+}
+
 struct Widget {
 	uintptr_t parent;
 	std::string name, text;
@@ -55,7 +64,8 @@ uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 namespace D2RAccess::Localization { std::string Text(std::string_view key) { return key == "minipanelchar" ? "Personaje" : ""; } }
 // The game's skill tables, as skilldesc.txt places Salto: page 1, row 3, column 2.
 namespace D2RAccess::NativeSkillBar {
-std::string ClassSkillName(int page, int row, int column) { return page == 1 && row == 3 && column == 2 ? "Salto" : ""; }
+ClassSkill classSkill{"Salto", {}};
+ClassSkill ClassSkillAt(int page, int row, int column) { return page == 1 && row == 3 && column == 2 ? classSkill : ClassSkill{}; }
 }
 
 int main() {
@@ -102,7 +112,10 @@ int main() {
 		{13, {12, "SkillButton1 1,2", "", button}},
 		{14, {10, "SkillCounter", "1 elección de habilidad restante", {}}},
 	};
+	NativeSkillBar::classSkill.prerequisites = {"Requisito del fixture"};
 	const auto skill = NativeProgression::Read({10, 13}, button);
+	Check(skill.name == "Salto" && skill.prerequisites == NativeSkillBar::classSkill.prerequisites, "the cell's prerequisites travel with its name");
+	NativeSkillBar::classSkill.prerequisites.clear();
 	Check(skill.skill && skill.readout.body == "Habilidades de combate", "plain buttons acquire skill role from their native tab container");
 	Check(skill.readout.coordinates == "Fila 3, columna 2" && skill.points == "1 elección de habilidad restante",
 		"the generated cell and live skill points are available, with no position in the branch");
@@ -143,6 +156,17 @@ int main() {
 		"a style change after text starts a new block with its own pause (a tester)");
 	Check(ProgressionText::SkillLines("но не больше.\nДробит цель\n" + font + "2Удар").size() == 2, "Cyrillic lowercase continues a wrapped sentence too");
 	Check(ProgressionText::JoinLines({"Damage 5 to 10", "Mana Cost: 3.", "", "Level 2"}) == "Damage 5 to 10. Mana Cost: 3. Level 2", "lines get a full stop unless they end in punctuation, empty ones are skipped");
+	// Prerequisites follow the native lines (bladestorm360, 75e454f).
+	const std::vector<std::string> requirements{"Might", "Holy Bolt"};
+	const auto nativeLines = ProgressionText::SkillLines(raw);
+	const auto requiredLines = ProgressionText::SkillLines(raw, requirements);
+	Check(requiredLines.size() == nativeLines.size() + 2
+		&& requiredLines[requiredLines.size() - 2] == Required("Might")
+		&& requiredLines.back() == Required("Holy Bolt"),
+		"each required skill becomes a localized line of its own");
+	Check(std::equal(nativeLines.begin(), nativeLines.end(), requiredLines.begin()), "prerequisites keep every native line");
+	Check(ProgressionText::SkillDescription(raw, requirements).ends_with(requiredLines.back()), "the full description includes them too");
+	Check(ProgressionText::SkillLines("", requirements).empty(), "requirements do not make a description of an empty tooltip");
 	Check(ProgressionText::SkillDescription("Lanza el objeto equipado.\n\nLanzamiento") == "Lanzamiento. Lanza el objeto equipado.", "unstyled common skill names also lead their descriptions");
 	Check(ProgressionText::SkillDescription("\r\n\n").empty(), "empty formatted tooltip remains empty");
 	Check(ProgressionText::SkillDescription("Coste: 2 p.\nNivel actual: 1\n" + font + "2Aullido").starts_with("Aullido. Nivel actual: 1"), "learned skill levels are preserved");

@@ -17,6 +17,7 @@ The rules. Each is a column of the game's tables, not a list of names:
   skills.txt     charclass      the class the skill is of; empty for the rest
                  skilldesc      the row of skilldesc.txt that describes it
                  *Id            the skill id
+                 reqskill1..3   the skills it needs a point in, by skill name
   skilldesc.txt  SkillPage      1 to 3; 0 is a skill that is on no page
                  SkillRow       1 to 6, from the top
                  SkillColumn    1 to 3, from the left
@@ -54,6 +55,7 @@ def main():
     classes = [row["Code"].strip() for row in table(args.excel / "PlayerClass.txt") if (row.get("Code") or "").strip()]
     described = {row["skilldesc"].strip(): row for row in table(args.excel / "skilldesc.txt")}
 
+    ids = {(row.get("skill") or "").strip(): (row.get("*Id") or "").strip() for row in table(args.excel / "skills.txt")}
     skills = []
     taken = {}
     for row in table(args.excel / "skills.txt"):
@@ -76,8 +78,16 @@ def main():
         if place in taken:
             raise SystemExit("skilldesc.txt: %s and %s stand in the same place" % (row["skill"], taken[place]))
         taken[place] = row["skill"]
-        skills.append(place + (int(number), row["skill"]))
-    skills.sort()
+        required = []
+        for column_name in ("reqskill1", "reqskill2", "reqskill3"):
+            wanted = (row.get(column_name) or "").strip()
+            if not wanted:
+                continue
+            if not ids.get(wanted, "").isdigit():
+                raise SystemExit("skills.txt: %s requires %r, which is no skill" % (row["skill"], wanted))
+            required.append(int(ids[wanted]))
+        skills.append(place + (int(number), row["skill"], tuple(required)))
+    skills.sort(key=lambda entry: entry[:5])
     if not skills:
         raise SystemExit("no skill of any class found")
 
@@ -98,19 +108,23 @@ def main():
     out.append("inline constexpr int SkillTreeClasses = %d, SkillTreePages = %d, SkillTreeRows = %d, SkillTreeColumns = %d;"
                % (len(classes), PAGES, ROWS, COLUMNS))
     out.append("")
+    out.append("inline constexpr uint16_t NoRequiredSkill = 0xFFFF;")
+    out.append("")
     out.append("struct TreeSkill {")
     out.append("\tuint8_t playerClass, page, row, column;")
     out.append("\tuint16_t skill;")
+    out.append("\tstd::array<uint16_t, 3> required; // reqskill1..3; NoRequiredSkill for an unused one")
     out.append("};")
     out.append("")
     out.append("// Sorted by class, page, row and column.")
     out.append("inline constexpr std::array<TreeSkill, %d> SkillTree{{" % len(skills))
     last = None
-    for player, page, line, column, skill, name in skills:
+    for player, page, line, column, skill, name, required in skills:
         if (player, page) != last:
             out.append("\t// %s, page %d" % (classes[player], page))
             last = (player, page)
-        out.append("\t{%d, %d, %d, %d, %d}, // %s" % (player, page, line, column, skill, name))
+        padded = ", ".join(str(r) if r is not None else "NoRequiredSkill" for r in (list(required) + [None] * 3)[:3])
+        out.append("\t{%d, %d, %d, %d, %d, {%s}}, // %s" % (player, page, line, column, skill, padded, name))
     out.append("}};")
     out.append("")
     out.append("}")

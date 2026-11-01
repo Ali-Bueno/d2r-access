@@ -2,6 +2,7 @@
 
 #include "native_ui.h"
 #include "tooltip_text.h"
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -12,11 +13,12 @@ struct SkillButton { int tree = -1; NativeUi::Cell cell; };
 SkillButton ParseSkillButton(std::string_view name);
 NativeUi::Cell SkillCell(std::string_view name);
 // Skill tooltip lines are stored bottom to top; font-size commands are not text.
-std::string SkillDescription(std::string_view body);
+// Prerequisite names, when given, follow as one line each (the tooltip draws them as icons).
+std::string SkillDescription(std::string_view body, std::span<const std::string> prerequisites = {});
 // Lines joined for speech with a pause between them, as an item tooltip's are.
 std::string JoinLines(const std::vector<std::string>& lines);
 // The same tooltip as its lines, name first, for reading one line at a time.
-std::vector<std::string> SkillLines(std::string_view body);
+std::vector<std::string> SkillLines(std::string_view body, std::span<const std::string> prerequisites = {});
 // The skill's name and the state the player can act on -- its points and its
 // binding -- as the headline, and the explanation of what it does as the
 // detail, which is read on demand rather than every time the highlight moves.

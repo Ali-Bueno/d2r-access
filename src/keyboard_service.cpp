@@ -141,7 +141,7 @@ enum class Command : uint32_t {
 	LeftSkill,
 	// The fighting keys are holds; their presses arrive through g_pressed.
 	Attack, Cast,
-	// In a menu only: a click with Shift or Ctrl held, and a press of a button of the menu.
+	// In a menu only: a click with Shift, Ctrl or Alt held, and a press of a button of the menu.
 	ClickLeft, ClickRight, Transmute, Sort, FillBelt, Repair,
 	// Console only, for the first live tests.
 	TestRun, TestPlain, TestHalt, TestStatus, LogOn, LogOff,
@@ -2263,7 +2263,7 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 			return D2RL::Input::ActionResult::Handled;
 		}
 	}
-	// Out of a menu a click with Shift or Ctrl, and the cube's key, are the game's keys.
+	// Out of a menu a click with Shift, Ctrl or Alt, and the cube's key, are the game's keys.
 	if (command == Command::ClickLeft || command == Command::ClickRight || command == Command::Transmute || command == Command::Sort
 		|| command == Command::FillBelt || command == Command::Repair)
 		return D2RL::Input::ActionResult::Ignored;
@@ -2377,8 +2377,10 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-settings-lower", "Lower the setting (settings list open)", Key::Space, Modifier::Shift, Command::SettingsLower},
 			Entry{"keyboard-click-shift", "Menu: left click with Shift (equip)", Key::A, Modifier::Shift, Command::ClickLeft},
 			Entry{"keyboard-click-control", "Menu: left click with Ctrl (sell, move, drop)", Key::A, Modifier::Control, Command::ClickLeft},
+			Entry{"keyboard-click-alt", "Menu: left click with Alt", Key::A, Modifier::Alt, Command::ClickLeft},
 			Entry{"keyboard-right-click-shift", "Menu: right click with Shift", Key::D, Modifier::Shift, Command::ClickRight},
 			Entry{"keyboard-right-click-control", "Menu: right click with Ctrl", Key::D, Modifier::Control, Command::ClickRight},
+			Entry{"keyboard-right-click-alt", "Menu: right click with Alt", Key::D, Modifier::Alt, Command::ClickRight},
 			Entry{"keyboard-transmute", "Menu: transmute (Horadric Cube)", Key::T, Modifier::Alt, Command::Transmute},
 			Entry{"keyboard-sort", "Menu: sort the items", Key::S, Modifier::Alt, Command::Sort},
 			Entry{"keyboard-fill-belt", "Menu: fill the belt from the inventory", Key::F, Modifier::Alt, Command::FillBelt},

@@ -56,6 +56,8 @@ uint64_t FocusSelection(uintptr_t widget);
 // The open tab of a tab bar and how many tabs it shows; -1 and 0 when unreadable.
 int SelectedTab(uintptr_t widget);
 int TabCount(uintptr_t widget);
+// The previous/next enabled tab (the shop disables empty categories), staying put at an edge; -1 when unreadable.
+int AdjacentTab(uintptr_t widget, int delta);
 Cell GridCell(uintptr_t widget);
 ItemPresence GridItemPresence(uintptr_t widget);
 // The item on the grid cell the controller is on, or in the equipment slot,

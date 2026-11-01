@@ -13,6 +13,22 @@ their dated "Unverified live" notes as history.
 
 **Next step:** unchanged, see the cinematics section below.
 
+## bladestorm360's later fixes, the new ones ported — 2026-11-01 (not released)
+
+`origin/bladestorm` holds bladestorm360's work from 2026-10-04 to 10-20, never merged (his keyboard
+play itself is in main since `a5a3638`). The user's rule: port only what main lacks; what main
+already solves another way stays out. Ported by hand: shop tabs skip empty categories (falls back
+to the old stepping where the flags cannot be read), Alt+A / Alt+D menu clicks, skill
+prerequisites in the skill tree (ids from `skills.txt` via `gen_skill_tree.py`), set items said
+by their set name. Left out, main has its own: V for stamina (the life report), menus with an idle
+pad (an arrow takes them), town NPC lists, Kurast NPCs. 134/134 CTest; not tested live.
+Details in [keyboard keys](docs/keyboard-keys.md), [progression](docs/progression.md),
+[native tooltips](docs/native-tooltips.md#set-item-names).
+
+**Next step:** still new on the branch, for the user to choose: skill targeting (self-buffs with
+no enemy) with Shift+A attack in place, skill hotkey announcements, H by floor coverage (Kurast
+Docks), shared stash page jumps. Check the local `port/bladestorm-npcs` before deleting the branch.
+
 ## In-play act videos: the wrong video described, fixed — 2026-11-01 (released as test-2026-11-01-3 from eb658f9)
 
 bfbeast's log (test-2026-11-01-2): at the Act I → II move the plugin read `ProgressionHelper`

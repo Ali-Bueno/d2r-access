@@ -1203,8 +1203,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		&& (!progression.skill || NamesSkill(context, tooltip.body, focus.widget))) {
 		std::string description;
 		if (progression.skill) {
-			description = ProgressionText::SkillDescription(tooltip.body);
-			g_skillLines = ProgressionText::SkillLines(tooltip.body);
+			description = ProgressionText::SkillDescription(tooltip.body, progression.prerequisites);
+			g_skillLines = ProgressionText::SkillLines(tooltip.body, progression.prerequisites);
 			g_skillLinesWidget = focus.widget;
 			OfferLines(linesOwner, g_skillLines);
 			Append(description, UiText::Clean(tooltip.footer));
@@ -1221,7 +1221,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 				OfferLines(linesOwner, std::move(lines));
 			}
 			const auto unidentified = UiText::Clean(Localization::Text(TooltipText::UnidentifiedKey));
-			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels(), QuantityLabels());
+			const bool setItem = itemLabel.quality == static_cast<uint32_t>(D2RL::Items::Quality::Set);
+			auto       split = TooltipText::Split(body, StatLabels(), PriceLabels(), unidentified, RequirementLabels(), QuantityLabels(), setItem);
 			// Magic and better, the quality the screen shows only by colour
 			// ("Crimson Spear. magic"); an unidentified item says so instead
 			// (Split). A lesser item's own name already says it ("Superior Short

@@ -78,6 +78,17 @@ the branch is a class tree (`SkillButtonContainer`) and the count is above zero:
 Auras. 1 Skill Choice Remaining". General Skills (`CommonSkillsContainer`, `ItemSkillsContainer`)
 is named alone. Log: `[skill-tree] branch opened|changed -> "..."`.
 
+## Skill prerequisites
+
+Ported from bladestorm360's 75e454f, with one change: the tooltip draws a
+skill's requirements as icons, so each one is added as a line, "Prerequisite: 1
+skill point in X", after the native lines (J and Ctrl+arrows read them). Where
+the branch read reqskill1..3 from the game's tables in memory, the names come
+from `src/generated/skill_tree.h`, which `tools/gen_skill_tree.py` now fills
+with the ids of reqskill1..3 from skills.txt; only the localized name is read
+at run time (`NativeSkillBar::ClassSkillAt`). No new memory offset. The lookup
+is `SkillPrerequisites::Of`.
+
 ## Description order
 
 Despite its name, the visible `TooltipTextBox` widget remained empty during

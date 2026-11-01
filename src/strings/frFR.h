@@ -43,6 +43,7 @@ inline constexpr Table frFR {
 	.itemSize            = {"%d colonne sur %d ligne", "%d colonne sur %d lignes", "%d colonnes sur %d ligne", "%d colonnes sur %d lignes"},
 	.detailNone         = "Rien de plus à lire",
 	.assignedTo          = "Assignée à %s",
+	.skillPrerequisite   = "Prérequis : 1 point de compétence dans %s",
 	.controllerButtons   = {"Croix directionnelle", "Croix directionnelle haut", "Croix directionnelle bas", "Croix directionnelle gauche", "Croix directionnelle droite", "Menu", "Affichage", "Stick gauche", "Appuyer sur le stick gauche", "Stick droit", "Appuyer sur le stick droit", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Tête", "Cou", "Torse", "Arme droite", "Arme gauche",
 		"Anneau droit", "Anneau gauche", "Ceinture", "Pieds", "Gants" },

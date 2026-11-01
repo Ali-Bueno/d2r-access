@@ -62,9 +62,11 @@ struct Description {
 // The spoken headline of a description: name, then the stack's count, then the price.
 std::string Headline(const Description& description);
 
+// `nameInScreenOrder` (set items): the name is the first unlabelled drawn line, not the palette-2 one.
 Description Split(const Body& body, std::span<const std::string> statLabels,
 	std::span<const std::string> priceLabels = {}, std::string_view unidentifiedLabel = {},
-	std::span<const std::string> requirementLabels = {}, std::span<const std::string> quantityLabels = {});
+	std::span<const std::string> requirementLabels = {}, std::span<const std::string> quantityLabels = {},
+	bool nameInScreenOrder = false);
 
 // What a held compare button adds, as the screen draws it: each extra record's
 // lines ("Currently Equipped", then the equipped item), joined for speech.

@@ -4,6 +4,7 @@
 #include "localization.h"
 #include "native_ground_items.h"
 #include "native_memory.h"
+#include "skill_prerequisites.h"
 #include "ui_text.h"
 #include <windows.h>
 
@@ -104,7 +105,7 @@ std::optional<std::vector<AttackReach::Skill>> BoundSkills() {
 	return skills;
 }
 
-std::string ClassSkillName(int page, int row, int column) {
+ClassSkill ClassSkillAt(int page, int row, int column) {
 	uintptr_t player = 0, tables = 0, skills = 0, descs = 0;
 	uint32_t playerClass = 0, skillCount = 0, descCount = 0;
 	if (!g_base || page <= 0 || !NativeGroundItems::RuntimeRoots(player, tables)
@@ -125,8 +126,17 @@ std::string ClassSkillName(int page, int row, int column) {
 		if (found != NoSkill) return {}; // two skills in one cell: not the table this was verified on
 		found = static_cast<int>(skill);
 	}
-	return SkillName(tables, found);
+	ClassSkill result{SkillName(tables, found), {}};
+	if (result.name.empty()) return result;
+	for (const int required : SkillPrerequisites::Of(found)) {
+		auto name = SkillName(tables, required);
+		if (name.empty()) { result.prerequisites.clear(); break; } // no partial list
+		result.prerequisites.push_back(std::move(name));
+	}
+	return result;
 }
+
+std::string ClassSkillName(int page, int row, int column) { return ClassSkillAt(page, row, column).name; }
 
 bool BackBarShown() noexcept {
 	if (!g_base) return false;

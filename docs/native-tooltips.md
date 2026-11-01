@@ -108,6 +108,15 @@ and speech-dispatch path with keyboard input; controller listening, comparison
 audio and hireling equipment remain user checks. The final deployed DLL matches
 the build: SHA-256 `C0FAFD80447EE0FCE9F7BA148726CB674771D442DDC719736884C8535A696C3D`.
 
+## Set-item names
+
+A set item draws its own name in palette 3 and its base type in palette 2, the
+index `TooltipText::Split` takes for a title, so "Sabre" was spoken for
+"Angelic Sickle". For quality Set, `InteractionReader` passes `nameInScreenOrder`
+and the name is the first unlabelled line drawn. Found and fixed by bladestorm360
+in 97cb7c4 (RE of the set composer at RVA `0x2BF1B0`, evidence in their
+`docs/native-tooltips.md`); ported here by hand, not yet heard in game.
+
 ## Inventory and target archetypes
 
 - `InventoryGridWidget`, `InventorySlotWidget`, and subclasses of

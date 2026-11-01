@@ -43,6 +43,7 @@ inline constexpr Table ptBR {
 	.itemSize            = {"%d coluna por %d linha", "%d coluna por %d linhas", "%d colunas por %d linha", "%d colunas por %d linhas"},
 	.detailNone         = "Sem mais detalhes",
 	.assignedTo          = "Atribuído a %s",
+	.skillPrerequisite   = "Pré-requisito: 1 ponto de habilidade em %s",
 	.controllerButtons   = {"Direcional", "Direcional para cima", "Direcional para baixo", "Direcional para a esquerda", "Direcional para a direita", "Menu", "Exibir", "Analógico esquerdo", "Pressionar analógico esquerdo", "Analógico direito", "Pressionar analógico direito", "LB", "RB", "LT", "RT", "A", "B", "X", "Y"},
 	.equipmentSlots      = { "", "Cabeça", "Pescoço", "Torso", "Arma direita", "Arma esquerda",
 		"Anel direito", "Anel esquerdo", "Cinto", "Pés", "Luvas" },

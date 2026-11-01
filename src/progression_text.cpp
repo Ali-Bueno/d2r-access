@@ -1,7 +1,9 @@
 #include "progression_text.h"
+#include "speech_strings.h"
 
 #include <algorithm>
 #include <charconv>
+#include <cstdio>
 #include <vector>
 
 namespace D2RAccess::ProgressionText {
@@ -64,7 +66,7 @@ bool StartsLowercase(std::string_view line) {
 }
 }
 
-std::vector<std::string> SkillLines(std::string_view body) {
+std::vector<std::string> SkillLines(std::string_view body, std::span<const std::string> prerequisites) {
 	// U+E07E followed by 1 or 2 sets font size. Captured from the stock skill
 	// renderer during controller navigation; these are not controller glyphs.
 	constexpr std::string_view font = "\xEE\x81\xBE";
@@ -106,11 +108,20 @@ std::vector<std::string> SkillLines(std::string_view body) {
 		if (joined.size() > 1 && !EndsSentence(joined.back()) && StartsLowercase(line)) joined.back() += " " + line;
 		else joined.push_back(std::move(line));
 	}
+	// Nothing is made up while the tooltip of this skill is still pending.
+	if (!joined.empty()) for (const auto& prerequisite : prerequisites) {
+		const auto name = UiText::Clean(prerequisite);
+		if (name.empty()) continue;
+		const auto format = Strings::Current().skillPrerequisite;
+		std::string line(static_cast<size_t>(std::snprintf(nullptr, 0, format, name.c_str())), '\0');
+		std::snprintf(line.data(), line.size() + 1, format, name.c_str());
+		joined.push_back(std::move(line));
+	}
 	return joined;
 }
 
-std::string SkillDescription(std::string_view body) {
-	const auto lines = SkillLines(body);
+std::string SkillDescription(std::string_view body, std::span<const std::string> prerequisites) {
+	const auto lines = SkillLines(body, prerequisites);
 	if (lines.empty()) return {};
 	return JoinLines(lines);
 }

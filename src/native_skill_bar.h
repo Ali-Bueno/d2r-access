@@ -26,5 +26,10 @@ bool BackBarShown() noexcept;
 // cannot be read or it has no description. UI thread only.
 std::string SkillName(int skill);
 std::optional<std::vector<AttackReach::Skill>> BoundSkills();
+struct ClassSkill {
+	std::string name;
+	std::vector<std::string> prerequisites; // localized names of the skills it needs a point in
+};
+ClassSkill ClassSkillAt(int page, int row, int column);
 std::string ClassSkillName(int page, int row, int column);
 }
