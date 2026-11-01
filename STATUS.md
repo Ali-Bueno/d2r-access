@@ -21,13 +21,32 @@ already solves another way stays out. Ported by hand: shop tabs skip empty categ
 to the old stepping where the flags cannot be read), Alt+A / Alt+D menu clicks, skill
 prerequisites in the skill tree (ids from `skills.txt` via `gen_skill_tree.py`), set items said
 by their set name. Left out, main has its own: V for stamina (the life report), menus with an idle
-pad (an arrow takes them), town NPC lists, Kurast NPCs. 134/134 CTest; not tested live.
+pad (an arrow takes them), town NPC lists, Kurast NPCs. 134/134 CTest.
+**Live (assistant, harness, 2026-11-01 16:51-16:58, YARKEY):** J on Shout says "Requisito: 1 punto
+de habilidad en Aullido", on War Cry both of its two; Alt+A on the inventory's Close logs
+`left click with Alt on close` and closes it. Not live: shop tabs (the unattended guardrail keeps
+NPCs out), set names (no set item on the character).
+Seen on the way, not from the port: the weapon-swap tabs over the weapon slots are said by their
+widget name (`weaponswap_left_arm`); down from a skill tree's first skill lands on the footer
+tooltip, not the skill below.
 Details in [keyboard keys](docs/keyboard-keys.md), [progression](docs/progression.md),
 [native tooltips](docs/native-tooltips.md#set-item-names).
 
-**Next step:** still new on the branch, for the user to choose: skill targeting (self-buffs with
-no enemy) with Shift+A attack in place, skill hotkey announcements, H by floor coverage (Kurast
-Docks), shared stash page jumps. Check the local `port/bladestorm-npcs` before deleting the branch.
+Second batch, merged (`3d31ea3`, `f1bd082`), 135/135 CTest, [skill targeting](docs/battle-skill-targeting.md),
+[skill hotkeys](docs/skill-hotkeys.md):
+- Skill targeting: a non-attack casts once where the player stands, an optional-target attack
+  casts once, a unit-only attack still says "No enemies"; Shift+A strikes in place (menus: still
+  the equip click). An unreadable skill is still fought as the plain Attack (the branch dropped it).
+- F1-F8 / quick cast say the skill when it changes (switch `skill-hotkeys`, Alerts). Inline hooks
+  on `Select` 0x118D50 and `QuickCast` 0x149550, fingerprinted.
+**Live (assistant, 17:05-17:12, YARKEY in Lut Gholein):** `Observers installed: selection=1
+quick-cast=1` on 3.3.94995; F1 "Lanzamiento doble", F2 "Ataque doble", a repeat silent, back again
+said. W with Unsummon logs `skill 3 is not an attack: used once` and casts at the player's cell, no
+"No enemies"; A with Attack says "Sin enemigos"; Shift+A held strikes in place (the game: "Aquí no",
+in town), no character screen. Not live: Shift+A against a monster, a real self buff (out of town).
+
+**Next step:** H by floor coverage and shared stash pages are being ported; then live checks in
+town. Check the local `port/bladestorm-npcs` before deleting the branch.
 
 ## In-play act videos: the wrong video described, fixed — 2026-11-01 (released as test-2026-11-01-3 from eb658f9)
 
