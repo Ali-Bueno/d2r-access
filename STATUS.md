@@ -2,7 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Audio description of the cinematics, 2021 and classic — 2026-11-01 (not released)
+## Audio description of the cinematics, 2021 and classic — 2026-11-01 (released as test-2026-11-01-2 from 54ff120)
+
+Release: 133/133 CTest, 28 entries, 64,308,849 bytes, SHA-256 `6a332237…5349dbabd`; news
+`../tester-news-draft-2026-11-01b.txt`.
 
 The user asked for it for both editions ([plan and guide](docs/cinematics-audio-description.md)).
 - Scripts `data/audiodesc/<hd|classic>/<locale>.txt` (`<video> TAB <seconds> TAB <text>`), English
@@ -28,8 +31,8 @@ The user asked for it for both editions ([plan and guide](docs/cinematics-audio-
   (14:18): esES hd intro 43 cues, classic Act II 6, each said on its second. DLL `5B951841…`.
   Tester news `../tester-news-draft-2026-11-01b.txt`.
 
-**Next step:** the user listens and decides the release; in play, the first act video confirms the
-ProgressionHelper reading (`[audiodesc] in play: ...`).
+**Next step:** in play, the first act video a tester reaches confirms the ProgressionHelper reading
+(`[audiodesc] in play: ...`); fix any description a tester hears as wrong.
 
 ## Descriptions in 13 languages, sealed; the installer adapted — 2026-11-01 (not released)
 
