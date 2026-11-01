@@ -2,8 +2,10 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Holding Y says how to compare — 2026-11-01
+## Holding Y says how to compare — 2026-11-01 (released as test-2026-11-01 from 24326f4)
 
+Release: 129/129 CTest, 27 entries, 63,014,798 bytes, SHA-256 `672e7002…7e74d0562`; news
+`../tester-news-draft-2026-11-01.txt`.
 The user asked for a word when Y (triangle) is held: "Comparing. Left stick: right, the equipped
 item; left, this item", in the 13 languages, once per comparison, only for a pad's Y and with
 `compare-aloud` off. Switch `compare-hint`, on ([decisions](docs/decisions.md),
