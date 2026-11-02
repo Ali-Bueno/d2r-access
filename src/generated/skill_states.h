@@ -12,6 +12,7 @@ struct SkillState {
 	int state; // states.txt row
 	int skill; // skills.txt row, whose name the game gives
 	bool aura;
+	int charges = -1; // ItemStatCost.txt row holding its charges (states.txt pgsv), -1 for none
 };
 
 inline constexpr std::array<SkillState, 62> SkillStates{{
@@ -53,12 +54,12 @@ inline constexpr std::array<SkillState, 62> SkillStates{{
 	{101, 117, false}, // holyshield, Holy Shield
 	{117, 233, false}, // maul, Maul
 	{120, 232, false}, // feralrage, Feral Rage
-	{122, 254, false}, // progressive_damage, Tiger Strike
-	{123, 265, false}, // progressive_steal, Cobra Strike
-	{124, 280, false}, // progressive_other, Royal Strike
-	{125, 259, false}, // progressive_fire, Fists of Fire
-	{126, 274, false}, // progressive_cold, Blades of Ice
-	{127, 269, false}, // progressive_lightning, Claws of Thunder
+	{122, 254, false, 318}, // progressive_damage, Tiger Strike
+	{123, 265, false, 319}, // progressive_steal, Cobra Strike
+	{124, 280, false, 320}, // progressive_other, Royal Strike
+	{125, 259, false, 321}, // progressive_fire, Fists of Fire
+	{126, 274, false, 322}, // progressive_cold, Blades of Ice
+	{127, 269, false, 323}, // progressive_lightning, Claws of Thunder
 	{139, 223, false}, // wolf, Wearwolf
 	{140, 228, false}, // bear, Wearbear
 	{144, 250, false}, // hurricane, Hurricane

@@ -1,5 +1,6 @@
 #include "vitals_service.h"
 #include "async_log.h"
+#include "charge_tracker.h"
 #include "equipment_census.h"
 #include "input_direction.h"
 #include "keyboard_menu.h"
@@ -81,6 +82,9 @@ bool g_mercenaryReport = false;
 bool g_partyFirst = true;
 // The player's running skills (auras, armours, shapes) in BACK+X, an option (a tester, 2026-10-17).
 bool g_skillReport = true;
+bool g_chargeAlerts = true;
+ChargeTracker::Tracker g_charges;
+bool g_chargeCountLogged = false; // the first charge state of a game is logged with its count
 Vitals::ManaAlerts g_manaAlerts = Vitals::ManaAlerts::All;
 bool g_statusSupported = false;
 unsigned g_hintedMask = 0;
@@ -138,21 +142,74 @@ constexpr auto SkillStateIds = [] {
 	return states;
 }();
 
-// "Prayer aura active. Bone Armor active": the skills the game keeps running on the player.
+// The charge-up skills' rows of the generated table, and the stats holding their charges.
+constexpr size_t ChargeSkillCount = [] {
+	size_t count = 0;
+	for (const auto& entry : Generated::SkillStates) count += entry.charges >= 0;
+	return count;
+}();
+static_assert(ChargeSkillCount <= NativeStatus::MaxStats);
+constexpr auto ChargeRows = [] {
+	std::array<size_t, ChargeSkillCount> rows{};
+	for (size_t i = 0, n = 0; i < Generated::SkillStates.size(); ++i)
+		if (Generated::SkillStates[i].charges >= 0) rows[n++] = i;
+	return rows;
+}();
+constexpr auto ChargeStats = [] {
+	std::array<int, ChargeSkillCount> stats{};
+	for (size_t i = 0; i < stats.size(); ++i) stats[i] = Generated::SkillStates[ChargeRows[i]].charges;
+	return stats;
+}();
+
+// "Prayer aura active. Tiger Strike charges: 2": the skills the game keeps running on the player.
 std::string RunningSkills() {
 	std::string text;
 	const auto active = NativeStatus::PlayerStates(SkillStateIds);
 	if (!active) return text;
+	const auto charges = NativeStatus::PlayerStats(ChargeStats);
 	const auto& strings = Strings::Current();
 	for (const auto index : *active) {
 		const auto& entry = Generated::SkillStates[index];
 		const std::string name = NativeSkillBar::SkillName(entry.skill);
 		if (name.empty()) continue;
+		int held = 0;
+		for (size_t i = 0; charges && i < ChargeRows.size(); ++i) if (ChargeRows[i] == index) held = charges->values[i];
 		char phrase[160]{};
-		std::snprintf(phrase, sizeof(phrase), entry.aura ? strings.skillAuraActive : strings.skillActive, name.c_str());
+		if (held > 0) std::snprintf(phrase, sizeof(phrase), strings.chargesHeld, name.c_str(), held);
+		else std::snprintf(phrase, sizeof(phrase), entry.aura ? strings.skillAuraActive : strings.skillActive, name.c_str());
 		Append(text, phrase);
 	}
 	return text;
+}
+
+// A charge cuts in on the one before, so a quick string of blows never piles up; charges run
+// out unused wait their turn.
+void AnnounceCharges(const D2RL::PluginContext* context, const std::vector<ChargeTracker::Change>& changes) {
+	std::string gained, lost;
+	for (const auto& change : changes) {
+		const std::string name = NativeSkillBar::SkillName(Generated::SkillStates[ChargeRows[change.index]].skill);
+		if (name.empty()) continue;
+		char phrase[160]{};
+		if (change.count > 0) std::snprintf(phrase, sizeof(phrase), Strings::Current().chargesGained, name.c_str(), change.count);
+		else std::snprintf(phrase, sizeof(phrase), Strings::Current().chargesLost, name.c_str());
+		Append(change.count > 0 ? gained : lost, phrase);
+	}
+	if (gained.empty() && lost.empty()) return;
+	AsyncLog::InfoF(context, "[vitals] charges -> \"%s\" \"%s\"", gained.c_str(), lost.c_str());
+	if (!gained.empty()) ScreenReader::Speak(gained, true);
+	if (!lost.empty()) ScreenReader::Speak(lost, false);
+}
+
+// The first charge-up state of a game, with the stat read beside it: evidence that the stat holds the count.
+void LogChargeCount(const D2RL::PluginContext* context, std::span<const int> counts) {
+	if (g_chargeCountLogged) return;
+	std::array<int, ChargeSkillCount> states{};
+	for (size_t i = 0; i < states.size(); ++i) states[i] = Generated::SkillStates[ChargeRows[i]].state;
+	const auto active = NativeStatus::PlayerStates(states);
+	if (!active || active->empty()) return;
+	g_chargeCountLogged = true;
+	const size_t i = active->front();
+	AsyncLog::InfoF(context, "[vitals] charge state %d on, stat %d reads %d", states[i], ChargeStats[i], counts[i]);
 }
 
 // An effect's words as it begins or ends: a condition in the mod's own, a curse by its name.
@@ -646,6 +703,8 @@ void Reset() {
 	g_gait.Reset();
 	g_stamina.Reset();
 	g_ammo.Reset();
+	g_charges.Reset();
+	g_chargeCountLogged = false;
 	g_worn.clear();
 	g_hintedMask = 0;
 	g_lastMercSource = {};
@@ -702,6 +761,8 @@ void Tick(const D2RL::PluginContext* context) {
 			g_staminaFrozen.reset();
 			g_fortifiedBy.reset();
 			g_fortifiedAt = 0;
+			g_charges.Reset();
+			g_chargeCountLogged = false;
 			g_lowLife.Reset();
 			LowLifeAudio::Play(false);
 			g_mercenary.Reset();
@@ -772,6 +833,12 @@ void Tick(const D2RL::PluginContext* context) {
 						if (held[i] && !(*g_fortifiedBy)[i]) g_fortifiedAt = now + StatusEffects::EndHoldMs;
 					g_fortifiedBy = held;
 				}
+			// The Assassin's charges as they build, and as they run out unused (a tester, 2026-11-02).
+			const auto charges = g_statusSupported && g_chargeAlerts ? NativeStatus::PlayerStats(ChargeStats) : std::nullopt;
+			if (charges) {
+				LogChargeCount(context, charges->values);
+				AnnounceCharges(context, g_charges.Update(charges->values, charges->swinging, now));
+			} else g_charges.Reset();
 			if (g_fortifiedAt && now >= g_fortifiedAt && !g_effects.EndPending()) {
 				g_fortifiedAt = 0;
 				if (g_statusAlerts) {
@@ -814,6 +881,8 @@ bool MinionsReported() { return g_minionReport; }
 void SetMinionsReported(bool enabled) { g_minionReport = enabled; }
 bool SkillsReported() { return g_skillReport; }
 void SetSkillsReported(bool enabled) { g_skillReport = enabled; }
+bool ChargeAlerts() { return g_chargeAlerts; }
+void SetChargeAlerts(bool enabled) { g_chargeAlerts = enabled; }
 bool MercenaryReported() { return g_mercenaryReport; }
 void SetMercenaryReported(bool enabled) { g_mercenaryReport = enabled; }
 bool PartyFirst() { return g_partyFirst; }

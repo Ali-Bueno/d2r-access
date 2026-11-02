@@ -11,6 +11,9 @@ are columns of skills.txt, not a list of names:
   summon set                             -> left out: the state is on the summon
   a state named by two or more skills    -> left out: no single name for it
   aura = 1                               -> said as an aura
+  progressive = 1 and the state's pgsv   -> its charges are the state's stat (an
+                                            ItemStatCost.txt row), said as they
+                                            change (a tester, 2026-11-02)
 
 passivestate is left out: a passive is always on and shows no icon.
 
@@ -37,19 +40,31 @@ def main():
     parser.add_argument("--out", type=Path, default=Path("src/generated/skill_states.h"))
     args = parser.parse_args()
 
-    states = {row["state"]: int(row["*ID"]) for row in table(args.excel / "states.txt")
-              if row["state"] and row["*ID"].isdigit()}
+    state_rows = {row["state"]: row for row in table(args.excel / "states.txt")
+                  if row["state"] and row["*ID"].isdigit()}
+    states = {name: int(row["*ID"]) for name, row in state_rows.items()}
+    stats = {row["Stat"]: int(row["*ID"]) for row in table(args.excel / "ItemStatCost.txt")
+             if row["Stat"] and row["*ID"].isdigit()}
+
+    def charge_stat(skill_row):
+        state = state_rows[skill_row["aurastate"]]
+        if skill_row["progressive"] != "1" or state["pgsv"] != "1":
+            return -1
+        if state["stat"] not in stats:
+            raise SystemExit("states.txt: %s names unknown stat %s" % (skill_row["aurastate"], state["stat"]))
+        return stats[state["stat"]]
+
     claims = {}
     for row in table(args.excel / "skills.txt"):
         if not row["*Id"].isdigit() or not row["charclass"] or not row["aurastate"] or row["summon"]:
             continue
         if row["aurastate"] not in states:
             raise SystemExit("skills.txt: %s names unknown state %s" % (row["skill"], row["aurastate"]))
-        claims.setdefault(row["aurastate"], []).append((int(row["*Id"]), row["skill"], row["aura"] == "1"))
+        claims.setdefault(row["aurastate"], []).append((int(row["*Id"]), row["skill"], row["aura"] == "1", charge_stat(row)))
 
-    entries = sorted((states[state], skill, name, aura, state)
+    entries = sorted((states[state], skill, name, aura, charges, state)
                      for state, owners in claims.items() if len(owners) == 1
-                     for skill, name, aura in owners)
+                     for skill, name, aura, charges in owners)
     shared = sorted(state for state, owners in claims.items() if len(owners) > 1)
 
     out = []
@@ -68,11 +83,13 @@ def main():
     out.append("\tint state; // states.txt row")
     out.append("\tint skill; // skills.txt row, whose name the game gives")
     out.append("\tbool aura;")
+    out.append("\tint charges = -1; // ItemStatCost.txt row holding its charges (states.txt pgsv), -1 for none")
     out.append("};")
     out.append("")
     out.append("inline constexpr std::array<SkillState, %d> SkillStates{{" % len(entries))
-    for state, skill, name, aura, key in entries:
-        out.append("\t{%d, %d, %s}, // %s, %s" % (state, skill, "true" if aura else "false", key, name))
+    for state, skill, name, aura, charges, key in entries:
+        held = ", %d" % charges if charges >= 0 else ""
+        out.append("\t{%d, %d, %s%s}, // %s, %s" % (state, skill, "true" if aura else "false", held, key, name))
     out.append("}};")
     out.append("")
     out.append("}")

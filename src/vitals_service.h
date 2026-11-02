@@ -32,6 +32,9 @@ void SetMinionsReported(bool enabled);
 // The skills running on the player (auras, armours, shapes) in the life report.
 bool SkillsReported();
 void SetSkillsReported(bool enabled);
+// The Assassin's charges said as they build and run out (a tester, 2026-11-02).
+bool ChargeAlerts();
+void SetChargeAlerts(bool enabled);
 // The mercenary's life and level in the life report; off, BACK+RT says them.
 bool MercenaryReported();
 void SetMercenaryReported(bool enabled);

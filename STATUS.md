@@ -2,6 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Assassin charges spoken — 2026-11-02 (not released)
+
+bfbeast asked for the Assassin's martial-arts charges to be spoken. Each new charge cuts in
+as "<skill> <count>"; charges that run out unused are said queued; releasing them by a swing is
+silent. BACK+X says "<skill> charges: <n>". Switch `charge-alerts` (Alerts, on). The count is read
+from ItemStatCost rows 318-323, generated from game data into `skill_states.h`.
+Heard working by the user; the log shows `charge state 122 on, stat 318 reads 1`
+([assassin charges](docs/assassin-charges.md)).
+
+The character panel's hit-chance hover text, which shows on opening, was said bottom-up ("Caído: 95%
+Probabilidad media de golpear a:"). `CharacterStats::HoverWords` now reads it top first through
+`TooltipText::Read`, as [the recipe](docs/character-panel.md#hit-chance-tooltips-2026-10-25) said.
+138/138 CTest; installed by the build.
+
 ## The tutorial, third run — 2026-11-02 (evening)
 
 - **Holds that outlived their phrase** (the user: after the tutorial spoke, every reading queued,

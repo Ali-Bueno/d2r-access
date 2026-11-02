@@ -22,6 +22,15 @@ struct Movement {
 };
 std::optional<Movement> PlayerMovement() noexcept;
 
+// The local player's `stats` (ItemStatCost.txt rows, at most MaxStats) and whether it is swinging
+// (attacking, kicking, throwing); absent as PlayerMovement is.
+inline constexpr size_t MaxStats = 8;
+struct Stats {
+	std::vector<int> values;
+	bool swinging = false;
+};
+std::optional<Stats> PlayerStats(std::span<const int> stats);
+
 // The local player's experience within its level, as the HUD's bar fills.
 struct Experience {
 	int level = 0, percent = -1;

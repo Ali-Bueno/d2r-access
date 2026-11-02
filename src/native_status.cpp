@@ -146,6 +146,34 @@ std::optional<Movement> PlayerMovement() noexcept {
 	return movement;
 }
 
+namespace {
+bool ReadStats(uintptr_t player, std::span<const int> stats, int* values) noexcept {
+	__try {
+		const auto stat = reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GroundItemLayout::GetStat);
+		for (size_t i = 0; i < stats.size(); ++i) values[i] = stat(player, stats[i], 0);
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
+	return true;
+}
+}
+
+std::optional<Stats> PlayerStats(std::span<const int> stats) {
+	if (!g_base || !g_movementSupported || stats.size() > MaxStats) return std::nullopt;
+	uintptr_t player = 0, tables = 0;
+	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player) return std::nullopt;
+	uint32_t type = 0, mode = 0;
+	if (!NativeMemory::Peek(player + GroundItemLayout::UnitType, type)
+		|| type != GroundItemLayout::PlayerType
+		|| !NativeMemory::Peek(player + GroundItemLayout::UnitMode, mode)
+		|| mode == GroundItemLayout::Death || mode == GroundItemLayout::Dead) return std::nullopt;
+	int values[MaxStats]{};
+	if (!ReadStats(player, stats, values)) return std::nullopt;
+	using namespace GroundItemLayout;
+	Stats read{{values, values + stats.size()},
+		mode == Attack1 || mode == Attack2 || mode == Throw || mode == Kick || mode == Sequence
+			|| (mode >= Special1 && mode <= Special4)};
+	return read;
+}
+
 std::optional<Experience> PlayerExperience() noexcept {
 	if (!g_base || !g_experienceSupported) return std::nullopt;
 	uintptr_t player = 0, tables = 0;

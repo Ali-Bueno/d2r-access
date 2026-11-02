@@ -569,6 +569,11 @@ struct Table {
 	const char* skillActive; // %s = a skill's name, running on the player (Bone Armor, a shape)
 	const char* skillReportOn; // the running skills in the life report (BACK+X)
 	const char* skillReportOff;
+	const char* chargesGained; // %s = a charge-up skill's name, %d = its charges now (1-3), said as they build
+	const char* chargesLost; // %s = the skill whose charges ran out unused
+	const char* chargesHeld; // %s = the skill, %d = its charges: the life report (BACK+X)
+	const char* chargeAlertsOn; // the Assassin's charges said as they build and run out
+	const char* chargeAlertsOff;
 	const char* staminaFrozen; // a stamina potion began: the bar stays full
 	const char* staminaNormal; // the stamina potions ran out
 	const char* fortified; // an antidote or thawing potion began (its resistance has no end notice)
@@ -670,7 +675,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.chargesGained, t.chargesLost, t.chargesHeld, t.chargeAlertsOn, t.chargeAlertsOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
 		t.padQwertyOn, t.padQwertyOff, t.typingStartedQwerty, t.capsLockKey, t.backspaceKey, t.upperCase, t.lowerCase,
 		t.launcherMissingFiles, t.launcherValidating, t.launcherSteamTimeout, t.launcherValidated, t.launcherFailedStartsAnyway, t.launcherFailedExpired, t.launcherUpdateTitle, t.launcherUpdateAsk, t.launcherUpdated, t.launcherUpdateFailed}) visit(s);
 	each(t.lootEquipment);
