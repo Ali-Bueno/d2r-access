@@ -183,6 +183,7 @@ inline constexpr uint32_t CritterClasses[] = {
 	149, // chicken
 	151, // rat
 	159, // bat
+	227, // maggot
 	268, // bug
 	269, // scorpion
 	283, // larva

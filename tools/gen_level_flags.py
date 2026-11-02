@@ -45,8 +45,14 @@ def load_rows(levels_txt: Path) -> list[dict[str, str]]:
     return rows
 
 
+# Critters a level places in its layout instead of naming them in cmon1-4: the maggots crawling in
+# Tal Rasha's chamber (monstats "maggot": AI Idle, Align 1, killable, named "Maggot"), filed as NPCs
+# (bfbeast, 2026-11-02). Not every Idle monster is scenery: Act V's barricades share that AI.
+PLACED_CRITTERS = ("maggot",)
+
+
 def critter_classes(rows: list[dict[str, str]], monstats_txt: Path) -> list[tuple[int, str]]:
-    """The cmon1-4 classes of every level, as (*hcIdx, monstats Id), sorted by *hcIdx."""
+    """The cmon1-4 classes of every level plus PLACED_CRITTERS, as (*hcIdx, monstats Id), sorted by *hcIdx."""
     lines = monstats_txt.read_text(encoding="utf-8-sig").splitlines()
     header = lines[0].split("\t")
     for column in ("Id", "*hcIdx"):
@@ -58,6 +64,7 @@ def critter_classes(rows: list[dict[str, str]], monstats_txt: Path) -> list[tupl
         if row.get("*hcIdx", "").strip():
             index[row["Id"].strip()] = int(row["*hcIdx"])
     names = {row[f"cmon{i}"].strip() for row in rows for i in range(1, 5) if row.get(f"cmon{i}", "").strip()}
+    names.update(PLACED_CRITTERS)
     missing = sorted(name for name in names if name not in index)
     if missing:
         raise SystemExit(f"{monstats_txt}: critter classes not found: {missing}")

@@ -159,6 +159,12 @@ now left out of the scan (`Generated::CritterMonster`, generated with the level 
 `tools/gen_level_flags.py`): chicken, rat, bat, bug, scorpion, larva, snake, parrot, minispider,
 bunny. Cows and camels are not critters and stay listed in town.
 
+**Placed critters (2026-11-02).** bfbeast: the maggots of Tal Rasha's chamber were listed as NPCs.
+They are monstats `maggot` (*hcIdx 227: AI `Idle`, Align 1, killable, named "Maggot"), placed by the
+level's layout rather than named in any level's `cmon1-4`, so the critter list missed them.
+`tools/gen_level_flags.py` now adds `PLACED_CRITTERS` to it. Not every `Idle` monster is scenery:
+Act V's barricade doors and walls, which must be broken, share that AI, so no rule on AI alone.
+
 ## Catapults sound as archers; the battlefield's barbarians (2026-10-27)
 
 A tester in Act V: the catapults (monstats `catapult1`-`4`, *hcIdx 497-500, AI `Catapult`, MissA1
