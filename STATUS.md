@@ -35,7 +35,7 @@ The user, before the release: the installer's combo box said only "cuadro combin
   that stays open after one is pressed): the game folder's copy, else the latest release's asset;
   `test-release.ps1` now attaches `README.html` and `GUIDE.html`. Fixed on the way: `layout()`
   re-entered itself on every child resize, which overflowed the stack with the two new buttons.
-- Installer committed as 27c3157 (not pushed), 24/24 tests, `dist\D2RAccessInstaller.exe`
+- Installer committed and pushed as 27c3157, 24/24 tests, `dist\D2RAccessInstaller.exe`
   rebuilt. Checked here: MSAA names and tab order, before and after a resize; the TaskDialog in a
   throwaway example (UIA: heading, text, both buttons, focus on Close; the user pressed both and
   Close). **Unverified live:** NVDA on the installer; the up-to-date question; the buttons before
