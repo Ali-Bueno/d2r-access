@@ -26,6 +26,10 @@ const std::vector<std::string>& OpenPanels();
 // gives the paladin's aura panel focus while loading into a game (a tester, 2026-10-22).
 bool Hud(std::string_view panel);
 
+// A panel open without being a menu: the HUD, the message log, and the overlays the game keeps
+// open or opens beside a menu (MiniMenuPanel and HelpPanelBackground come up over the help screen).
+bool NotMenu(std::string_view panel);
+
 // The title the window announcer has just spoken for a panel it opened. The
 // controller's menu switcher then reports the same panel as a tab change, and
 // saying that name a second time -- with interrupt -- cut off whatever had

@@ -81,7 +81,7 @@ std::string FocusWords(std::string_view panelName, uintptr_t panel, std::string_
 	const auto& strings = Strings::Current();
 	switch (Read(panel, control).state) {
 	case State::Here:         return strings.waypointHere;
-	case State::Undiscovered: return strings.waypointUndiscovered;
+	case State::Undiscovered: return strings.undiscovered;
 	default:                  return {};
 	}
 }

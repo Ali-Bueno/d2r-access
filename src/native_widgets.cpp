@@ -304,6 +304,41 @@ std::string TextAt(std::string_view panel, std::span<const std::string> path) {
 	return ReadText(Find(panel, path));
 }
 
+bool HasGameVtable(uintptr_t object) {
+	uintptr_t vtable = 0;
+	return object != 0 && (object & 7) == 0 && Peek(object, vtable) && InExe(vtable);
+}
+
+void LogStringsDeep(const D2RL::PluginContext* context, uintptr_t widget, std::string_view label) {
+	constexpr size_t BlockSpan = 0x400; // the start of a block a member points at
+	constexpr int    MaxBlocks = 24;    // log lines, once
+	const std::string name(label);
+	std::string own;
+	for (const FoundString& found : ScanStrings(widget, WidgetScanSpan)) {
+		char item[120] {};
+		std::snprintf(item, sizeof(item), " +0x%zX \"%.60s\"", found.offset, found.value.c_str());
+		own += item;
+	}
+	D2RAccess::AsyncLog::InfoF(context, "[native] deep probe %s at %p:%s", name.c_str(), reinterpret_cast<void*>(widget), own.empty() ? " no strings of its own" : own.c_str());
+	int blocks = 0;
+	for (size_t offset = ScanStep; offset + sizeof(uintptr_t) <= WidgetScanSpan && blocks < MaxBlocks; offset += ScanStep) {
+		uintptr_t target = 0;
+		if (!Peek(widget + offset, target) || target == 0 || (target & 7) != 0 || target == widget
+			|| (target >= g_exeBase && target < g_exeEnd)) continue;
+		const auto strings = ScanStrings(target, BlockSpan);
+		if (strings.empty()) continue;
+		++blocks;
+		std::string report;
+		for (size_t i = 0; i < strings.size() && i < 4; ++i) {
+			char item[120] {};
+			std::snprintf(item, sizeof(item), " +0x%zX \"%.60s\"", strings[i].offset, strings[i].value.c_str());
+			report += item;
+		}
+		D2RAccess::AsyncLog::InfoF(context, "[native] deep probe %s +0x%zX -> %p (%zu strings):%s", name.c_str(), offset,
+			reinterpret_cast<void*>(target), strings.size(), report.c_str());
+	}
+}
+
 void RequestProbe(std::string_view panel, std::span<const std::string> path, unsigned delayMs) {
 	if (!IsAvailable()) {
 		return;

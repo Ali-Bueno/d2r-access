@@ -75,6 +75,7 @@ add_library(d2r-access SHARED
 	src/game_text_reader.cpp
 	src/input_direction.cpp
 	src/modal_reader.cpp
+	src/credits_reader.cpp
 	src/interaction_reader.cpp
 	src/hire_stats.cpp
 	src/inventory_census.cpp

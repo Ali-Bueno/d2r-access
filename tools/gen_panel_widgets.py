@@ -97,6 +97,7 @@ Stdlib only. Usage (run from the repo root):
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from collections import Counter
@@ -144,7 +145,44 @@ WIDGET_LABEL_OVERRIDES: dict[tuple[str, str], str] = {
     # Every other use of that icon in the layouts is likewise a help button
     # carrying only a tooltip, so the tooltip is what describes it.
     ("CharacterCreatePanel", "GameVersionInfoButton"): "",
+    # Loot filter icon buttons (PANEL\Loot_Filter icons, no text or tooltip): the
+    # game's own strings for what each does; the three profile buttons all
+    # borrowed "Profile:" from the caption beside them (a tester, 2026-11-02).
+    ("LootFilterProfilePanel", "ProfileOptions"): "LootFilterMoreOptions",
+    ("LootFilterProfilePanel", "AddProfile"): "NewProfileTitle",
+    ("LootFilterProfilePanel", "ImportProfile"): "ImportProfileTitle",
+    ("LootFilterProfilePanel", "EnableRuleToggle"): "LootFilterEnableRule",
+    ("LootFilterProfilePanel", "RuleUpArrow"): "LootFilterMoveRuleUp",
+    ("LootFilterProfilePanel", "RuleDownArrow"): "LootFilterMoveRuleDown",
+    ("LootFilterProfilePanel", "RuleOptions"): "LootFilterMoreOptions",
+    ("LootFilterRuleDetailsPanel", "BackButton"): "UIBack",
+    # The Equipment/Items tab strip: its open tab names it.
+    ("LootFilterRuleDetailsPanel", "ItemListTabs"): "",
+    ("LootFilterItemPanel", "CategoryExpandButton"): "LootFilterExpandCategory",
+    # The dropdown sits under "Copy Existing Profile (Optional)", not the name above it.
+    ("LootFilterNewProfileModal", "ProfileDropdown"): "CopyExistingProfile",
+    # Borrowed captions in-game icon buttons would now say through the interaction
+    # reader (FocusTracker::CatalogLabel): the party panel's X is no "Game Name", the
+    # other trader's ready mark no "Trade", an unreachable waypoint no "Waypoint".
+    ("PartyPanel", "CloseButton"): "strClose",
+    ("TradeLayout", "ready_them"): "",
+    ("WaypointsPanelExpansion", "UnselectableButtonTemplate"): "",
+    ("WaypointsPanelOriginal", "UnselectableButtonTemplate"): "",
+    ("ChronicleRewardsPanel", "UniquesRewards"): "Unique",
+    ("ChronicleRewardsPanel", "SetsRewards"): "Sets",
+    ("ChronicleRewardsPanel", "RunewordsRewards"): "Runewords",
 }
+
+# The Chronicle's list pages share ChronicleBaseListPanelHD.json's controls,
+# none named: the search box shows only its placeholder, the dropdown filters
+# the list, and the toggle's caption is a child the label search never visits.
+for _panel in ("ChronicleBaseListPanel", "ChronicleUniquesListPanel", "ChronicleSetsListPanel", "ChronicleRunewordsListPanel"):
+    WIDGET_LABEL_OVERRIDES[(_panel, "SearchInput")] = "ChronicleSearchPlaceholder"
+    WIDGET_LABEL_OVERRIDES[(_panel, "FilterRules")] = "GameListFilters"
+    WIDGET_LABEL_OVERRIDES[(_panel, "RewardsButton")] = "ViewRewardsButton"
+    # The list of entries the open category shows ("Items"); the categories beside it have
+    # no game string and are named by the mod (focus_tracker.cpp ModLabels).
+    WIDGET_LABEL_OVERRIDES[(_panel, "ItemScrollViewContainer")] = "AdvancedItems"
 
 MINI_MENU_LABEL_KEYS: dict[str, str] = {
     "character": "minipanelchar",
@@ -292,7 +330,9 @@ def find_label_key(widget_name: str, widget_node: Any, ancestor_siblings: list[l
                 if n.startswith(widget_name) or n.endswith("Text") or n.endswith("Label")
             ]
             if preferred:
-                return preferred[0][1]
+                # Several captions side by side (NormalQualityText, EliteQualityText):
+                # each control takes the one its name shares the most with.
+                return max(preferred, key=lambda c: len(os.path.commonprefix([c[0], widget_name])))[1]
         return candidates[0][1]
     return None
 
@@ -395,13 +435,17 @@ class Walker:
             if is_focusable(fields, wtype):
                 path = child_named_path if real_name else child_named_path + [(display_name, anchor_x, anchor_y)]
                 text_key, text = primary_text(fields, self.string_table)
+                tooltip_key = compute_tooltip_key(fields, self.profiles)
                 if text_key is not None:
                     label_key = None
                 elif wtype == "MiniMenuButtonWidget":
                     label_key = MINI_MENU_LABEL_KEYS.get(fields.get("menu"))
+                elif wtype == "ButtonWidget" and tooltip_key is not None:
+                    # An icon button the game names by its tooltip (a modal's X:
+                    # "Close"), not by the caption that happens to sit beside it.
+                    label_key = None
                 else:
                     label_key = find_label_key(display_name, node, ancestor_siblings)
-                tooltip_key = compute_tooltip_key(fields, self.profiles)
                 update_target, update_command, update_extra = compute_update_message(fields, wtype)
                 states = compute_states(fields, self.profiles, self.root_fields)
                 self.entries.append({

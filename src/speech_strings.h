@@ -57,6 +57,10 @@ struct Table {
 	const char* roleTextField;
 	const char* roleTabs;
 	const char* roleList;
+	const char* categories;        // a list of categories the game leaves unnamed (the Chronicle's)
+	const char* expanded;          // a list row whose own entries are shown (a Chronicle set's pieces)
+	const char* collapsed;
+	const char* selected;          // the row a list acts on (the Chronicle category filtering the entries)
 	const char* checked;
 	const char* unchecked;
 	const char* optionIndex;       // %d = index (1-based), count unknown
@@ -549,7 +553,7 @@ struct Table {
 	const char* lootGemsOff;
 	std::array<const char*, LootEquipmentCount> lootEquipment; // GroundItems::EquipmentLoops order
 	const char* tabPage; // %d = a tab shown with no caption, by its number
-	const char* waypointUndiscovered; // a waypoint row never activated
+	const char* undiscovered; // a waypoint row never activated, a Chronicle entry never found
 	const char* waypointHere; // the waypoint row of the area the player stands in
 	const char* terrorZone; // a waypoint row whose area is a terror zone now
 	const char* hintDeleteCharacter; // %s = the button that deletes the selected character
@@ -621,7 +625,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	const char* const singles[] = {
 		t.pluginLoaded, t.screenReaderMissing, t.panelOpened, t.panelClosed, t.panelToggled, t.navigation,
 		t.valueChanged, t.roleButton, t.roleCheckbox, t.roleDropdown, t.roleSlider, t.roleTextField, t.roleTabs,
-		t.roleList, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
+		t.roleList, t.categories, t.expanded, t.collapsed, t.selected, t.checked, t.unchecked, t.optionIndex, t.resolution, t.characterLevel,
 		t.unavailable, t.modalConfirmHint, t.modalDismissHint, t.dialogueMenu, t.gameTextEnabled,
 		t.gameTextDisabled, t.inventory, t.stash, t.equipment, t.slotEmpty, t.slotOccupied,
 		t.belt, t.beltRow, t.beltColumnCount, t.beltAutomatic, t.gridCell, t.detailNone, t.assignedTo, t.skillPrerequisite, t.radarEnabled, t.footstepsEnabled,
@@ -672,7 +676,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.dropSoundSpeed, t.loopSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume,
 		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.compareHint, t.compareHintOn, t.compareHintOff, t.audioDescriptionOn, t.audioDescriptionOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.horadricCube, t.cubeOpened, t.stashCubeOpen, t.itemMovedIntoCube, t.itemMovedIntoInventory, t.itemMovedToCube, t.itemCount, t.itemNewInCube, t.curseStarted, t.curseEnded, t.shrineEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.lowLifeOn, t.lowLifeOff, t.lowLifeBelow, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.potionsLastOn, t.potionsLastOff,
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.partyFirstOn, t.partyFirstOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
-		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.waypointUndiscovered, t.waypointHere, t.terrorZone,
+		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.undiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
 		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.chargesGained, t.chargesLost, t.chargesHeld, t.chargeAlertsOn, t.chargeAlertsOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,

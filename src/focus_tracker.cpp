@@ -292,6 +292,17 @@ constexpr RoleMapping RoleMappings[] = {
 	{ "SliderWidget", &Strings::Table::roleSlider },
 	{ "InputTextBoxWidget", &Strings::Table::roleTextField },
 	{ "TabBarWidget", &Strings::Table::roleTabs },
+	{ "FocusableListContainerWidget", &Strings::Table::roleList },
+};
+
+// A list the game names only internally, and the mod's word for it: the Chronicle's categories
+// (ChronicleBaseListPanelHD.json, TabScrollViewContainer). No game string says "Categories".
+struct ModLabel {
+	const char* widget;
+	const char* Strings::Table::* text;
+};
+constexpr ModLabel ModLabels[] = {
+	{ "TabScrollViewContainer", &Strings::Table::categories },
 };
 
 struct Match {
@@ -557,6 +568,21 @@ bool IsInternalWidget(const Generated::WidgetEntry& widget) {
 	return std::any_of(std::begin(InternalWidgetTypes), std::end(InternalWidgetTypes), [&](const char* type) { return std::strcmp(widget.type, type) == 0; });
 }
 
+// A string the game fills in as it shows it (CharacterGameVersionTooltip: 'Create a "%s" version of
+// your character.'): the widget's own copy when the game formatted it, else the placeholder filled
+// with the choice of the dropdown beside it (a tester, 2026-11-02, heard the "%s").
+constexpr std::string_view Placeholder = "%s";
+std::string Formatted(std::string text, uintptr_t nativeWidget) {
+	const size_t at = text.find(Placeholder);
+	if (at == std::string::npos || nativeWidget == 0) return text;
+	const NativeMemory::ReadScope scope;
+	if (const std::string own = UiText::Clean(NativeWidgets::ReadText(nativeWidget)); !own.empty() && own.find(Placeholder) == std::string::npos) return own;
+	for (const uintptr_t sibling : NativeUi::Children(NativeUi::Parent(nativeWidget))) {
+		if (const std::string choice = UiText::Clean(NativeUi::DropdownText(sibling)); !choice.empty()) return text.replace(at, Placeholder.size(), choice);
+	}
+	return text;
+}
+
 // Own text, else the row label next to it, else a literal, else the tooltip
 // (icon-only buttons such as DeleteCharacter carry nothing else), else the name.
 std::string Label(const Generated::WidgetEntry& widget, uintptr_t nativeWidget = 0) {
@@ -568,7 +594,7 @@ std::string Label(const Generated::WidgetEntry& widget, uintptr_t nativeWidget =
 		text = widget.text;
 	}
 	if (text.empty()) {
-		text = TextForKey(widget.tooltipKey);
+		text = Formatted(TextForKey(widget.tooltipKey), nativeWidget);
 	}
 	// The tab strips the game gives no label to -- the menu switcher across the
 	// top above all, but also the lobby's and the settings' -- would otherwise
@@ -576,6 +602,9 @@ std::string Label(const Generated::WidgetEntry& widget, uintptr_t nativeWidget =
 	// 2026-09-19). A strip that does carry a label keeps it.
 	if (text.empty() && nativeWidget != 0 && std::strcmp(widget.type, TabBarWidgetType) == 0) {
 		text = UiText::Clean(NativeUi::SelectedTabText(nativeWidget));
+	}
+	for (const ModLabel& mod : ModLabels) {
+		if (text.empty() && std::strcmp(widget.name, mod.widget) == 0) text = Strings::Current().*mod.text;
 	}
 	if (text.empty() && !IsInternalWidget(widget)) {
 		text = widget.name;
@@ -1008,7 +1037,14 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 		phrase += ", ";
 		phrase += Strings::Current().unavailable;
 	}
-	const std::string tooltip = TextForKey(match.widget->tooltipKey);
+	// A control of the game's own class (a Chronicle reward's entry) draws words its layout leaves
+	// empty, such as how complete it is: they follow its name.
+	if (nativeWidget != 0 && !std::string_view(match.widget->type).ends_with("Widget")) {
+		const NativeMemory::ReadScope scope;
+		const std::string drawn = FrontendNativeFallback::DescribeRow(NativeUi::Snapshot(nativeWidget, nativeWidget)).text;
+		if (!drawn.empty() && drawn != label) phrase += ", " + drawn;
+	}
+	const std::string tooltip = Formatted(TextForKey(match.widget->tooltipKey), nativeWidget);
 	// An options row explains itself in a paragraph. Spoken on arrival it is
 	// heard on every move down the list, so on an options panel it waits to be
 	// asked for -- right stick up, the gesture an item's properties already
@@ -1284,6 +1320,14 @@ bool AnnounceValue(const D2RL::PluginContext* context, std::string_view target, 
 		}
 	}
 	return false;
+}
+
+std::string CatalogLabel(NativeUi::Focus focus) {
+	const auto match = NativeFocus::Resolve(focus, Generated::PanelCatalog);
+	if (match.widget == nullptr) return {};
+	std::string text = TextForKey(match.widget->textKey);
+	if (text.empty()) text = TextForKey(match.widget->labelKey);
+	return UiText::Clean(text);
 }
 
 void InvalidateRects() {

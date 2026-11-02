@@ -65,6 +65,12 @@ std::string TextAt(std::string_view panel, std::span<const std::string> path);
 // Logs the strings found in the widget at panel/path, after `delayMs` so the
 // game has filled its runtime text (modal prompts, list rows).
 void RequestProbe(std::string_view panel, std::span<const std::string> path, unsigned delayMs);
+// An object whose first word is a vtable in the game's image: a widget embedded in another may be
+// classified only once this holds.
+bool HasGameVtable(uintptr_t object);
+// Logs the strings in a widget's object and in each block one pointer away from it: where a
+// widget that draws its own text keeps it (the credits). Diagnosis only, UI thread.
+void LogStringsDeep(const D2RL::PluginContext* context, uintptr_t widget, std::string_view label);
 void Tick(const D2RL::PluginContext* context);
 
 }

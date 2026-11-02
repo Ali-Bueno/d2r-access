@@ -2,6 +2,52 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Help, Chronicle, loot filter and credits — 2026-11-02 (not released)
+
+The user: the loot filter, Help and Chronicle menus were only partly read, the credits not at all
+([native UI](docs/native-ui.md#help-chronicle-loot-filter-and-credits-2026-11-02)).
+- **Labels:** the catalog generator now matches an unlabelled control to the caption sharing its
+  name (the Chronicle's three quality boxes all said "Normal", Show/Hide both "Ver") and lets a
+  tooltip name an icon button (modal X's; the stash's gold buttons said "Cofre"; Text to Speech
+  said "Daltonismo"). Icon buttons got the game's strings: "Importar perfil", "Nuevo perfil", "Más
+  opciones", "Subir/Bajar norma", "Atrás", "Buscar...", "Filtros", "Ver recompensas".
+- **Help** is read whole on opening; it was hidden by the overlays it opens over itself.
+- **The user's test (16:24):** credits still silent; the loot filter's icon buttons by the
+  dropdown silent; the Chronicle "more or less"; the skill tree opened on "1, X, 1, B".
+  - In play the interaction reader owns buttons and spoke only drawn words: an empty one now takes
+    the catalog's label.
+  - The Chronicle's lists take focus whole before their rows: they are named "Objetos, lista" and
+    "Categorías, lista"; rows say "sin descubrir" when drawn locked; categories no longer say "no
+    marcado". Loot filter rules still say their box. Each new row shape is dumped once (`[text-tree]`).
+  - The skill tree is left to its own reader. The credits window says "Créditos" and, still silent
+    after 3 s, logs where its text may be (`[credits] widgets`, `[native] deep probe credits`).
+- **Second test (16:46):** icon buttons, Chronicle, Help and the skill tree heard working. Still:
+  back on the loot filter's dropdown after the icon buttons was silent (the focus reader now forgets
+  its last words when a button lets go of the speech); credits silent: their lines live in a
+  widget embedded in the `CreditsWidget` ("CreditsTextHolder"), which the reader now reads.
+- **Third test (16:56):** dropdown and Chronicle fine. Set rows said "no marcado" (their fold
+  button read as a checkbox): expanders now say "plegado/desplegado". Character creation's info
+  button said 'Crea una versión "%s"': a placeholder is now filled (the button's own tooltip, else
+  the version dropdown beside it). Credits still silent: their boxes are no widget's children; the
+  reader now finds them through a vector in the credits or its holder.
+- **Fourth test (17:08):** the version button heard right. Pressing a Chronicle category selects it
+  (`FilterByCategory`), so "plegado" never changed: a category now says "seleccionado" while it
+  filters, and its fold only when unfolded. Credits still silent: their boxes are members of the
+  `CreditsWidget` object; the reader now scans the object for them.
+- **Fifth test (17:20):** credits read, categories say "seleccionado". In Accessories a run of
+  undiscovered uniques ("Anillo" ten times) said only its first row: rows read alone were keyed by
+  their index, always 0; now by their widget.
+- CTest 138/138; DLL installed. **Unverified live:** the repeated rows.
+
+**Next step:** live: Crónica → Accesorios, walk the rings. Then a test release when the user asks.
+
+## Tal Rasha's chamber maggots no NPCs — 2026-11-02 (not released)
+
+bfbeast: the maggots in Tal Rasha's chamber were listed as NPCs. monstats `maggot` is a critter the
+level places itself, outside every `cmon1-4`; added to the generated critter list
+([entity cues](docs/entity-cues.md#critters-are-no-enemies-2026-10-25)). CTest 138/138; DLL
+installed. **Unverified live.**
+
 ## Assassin charges spoken — 2026-11-02 (released as test-2026-11-02 from 8a4cb66)
 
 bfbeast asked for the Assassin's martial-arts charges to be spoken. Each new charge cuts in

@@ -27,7 +27,17 @@ void Node(int parent, UiText::Kind kind, std::string name, std::string text = {}
 }
 }
 
-namespace D2RAccess::PanelState { std::string_view Active() { return active; } }
+std::vector<std::string> below; // the panels open under the active one, oldest first
+namespace D2RAccess::PanelState {
+std::string_view Active() { return active; }
+const std::vector<std::string>& OpenPanels() {
+	static std::vector<std::string> open;
+	open = below;
+	open.push_back(active);
+	return open;
+}
+bool NotMenu(std::string_view panel) { return panel == "MiniMenuPanel" || panel == "HelpPanelBackground"; }
+}
 bool aHeld = false;
 namespace D2RAccess::InputDirection { bool FaceButtonHeld(FaceButton button) { return button == FaceButton::A && aHeld; } }
 namespace D2RAccess::NativeUi {
@@ -84,6 +94,9 @@ int main() {
 	active = "CharacterStatsPanel";
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 2, "the character panel is left to its own reader");
+	active = "SkillsTreePanel";
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 2, "so is the skill tree, whose levels and hotkeys were read as bare letters");
 
 	// Button legends are control hints: held for right stick down, and spoken
 	// unasked only last, with autodetail and control tooltips on.
@@ -176,5 +189,36 @@ int main() {
 	ModalReader::Tick(nullptr);
 	Check(speech.size() == 2 && speech[1].text == "5", "letting go and holding again starts the count over");
 	aHeld = false;
+
+	// The help screen opens HelpPanelBackground and MiniMenuPanel over itself in the same burst
+	// (log of 2026-11-02): its lines are read, not the empty mini menu on top.
+	speech.clear();
+	tree = {};
+	below = {"PauseLayoutGarden"};
+	active = "PauseLayoutGarden";
+	ModalReader::Tick(nullptr);
+	speech.clear();
+	below = {"HelpPanel", "HelpPanelBackground"};
+	active = "MiniMenuPanel";
+	tree = {};
+	Node(-1, Kind::Other, "HelpPanel");
+	Node(0, Kind::Text, "Title", "Diablo II Help");
+	Node(0, Kind::Text, "HelpRun", "Ã¿c4[Shift]Ã¿c0 Hold to run");
+	ModalReader::Tick(nullptr);
+	Check(!speech.empty() && speech.back().text.find("Hold to run") != std::string::npos, "a menu opened under overlays in the same burst is read");
+	// An overlay coming up alone over a menu read earlier is the active panel, as before: the menu
+	// under it is not read again.
+	below = {};
+	active = "PauseLayoutGarden";
+	ModalReader::Tick(nullptr);
+	speech.clear();
+	tree = {};
+	Node(-1, Kind::Other, "MiniMenuPanel");
+	Node(0, Kind::Text, "Caption", "Mini menu");
+	below = {"PauseLayoutGarden"};
+	active = "MiniMenuPanel";
+	ModalReader::Tick(nullptr);
+	Check(speech.size() == 1 && speech[0].text == "Mini menu", "an overlay over a menu opened earlier does not reread that menu");
+	below.clear();
 	Passed();
 }

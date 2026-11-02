@@ -276,6 +276,21 @@ int main() {
 	tabChange.clear();
 	Check(Settle() && speech.size() == 1 && speech.back().text == "Monsters left: 1" && !speech.back().interrupt,
 		"and follows on the next tick without interrupting the name it queues behind");
+	// A Chronicle category of undiscovered uniques: rows read alone, each with the same words.
+	const auto previousPanels = panels;
+	const auto previousFocus = focus;
+	panels = {{70, 71, "ChronicleUniquesListPanel", UiText::Surface::Other, {
+		{70, -1, UiText::Kind::Other, "Root", "ChronicleUniquesListPanel", ""},
+		{71, 0, UiText::Kind::ListItem, "ListItem", "ChronicleItemListItem", "Anillo"},
+		{72, 0, UiText::Kind::ListItem, "ListItem", "ChronicleItemListItem", "Anillo"},
+	}}};
+	speech.clear(); focus = {70, 71}; Settle();
+	Check(speech.size() == 1 && speech.back().text == "Anillo", "a row read alone is heard");
+	speech.clear(); focus = {70, 72}; Settle();
+	Check(speech.size() == 1 && speech.back().text == "Anillo", "and so is the next row with the same words");
+	speech.clear(); Settle();
+	Check(speech.empty(), "while the same row stays silent");
+	panels = previousPanels; focus = previousFocus; speech.clear(); Settle(); speech.clear();
 	const int populatedQuestHelpReads = questHelpReads;
 	panels[0].nodes[2].text.clear(); speech.clear(); Settle();
 	Check(questHelpReads == populatedQuestHelpReads, "an unpopulated quest detail pane does not acquire controller actions");

@@ -191,5 +191,58 @@ int main() {
 	readout = Describe(journal);
 	(void)reader.Update(readout, 4500);
 	Check(reader.Update(readout, 4650).text == "Misión completada", "game completion text is read as current progress");
+
+	// A loot filter rule row (LootFilterProfilePanelHD.json): its words, then its enable box.
+	Snapshot rule{1, 2, "LootFilterProfilePanel", Surface::Other, {
+		{1, -1, Kind::Other, "LootFilterProfilePanel", "LootFilterProfilePanel", ""},
+		{2, 0, Kind::ListItem, "ListItem", "LootFilterRuleSummaryListItem", ""},
+		{3, 1, Kind::Toggle, "EnableRuleToggle", "ToggleButtonWidget", ""},
+		{4, 1, Kind::Text, "RuleType", "TextBoxWidget", "Ver"},
+		{5, 1, Kind::Text, "RuleName", "TextBoxWidget", "SHOW Uniques"},
+	}};
+	rule.nodes[2].toggled = true;
+	Check(Describe(rule).option == std::string("Ver. SHOW Uniques. ") + Strings::Current().checked, "a rule row says whether its box is checked, after its words");
+	rule.nodes[2].toggled = false;
+	Check(Describe(rule).option == std::string("Ver. SHOW Uniques. ") + Strings::Current().unchecked, "and when it is not");
+	rule.nodes[2].toggled.reset();
+	Check(Describe(rule).option == "Ver. SHOW Uniques", "a box whose state is unreadable adds nothing");
+
+	// A Chronicle category (ChronicleBaseListPanelHD.json): its toggles expand it and carry its
+	// caption, so neither is read as a checkbox; an entry not found yet is drawn locked.
+	Snapshot category{1, 2, "ChronicleUniquesListPanel", Surface::Other, {
+		{1, -1, Kind::Other, "ChronicleUniquesListPanel", "ChronicleUniquesListPanel", ""},
+		{2, 0, Kind::ListItem, "ListItem", "ChronicleCategoryListItem", ""},
+		{3, 1, Kind::Other, "ParentCategoryContainerWidget", "Widget", ""},
+		{4, 2, Kind::Toggle, "CategoryExpandButton", "ToggleButtonWidget", ""},
+		{5, 2, Kind::Toggle, "CategoryButton", "ToggleButtonWidget", ""},
+		{6, 4, Kind::Text, "CategoryText", "TextBoxWidget", "Armaduras"},
+	}};
+	category.nodes[3].toggled = false;
+	category.nodes[4].toggled = false;
+	Check(Describe(category).option == "Armaduras", "a category beside its face says no fold and no checkbox, only its name");
+	category.nodes[4].toggled = true;
+	Check(Describe(category).option == std::string("Armaduras. ") + Strings::Current().selected, "pressing it selects it: the filter it sets is said");
+	category.nodes[3].toggled = true;
+	Check(Describe(category).option == std::string("Armaduras. ") + Strings::Current().expanded + ". " + Strings::Current().selected,
+		"and unfolded when it is");
+	// A Chronicle set (ChronicleSetsListPanel, log of 2026-11-02): its expander folds its pieces.
+	Snapshot set{1, 2, "ChronicleSetsListPanel", Surface::Other, {
+		{1, -1, Kind::Other, "ChronicleSetsListPanel", "ChronicleSetsListPanel", ""},
+		{2, 0, Kind::ListItem, "ListItem", "ChronicleItemListItem", ""},
+		{3, 1, Kind::Other, "TabSlotBackground", "ImageWidget", ""},
+		{4, 2, Kind::Text, "ItemSlotText", "TextBoxWidget", "Esplendor de Horazón"},
+		{5, 1, Kind::Toggle, "TabExpandButton", "ToggleButtonWidget", ""},
+	}};
+	set.nodes[4].toggled = false;
+	Check(Describe(set).option == std::string("Esplendor de Horazón. ") + Strings::Current().collapsed, "a set row says it is folded, not unchecked");
+	Snapshot entry{1, 2, "ChronicleUniquesListPanel", Surface::Other, {
+		{1, -1, Kind::Other, "ChronicleUniquesListPanel", "ChronicleUniquesListPanel", ""},
+		{2, 0, Kind::ListItem, "ListItem", "ChronicleItemListItem", ""},
+		{3, 1, Kind::Other, "ItemSlotBackground_Locked", "Widget", ""},
+		{4, 2, Kind::Text, "ItemSlotText", "TextBoxWidget", "La Ruina de Bul-Kathos"},
+	}};
+	Check(Describe(entry).option == std::string("La Ruina de Bul-Kathos. ") + Strings::Current().undiscovered, "an entry drawn locked is not found yet");
+	entry.nodes[2].name = "ItemSlotBackground_Unlocked";
+	Check(Describe(entry).option == "La Ruina de Bul-Kathos", "a found entry is just its words");
 	Passed();
 }

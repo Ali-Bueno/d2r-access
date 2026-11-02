@@ -230,6 +230,7 @@ bool Holds(const D2RL::PluginContext*, D2RL::Items::ItemContainer, uint32_t) { r
 }
 namespace D2RAccess::FocusTracker {
 void CancelSelectHint() {}
+std::string CatalogLabel(NativeUi::Focus) { return {}; }
 }
 namespace D2RAccess::NativeControllerHelp {
 std::string ForFocus(NativeUi::Focus) { return controllerHelp; }

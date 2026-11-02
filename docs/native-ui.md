@@ -209,3 +209,100 @@ read it. **Unverified live** in the Options panels.
 - The text language said "Francés" on arrival with Spanish on screen, and value messages with no
   input read whatever was focused. `NativeState` now reads a widget only when its native name is
   the catalog entry's, and the arrival log says `state=widget` or `state=settings`.
+
+## Help, Chronicle, loot filter and credits (2026-11-02)
+
+The user's log of 2026-11-02 15:43–15:45: the help screen said only its title, the Chronicle's lists
+said their internal names (`ItemScrollViewContainer`, `FilterRules`, `RewardsButton, casilla`), and
+several loot filter buttons borrowed a neighbour's caption (`ImportProfile` said "Perfil:"). The
+credits were reported silent too (no log of them open).
+
+- **Labels.** `tools/gen_panel_widgets.py` gave an unlabelled control the first caption among its
+  siblings. Now, among several captions, it takes the one sharing the longest name prefix
+  (`EliteQualityCheck` → `EliteQualityText`, `HideBtn` → `HideText`), and a `ButtonWidget` with a
+  tooltip borrows nothing: the tooltip names it (every modal's X said the modal's caption; the
+  stash's gold buttons said "Cofre"; `TextToSpeechToggle` said "Daltonismo"). Icon buttons with
+  neither got `WIDGET_LABEL_OVERRIDES` from the game's strings: `LootFilterMoreOptions`,
+  `NewProfileTitle`, `ImportProfileTitle`, `LootFilterMoveRuleUp/Down`, `UIBack`,
+  `ChronicleSearchPlaceholder`, `GameListFilters`, `ViewRewardsButton`, the rewards entries'
+  `Unique`/`Sets`/`Runewords`.
+- **Help.** `HelpPanel` opens `HelpPanelBackground` and `MiniMenuPanel` over itself in the same
+  burst, so the modal reader took the empty `MiniMenuPanel` as the active panel. It now reads the
+  topmost panel opened in that burst under panels that are no menu (`PanelState::NotMenu`, the list
+  moved from `keyboard_menu.cpp`). An overlay alone over an older menu still counts as active, as
+  before: the front-end panels stay in the record all game, so looking further down would read the
+  main menu's news in play. Help lines name keys as controller symbols; the reader decodes them
+  (`ControllerText::Read`).
+- **Chronicle lists (corrected after the user's test, 16:25).** Each list is a
+  `FocusableListContainerWidget` the focus stops on whole first: its focus frame is the whole list
+  (`ItemScrollViewContainer` 771x800, `TabScrollViewContainer` 300x605), no row is highlighted, and
+  only then does the focus move to the `ChronicleItemListItem` / `ChronicleCategoryListItem` clones
+  (`[field] focus name="ListItem"`), which the text reader reads. A first build looked for a
+  framed row inside the list and found none; that code is gone. The lists are now named "Objetos,
+  lista" (`AdvancedItems`) and "Categorías, lista" (a mod string: no game string says
+  "Categories"). A row drawing `ItemSlotBackground_Locked` adds "undiscovered". Each new shape of row
+  is dumped once a session (`[text-tree]`, with `toggled=`), to see what the rows hold.
+- **Row checkboxes.** A row's one bare toggle (no words on or under it) gives its state: a loot
+  filter rule's `EnableRuleToggle`. A Chronicle category has two toggles, one carrying its caption,
+  and said "Armaduras. no marcado" in the first build; it now says its name only.
+- **Icon buttons in play.** In a game, buttons belong to the interaction reader
+  (`InteractionReader::HandlesFocus`), which spoke only the words a button draws, and it holds the
+  speech, so the catalog reader never ran: the loot filter's `ProfileOptions`, `AddProfile` and
+  `ImportProfile` were silent. An empty button now takes `FocusTracker::CatalogLabel` (its text key
+  or label key, never the tooltip, which the reader already says). Borrowed captions that would have
+  surfaced this way were overridden: the party panel's X, the trade's `ready_them`, unselectable
+  waypoints.
+- **Skill tree.** The modal reader read its counters and hotkeys on opening ("1, X, 1, B, 0 skill
+  choices left"), ahead of the interaction reader's own branch and choices; it now leaves
+  `SkillsTreePanel` to that reader, as it does the character panel.
+- **Game classes in the catalog.** A cataloged control whose type is the game's own class (not
+  `…Widget`, e.g. `ChronicleRewardsPanelEntry`) adds the words it draws after its name: a reward
+  entry's completion.
+- **Credits.** `CreditsModalHD.json` has one `CreditsWidget` reading `CreditsROTW.txt`.
+  `CreditsReader` finds it by class and queues each line whose text box appears with text. In the
+  user's test no box had text in 7 s: the widget seems to draw its lines itself. Silent 3 s after
+  opening, it now logs once every widget under it (`[credits] widgets ...`) and the strings in and
+  one pointer away from it (`NativeWidgets::LogStringsDeep`, `[native] deep probe credits`), to find
+  where the lines live. The window is named by `strGameCredits`, not "Credits Modal".
+  The probe (16:48): the `CreditsWidget` has no children at all, and its own object holds
+  `"CreditsTextHolder"` at +0x200, a widget's name offset being +0x8: a widget embedded at +0x1F8.
+  The reader now finds that holder by its name inside the object (only where a game vtable sits) and
+  reads the holder's text boxes. **Unverified live.** Still silent, the log says
+  `[credits] holder found/not found (...)` and lists the holder's widgets.
+- **Back from an icon button (16:48).** Returning from the loot filter's icon buttons to the dropdown
+  was silent: the focus reader still had the dropdown as its last words. When the interaction reader
+  lets go of the speech, the focus reader now forgets them (`FocusTracker::Reset`).
+- **Chronicle entries (16:48 dump).** An entry is `ListItem` / `ItemSlotBackground_Locked` /
+  `ItemSlotText`: a unique not found yet shows only its base type ("Grebas de mirmidón") on the
+  locked background, which the row reader now says as "sin descubrir".
+- **Third test (16:56).** The holder at +0x1F8 was found, shown, with **no children** either; the
+  deep probe found one text box named `CreditsTextEntry` holding "DIABLO II: RESURRECTED - REIGN OF
+  THE WARLOCK" at its +0x88 (a text box's text), a widget of no tree. The reader now looks in the
+  members of the credits and of the holder for a vector whose first element is such a box (begin and
+  end pointers, the box checked for a game vtable) and reads its shown boxes; still silent, it logs
+  `[credits] silent: holder ..., lines vector ..., N boxes, M shown` and probes the holder too.
+  **Unverified live.**
+- **Expanders (16:56).** A Chronicle set row is `ListItem` / `TabSlotBackground` / `ItemSlotText`
+  plus `TabExpandButton` (`toggled=0`): the one bare toggle, said "no marcado". A bare toggle named
+  `…Expand…` now says "plegado"/"desplegado" (new strings `expanded`/`collapsed`), so a parent
+  category says its fold too; any other bare toggle stays checked/unchecked.
+- **A tooltip with a placeholder (16:56).** Character creation's `GameVersionInfoButton` (the info
+  icon by the game-version dropdown, no click message) said `Crea una versión "%s" de tu personaje.`:
+  the catalog holds the raw `CharacterGameVersionTooltip`. A tooltip with `%s` is now the widget's own
+  copy when the game formatted it (a button's +0x88), else the placeholder filled with the dropdown
+  beside it (`NativeUi::DropdownText`). Heard right live (17:08): "Reign of the Warlock", "Expansión".
+- **Categories select (17:08).** Pressing a Chronicle category sends `ChronicleListPanelMessage:
+  FilterByCategory`: it selects the category (its `CategoryButton` toggles), it does not unfold it.
+  Every category said "plegado" and never changed. Beside a face toggle only what is on is said now:
+  "seleccionado" (new string `selected`) while it filters, "desplegado" if ever unfolded. A set row,
+  with no face, keeps "plegado/desplegado".
+- **Credits, fourth try (17:08).** No vector of boxes in the credits or the holder; the holder probe
+  showed the one box at holder+0x980, i.e. credits+0xB78 again, a member of the `CreditsWidget`'s own
+  object in both runs. The reader now scans that object (0x4000 bytes) for embedded boxes named
+  `CreditsTextEntry` with a game vtable, rescans each second, and reads the shown ones top first
+  (all with words when none is flagged shown). Heard working by the user (17:20).
+- **Rows with the same words (17:20).** In Accessories every undiscovered unique shows its base type
+  ("Anillo", ten times): the moves reached the reader (`[field] focus name="ListItem"` each time)
+  but only the first of a run was said. A row read alone through the text reader's fallback is
+  always at index 0 of its own snapshot, and that index was its focus key, so the same words under
+  the "same" key were no change. That fallback now keys a row by its widget.

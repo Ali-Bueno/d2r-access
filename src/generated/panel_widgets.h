@@ -32,7 +32,7 @@ inline constexpr WidgetEntry Widgets_AdvancedStatsPanel[] = {
 	{ "ScrollBar", "ScrollControllerWidget", nullptr, nullptr, "AdvancedStats", nullptr, nullptr, nullptr, nullptr, 0, Path_AdvancedStatsPanel_0, 1 },
 	{ "ListContainer", "ListWidget", nullptr, nullptr, "AdvancedStats", nullptr, nullptr, nullptr, nullptr, 0, Path_AdvancedStatsPanel_1, 1 },
 	{ "OptionTemplate", "ListItemWidget", nullptr, nullptr, "AdvancedStats", nullptr, nullptr, nullptr, nullptr, 0, Path_AdvancedStatsPanel_2, 2 },
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "AdvancedStats", "strClose", nullptr, nullptr, nullptr, 0, Path_AdvancedStatsPanel_3, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_AdvancedStatsPanel_3, 1 },
 };
 
 inline constexpr PathStep Path_BankExpansionLayout_0[] = { { "gold_withdraw", 0.0f, 0.0f } };
@@ -139,12 +139,12 @@ inline constexpr PathStep Path_BankExpansionLayout_100[] = { { "advancedstash_ho
 inline constexpr PathStep Path_BankExpansionLayout_101[] = { { "advancedstash_horadriccube", 0.0f, 0.0f }, { "convert", 0.0f, 0.0f } };
 inline constexpr PathStep Path_BankExpansionLayout_102[] = { { "advancedstash_horadriccube", 0.0f, 0.0f }, { "withdraw_button", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_BankExpansionLayout[] = {
-	{ "gold_withdraw", "ButtonWidget", nullptr, nullptr, "stash", "strGoldWithdraw", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_0, 1 },
-	{ "close", "ButtonWidget", nullptr, nullptr, "stash", "strClose", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_1, 1 },
+	{ "gold_withdraw", "ButtonWidget", nullptr, nullptr, nullptr, "strGoldWithdraw", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_0, 1 },
+	{ "close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_1, 1 },
 	{ "grid", "InventoryGridWidget", nullptr, nullptr, "stash", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_2, 1 },
 	{ "BankTabs", "TabBarWidget", nullptr, nullptr, "stash", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_3, 1 },
 	{ "ShowPreviousLadderSeasonToggle", "ToggleButtonWidget", nullptr, nullptr, "stashRemoveOnly", "SharedStashPreviousSeasonToggleTooltip", "BankPanelMessage", "TogglePreviousSeasonTabs", nullptr, 0, Path_BankExpansionLayout_4, 2 },
-	{ "gold_withdraw", "ButtonWidget", nullptr, nullptr, "stash", "strGoldWithdraw", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_5, 2 },
+	{ "gold_withdraw", "ButtonWidget", nullptr, nullptr, nullptr, "strGoldWithdraw", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_5, 2 },
 	{ "grid", "InventoryGridWidget", nullptr, nullptr, "stash", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_6, 2 },
 	{ "StashLeftArrow", "ButtonLegendWidget", nullptr, nullptr, "SharedStashPage", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_7, 4 },
 	{ "StashRightArrow", "ButtonLegendWidget", nullptr, nullptr, "SharedStashPage", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_8, 4 },
@@ -240,7 +240,7 @@ inline constexpr WidgetEntry Widgets_BankExpansionLayout[] = {
 	{ "r32", "AdvancedStashSlotWidget", nullptr, nullptr, "stash", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_98, 2 },
 	{ "r33", "AdvancedStashSlotWidget", nullptr, nullptr, "stash", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_99, 2 },
 	{ "horadriccube_grid", "InventoryGridWidget", nullptr, nullptr, "stash", nullptr, nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_100, 2 },
-	{ "convert", "ButtonWidget", nullptr, nullptr, "stash", "strUiMenu2", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_101, 2 },
+	{ "convert", "ButtonWidget", nullptr, nullptr, nullptr, "strUiMenu2", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_101, 2 },
 	{ "withdraw_button", "ButtonWidget", "AdvancedStashWithdraw", nullptr, nullptr, "AdvancedStashWithdrawTooltip", nullptr, nullptr, nullptr, 0, Path_BankExpansionLayout_102, 2 },
 };
 
@@ -248,8 +248,8 @@ inline constexpr PathStep Path_BankOriginalLayout_0[] = { { "gold_withdraw", 0.0
 inline constexpr PathStep Path_BankOriginalLayout_1[] = { { "close", 0.0f, 0.0f } };
 inline constexpr PathStep Path_BankOriginalLayout_2[] = { { "grid", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_BankOriginalLayout[] = {
-	{ "gold_withdraw", "ButtonWidget", nullptr, nullptr, "stash", "strGoldWithdraw", nullptr, nullptr, nullptr, 0, Path_BankOriginalLayout_0, 1 },
-	{ "close", "ButtonWidget", nullptr, nullptr, "stash", "strClose", nullptr, nullptr, nullptr, 0, Path_BankOriginalLayout_1, 1 },
+	{ "gold_withdraw", "ButtonWidget", nullptr, nullptr, nullptr, "strGoldWithdraw", nullptr, nullptr, nullptr, 0, Path_BankOriginalLayout_0, 1 },
+	{ "close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_BankOriginalLayout_1, 1 },
 	{ "grid", "InventoryGridWidget", nullptr, nullptr, "stash", nullptr, nullptr, nullptr, nullptr, 0, Path_BankOriginalLayout_2, 1 },
 };
 
@@ -419,12 +419,12 @@ inline constexpr PathStep Path_CharacterStatsPanel_3[] = { { "LevelUpInfo", 0.0f
 inline constexpr PathStep Path_CharacterStatsPanel_4[] = { { "LevelUpInfo", 0.0f, 0.0f }, { "EnergyPointButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_CharacterStatsPanel_5[] = { { "CloseButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_CharacterStatsPanel[] = {
-	{ "AdvancedStats", "ButtonWidget", nullptr, nullptr, "minipanelchar", "AdvancedStats", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_0, 1 },
+	{ "AdvancedStats", "ButtonWidget", nullptr, nullptr, nullptr, "AdvancedStats", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_0, 1 },
 	{ "StrengthPointButton", "CharacterStatLevelUpButtonWidget", nullptr, nullptr, "minipanelchar", "TooltipCharacterScreenSpendStatPoint", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_1, 2 },
 	{ "DexPointButton", "CharacterStatLevelUpButtonWidget", nullptr, nullptr, "minipanelchar", "TooltipCharacterScreenSpendStatPoint", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_2, 2 },
 	{ "VitalityPointButton", "CharacterStatLevelUpButtonWidget", nullptr, nullptr, "minipanelchar", "TooltipCharacterScreenSpendStatPoint", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_3, 2 },
 	{ "EnergyPointButton", "CharacterStatLevelUpButtonWidget", nullptr, nullptr, "minipanelchar", "TooltipCharacterScreenSpendStatPoint", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_4, 2 },
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "minipanelchar", "strClose", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_5, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_CharacterStatsPanel_5, 1 },
 };
 
 inline constexpr PathStep Path_ChatPanel_0[] = { { "InputBox", 0.0f, 0.0f }, { "AutoSuggestContainer", 0.0f, 0.0f }, { "AutoSuggestList", 0.0f, 0.0f } };
@@ -467,11 +467,11 @@ inline constexpr PathStep Path_ChronicleBaseListPanel_16[] = { { "ItemScrollView
 inline constexpr PathStep Path_ChronicleBaseListPanel_17[] = { { "ItemScrollViewContainer", 0.0f, 0.0f }, { "ItemListContainer", 0.0f, 0.0f }, { "ItemSlotTemplate", 0.0f, 0.0f }, { "TabExpandButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_ChronicleBaseListPanel_18[] = { { "RewardsButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ChronicleBaseListPanel[] = {
-	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleBaseListPanel_0, 2 },
+	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, "ChronicleSearchPlaceholder", nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleBaseListPanel_0, 2 },
 	{ "NormalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleBaseListPanel_1, 2 },
-	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleBaseListPanel_2, 2 },
-	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleBaseListPanel_3, 2 },
-	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleBaseListPanel_4, 4, Path_ChronicleBaseListPanel_4, 1 },
+	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "ExceptionalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleBaseListPanel_2, 2 },
+	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "EliteQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleBaseListPanel_3, 2 },
+	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, "GameListFilters", nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleBaseListPanel_4, 4, Path_ChronicleBaseListPanel_4, 1 },
 	{ "TypeScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_5, 2 },
 	{ "TabScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_6, 1 },
 	{ "TabListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_7, 2 },
@@ -481,17 +481,17 @@ inline constexpr WidgetEntry Widgets_ChronicleBaseListPanel[] = {
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_11, 5 },
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_12, 5 },
 	{ "ItemScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_13, 2 },
-	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_14, 1 },
+	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, "AdvancedItems", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_14, 1 },
 	{ "ItemListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_15, 2 },
 	{ "ItemSlotTemplate", "ChronicleItemListItem", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_16, 3 },
 	{ "TabExpandButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleBaseListPanel_17, 4 },
-	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleBaseListPanel_18, 1 },
+	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, "ViewRewardsButton", nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleBaseListPanel_18, 1 },
 };
 
 inline constexpr PathStep Path_ChroniclePanel_0[] = { { "Background", 0.0f, 0.0f }, { "Anchor", 0.5f, 0.5f }, { "CloseButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_ChroniclePanel_1[] = { { "ChronicleTabs", 0.5f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ChroniclePanel[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "Chronicle", "strClose", nullptr, nullptr, nullptr, 0, Path_ChroniclePanel_0, 3 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_ChroniclePanel_0, 3 },
 	{ "ChronicleTabs", "TabBarWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChroniclePanel_1, 1 },
 };
 
@@ -511,12 +511,12 @@ inline constexpr WidgetEntry Widgets_ChronicleRewardsPanel[] = {
 	{ "RewardScrollView", "ScrollViewWidget", nullptr, nullptr, "ChronicleRewardsTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_1, 2 },
 	{ "RewardsTable", "TableWidget", nullptr, nullptr, "ChronicleRewardsTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_2, 3 },
 	{ "Row A", "TableRowWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_3, 4 },
-	{ "UniquesRewards", "ChronicleRewardsPanelEntry", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_4, 5 },
+	{ "UniquesRewards", "ChronicleRewardsPanelEntry", nullptr, nullptr, "Unique", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_4, 5 },
 	{ "ToggleSkillCheck", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_5, 6 },
-	{ "SetsRewards", "ChronicleRewardsPanelEntry", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_6, 5 },
+	{ "SetsRewards", "ChronicleRewardsPanelEntry", nullptr, nullptr, "Sets", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_6, 5 },
 	{ "ToggleSkillCheck", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_7, 6 },
 	{ "Row B", "TableRowWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_8, 4 },
-	{ "RunewordsRewards", "ChronicleRewardsPanelEntry", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_9, 5 },
+	{ "RunewordsRewards", "ChronicleRewardsPanelEntry", nullptr, nullptr, "Runewords", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_9, 5 },
 	{ "ToggleSkillCheck", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRewardsPanel_10, 6 },
 };
 
@@ -541,11 +541,11 @@ inline constexpr PathStep Path_ChronicleRunewordsListPanel_16[] = { { "ItemScrol
 inline constexpr PathStep Path_ChronicleRunewordsListPanel_17[] = { { "ItemScrollViewContainer", 0.0f, 0.0f }, { "ItemListContainer", 0.0f, 0.0f }, { "ItemSlotTemplate", 0.0f, 0.0f }, { "TabExpandButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_ChronicleRunewordsListPanel_18[] = { { "RewardsButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ChronicleRunewordsListPanel[] = {
-	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleRunewordsListPanel_0, 2 },
+	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, "ChronicleSearchPlaceholder", nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleRunewordsListPanel_0, 2 },
 	{ "NormalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleRunewordsListPanel_1, 2 },
-	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleRunewordsListPanel_2, 2 },
-	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleRunewordsListPanel_3, 2 },
-	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleRunewordsListPanel_4, 4, Path_ChronicleRunewordsListPanel_4, 1 },
+	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "ExceptionalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleRunewordsListPanel_2, 2 },
+	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "EliteQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleRunewordsListPanel_3, 2 },
+	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, "GameListFilters", nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleRunewordsListPanel_4, 4, Path_ChronicleRunewordsListPanel_4, 1 },
 	{ "TypeScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_5, 2 },
 	{ "TabScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_6, 1 },
 	{ "TabListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_7, 2 },
@@ -555,11 +555,11 @@ inline constexpr WidgetEntry Widgets_ChronicleRunewordsListPanel[] = {
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_11, 5 },
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_12, 5 },
 	{ "ItemScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_13, 2 },
-	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_14, 1 },
+	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, "AdvancedItems", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_14, 1 },
 	{ "ItemListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_15, 2 },
 	{ "ItemSlotTemplate", "ChronicleItemListItem", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_16, 3 },
 	{ "TabExpandButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleRunewordsListPanel_17, 4 },
-	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleRunewordsListPanel_18, 1 },
+	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, "ViewRewardsButton", nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleRunewordsListPanel_18, 1 },
 };
 
 inline constexpr PathStep Path_ChronicleSetsListPanel_0[] = { { "InputBackground", 0.0f, 0.0f }, { "SearchInput", 0.0f, 0.0f } };
@@ -583,11 +583,11 @@ inline constexpr PathStep Path_ChronicleSetsListPanel_16[] = { { "ItemScrollView
 inline constexpr PathStep Path_ChronicleSetsListPanel_17[] = { { "ItemScrollViewContainer", 0.0f, 0.0f }, { "ItemListContainer", 0.0f, 0.0f }, { "ItemSlotTemplate", 0.0f, 0.0f }, { "TabExpandButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_ChronicleSetsListPanel_18[] = { { "RewardsButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ChronicleSetsListPanel[] = {
-	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleSetsListPanel_0, 2 },
+	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, "ChronicleSearchPlaceholder", nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleSetsListPanel_0, 2 },
 	{ "NormalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleSetsListPanel_1, 2 },
-	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleSetsListPanel_2, 2 },
-	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleSetsListPanel_3, 2 },
-	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleSetsListPanel_4, 4, Path_ChronicleSetsListPanel_4, 1 },
+	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "ExceptionalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleSetsListPanel_2, 2 },
+	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "EliteQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleSetsListPanel_3, 2 },
+	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, "GameListFilters", nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleSetsListPanel_4, 4, Path_ChronicleSetsListPanel_4, 1 },
 	{ "TypeScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_5, 2 },
 	{ "TabScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_6, 1 },
 	{ "TabListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_7, 2 },
@@ -597,11 +597,11 @@ inline constexpr WidgetEntry Widgets_ChronicleSetsListPanel[] = {
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_11, 5 },
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_12, 5 },
 	{ "ItemScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_13, 2 },
-	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_14, 1 },
+	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, "AdvancedItems", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_14, 1 },
 	{ "ItemListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_15, 2 },
 	{ "ItemSlotTemplate", "ChronicleItemListItem", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_16, 3 },
 	{ "TabExpandButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleSetsListPanel_17, 4 },
-	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleSetsListPanel_18, 1 },
+	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, "ViewRewardsButton", nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleSetsListPanel_18, 1 },
 };
 
 inline constexpr PathStep Path_ChronicleUniquesListPanel_0[] = { { "InputBackground", 0.0f, 0.0f }, { "SearchInput", 0.0f, 0.0f } };
@@ -625,11 +625,11 @@ inline constexpr PathStep Path_ChronicleUniquesListPanel_16[] = { { "ItemScrollV
 inline constexpr PathStep Path_ChronicleUniquesListPanel_17[] = { { "ItemScrollViewContainer", 0.0f, 0.0f }, { "ItemListContainer", 0.0f, 0.0f }, { "ItemSlotTemplate", 0.0f, 0.0f }, { "TabExpandButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_ChronicleUniquesListPanel_18[] = { { "RewardsButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ChronicleUniquesListPanel[] = {
-	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleUniquesListPanel_0, 2 },
+	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, "ChronicleSearchPlaceholder", nullptr, "ChronicleListPanelMessage", "FilterByInput", nullptr, 0, Path_ChronicleUniquesListPanel_0, 2 },
 	{ "NormalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleUniquesListPanel_1, 2 },
-	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleUniquesListPanel_2, 2 },
-	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "NormalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleUniquesListPanel_3, 2 },
-	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, nullptr, nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleUniquesListPanel_4, 4, Path_ChronicleUniquesListPanel_4, 1 },
+	{ "ExceptionalQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "ExceptionalQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleUniquesListPanel_2, 2 },
+	{ "EliteQualityCheck", "ToggleButtonWidget", nullptr, nullptr, "EliteQuality", nullptr, "ChronicleListPanelMessage", "FilterByQuality", nullptr, 0, Path_ChronicleUniquesListPanel_3, 2 },
+	{ "FilterRules", "DropdownListWidget", nullptr, nullptr, "GameListFilters", nullptr, "ChronicleListPanelMessage", "UpdateFilterRule", States_ChronicleUniquesListPanel_4, 4, Path_ChronicleUniquesListPanel_4, 1 },
 	{ "TypeScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_5, 2 },
 	{ "TabScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_6, 1 },
 	{ "TabListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_7, 2 },
@@ -639,11 +639,11 @@ inline constexpr WidgetEntry Widgets_ChronicleUniquesListPanel[] = {
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_11, 5 },
 	{ "CategoryButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_12, 5 },
 	{ "ItemScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_13, 2 },
-	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_14, 1 },
+	{ "ItemScrollViewContainer", "FocusableListContainerWidget", nullptr, nullptr, "AdvancedItems", nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_14, 1 },
 	{ "ItemListContainer", "ChronicleRecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_15, 2 },
 	{ "ItemSlotTemplate", "ChronicleItemListItem", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_16, 3 },
 	{ "TabExpandButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ChronicleUniquesListPanel_17, 4 },
-	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleUniquesListPanel_18, 1 },
+	{ "RewardsButton", "ToggleButtonWidget", nullptr, nullptr, "ViewRewardsButton", nullptr, "ChroniclePanelMessage", "ToggleRewards", nullptr, 0, Path_ChronicleUniquesListPanel_18, 1 },
 };
 
 inline constexpr PathStep Path_CinematicsModal_0[] = { { "Background", 0.0f, 0.0f } };
@@ -659,7 +659,7 @@ inline constexpr PathStep Path_CinematicsModal_9[] = { { "LegacyCheckbox", 0.0f,
 inline constexpr PathStep Path_CinematicsModal_10[] = { { "LegendBackground", 0.0f, 0.0f }, { "MainMenuLegend", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_CinematicsModal[] = {
 	{ "Background", "GridImageWidget", nullptr, nullptr, "ViewLegacyCinematics", nullptr, nullptr, nullptr, nullptr, 0, Path_CinematicsModal_0, 1 },
-	{ "Close", "ButtonWidget", nullptr, nullptr, "ViewLegacyCinematics", "strClose", nullptr, nullptr, nullptr, 0, Path_CinematicsModal_1, 1 },
+	{ "Close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_CinematicsModal_1, 1 },
 	{ "Option0", "ButtonWidget", "act1X", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CinematicsModal_2, 1 },
 	{ "Option1", "ButtonWidget", "act2X", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CinematicsModal_3, 1 },
 	{ "Option2", "ButtonWidget", "act3X", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_CinematicsModal_4, 1 },
@@ -680,8 +680,8 @@ inline constexpr PathStep Path_ColorBlindCalibrationPanel_4[] = { { "CloseButton
 inline constexpr PathStep Path_ColorBlindCalibrationPanel_5[] = { { "Legend", 0.5f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ColorBlindCalibrationPanel[] = {
 	{ "ColorBlindMode", "CarouselWidget", nullptr, nullptr, "ColorBlindMode", "OptionsMenuColorBlindModeTooltip", "OptionsPanelMessage", "SetColorBlindMode", States_ColorBlindCalibrationPanel_0, 4, Path_ColorBlindCalibrationPanel_0, 1 },
-	{ "ColorBlindStrength", "SettingsSliderWidget", nullptr, nullptr, "ColorBlindMode", "OptionsMenuColorBlindStrengthTooltip", "OptionsPanelMessage", "SetColorBlindStrength", nullptr, 0, Path_ColorBlindCalibrationPanel_1, 1 },
-	{ "TextToSpeechToggle", "ToggleButtonWidget", nullptr, nullptr, "ColorBlindMode", "SoundOptionsMenuTextToSpeechTooltip", "OptionsPanelMessage", "SetTextToSpeech", nullptr, 0, Path_ColorBlindCalibrationPanel_2, 1 },
+	{ "ColorBlindStrength", "SettingsSliderWidget", nullptr, nullptr, "ColorBlindStrength", "OptionsMenuColorBlindStrengthTooltip", "OptionsPanelMessage", "SetColorBlindStrength", nullptr, 0, Path_ColorBlindCalibrationPanel_1, 1 },
+	{ "TextToSpeechToggle", "ToggleButtonWidget", nullptr, nullptr, "OptionsMenuTextToSpeech", "SoundOptionsMenuTextToSpeechTooltip", "OptionsPanelMessage", "SetTextToSpeech", nullptr, 0, Path_ColorBlindCalibrationPanel_2, 1 },
 	{ "SaveButton", "ButtonWidget", "SaveAndCloseCalibration", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ColorBlindCalibrationPanel_3, 1 },
 	{ "CloseButton", "ButtonWidget", "close", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ColorBlindCalibrationPanel_4, 1 },
 	{ "Legend", "ButtonLegendWidget", nullptr, nullptr, "ColorBlindMode", nullptr, nullptr, nullptr, nullptr, 0, Path_ColorBlindCalibrationPanel_5, 1 },
@@ -1203,7 +1203,7 @@ inline constexpr WidgetEntry Widgets_HelpButtonPanel[] = {
 
 inline constexpr PathStep Path_HelpPanel_0[] = { { "RightSection", 1.0f, 1.0f }, { "Close", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_HelpPanel[] = {
-	{ "Close", "ButtonWidget", nullptr, nullptr, "StrHDHelpHostileStatus", "strClose", nullptr, nullptr, nullptr, 0, Path_HelpPanel_0, 2 },
+	{ "Close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_HelpPanel_0, 2 },
 };
 
 inline constexpr PathStep Path_HireMenuPanel_0[] = { { "ListContainer", 0.0f, 0.0f } };
@@ -1228,16 +1228,16 @@ inline constexpr WidgetEntry Widgets_HirelingInventoryPanel[] = {
 	{ "slot_torso", "InventorySlotWidget", nullptr, nullptr, "strchrlvl", nullptr, nullptr, nullptr, nullptr, 0, Path_HirelingInventoryPanel_1, 1 },
 	{ "slot_right_arm", "InventorySlotWidget", nullptr, nullptr, "strchrlvl", nullptr, nullptr, nullptr, nullptr, 0, Path_HirelingInventoryPanel_2, 1 },
 	{ "slot_left_arm", "InventorySlotWidget", nullptr, nullptr, "strchrlvl", nullptr, nullptr, nullptr, nullptr, 0, Path_HirelingInventoryPanel_3, 1 },
-	{ "AdvancedStats", "ButtonWidget", nullptr, nullptr, "strchrlvl", "AdvancedStats", nullptr, nullptr, nullptr, 0, Path_HirelingInventoryPanel_4, 1 },
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "strchrlvl", "strClose", nullptr, nullptr, nullptr, 0, Path_HirelingInventoryPanel_5, 1 },
+	{ "AdvancedStats", "ButtonWidget", nullptr, nullptr, nullptr, "AdvancedStats", nullptr, nullptr, nullptr, 0, Path_HirelingInventoryPanel_4, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_HirelingInventoryPanel_5, 1 },
 };
 
 inline constexpr PathStep Path_HoradricCubeLayout_0[] = { { "convert", 0.0f, 0.0f } };
 inline constexpr PathStep Path_HoradricCubeLayout_1[] = { { "close", 0.0f, 0.0f } };
 inline constexpr PathStep Path_HoradricCubeLayout_2[] = { { "grid", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_HoradricCubeLayout[] = {
-	{ "convert", "ButtonWidget", nullptr, nullptr, "box", "strUiMenu2", nullptr, nullptr, nullptr, 0, Path_HoradricCubeLayout_0, 1 },
-	{ "close", "ButtonWidget", nullptr, nullptr, "box", "strClose", nullptr, nullptr, nullptr, 0, Path_HoradricCubeLayout_1, 1 },
+	{ "convert", "ButtonWidget", nullptr, nullptr, nullptr, "strUiMenu2", nullptr, nullptr, nullptr, 0, Path_HoradricCubeLayout_0, 1 },
+	{ "close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_HoradricCubeLayout_1, 1 },
 	{ "grid", "InventoryGridWidget", nullptr, nullptr, "box", nullptr, nullptr, nullptr, nullptr, 0, Path_HoradricCubeLayout_2, 1 },
 };
 
@@ -1247,9 +1247,9 @@ inline constexpr PathStep Path_ImbueItemsPanel_2[] = { { "ConfirmWithText", 0.0f
 inline constexpr PathStep Path_ImbueItemsPanel_3[] = { { "Cancel", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ImbueItemsPanel[] = {
 	{ "ItemDropRegion", "ImbueSocketWidget", nullptr, nullptr, "Upgrade", nullptr, nullptr, nullptr, nullptr, 0, Path_ImbueItemsPanel_0, 1 },
-	{ "AcceptModeButton", "ButtonWidget", nullptr, nullptr, "Upgrade", "KeyAccept", nullptr, nullptr, nullptr, 0, Path_ImbueItemsPanel_1, 1 },
+	{ "AcceptModeButton", "ButtonWidget", nullptr, nullptr, nullptr, "KeyAccept", nullptr, nullptr, nullptr, 0, Path_ImbueItemsPanel_1, 1 },
 	{ "ConfirmWithText", "ButtonWidget", "Upgrade", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_ImbueItemsPanel_2, 1 },
-	{ "Cancel", "ButtonWidget", nullptr, nullptr, "Upgrade", "strClose", nullptr, nullptr, nullptr, 0, Path_ImbueItemsPanel_3, 1 },
+	{ "Cancel", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_ImbueItemsPanel_3, 1 },
 };
 
 inline constexpr PathStep Path_JoinGameModal_0[] = { { "Background", 0.0f, 0.0f } };
@@ -1305,7 +1305,7 @@ inline constexpr WidgetEntry Widgets_JoinGamePanel[] = {
 	{ "SearchInput", "InputTextBoxWidget", nullptr, nullptr, "strGameName", nullptr, "JoinGame", "CacheSearchTerm", nullptr, 0, Path_JoinGamePanel_15, 2 },
 	{ "DifficultyDropdown", "DropdownListWidget", nullptr, nullptr, "strGameName", nullptr, "JoinGame", "FilterDifficulty", States_JoinGamePanel_16, 1, Path_JoinGamePanel_16, 2 },
 	{ "DesecratedCheckbox", "ThreeStateButtonWidget", nullptr, nullptr, "strGameName", "FindGameTooltipShowAll", nullptr, nullptr, nullptr, 0, Path_JoinGamePanel_17, 1 },
-	{ "Refresh", "ButtonWidget", nullptr, nullptr, "strGameName", "refresh", nullptr, nullptr, nullptr, 0, Path_JoinGamePanel_18, 1 },
+	{ "Refresh", "ButtonWidget", nullptr, nullptr, nullptr, "refresh", nullptr, nullptr, nullptr, 0, Path_JoinGamePanel_18, 1 },
 	{ "JoinLegend", "ButtonLegendWidget", nullptr, nullptr, "LobbyJoinGame", nullptr, nullptr, nullptr, nullptr, 0, Path_JoinGamePanel_19, 2 },
 };
 
@@ -1471,7 +1471,7 @@ inline constexpr PathStep Path_LootFilterCopyRuleModal_1[] = { { "ProfileDropdow
 inline constexpr const char* const States_LootFilterCopyRuleModal_1[] = { "SelectAProfile" };
 inline constexpr PathStep Path_LootFilterCopyRuleModal_2[] = { { "Confirm", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterCopyRuleModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "LootFilterCopyRuleLabel", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterCopyRuleModal_0, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterCopyRuleModal_0, 1 },
 	{ "ProfileDropdown", "DropdownListWidget", nullptr, nullptr, "LootFilterCopyRuleLabel", nullptr, "LootFilterModalMessage", "UpdateSelectedProfile", States_LootFilterCopyRuleModal_1, 1, Path_LootFilterCopyRuleModal_1, 1 },
 	{ "Confirm", "ButtonWidget", "Confirm", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterCopyRuleModal_2, 1 },
 };
@@ -1479,14 +1479,14 @@ inline constexpr WidgetEntry Widgets_LootFilterCopyRuleModal[] = {
 inline constexpr PathStep Path_LootFilterDeleteProfileModal_0[] = { { "CloseButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_LootFilterDeleteProfileModal_1[] = { { "Confirm", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterDeleteProfileModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "DeleteProfileWarning", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterDeleteProfileModal_0, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterDeleteProfileModal_0, 1 },
 	{ "Confirm", "ButtonWidget", "ConfirmDelete", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterDeleteProfileModal_1, 1 },
 };
 
 inline constexpr PathStep Path_LootFilterDeleteRuleModal_0[] = { { "CloseButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_LootFilterDeleteRuleModal_1[] = { { "Confirm", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterDeleteRuleModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "LootFilterDeleteRuleWarning", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterDeleteRuleModal_0, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterDeleteRuleModal_0, 1 },
 	{ "Confirm", "ButtonWidget", "ConfirmDelete", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterDeleteRuleModal_1, 1 },
 };
 
@@ -1496,8 +1496,8 @@ inline constexpr PathStep Path_LootFilterExportProfileModal_2[] = { { "CodeBackg
 inline constexpr PathStep Path_LootFilterExportProfileModal_3[] = { { "CodeBackground", 0.0f, 0.0f }, { "ScrollBarBackground", 1.0f, 0.0f }, { "ScrollController", 1.0f, 0.0f } };
 inline constexpr PathStep Path_LootFilterExportProfileModal_4[] = { { "CopyToClipboardButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterExportProfileModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "ProfileCode", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterExportProfileModal_0, 1 },
-	{ "InfoButton", "ButtonWidget", nullptr, nullptr, "ProfileCode", "LootFilterExportHelpTooltip", nullptr, nullptr, nullptr, 0, Path_LootFilterExportProfileModal_1, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterExportProfileModal_0, 1 },
+	{ "InfoButton", "ButtonWidget", nullptr, nullptr, nullptr, "LootFilterExportHelpTooltip", nullptr, nullptr, nullptr, 0, Path_LootFilterExportProfileModal_1, 1 },
 	{ "ScrollView", "ScrollViewWidget", nullptr, nullptr, "ExportProfileTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterExportProfileModal_2, 2 },
 	{ "ScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterExportProfileModal_3, 3 },
 	{ "CopyToClipboardButton", "ButtonWidget", "CopyToClipboard", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterExportProfileModal_4, 1 },
@@ -1510,8 +1510,8 @@ inline constexpr PathStep Path_LootFilterImportProfileModal_3[] = { { "CodeBackg
 inline constexpr PathStep Path_LootFilterImportProfileModal_4[] = { { "Import", 0.0f, 0.0f } };
 inline constexpr PathStep Path_LootFilterImportProfileModal_5[] = { { "Confirm", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterImportProfileModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "ProfileCode", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterImportProfileModal_0, 1 },
-	{ "InfoButton", "ButtonWidget", nullptr, nullptr, "ProfileCode", "LootFilterImportHelpTooltip", nullptr, nullptr, nullptr, 0, Path_LootFilterImportProfileModal_1, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterImportProfileModal_0, 1 },
+	{ "InfoButton", "ButtonWidget", nullptr, nullptr, nullptr, "LootFilterImportHelpTooltip", nullptr, nullptr, nullptr, 0, Path_LootFilterImportProfileModal_1, 1 },
 	{ "ScrollView", "ScrollViewWidget", nullptr, nullptr, "ImportProfileTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterImportProfileModal_2, 2 },
 	{ "ScrollController", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterImportProfileModal_3, 3 },
 	{ "Import", "ButtonWidget", "ImportFromClipboard", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterImportProfileModal_4, 1 },
@@ -1548,9 +1548,9 @@ inline constexpr WidgetEntry Widgets_LootFilterItemPanel[] = {
 	{ "ItemList", "LootFilterRuleDetailsRecyclingList", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_0, 1 },
 	{ "template", "LootFilterRuleDetailsListItem", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_1, 2 },
 	{ "FilterItemToggle", "LootFilterTriStateCheckbox", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_2, 4 },
-	{ "CategoryExpandButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_3, 4 },
+	{ "CategoryExpandButton", "ToggleButtonWidget", nullptr, nullptr, "LootFilterExpandCategory", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_3, 4 },
 	{ "FilterItemToggle", "LootFilterTriStateCheckbox", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_4, 4 },
-	{ "CategoryExpandButton", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_5, 4 },
+	{ "CategoryExpandButton", "ToggleButtonWidget", nullptr, nullptr, "LootFilterExpandCategory", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_5, 4 },
 	{ "FilterItemToggle", "LootFilterTriStateCheckbox", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_6, 4 },
 	{ "TopScrollViewItemsEquipment", "RuleDetailsListItemContainer", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterItemPanel_7, 2 },
 	{ "NormalRarityChbx", "ToggleButtonWidget", nullptr, nullptr, "LootFilterRarityTitle", nullptr, "LootFilterItemPanelMessage", "UpdateRarityFilter", nullptr, 0, Path_LootFilterItemPanel_8, 4 },
@@ -1579,15 +1579,15 @@ inline constexpr PathStep Path_LootFilterNewProfileModal_2[] = { { "ProfileDropd
 inline constexpr const char* const States_LootFilterNewProfileModal_2[] = { "SelectAProfile" };
 inline constexpr PathStep Path_LootFilterNewProfileModal_3[] = { { "Confirm", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterNewProfileModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "NewProfileName", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterNewProfileModal_0, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterNewProfileModal_0, 1 },
 	{ "ProfileNameInput", "InputTextBoxWidget", nullptr, nullptr, "NewProfileTitle", nullptr, "LootFilterModalMessage", "ValidateInput", nullptr, 0, Path_LootFilterNewProfileModal_1, 2 },
-	{ "ProfileDropdown", "DropdownListWidget", nullptr, nullptr, "NewProfileName", nullptr, "LootFilterProfilePanelMessage", "UpdateSelectedProfile", States_LootFilterNewProfileModal_2, 1, Path_LootFilterNewProfileModal_2, 1 },
+	{ "ProfileDropdown", "DropdownListWidget", nullptr, nullptr, "CopyExistingProfile", nullptr, "LootFilterProfilePanelMessage", "UpdateSelectedProfile", States_LootFilterNewProfileModal_2, 1, Path_LootFilterNewProfileModal_2, 1 },
 	{ "Confirm", "ButtonWidget", "Confirm", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterNewProfileModal_3, 1 },
 };
 
 inline constexpr PathStep Path_LootFilterOptionsPanel_0[] = { { "Background", 0.0f, 0.0f }, { "Anchor", 0.5f, 0.5f }, { "CloseButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterOptionsPanel[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "LootFilter", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterOptionsPanel_0, 3 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterOptionsPanel_0, 3 },
 };
 
 inline constexpr PathStep Path_LootFilterProfilePanel_0[] = { { "ProfileOptStack", 0.0f, 0.0f }, { "ProfileDropdown", 0.0f, 0.0f } };
@@ -1610,19 +1610,19 @@ inline constexpr PathStep Path_LootFilterProfilePanel_15[] = { { "RuleListContai
 inline constexpr PathStep Path_LootFilterProfilePanel_16[] = { { "RuleListContainer", 0.0f, 0.0f }, { "ScrollBar", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterProfilePanel[] = {
 	{ "ProfileDropdown", "DropdownListWidget", nullptr, nullptr, "LootFilterProfile", nullptr, "LootFilterProfilePanelMessage", "UpdateSelectedProfile", States_LootFilterProfilePanel_0, 1, Path_LootFilterProfilePanel_0, 2 },
-	{ "ProfileOptions", "ButtonWidget", nullptr, nullptr, "LootFilterProfile", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_1, 2 },
-	{ "AddProfile", "ButtonWidget", nullptr, nullptr, "LootFilterProfile", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_2, 2 },
-	{ "ImportProfile", "ButtonWidget", nullptr, nullptr, "LootFilterProfile", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_3, 2 },
+	{ "ProfileOptions", "ButtonWidget", nullptr, nullptr, "LootFilterMoreOptions", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_1, 2 },
+	{ "AddProfile", "ButtonWidget", nullptr, nullptr, "NewProfileTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_2, 2 },
+	{ "ImportProfile", "ButtonWidget", nullptr, nullptr, "ImportProfileTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_3, 2 },
 	{ "Help", "ButtonWidget", nullptr, nullptr, nullptr, "LootFilterProfileHelpTooltip", nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_4, 1 },
 	{ "NewRule", "ButtonWidget", "NewRule", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_5, 2 },
 	{ "DisableAll", "ButtonWidget", "DisableAllRules", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_6, 2 },
 	{ "EnableAll", "ButtonWidget", "EnableAllRules", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_7, 2 },
 	{ "RuleSummaryList", "RecyclingListWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_8, 2 },
 	{ "template", "LootFilterRuleSummaryListItem", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_9, 3 },
-	{ "EnableRuleToggle", "ToggleButtonWidget", nullptr, nullptr, nullptr, nullptr, "LootFilterProfilePanelMessage", "ToggleRule", nullptr, 0, Path_LootFilterProfilePanel_10, 4 },
-	{ "RuleUpArrow", "ButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_11, 4 },
-	{ "RuleDownArrow", "ButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_12, 4 },
-	{ "RuleOptions", "ButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_13, 4 },
+	{ "EnableRuleToggle", "ToggleButtonWidget", nullptr, nullptr, "LootFilterEnableRule", nullptr, "LootFilterProfilePanelMessage", "ToggleRule", nullptr, 0, Path_LootFilterProfilePanel_10, 4 },
+	{ "RuleUpArrow", "ButtonWidget", nullptr, nullptr, "LootFilterMoveRuleUp", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_11, 4 },
+	{ "RuleDownArrow", "ButtonWidget", nullptr, nullptr, "LootFilterMoveRuleDown", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_12, 4 },
+	{ "RuleOptions", "ButtonWidget", nullptr, nullptr, "LootFilterMoreOptions", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_13, 4 },
 	{ "RuleListRedirector", "ListWidgetFocusRedirector", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_14, 3 },
 	{ "down", "ListWidgetFocusReceiver", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_15, 4 },
 	{ "ScrollBar", "ScrollControllerWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterProfilePanel_16, 2 },
@@ -1632,7 +1632,7 @@ inline constexpr PathStep Path_LootFilterRenameProfileModal_0[] = { { "CloseButt
 inline constexpr PathStep Path_LootFilterRenameProfileModal_1[] = { { "InputBackground", 0.0f, 0.0f }, { "ProfileNameInput", 0.0f, 0.0f } };
 inline constexpr PathStep Path_LootFilterRenameProfileModal_2[] = { { "Confirm", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterRenameProfileModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "RenameProfileLabel", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterRenameProfileModal_0, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterRenameProfileModal_0, 1 },
 	{ "ProfileNameInput", "InputTextBoxWidget", nullptr, nullptr, "RenameProfileTitle", nullptr, "LootFilterModalMessage", "ValidateInput", nullptr, 0, Path_LootFilterRenameProfileModal_1, 2 },
 	{ "Confirm", "ButtonWidget", "Confirm", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterRenameProfileModal_2, 1 },
 };
@@ -1641,7 +1641,7 @@ inline constexpr PathStep Path_LootFilterRenameRuleModal_0[] = { { "CloseButton"
 inline constexpr PathStep Path_LootFilterRenameRuleModal_1[] = { { "InputBackground", 0.0f, 0.0f }, { "RuleNameInput", 0.0f, 0.0f } };
 inline constexpr PathStep Path_LootFilterRenameRuleModal_2[] = { { "Confirm", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterRenameRuleModal[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "LootFilterRenameRuleLabel", "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterRenameRuleModal_0, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_LootFilterRenameRuleModal_0, 1 },
 	{ "RuleNameInput", "InputTextBoxWidget", nullptr, nullptr, "LootFilterRenameRuleTitle", nullptr, "LootFilterModalMessage", "ValidateInput", nullptr, 0, Path_LootFilterRenameRuleModal_1, 2 },
 	{ "Confirm", "ButtonWidget", "Confirm", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterRenameRuleModal_2, 1 },
 };
@@ -1652,11 +1652,11 @@ inline constexpr PathStep Path_LootFilterRuleDetailsPanel_2[] = { { "ProfileOptS
 inline constexpr PathStep Path_LootFilterRuleDetailsPanel_3[] = { { "ProfileOptStack", 0.0f, 0.0f }, { "HideBtn", 0.0f, 0.0f } };
 inline constexpr PathStep Path_LootFilterRuleDetailsPanel_4[] = { { "ItemListTabs", 0.5f, 0.0f } };
 inline constexpr WidgetEntry Widgets_LootFilterRuleDetailsPanel[] = {
-	{ "BackButton", "ButtonWidget", nullptr, nullptr, "LootFilterRuleName", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterRuleDetailsPanel_0, 1 },
+	{ "BackButton", "ButtonWidget", nullptr, nullptr, "UIBack", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterRuleDetailsPanel_0, 1 },
 	{ "RuleNameInput", "InputTextBoxWidget", nullptr, nullptr, "LootFilterRuleName", nullptr, "LootFilterRuleDetailsPanelMessage", "ValidateRuleName", nullptr, 0, Path_LootFilterRuleDetailsPanel_1, 2 },
 	{ "ShowBtn", "ToggleButtonWidget", nullptr, nullptr, "ShowRule", nullptr, "LootFilterRuleDetailsPanelMessage", "UpdateRuleType", nullptr, 0, Path_LootFilterRuleDetailsPanel_2, 2 },
-	{ "HideBtn", "ToggleButtonWidget", nullptr, nullptr, "ShowRule", nullptr, "LootFilterRuleDetailsPanelMessage", "UpdateRuleType", nullptr, 0, Path_LootFilterRuleDetailsPanel_3, 2 },
-	{ "ItemListTabs", "TabBarWidget", nullptr, nullptr, "LootFilterRuleName", nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterRuleDetailsPanel_4, 1 },
+	{ "HideBtn", "ToggleButtonWidget", nullptr, nullptr, "HideRule", nullptr, "LootFilterRuleDetailsPanelMessage", "UpdateRuleType", nullptr, 0, Path_LootFilterRuleDetailsPanel_3, 2 },
+	{ "ItemListTabs", "TabBarWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_LootFilterRuleDetailsPanel_4, 1 },
 };
 
 inline constexpr PathStep Path_MainMenuButtonRibbon_0[] = { { "Ribbon", 0.0f, 0.0f }, { "Settings", 0.0f, 0.0f } };
@@ -1807,7 +1807,7 @@ inline constexpr PathStep Path_OnlineGameSettingsPanel_5[] = { { "ActionButtonsT
 inline constexpr PathStep Path_OnlineGameSettingsPanel_6[] = { { "ActionButtonsTable", 0.5f, 0.0f }, { "Row", 0.0f, 0.0f }, { "DefaultButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_OnlineGameSettingsPanel_7[] = { { "ActionButtonsTable", 0.5f, 0.0f }, { "Row", 0.0f, 0.0f }, { "CancelButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_OnlineGameSettingsPanel[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "ControllerPauseMenuTitle", "strClose", nullptr, nullptr, nullptr, 0, Path_OnlineGameSettingsPanel_0, 3 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_OnlineGameSettingsPanel_0, 3 },
 	{ "Legend", "ButtonLegendWidget", nullptr, nullptr, "ControllerPauseMenuTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_OnlineGameSettingsPanel_1, 3 },
 	{ "OptionsTabs", "TabBarWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_OnlineGameSettingsPanel_2, 1 },
 	{ "ActionButtonsTable", "TableWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_OnlineGameSettingsPanel_3, 1 },
@@ -1828,7 +1828,7 @@ inline constexpr PathStep Path_PartyPanel_7[] = { { "ListContainer", 0.0f, 0.0f 
 inline constexpr PathStep Path_PartyPanel_8[] = { { "close", 0.0f, 0.0f } };
 inline constexpr PathStep Path_PartyPanel_9[] = { { "CloseButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_PartyPanel[] = {
-	{ "ShowHidePasswordButton", "ButtonWidget", nullptr, nullptr, "strGameName", "ShowHidePasswordTooltip", nullptr, nullptr, nullptr, 0, Path_PartyPanel_0, 1 },
+	{ "ShowHidePasswordButton", "ButtonWidget", nullptr, nullptr, nullptr, "ShowHidePasswordTooltip", nullptr, nullptr, nullptr, 0, Path_PartyPanel_0, 1 },
 	{ "LeavePartyButton", "ButtonWidget", "PartyPanelLeaveButton", nullptr, nullptr, "strParty24", nullptr, nullptr, nullptr, 0, Path_PartyPanel_1, 1 },
 	{ "ListContainer", "ListWidget", nullptr, nullptr, "strGameName", nullptr, nullptr, nullptr, nullptr, 0, Path_PartyPanel_2, 1 },
 	{ "FriendsListTemplate", "ListItemWidget", nullptr, nullptr, "PartyScreenTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_PartyPanel_3, 2 },
@@ -1836,8 +1836,8 @@ inline constexpr WidgetEntry Widgets_PartyPanel[] = {
 	{ "SquelchPlayerButton", "ToggleButtonWidget", nullptr, nullptr, "Inparty", nullptr, "PartyPanelMessage", "ToggleSquelchPlayer", nullptr, 0, Path_PartyPanel_5, 3 },
 	{ "HostileButton", "ToggleButtonWidget", nullptr, nullptr, "Inparty", nullptr, "PartyPanelMessage", "ToggleHostile", nullptr, 0, Path_PartyPanel_6, 3 },
 	{ "InviteButton", "ButtonWidget", "Invite", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_PartyPanel_7, 3 },
-	{ "close", "ButtonWidget", nullptr, nullptr, "strGameName", "strClose", nullptr, nullptr, nullptr, 0, Path_PartyPanel_8, 1 },
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "strGameName", nullptr, nullptr, nullptr, nullptr, 0, Path_PartyPanel_9, 1 },
+	{ "close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_PartyPanel_8, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, nullptr, 0, Path_PartyPanel_9, 1 },
 };
 
 inline constexpr PathStep Path_PauseLayout_0[] = { { "PauseTable", 0.5f, 0.5f } };
@@ -1920,8 +1920,8 @@ inline constexpr PathStep Path_PlayerInventoryExpansionLayout_12[] = { { "slot_g
 inline constexpr PathStep Path_PlayerInventoryExpansionLayout_13[] = { { "WeaponSwapRightLegend", 0.0f, 0.0f } };
 inline constexpr PathStep Path_PlayerInventoryExpansionLayout_14[] = { { "WeaponSwapLeftLegend", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_PlayerInventoryExpansionLayout[] = {
-	{ "gold_button", "ButtonWidget", nullptr, nullptr, "strpanel4", "strGoldDrop", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryExpansionLayout_0, 1 },
-	{ "close", "ButtonWidget", nullptr, nullptr, "strpanel4", "strClose", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryExpansionLayout_1, 1 },
+	{ "gold_button", "ButtonWidget", nullptr, nullptr, nullptr, "strGoldDrop", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryExpansionLayout_0, 1 },
+	{ "close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryExpansionLayout_1, 1 },
 	{ "grid", "InventoryGridWidget", nullptr, nullptr, "strpanel4", nullptr, nullptr, nullptr, nullptr, 0, Path_PlayerInventoryExpansionLayout_2, 1 },
 	{ "slot_head", "InventorySlotWidget", nullptr, nullptr, "strpanel4", nullptr, nullptr, nullptr, nullptr, 0, Path_PlayerInventoryExpansionLayout_3, 1 },
 	{ "slot_neck", "InventorySlotWidget", nullptr, nullptr, "strpanel4", nullptr, nullptr, nullptr, nullptr, 0, Path_PlayerInventoryExpansionLayout_4, 1 },
@@ -1951,8 +1951,8 @@ inline constexpr PathStep Path_PlayerInventoryOriginalLayout_10[] = { { "slot_be
 inline constexpr PathStep Path_PlayerInventoryOriginalLayout_11[] = { { "slot_feet", 0.0f, 0.0f } };
 inline constexpr PathStep Path_PlayerInventoryOriginalLayout_12[] = { { "slot_gloves", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_PlayerInventoryOriginalLayout[] = {
-	{ "gold_button", "ButtonWidget", nullptr, nullptr, "strpanel4", "strGoldDrop", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryOriginalLayout_0, 1 },
-	{ "close", "ButtonWidget", nullptr, nullptr, "strpanel4", "strClose", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryOriginalLayout_1, 1 },
+	{ "gold_button", "ButtonWidget", nullptr, nullptr, nullptr, "strGoldDrop", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryOriginalLayout_0, 1 },
+	{ "close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_PlayerInventoryOriginalLayout_1, 1 },
 	{ "grid", "InventoryGridWidget", nullptr, nullptr, "strpanel4", nullptr, nullptr, nullptr, nullptr, 0, Path_PlayerInventoryOriginalLayout_2, 1 },
 	{ "slot_head", "InventorySlotWidget", nullptr, nullptr, "strpanel4", nullptr, nullptr, nullptr, nullptr, 0, Path_PlayerInventoryOriginalLayout_3, 1 },
 	{ "slot_neck", "InventorySlotWidget", nullptr, nullptr, "strpanel4", nullptr, nullptr, nullptr, nullptr, 0, Path_PlayerInventoryOriginalLayout_4, 1 },
@@ -2019,7 +2019,7 @@ inline constexpr WidgetEntry Widgets_QuestLogPanelExpansion[] = {
 	{ "Quest18", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_19, 2 },
 	{ "Quest19", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_20, 2 },
 	{ "Quest20", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_21, 2 },
-	{ "Cancel", "ButtonWidget", nullptr, nullptr, "minipanelquest", "strClose", nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_22, 1 },
+	{ "Cancel", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_22, 1 },
 	{ "Speech", "ButtonWidget", "playQuestDialogue", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_23, 1 },
 	{ "Quest21", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_24, 2 },
 	{ "Quest22", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelExpansion_25, 2 },
@@ -2076,7 +2076,7 @@ inline constexpr WidgetEntry Widgets_QuestLogPanelOriginal[] = {
 	{ "Quest18", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelOriginal_19, 2 },
 	{ "Quest19", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelOriginal_20, 2 },
 	{ "Quest20", "QuestLogButtonWidget", nullptr, nullptr, "minipanelquest", nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelOriginal_21, 2 },
-	{ "Cancel", "ButtonWidget", nullptr, nullptr, "minipanelquest", "strClose", nullptr, nullptr, nullptr, 0, Path_QuestLogPanelOriginal_22, 1 },
+	{ "Cancel", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_QuestLogPanelOriginal_22, 1 },
 	{ "Speech", "ButtonWidget", "playQuestDialogue", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_QuestLogPanelOriginal_23, 1 },
 };
 
@@ -2107,7 +2107,7 @@ inline constexpr WidgetEntry Widgets_ScreenSpaceCalibrationPanel[] = {
 
 inline constexpr PathStep Path_ScrollOfInifuss_0[] = { { "CloseButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_ScrollOfInifuss[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "bks", "strClose", nullptr, nullptr, nullptr, 0, Path_ScrollOfInifuss_0, 1 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_ScrollOfInifuss_0, 1 },
 };
 
 inline constexpr PathStep Path_ScrollSpeechPanel_0[] = { { "DialogBorder", 0.0f, 0.0f }, { "ScrollSpeechWidget", 0.0f, 0.0f } };
@@ -2126,7 +2126,7 @@ inline constexpr PathStep Path_SettingsPanel_5[] = { { "ActionButtonsTable", 0.5
 inline constexpr PathStep Path_SettingsPanel_6[] = { { "ActionButtonsTable", 0.5f, 0.0f }, { "Row", 0.0f, 0.0f }, { "DefaultButton", 0.0f, 0.0f } };
 inline constexpr PathStep Path_SettingsPanel_7[] = { { "ActionButtonsTable", 0.5f, 0.0f }, { "Row", 0.0f, 0.0f }, { "CancelButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_SettingsPanel[] = {
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "ControllerPauseMenuTitle", "strClose", nullptr, nullptr, nullptr, 0, Path_SettingsPanel_0, 3 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_SettingsPanel_0, 3 },
 	{ "Legend", "ButtonLegendWidget", nullptr, nullptr, "ControllerPauseMenuTitle", nullptr, nullptr, nullptr, nullptr, 0, Path_SettingsPanel_1, 3 },
 	{ "OptionsTabs", "TabBarWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_SettingsPanel_2, 1 },
 	{ "ActionButtonsTable", "TableWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_SettingsPanel_3, 1 },
@@ -2153,7 +2153,7 @@ inline constexpr WidgetEntry Widgets_SkillsTreePanel[] = {
 	{ "Tab0", "TabWidget", nullptr, nullptr, "strpanel8", nullptr, nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_0, 1 },
 	{ "Tab1", "TabWidget", nullptr, nullptr, "strpanel8", nullptr, nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_1, 1 },
 	{ "Tab2", "TabWidget", nullptr, nullptr, "strpanel8", nullptr, nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_2, 1 },
-	{ "Cancel", "ButtonWidget", nullptr, nullptr, "strpanel8", "strClose", nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_3, 1 },
+	{ "Cancel", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_3, 1 },
 	{ "Tab3", "TabWidget", nullptr, nullptr, "strpanel8", nullptr, nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_4, 1 },
 	{ "ButtonTemplate", "SkillSelectButtonWidget", nullptr, nullptr, "strpanel8", nullptr, nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_5, 1 },
 	{ "TabLeftIndicator", "ButtonLegendWidget", nullptr, nullptr, "strpanel8", nullptr, nullptr, nullptr, nullptr, 0, Path_SkillsTreePanel_6, 1 },
@@ -2276,9 +2276,9 @@ inline constexpr PathStep Path_TradeLayout_4[] = { { "close", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_TradeLayout[] = {
 	{ "grid_them", "InventoryGridWidget", nullptr, nullptr, "NPCMenuTrade", nullptr, nullptr, nullptr, nullptr, 0, Path_TradeLayout_0, 1 },
 	{ "grid_us", "InventoryGridWidget", nullptr, nullptr, "NPCMenuTrade", nullptr, nullptr, nullptr, nullptr, 0, Path_TradeLayout_1, 1 },
-	{ "ready_them", "ButtonWidget", nullptr, nullptr, "NPCMenuTrade", nullptr, nullptr, nullptr, nullptr, 0, Path_TradeLayout_2, 1 },
-	{ "ready_us", "ButtonWidget", nullptr, nullptr, "NPCMenuTrade", "strAcceptTrade", nullptr, nullptr, nullptr, 0, Path_TradeLayout_3, 1 },
-	{ "close", "ButtonWidget", nullptr, nullptr, "NPCMenuTrade", "strClose", nullptr, nullptr, nullptr, 0, Path_TradeLayout_4, 1 },
+	{ "ready_them", "ButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_TradeLayout_2, 1 },
+	{ "ready_us", "ButtonWidget", nullptr, nullptr, nullptr, "strAcceptTrade", nullptr, nullptr, nullptr, 0, Path_TradeLayout_3, 1 },
+	{ "close", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_TradeLayout_4, 1 },
 };
 
 inline constexpr PathStep Path_TutorialTooltip_0[] = { { "TutorialTextTile", 0.5f, 0.0f }, { "Confirm", 0.0f, 0.0f } };
@@ -2480,8 +2480,8 @@ inline constexpr PathStep Path_WaypointsPanelExpansion_1[] = { { "Templates", 0.
 inline constexpr PathStep Path_WaypointsPanelExpansion_2[] = { { "CloseButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_WaypointsPanelExpansion[] = {
 	{ "Tabs", "TabBarWidget", nullptr, nullptr, "Waypoint", nullptr, nullptr, nullptr, nullptr, 0, Path_WaypointsPanelExpansion_0, 1 },
-	{ "UnselectableButtonTemplate", "ButtonWidget", nullptr, nullptr, "Waypoint", nullptr, nullptr, nullptr, nullptr, 0, Path_WaypointsPanelExpansion_1, 2 },
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "Waypoint", "strClose", nullptr, nullptr, nullptr, 0, Path_WaypointsPanelExpansion_2, 1 },
+	{ "UnselectableButtonTemplate", "ButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_WaypointsPanelExpansion_1, 2 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_WaypointsPanelExpansion_2, 1 },
 };
 
 inline constexpr PathStep Path_WaypointsPanelOriginal_0[] = { { "Tabs", 0.0f, 0.0f } };
@@ -2489,8 +2489,8 @@ inline constexpr PathStep Path_WaypointsPanelOriginal_1[] = { { "Templates", 0.0
 inline constexpr PathStep Path_WaypointsPanelOriginal_2[] = { { "CloseButton", 0.0f, 0.0f } };
 inline constexpr WidgetEntry Widgets_WaypointsPanelOriginal[] = {
 	{ "Tabs", "TabBarWidget", nullptr, nullptr, "Waypoint", nullptr, nullptr, nullptr, nullptr, 0, Path_WaypointsPanelOriginal_0, 1 },
-	{ "UnselectableButtonTemplate", "ButtonWidget", nullptr, nullptr, "Waypoint", nullptr, nullptr, nullptr, nullptr, 0, Path_WaypointsPanelOriginal_1, 2 },
-	{ "CloseButton", "ButtonWidget", nullptr, nullptr, "Waypoint", "strClose", nullptr, nullptr, nullptr, 0, Path_WaypointsPanelOriginal_2, 1 },
+	{ "UnselectableButtonTemplate", "ButtonWidget", nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, Path_WaypointsPanelOriginal_1, 2 },
+	{ "CloseButton", "ButtonWidget", nullptr, nullptr, nullptr, "strClose", nullptr, nullptr, nullptr, 0, Path_WaypointsPanelOriginal_2, 1 },
 };
 
 inline constexpr PathStep Path_YouDiedModal_0[] = { { "ContinueButton", 0.0f, 0.0f } };

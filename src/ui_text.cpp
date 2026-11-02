@@ -122,6 +122,44 @@ bool TerrorZone(const Snapshot& snapshot, int focus) {
 		[focus](const Node& child) { return child.parent == focus && child.name == TerrorZoneImage; });
 }
 
+// What a row's toggles say (docs/native-ui.md). Its one bare toggle, with no words on or under
+// it: an expander (the Chronicle's TabExpandButton) whether the row's entries are shown, any other
+// (a loot filter rule's EnableRuleToggle) whether it is checked. A toggle carrying the row's words
+// is its face: a Chronicle category's CategoryButton, toggled while it filters the entries. Beside
+// a face only what is on is said, unfolded or selected, so a list of categories is not a list of
+// "folded" (a tester, 2026-11-02: pressing selected and the reading never changed).
+constexpr std::string_view ExpanderWord = "Expand";
+void AppendRowToggles(std::string& option, const Snapshot& snapshot, int row) {
+	if (snapshot.nodes[static_cast<size_t>(row)].kind != Kind::ListItem) return;
+	const Node* bare = nullptr;
+	const Node* face = nullptr;
+	int bareCount = 0;
+	for (size_t i = 0; i < snapshot.nodes.size(); ++i) {
+		const Node& node = snapshot.nodes[i];
+		if (node.kind != Kind::Toggle || !Under(snapshot, i, row)) continue;
+		if (Clean(node.text).empty() && TextUnder(snapshot, static_cast<int>(i)).empty()) {
+			bare = &node;
+			++bareCount;
+		} else if (!face) face = &node;
+	}
+	const auto& words = Strings::Current();
+	if (bareCount == 1 && bare->toggled) {
+		if (bare->name.find(ExpanderWord) == std::string::npos) Append(option, *bare->toggled ? words.checked : words.unchecked);
+		else if (*bare->toggled) Append(option, words.expanded);
+		else if (!face) Append(option, words.collapsed);
+	}
+	if (face && face->toggled && *face->toggled) Append(option, words.selected);
+}
+
+// ChronicleBaseListPanelHD.json draws an entry not found yet on ItemSlotBackground_Locked (greyed
+// name, faded picture) and a found one on ItemSlotBackground_Unlocked; hidden ones are not snapshotted.
+constexpr std::string_view LockedSuffix = "_Locked";
+bool DrawnLocked(const Snapshot& snapshot, int row) {
+	for (size_t i = 0; i < snapshot.nodes.size(); ++i)
+		if (snapshot.nodes[i].name.ends_with(LockedSuffix) && Under(snapshot, i, row)) return true;
+	return false;
+}
+
 Readout Describe(const Snapshot& snapshot) {
 	Readout result;
 	result.context = snapshot.name;
@@ -140,6 +178,8 @@ Readout Describe(const Snapshot& snapshot) {
 			result.focusKey = std::to_string(focus);
 			if (!node.enabled) Append(result.option, Strings::Current().unavailable);
 			Append(result.option, node.state);
+			AppendRowToggles(result.option, snapshot, focus);
+			if (DrawnLocked(snapshot, focus)) Append(result.option, Strings::Current().undiscovered);
 			if (TerrorZone(snapshot, focus)) Append(result.option, Strings::Current().terrorZone);
 		}
 	}

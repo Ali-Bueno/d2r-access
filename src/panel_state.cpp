@@ -24,6 +24,21 @@ int64_t Now() {
 	return std::chrono::steady_clock::now().time_since_epoch().count();
 }
 
+// Panels that are open without being a menu, by the names the layouts give them.
+constexpr std::string_view NotMenus[] = {
+	"TooltipsPanel", "PanelBordersPanel", "BlockingPanel", "MiniMenuPanel", "HelpButtonPanel", "AutoMap", "ChatPanel",
+	"FocusManager", "GlobalData", "SaveIndicatorPanel", "NotificationPanel", "LoadScreenPanel", "MainMenuLoadingPanel",
+	"LobbyBackgroundPanel", "DismissibleTooltipPanel", "TutorialTooltip", "EmoteWheelPanel", "ClickCatcher",
+	"InGameMoviePlayerPanel", "MoviePlayerPanel", "ControllerOverlay", "UISwitcher", "EndGameTimerPanel",
+	// MEASURED 2026-09-27, open through a whole game: the mercenary's portrait,
+	// the list of an input method's candidates, the names of items on the ground.
+	"HireablesPanel", "CandidateListPanel", "ShowItemsPanel",
+	// Drawn behind the help screen, opened with it (log of 2026-11-02).
+	"HelpPanelBackground",
+};
+// The message log, by the start of its name: it has one layout for each size of the old screen.
+constexpr std::string_view MessageLog = "MessageLogPanel";
+
 auto Find(std::string_view panel) {
 	return std::find(g_open.begin(), g_open.end(), panel);
 }
@@ -40,6 +55,10 @@ void Opened(std::string_view panel) {
 
 bool Hud(std::string_view panel) {
 	return panel.starts_with("HUD") || panel == "PaladinAuraPanel";
+}
+
+bool NotMenu(std::string_view panel) {
+	return Hud(panel) || panel.starts_with(MessageLog) || std::ranges::find(NotMenus, panel) != std::end(NotMenus);
 }
 
 bool Closed(std::string_view panel) {

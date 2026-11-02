@@ -23,6 +23,7 @@
 #include "keyboard_service.h"
 #include "localization.h"
 #include "modal_reader.h"
+#include "credits_reader.h"
 #include "multiplayer_reader.h"
 #include "menu_navigation.h"
 #include "native_widgets.h"
@@ -222,6 +223,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::GridEdgeService::Tick(context); lap("GridEdgeService");
 	D2RAccess::AutoDetail::Tick(context); lap("AutoDetail");
 	D2RAccess::ModalReader::Tick(context); lap("ModalReader");
+	D2RAccess::CreditsReader::Tick(context); lap("CreditsReader");
 	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");
 	D2RAccess::UiMessageMonitor::Tick(context); lap("UiMessageMonitor");
 	D2RAccess::AudioDescription::Tick(context); lap("AudioDescription");

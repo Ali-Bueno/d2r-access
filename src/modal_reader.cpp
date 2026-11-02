@@ -72,6 +72,10 @@ void PassTitle(const D2RL::PluginContext* context, uint64_t now) {
 		static_cast<unsigned long long>(TitlePadAnswerMs), sent);
 }
 
+// The skill tree says its branch and the choices left through the interaction reader; read from
+// here it was each assigned skill's level and hotkey, "1, X, 1, B", ahead of them (a tester, 2026-11-02).
+constexpr std::string_view OwnReaders[] = {"SkillsTreePanel"};
+
 // The game's news and links over the main menu; a tester who owns the expansion asked to silence it (2026-10-20).
 constexpr std::string_view MenuLinksPanel = "MainMenuLinks";
 std::atomic<bool> g_menuNews{true};
@@ -216,6 +220,22 @@ uint32_t LegendGlyph(const UiText::Snapshot& snapshot, size_t button) {
 	return 0;
 }
 
+// The panels open at the last tick, to tell the ones a burst of messages just opened.
+std::vector<std::string> g_seenOpen;
+
+// The top panel, or a menu the same burst opened under overlays: the help screen opens
+// HelpPanelBackground and MiniMenuPanel over itself (log of 2026-11-02), which left it unread.
+std::string ReadablePanel() {
+	const auto& open = PanelState::OpenPanels();
+	std::string active(PanelState::Active());
+	if (!active.empty() && PanelState::NotMenu(active)) {
+		const auto menu = std::find_if(open.rbegin(), open.rend(), [](const std::string& panel) { return !PanelState::NotMenu(panel); });
+		if (menu != open.rend() && std::ranges::find(g_seenOpen, *menu) == g_seenOpen.end()) active = *menu;
+	}
+	g_seenOpen = open;
+	return active;
+}
+
 void Append(std::string& phrase, const std::string& part) {
 	if (part.empty()) return;
 	if (!phrase.empty()) phrase += ", ";
@@ -257,7 +277,7 @@ bool MenuNews() { return g_menuNews.load(); }
 void SetMenuNews(bool on) { g_menuNews = on; }
 
 void Tick(const D2RL::PluginContext* context) {
-	const std::string active(PanelState::Active());
+	const std::string active = ReadablePanel();
 	if (active == g_lastPanel) {
 		if (active == TitlePanel && !g_titleSpoken) PollTitlePrompt(context, active);
 		if (active == TitlePanel) PassTitle(context, GetTickCount64());
@@ -292,7 +312,7 @@ void Tick(const D2RL::PluginContext* context) {
 	// the title and keeps every statistic on the right stick. Read from here it
 	// was thirty-odd bare labels and numbers in one breath (MEASURED
 	// 2026-09-21), cut off in turn by the tab reader.
-	if (CharacterStatsReader::Owns(active)) {
+	if (CharacterStatsReader::Owns(active) || std::ranges::find(OwnReaders, active) != std::end(OwnReaders)) {
 		AsyncLog::InfoF(context, "[modal] %s is read by its own reader", active.c_str());
 		return;
 	}
@@ -319,7 +339,9 @@ void Tick(const D2RL::PluginContext* context) {
 	for (size_t index = 0; index < snapshot.nodes.size(); ++index) {
 		const UiText::Node& node = snapshot.nodes[index];
 		if (!Speakable(node) || UnderTabBar(snapshot, node.parent)) continue;
-		auto text = UiText::Clean(node.text);
+		// Control help names its button by a controller symbol, which Clean alone drops: the help
+		// screen's "Hold [<button>] to run". A legend's symbol is its button, said apart.
+		auto text = node.kind == UiText::Kind::Text ? ControllerText::Read(node.text) : UiText::Clean(node.text);
 		if (text.empty()) continue;
 		if (node.kind == UiText::Kind::Button)
 			if (const auto glyph = LegendGlyph(snapshot, index)) text = std::string(ControllerText::Button(glyph)) + ": " + text;

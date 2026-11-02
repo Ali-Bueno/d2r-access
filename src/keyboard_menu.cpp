@@ -69,18 +69,6 @@ constexpr uint64_t RowPairMs = 400;     // a click on a row this soon after anot
 constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
 
-// Panels that are open without being a menu, by the names the layouts give them.
-constexpr std::string_view NotMenus[] = {
-	"TooltipsPanel", "PanelBordersPanel", "BlockingPanel", "MiniMenuPanel", "HelpButtonPanel", "AutoMap", "ChatPanel",
-	"FocusManager", "GlobalData", "SaveIndicatorPanel", "NotificationPanel", "LoadScreenPanel", "MainMenuLoadingPanel",
-	"LobbyBackgroundPanel", "DismissibleTooltipPanel", "TutorialTooltip", "EmoteWheelPanel", "ClickCatcher",
-	"InGameMoviePlayerPanel", "MoviePlayerPanel", "ControllerOverlay", "UISwitcher", "EndGameTimerPanel",
-	// MEASURED 2026-09-27, open through a whole game: the mercenary's portrait,
-	// the list of an input method's candidates, the names of items on the ground.
-	"HireablesPanel", "CandidateListPanel", "ShowItemsPanel",
-};
-// The message log, by the start of its name: it has one layout for each size of the old screen.
-constexpr std::string_view MessageLog = "MessageLogPanel";
 constexpr std::string_view Hud = "HUDPanel";
 // The HUD's two skill buttons. Between them the HUD has nothing of its own.
 constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSkillButton";
@@ -272,10 +260,6 @@ bool Contains(const MenuCursor::Rect& outer, const MenuCursor::Rect& inner) {
 // the pointer stayed where it was, and the click went to what was under it.
 bool OnScreen(const NativeUi::Rect& rect) {
 	return rect.x + rect.width / 2 >= 0 && rect.y + rect.height / 2 >= 0;
-}
-
-bool NotMenu(std::string_view name) {
-	return PanelState::Hud(name) || name.starts_with(MessageLog) || std::find(std::begin(NotMenus), std::end(NotMenus), name) != std::end(NotMenus);
 }
 
 GridJump::Grid ReadGrid(uintptr_t widget) {
@@ -472,7 +456,7 @@ std::string Build(const D2RL::PluginContext* context) {
 	std::vector<Open> shown;
 	const auto panels = NativeUi::Panels();
 	for (const auto& name : PanelState::OpenPanels()) {
-		if (NotMenu(name)) continue;
+		if (PanelState::NotMenu(name)) continue;
 		for (const uintptr_t panel : panels) {
 			if (NativeWidgets::ReadName(panel) != name || !NativeUi::Visible(panel)) continue;
 			shown.push_back({panel, name});

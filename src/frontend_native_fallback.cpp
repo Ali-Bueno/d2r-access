@@ -97,6 +97,20 @@ std::string TextNamed(const UiText::Snapshot& snapshot, std::string_view name) {
 
 }
 
+Readout DescribeRow(const UiText::Snapshot& row) {
+	Readout result;
+	if (row.nodes.empty()) return result;
+	for (const auto& node : row.nodes) {
+		if (node.kind == UiText::Kind::Text || node.kind == UiText::Kind::LinkedText) Append(result.text, node.text);
+	}
+	const auto& self = row.nodes.front();
+	result.kind = self.kind;
+	result.enabled = self.enabled;
+	result.context = row.name;
+	result.identity = row.name + "/" + std::to_string(self.id) + "/" + result.text;
+	return result;
+}
+
 Readout Describe(const UiText::Snapshot& snapshot) {
 	Readout result;
 	if (snapshot.nodes.empty()) return result;

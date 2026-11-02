@@ -22,5 +22,8 @@ struct Readout {
 
 // Describe only the focused control in a live native panel snapshot.
 Readout Describe(const UiText::Snapshot& snapshot);
+// Describe a control snapshotted on its own (a Chronicle reward's entry): every word it draws, its
+// own buttons' captions included.
+Readout DescribeRow(const UiText::Snapshot& row);
 
 }

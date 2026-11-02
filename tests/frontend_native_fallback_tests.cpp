@@ -167,5 +167,17 @@ int main() {
 		"a hit area with no words is called by what it covers, then by its tooltip");
 	tree.nodes[1].text.clear();
 	Check(FrontendNativeFallback::Describe(tree).text == "Spend skill points to raise your skills.", "or by its tooltip alone");
+	// A control of the game's own class snapshotted alone (ChronicleRewardsPanelHD.json): every word
+	// it draws, its button's caption included.
+	UiText::Snapshot reward;
+	reward.name = "ChronicleRewardsPanel";
+	reward.nodes = {
+		{60, -1, Kind::Focusable, "UniquesRewards", "ChronicleRewardsPanelEntry"},
+		{61, 0, Kind::Text, "EntryCompletionText", "TextBoxWidget", "45% completado"},
+		{62, 0, Kind::Toggle, "ToggleSkillCheck", "ToggleButtonWidget"},
+		{63, 2, Kind::Text, "Caption", "TextBoxWidget", "Activa"},
+	};
+	Check(FrontendNativeFallback::DescribeRow(reward).text == "45% completado, Activa", "a composite control reads every word it draws, its buttons' included");
+
 	Passed();
 }

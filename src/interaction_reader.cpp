@@ -1127,6 +1127,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			if (!progression.skill && !snapshot.nodes.empty() && !snapshot.nodes.front().enabled)
 				Append(readout.option, Strings::Current().unavailable);
 		}
+		// An icon button draws no words: the catalog names it from the game's strings (the loot
+		// filter's "More Options", "Import Profile"; a tester, 2026-11-02). Its tooltip still follows.
+		if (readout.option.empty() && !progression.skill) readout.option = FocusTracker::CatalogLabel(focus);
 		// The inventory's gold button carries no text of its own -- MEASURED
 		// 2026-09-20: [field] focus name="gold_button" ... text="" -- so landing
 		// on it said only what the A button would do. The amount is a player

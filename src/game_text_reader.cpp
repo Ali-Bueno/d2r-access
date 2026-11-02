@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace D2RAccess::GameTextReader {
@@ -40,6 +42,9 @@ std::atomic<bool> g_enabled{true}, g_repeat{false}, g_dump{false}, g_mercenaryBa
 constexpr const char* MercenaryLevelUpKey = "merclevelup";
 bool g_inGame = false, g_ownedFocus = false, g_wasEnabled = true;
 bool g_interactionFocus = false;
+// Row shapes (their nodes' names) already described in the log this session; a few dozen at most.
+constexpr size_t MaxRowShapes = 32;
+std::unordered_set<std::string> g_rowShapes;
 // A tab switch is announced at the END of a tick, but the panel readout is
 // spoken at the START of one. The switch changes what the panel holds, so the
 // readout that follows it a poll or two later used to arrive with interrupt
@@ -108,8 +113,9 @@ void Dump(const D2RL::PluginContext* context, const UiText::Snapshot& snapshot) 
 	D2RAccess::AsyncLog::InfoF(context, "[text-tree] %s panel=%p focus=%p nodes=%zu", snapshot.name.c_str(),
 		reinterpret_cast<void*>(snapshot.panel), reinterpret_cast<void*>(snapshot.focus), snapshot.nodes.size());
 	for (const auto& node : snapshot.nodes) {
-		D2RAccess::AsyncLog::InfoF(context, "[text-tree] parent=%d id=%p type=%s name=%s enabled=%u text=\"%s\"",
-			node.parent, reinterpret_cast<void*>(node.id), node.type.c_str(), node.name.c_str(), node.enabled ? 1u : 0u, UiText::Clean(node.text).c_str());
+		D2RAccess::AsyncLog::InfoF(context, "[text-tree] parent=%d id=%p type=%s name=%s enabled=%u toggled=%d text=\"%s\"",
+			node.parent, reinterpret_cast<void*>(node.id), node.type.c_str(), node.name.c_str(), node.enabled ? 1u : 0u,
+			node.toggled ? (*node.toggled ? 1 : 0) : -1, UiText::Clean(node.text).c_str());
 	}
 }
 
@@ -240,8 +246,19 @@ bool Tick(const D2RL::PluginContext* context) {
 	if (best < 0 && focus.widget && !nativeControlFocus) {
 		auto snapshot = NativeUi::Snapshot(focus.widget, focus.widget);
 		snapshot.name = NativeWidgets::ReadName(focus.panel);
-		if (dump) Dump(context, snapshot);
-		if (NeedsFallback(snapshot)) active = UiText::Describe(snapshot);
+		const bool row = NeedsFallback(snapshot);
+		// Each shape of row is described once a session: what a list's rows hold, read from the log.
+		std::string shape;
+		for (const auto& node : snapshot.nodes) shape += node.name + "/";
+		const bool newShape = row && g_rowShapes.size() < MaxRowShapes && g_rowShapes.insert(shape).second;
+		if (dump || newShape) Dump(context, snapshot);
+		if (row) {
+			active = UiText::Describe(snapshot);
+			// A row snapshotted alone is always at index 0, so the row itself tells one from the next:
+			// a move onto another row with the same words is still heard (a Chronicle category of
+			// undiscovered uniques is rows of "Ring", a tester, 2026-11-02).
+			if (!active.Empty()) active.focusKey = std::to_string(focus.widget);
+		}
 	}
 	TradeService::NamePrompt(active);
 	const bool owns = !active.Empty();
@@ -276,7 +293,12 @@ bool Tick(const D2RL::PluginContext* context) {
 		FocusTracker::Reset();
 	}
 	g_ownedFocus = owns;
-	g_interactionFocus = InteractionReader::Tick(context, now, focus, owns, tabChange);
+	const bool interaction = InteractionReader::Tick(context, now, focus, owns, tabChange);
+	// The focus reader slept while a button held the speech, so what it said last is no longer what
+	// was heard last: back on the control it named, it names it again (a tester, 2026-11-02: the
+	// loot filter's dropdown after the icon buttons beside it).
+	if (g_interactionFocus && !interaction) FocusTracker::Reset();
+	g_interactionFocus = interaction;
 	if (!area.Empty()) {
 		const auto announcement = g_areaReader.Update(area, now);
 		Speak(context, area, announcement, !owns && !g_interactionFocus);

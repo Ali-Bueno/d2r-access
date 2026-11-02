@@ -1,6 +1,8 @@
 #pragma once
 
 #include <D2RLPlugin/api.h>
+#include "native_ui.h"
+#include <string>
 
 #include <string_view>
 
@@ -40,6 +42,9 @@ void CancelSelectHint();
 
 // Forgets the last announced widget so the next poll re-announces.
 void Reset();
+// The catalog's name for the focused control, from the game's strings, when its layout gives it one
+// (its text, or the caption or override the generator chose); empty otherwise. UI thread.
+std::string CatalogLabel(NativeUi::Focus focus);
 
 // Per-panel resolution diagnostics after a persistent miss (one expensive
 // pass over every open panel); off unless the console trace is on.

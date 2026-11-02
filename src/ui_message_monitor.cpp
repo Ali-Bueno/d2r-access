@@ -107,6 +107,10 @@ bool g_goldConfirmed = false;
 // "Select Difficulty" names it, not its layout name (a tester, 2026-10-30).
 constexpr std::string_view DifficultyModalPanel = "CharacterDifficultyModal";
 constexpr std::string_view SelectDifficultyKey  = "strselectdiff";
+// The credits have no title widget either: the main menu's "Credits" button names them, not
+// "Credits Modal" (a tester, 2026-11-02).
+constexpr std::string_view CreditsModalPanel = "CreditsModal";
+constexpr std::string_view CreditsKey        = "strGameCredits";
 
 // A modal's prompt (ConfirmationModalHD.json: Frame/Prompt) is set at
 // runtime; it is read natively a few updates after the modal opens, then the
@@ -229,6 +233,7 @@ std::string PanelTitle(std::string_view panel) {
 	// The game's strings have no plain "Main Menu" (only "Return to Main Menu").
 	if (panel == MainMenuPanel) return Strings::Current().mainMenu;
 	if (panel == DifficultyModalPanel) return Localization::Text(SelectDifficultyKey);
+	if (panel == CreditsModalPanel) return Localization::Text(CreditsKey);
 	return {};
 }
 
