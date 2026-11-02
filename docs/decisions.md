@@ -699,8 +699,9 @@ optional suggestions are switches, on unless they reverse a choice of the user's
   which the icons already hold.
 - **Quest objects** kept from an earlier game (Cairn Stones, the Moldy Tome) are listed again, as
   the automap still shows them; a loaded object on the same spot replaces the kept one.
-- **Release ZIP keeps its fixed name** (`d2r-access-completo.zip`): the tester asked for the version
-  in the name, the user kept the always-latest download link instead.
+- **Release ZIP keeps its fixed name** (`D2RAccess.zip`; `d2r-access-completo.zip` until the public
+  release, 2026-11-02): the tester asked for the version in the name, the user kept the always-latest
+  download link instead.
 - **Summons** (the game's pet list, `docs/summons-and-corpses-re.md`): every player's pets are
   neither NPCs nor enemies any more (the flag the mod used marks only the hireling; a Warlock's
   bound demon was listed as an enemy). Chosen: left out, not a scanner category of their own (the

@@ -31,7 +31,7 @@ on anything that sounds wrong are welcome.
 ### Install and update
 
 1. Close the game.
-2. Download the [complete package](https://github.com/Ali-Bueno/d2r-access/releases/latest/download/d2r-access-completo.zip)
+2. Download the [complete package](https://github.com/Ali-Bueno/d2r-access/releases/latest/download/D2RAccess.zip)
    (the mod, D2RLoader and the Visual C++ runtime).
 3. Extract everything into the game folder, the one that has `D2R.exe`, replacing files if asked.
    Do not rename or replace `D2R.exe`.

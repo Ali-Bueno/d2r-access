@@ -3,7 +3,7 @@
 Testers who cannot build download one ZIP with everything needed to play, extracted over the
 game folder. The newest one is always at:
 
-<https://github.com/Ali-Bueno/d2r-access/releases/latest/download/d2r-access-completo.zip>
+<https://github.com/Ali-Bueno/d2r-access/releases/latest/download/D2RAccess.zip>
 
 The repository is private, so the link works only for a signed-in GitHub account with access.
 
@@ -48,4 +48,5 @@ new key; a missing key falls back to the compiled default (`radar_config.cpp`). 
 a fresh install starting without `d2rloader.toml`.
 
 The package text is English since 2026-10-11, for testers who do not read Spanish. The asset
-keeps its original `d2r-access-completo.zip` name so the always-latest link stays valid.
+keeps a fixed name, `D2RAccess.zip` (`d2r-access-completo.zip` until 2026-11-02), so the
+always-latest link stays valid.

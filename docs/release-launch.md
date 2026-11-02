@@ -85,7 +85,7 @@ controls), one `configs/<mod>.toml` per mod. `configs/d2r.toml` and the code it 
 - If Windows refuses a file in the game folder (a Battle.net copy under Program Files may not be
   writable; D2RMM's FAQ tells users to run it as administrator), install and uninstall offer to
   restart the installer elevated, passing `--game-dir "<folder>"`.
-- Downloads the latest `d2r-access*.zip` from `Ali-Bueno/d2r-access` (public before the first
+- Downloads the latest `D2RAccess*.zip` from `Ali-Bueno/d2r-access` (public before the first
   release: a private repo answers 404 to an unsigned request), or installs a chosen zip.
 - Replaces the plugin (`d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/`)
   and the launcher (`D2RAccess.exe`, and a self-update's `.old`), and keeps the player's `settings.txt`, `tutorial.txt`, `explored/` and `d2r-access.toml`.
