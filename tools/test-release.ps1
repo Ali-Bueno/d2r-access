@@ -61,16 +61,22 @@ try {
 		ForEach-Object { Get-ChildItem (Join-Path $_.FullName "x64") -Directory -Filter "Microsoft.VC*.CRT" }
 	if (-not $crt) { throw "No x64 VC++ runtime found under $vcRedist." }
 
-	# The tag is chosen first: the plugin speaks it at start.
+	# The tag is chosen first: the plugin speaks it at start. A failed query is no answer (GitHub said
+	# "repository is disabled" for a few seconds after the repo turned public).
+	function Test-RemoteTag([string]$Name) {
+		$found = git ls-remote --tags origin "refs/tags/$Name"
+		if ($LASTEXITCODE) { throw "Could not read GitHub's tags (git ls-remote failed)." }
+		[bool]$found
+	}
 	if ($Version) {
 		if ($Version -notmatch '^[1-9]\d{0,3}\.(0|[1-9]\d{0,3})(\.(0|[1-9]\d{0,3}))?$') { throw "-Version takes MAJOR.MINOR[.PATCH], like 1.0." }
 		$tag = $Version
-		if (git ls-remote --tags origin "refs/tags/$tag") { throw "The tag $tag is already on GitHub." }
+		if (Test-RemoteTag $tag) { throw "The tag $tag is already on GitHub." }
 	} else {
 		$date = Get-Date -Format "yyyy-MM-dd"
 		$tag = "test-$date"
 		$n = 1
-		while (git ls-remote --tags origin "refs/tags/$tag") { $n++; $tag = "test-$date-$n" }
+		while (Test-RemoteTag $tag) { $n++; $tag = "test-$date-$n" }
 	}
 	$title = if ($Version) { "D2R Access $Version" } else { "Test build $($tag -replace '^test-', '')" }
 

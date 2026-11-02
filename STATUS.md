@@ -2,7 +2,27 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Installer: the language box named; "already up to date"; guide and README buttons — 2026-11-02 (not released)
+## Release 1.0; the repo public — 2026-11-02 (released as 1.0 from 8a47e42)
+
+The user: make the repo public and release 1.0, said in game at start; test the installer against
+the public repo, then announce it.
+- Numbered tags: the launcher reads `MAJOR.MINOR[.PATCH]`, newer than every dated build
+  ([launcher](docs/launcher.md)); `test-release.ps1 -Version 1.0`
+  ([test releases](docs/test-releases.md)). Launchers from `test-` builds cannot read `1.0`: no
+  update offer there, testers update with the installer or the zip.
+- `Ali-Bueno/d2r-access` is public (anonymous API 200). Release `1.0` is latest: 139/139 CTest,
+  28 entries, 64,554,840 bytes, SHA-256 `30241a2b…de85f1`; assets zip, installer, `release.json`,
+  `README.html`, `GUIDE.html` (downloadable without login). No news file: the README has no
+  "What's new".
+- Just after the visibility change GitHub answered `git ls-remote` with "repository is disabled";
+  the script took that as "no such tag". It now stops when the query fails.
+- **Unverified live:** the installer against the public release (install, the pages before
+  install, "already up to date" after); 1.0 said at start; the 1.0 launcher's log
+  (`installed 1.0, latest 1.0`, up to date).
+
+**Next step:** the user tests the installer with the public repo; then the announcement.
+
+## Installer: the language box named; "already up to date"; guide and README buttons — 2026-11-02 (released as 1.0)
 
 The user, before the release: the installer's combo box said only "cuadro combinado Spanish
 (es-ES)"; and Install on the latest version should say so
@@ -21,7 +41,7 @@ The user, before the release: the installer's combo box said only "cuadro combin
   Close). **Unverified live:** NVDA on the installer; the up-to-date question; the buttons before
   install (needs the repo public and a release carrying the pages).
 
-**Next step:** the user tries the installer with NVDA, then the release.
+**Next step:** see Release 1.0 above.
 
 ## Diablo II item sounds by default; the charge chord — 2026-11-02 (released as test-2026-11-02-2 from 6365935)
 
