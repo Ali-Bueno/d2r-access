@@ -1,169 +1,179 @@
 # Audio description for the 2021 (Diablo II: Resurrected) act cinematics, English: story narration for the gaps between dialogue. One cue per line: video, seconds, text (tab separated).
 # d2intro
-d2intro	10.5	Flaming letters: Blizzard Entertainment presents.
-d2intro	19.9	In a barred prison hall, a spider scuttles across the floor as robed feet stride past.
-d2intro	26.2	A gate creaks open. A hooded stranger in a long dark robe walks on down the hall.
-d2intro	32.1	In a bare cell, a frail old man lies on the floor in a shaft of light.
-d2intro	37.7	Gaunt and white-haired, he traces shapes on the floor with one finger, muttering.
-d2intro	43.9	Behind him the cell door has creaked open, and the hooded stranger stands in the doorway.
-d2intro	50.5	Somewhere a whip cracks and a man screams.
-d2intro	53.7	The old man lifts his head. Cheering and laughter drift in from afar.
-d2intro	58.8	Whimpering, he shrinks back, and his plate clatters away.
-d2intro	63.0	The stranger sits by the latticed window, his face hidden in his hood.
-d2intro	74.3	Light flares: the stranger appears as an angel.
-d2intro	131.95	His face dissolves into a blazing brazier.
-d2intro	152.55	In a dim tavern, a waiter comes over to Marius.
-d2intro	158.7	Marius only groans, his eyes half closed.
-d2intro	161.8	The waiter groans in disgust and walks off with his tray of mugs.
-d2intro	193.1	A door opens. Wind howls in and bends the brazier flames.
-d2intro	197.4	A hooded traveler stands in the doorway.
-d2intro	212.53	His sword scrapes.
-d2intro	230.72	Floorboards creak as he walks past a drinker.
-d2intro	235.3	The drinker, wiry and bald, eyes him across a candle and laughs.
-d2intro	241.2	The traveler stabs his sword into the floor and slumps over the rocking hilt.
-d2intro	255.95	The drinker cackles. The traveler's clenched fist glows green.
-d2intro	260.4	He snarls, and his face glows green.
-d2intro	266.9	The drinker's laughter warps into something inhuman.
-d2intro	270.75	Something dark scuttles across the floor, scattering embers.
-d2intro	275.25	The drinker falls silent. Fire spouts up from the floor.
-d2intro	279.45	A fanged, crooked demon scrambles across the floor, snarling.
-d2intro	284.0	Marius groans as fire sweeps the floor. Demons cackle.
-d2intro	320.3	Burning skeletons attack. Marius stares in horror.
-d2intro	324.1	A bolt of green light flings a patron backward. Skeletons hack at him.
-d2intro	329.3	On a tabletop, a bald patron raises his sword against a skeleton.
-d2intro	334.2	Fire engulfs the waiter, who screams, arms flung up.
-d2intro	338.0	A green bolt strikes a man in the chest. He staggers, groaning.
-d2intro	342.7	A patron trades sword blows with a skeleton.
-d2intro	347.9	The Wanderer kneels in the blaze, arms flung wide, face twisted in agony.
-d2intro	353.3	Green smoke pours from his hood. He hunches over, then slumps to the floor.
-d2intro	360.4	Bats burst from the flames. A horned demon slithers through a gap in the floor.
-d2intro	366.2	Marius cowers against the wall. His pipe clatters to the floor.
-d2intro	370.8	The Wanderer walks slowly away into the burning hall.
-d2intro	379.6	Behind him, Marius steps up and watches him go.
-d2intro	383.2	Then Marius follows him into the flames.
-d2intro	387.2	He stumbles out into the night, past bodies.
-d2intro	418.0	Over the tavern burning in the snowy woods, flaming letters spell Diablo Two: Resurrected.
+d2intro	10.4	Flaming letters on black spell Blizzard Entertainment presents, fire licking up off every capital.
+d2intro	15.4	The flames gutter out into darkness.
+d2intro	19.6	Through iron bars, a long prison hall: a vaulted ceiling, barred cells on either side, tall arched windows at the far end throwing daylight in patches across the stone floor.
+d2intro	28.3	A fat spider crawls over the flagstones, then a long robe of coarse pale cloth sweeps past the bars. Beyond the open gate the hooded stranger walks away down the hall, rags hanging from the beams above him.
+d2intro	38.6	In a bare stone cell, a frail old man lies on the floor in a shaft of light from a small high window, a straw pallet by the wall, a tin plate and spoon at his side. Gaunt, with wisps of white hair and white stubble, he rests his cheek on the stone and traces shapes with one bony finger.
+d2intro	53.0	Behind him the cell door stands open, a dark figure in it. He lifts his head, eyes wide, mouth open, and scrambles backward toward the pallet; his plate skids spinning across the light.
+d2intro	62.3	The stranger sits before a tall latticed window, hood up, face lost in shadow, hands on his knees; the old man cowers.
+d2intro	74.3	Light flares: he appears as an armored angel, wings of white light.
+d2intro	131.92	His face fades into a blazing iron brazier, a cage of flame.
+d2intro	152.5	In a dim tavern lit by braziers and lanterns, a waiter comes to Marius.
+d2intro	158.7	Marius, younger, close-cropped and unshaven, sits at a candlelit table with a long curved pipe, eyes half closed, head lolling.
+d2intro	165.2	The stocky, bald waiter walks off with his tray of mugs.
+d2intro	193.1	Marius lifts his eyes toward the door, brow furrowed.
+d2intro	196.9	A gust bends the flame of a caged lantern on a post by a railed stair.
+d2intro	212.5	A hooded man steps in.
+d2intro	230.75	Sword low in his hand, he passes a drinker's candlelit table.
+d2intro	235.3	The drinker, bald, wiry and bare-armed in a sleeveless shirt, eyes him across the candle, then breaks into a sly grin.
+d2intro	241.25	The Wanderer stabs his sword into the floor and slumps over the hilt, both hands on the pommel, head bowed.
+d2intro	255.9	He raises a clenched fist before his hidden face; it glows green, lighting the inside of the hood.
+d2intro	260.8	His face twists into a grin, lit green.
+d2intro	266.9	The drinker gapes, yellow teeth bared.
+d2intro	268.9	The Wanderer hunches at his corner table by a caged lantern.
+d2intro	272.0	Something dark scuttles across the floor, scattering embers, and the tall brazier flares in a burst of sparks.
+d2intro	277.5	Fire spouts from the floor beside the brazier; a crooked, fanged demon scrambles out on all fours amid green lightning.
+d2intro	283.5	Marius gapes in terror as fire races across the floor from the brazier.
+d2intro	320.3	A burning skeleton swings a sword above the brazier. Marius stares up, firelit, mouth open.
+d2intro	324.9	A green bolt flings a patron in a dark tunic backward through the flames; another man is struck and staggers.
+d2intro	330.4	On a tabletop, a bald man raises his sword in both hands as a flaming skeleton comes at him with a mace.
+d2intro	335.6	A wave of fire engulfs the waiter, tray still in hand, arms flung up.
+d2intro	339.1	A green bolt strikes a long-haired man in the chest; he reels back, arms spread, and falls.
+d2intro	343.7	A bare-armed patron trades sword blows with a skeleton in the flames.
+d2intro	347.2	The Wanderer kneels in the blaze, arms flung wide, head back, hood up, his face twisted in agony.
+d2intro	352.1	Green smoke streams off his arms; he clutches his head, then his belly, and hunches over, the smoke pouring from his hood.
+d2intro	358.3	Bats swirl through the burning hall. He kneels in a green haze, then slumps face-down to the boards.
+d2intro	363.4	A horned, spine-backed demon slips down through a gap in the floor.
+d2intro	366.8	Marius, pressed to the stone wall, stares with his long pipe in hand, then lets it drop.
+d2intro	371.3	The Wanderer walks slowly away through the burning hall, between blazing tables and chairs, toward a gallery in flames along the far wall, his cloak dark against the fire.
+d2intro	379.9	Marius steps up behind him, close-cropped head lit by the blaze, and watches him go.
+d2intro	384.8	Then he follows, walking into the fire after him.
+d2intro	387.3	He walks on deeper into the blaze.
+d2intro	389.2	Bodies lie in the snow.
+d2intro	417.9	Flaming letters spell Diablo Two in the night sky over the tavern, its roof ablaze among snow-covered firs; then, on black, Resurrected appears beneath them in small copper capitals.
 # Act02start
-Act02start	3.0	Act Two, in pale letters on rust-stained stone.
-Act02start	155.25	On a hilltop, a red beam shoots skyward.
-Act02start	158.35	Marius wakes by the campfire, gasping.
-Act02start	172.75	A wolf howls at the moon. Night gives way to a bright morning sky.
-Act02start	192.8	A lone figure heads toward Lut Gholein.
+Act02start	2.0	Rust-brown, flaking stone, mottled blue-grey.
+Act02start	5.0	Act Two, in pale thin capitals, hangs over the stained stone for a few seconds.
+Act02start	10.1	The letters fade and the screen goes black.
+Act02start	13.8	A pale desert.
+Act02start	155.25	A red beam shoots skyward from a tower on a dark hilltop.
+Act02start	158.3	Marius jolts awake by the fire, sweating, eyes wide.
+Act02start	172.8	Dark mountains at night; a full moon above a band of cloud, then a bright blue morning sky.
+Act02start	192.8	Marius walks on alone along the ridge, toward the city.
 # Act03start
-Act03start	3.0	Act Three, in pale letters on blood-red stone.
-Act03start	25.78	Wind whistles in.
-Act03start	71.6	Bats chitter as the two cross a vast, dark hall, Marius lighting the way.
-Act03start	77.7	A wail echoes in the distance. The Wanderer stops, and Marius holds up the torch.
-Act03start	83.6	The Wanderer, bald and gaunt, clutches his belly and doubles over with a grunt.
-Act03start	89.4	He screams. Marius stares, torch in hand.
-Act03start	92.5	A red mark burns on his brow as his skin bubbles and swells.
-Act03start	97.5	Silence. Marius stands by the motionless Wanderer.
-Act03start	115.4	Braziers flare, and lines of fire race toward a tall pillar. A wail rises from it.
-Act03start	121.6	The Wanderer strides in, Marius behind him with the torch.
-Act03start	142.8	The Wanderer yells. Ribbons of blue light whip across a rope bridge, and it bursts into flame.
-Act03start	149.6	Marius stares, torch raised, as the bridge burns and creaks.
-Act03start	153.9	Tal Rasha wails, tangled in cords, a gem glowing in his chest.
-Act03start	158.6	As the Wanderer crawls along the bridge, Tyrael lands before him, wings spread.
-Act03start	164.6	Blue light lashes around the crouching Wanderer.
-Act03start	168.6	Tal Rasha thrashes and wails. Tyrael swoops down on the Wanderer.
-Act03start	173.4	Marius stares, frozen.
-Act03start	181.2	Marius sways, eyes half closed, and reaches out.
-Act03start	187.5	Torch high, Marius crosses the burning bridge, gripping the rope.
-Act03start	192.6	Tyrael battles the Wanderer in a storm of blue light.
-Act03start	200.0	Swords clash as Marius walks up to Tal Rasha.
-Act03start	203.6	He reaches for the gem glowing in Tal Rasha's chest.
-Act03start	210.5	Marius pulls the gem free.
-Act03start	239.2	Across the flames, Tal Rasha lunges, cords lashing.
-Act03start	243.1	Tyrael raises his sword, wings flaring white.
-Act03start	246.5	Tal Rasha thrashes and screams, his face a rotted skull.
-Act03start	251.5	Marius flees toward daylight.
+Act03start	2.0	Dark stone stained blood-red, flaking into blue-grey.
+Act03start	5.1	Act Three, in pale thin capitals over the stained stone, red blotches and streaks running down it.
+Act03start	10.1	The letters fade, the stone darkens, and the screen goes black.
+Act03start	25.75	Marius comes in, torch up.
+Act03start	65.1	They enter a vast, dark hall.
+Act03start	71.6	They cross the great hall between columns and huge fallen stones, the Wanderer ahead in his dark robe, Marius behind lighting the way with his torch; bats flit past.
+Act03start	79.9	The Wanderer stops; Marius comes up beside him and holds the torch high.
+Act03start	83.6	The Wanderer, tall, bald and gaunt, pale-skinned in a dark robe, looks down, grimaces, clutches his belly and doubles over. Marius watches, torch raised.
+Act03start	91.3	Teeth bared, eyes screwed shut, veins bulging, he bows his head; a red mark burns on his brow and boils swell over his scalp and face.
+Act03start	98.1	He flings his arms wide, mouth gaping, then stands rigid.
+Act03start	115.4	Braziers flare one after another, and lines of fire race along channels in the floor to ring a tall obelisk lit with red runes on a craggy mound.
+Act03start	122.7	The Wanderer strides in through a carved doorway, Marius behind.
+Act03start	142.8	Ribbons of blue light lash the Wanderer at the obelisk's foot and fling him tumbling; the rope bridge bursts into flame, plank by plank.
+Act03start	149.7	Marius stares at the blazing bridge, torch in one hand, the other held out.
+Act03start	153.5	Tal Rasha hangs bound in dark cords, withered, arms outstretched, mouth open, a yellow gem glowing in his chest.
+Act03start	159.1	The Wanderer crawls on hands and knees along the burning bridge; Tyrael lands before him in a blaze of white light, wings spread.
+Act03start	165.6	The Wanderer crouches on the planks as blue light whips around him. Tal Rasha thrashes in his cords, and Tyrael dives at the Wanderer.
+Act03start	172.3	Marius stares, torch raised, flames licking around him.
+Act03start	181.2	Marius sways, eyes half closed, head lolling, and reaches out a hand.
+Act03start	187.5	Flames eat the bridge's planks and ropes.
+Act03start	189.6	Torch high, Marius crosses it, gripping the burning rope, flames at his feet.
+Act03start	193.5	Hooded and armored, Tyrael swings his blazing sword.
+Act03start	200.0	Torch in hand, Marius walks up to Tal Rasha, eyes fixed on the glowing gem.
+Act03start	203.8	He reaches for the gem in Tal Rasha's chest and closes his fingers on it.
+Act03start	210.5	Marius pulls the gem free and stares at it.
+Act03start	239.15	Beyond the burning bridge, Tal Rasha lunges from his rocky mound, cords lashing, his face a rotted skull.
+Act03start	244.4	Tyrael raises his sword, wings flaring white, and streaks upward in a column of light.
+Act03start	248.8	Tal Rasha thrashes in his cords, jaw gaping, eyes sunken.
+Act03start	251.7	Daylight ahead; Marius runs for it.
 # Act04start
-Act04start	3.0	Act Four, in pale letters on dark stone veined with embers.
-Act04start	13.4	Marius creeps up and peers around a pillar.
-Act04start	70.42	Lightning surges.
-Act04start	89.6	The rune circle explodes in white light, and the Infernal Gate blazes red.
-Act04start	123.8	The Wanderer screams as his face bulges and tears. He collapses onto the carved floor.
-Act04start	138.0	Spikes burst through his robe. Behind a pillar, Marius weeps.
-Act04start	142.8	Long black horns tear out of his back and split his body.
-Act04start	147.5	The Infernal Gate burns red and wails.
-Act04start	157.8	In the white light towers Diablo, a red demon bristling with black spikes.
-Act04start	163.3	His footsteps rumble as he strides down from the altar, his spiked tail dragging.
-Act04start	169.5	His clawed foot crushes a heap of skulls.
-Act04start	187.0	Diablo turns away and strides into the fire of the Infernal Gate.
-Act04start	191.9	Hidden in a doorway, Marius watches, his face lit by the burning Gate.
-Act04start	197.2	Weeping, he lifts the glowing stone before his eyes.
-Act04start	201.8	Before him the Infernal Gate burns on, tormented faces writhing across its surface.
+Act04start	3.0	Act Four, in pale weathered capitals across dark rock veined with glowing red embers, the letters cracked like old stone.
+Act04start	14.5	Marius creeps round a pillar, peering.
+Act04start	70.42	Lightning pours from Mephisto.
+Act04start	89.6	Beneath the three, a vast rune-carved disc ringed with candles explodes in white light, debris whirling up.
+Act04start	123.75	The Wanderer's face swells and blisters, skin bubbling, jaw sagging.
+Act04start	127.5	He drops to hands and knees on the rune floor, head hanging.
+Act04start	138.0	Black spikes burst through the back of his gray robe.
+Act04start	140.7	Marius weeps behind the pillar, clutching the stone. Long black horns rip out of the Wanderer's back and split him open, orange light pouring from the wound.
+Act04start	148.6	The Infernal Gate blazes red.
+Act04start	157.7	Diablo rears in a column of white light on the altar platform, a huge demon with rows of black spines down his back and long tail.
+Act04start	164.3	He strides down past a torch standard, red-hided, ridged with muscle, three horns curving from his skull.
+Act04start	169.55	His clawed foot crushes a heap of skulls and bones.
+Act04start	186.9	Diablo turns and strides into the fire of the Infernal Gate, his eyes glowing, his spiked tail sweeping behind him.
+Act04start	193.5	Marius watches from a doorway across the hall, lit by the burning Gate, face twisted with grief, a hand pressed to the stone at his chest.
+Act04start	200.4	Weeping, he lifts the glowing yellow stone before his eyes and stares at it, his face lit gold.
+Act04start	205.2	The Infernal Gate burns on, tormented faces writhing across its surface.
 # Act04end
-Act04end	3.0	Epilogue, in pale letters on dark stone streaked with embers.
-Act04end	13.7	A gate slams. Marius huddles in his cell.
-Act04end	21.6	In a storm of fire, a ghostly blue shape tears from Diablo as he burns.
-Act04end	37.9	Alone in his cell, Marius sobs on his pallet.
-Act04end	41.5	Eyes shut, he presses a trembling hand to his brow.
-Act04end	68.0	The hooded stranger stands over him, in the window light.
-Act04end	79.5	The stranger holds out his hand. Marius draws the stone from under his tunic on a cord.
-Act04end	89.2	He holds out the stone.
-Act04end	103.7	Marius hunches at the stranger's feet.
-Act04end	106.7	Distant voices yell. Marius opens his palm, and the stranger takes the stone.
-Act04end	126.0	His true face blazes.
-Act04end	149.6	Baal reaches for Marius's face. Marius's scream fades into darkness.
-Act04end	155.4	Marius lies curled on the cell floor.
-Act04end	158.3	Baal walks away, flames trailing from his robe, until fire floods the whole cell.
-Act04end	164.5	Baal strides out of a wall of fire into a cobbled street, his cloak swirling.
-Act04end	170.4	Behind him the whole street burns. He walks on, calmly.
-Act04end	175.5	Flames lick at the hem of his robe as he passes.
-Act04end	179.7	Screams rise in the distance as the flames flare white and swallow him.
+Act04end	3.0	Epilogue, in pale weathered capitals on dark rock streaked with glowing embers, faint lattice lines etched across it.
+Act04end	13.85	Marius huddles in a corner of a stone cell below a high window.
+Act04end	21.55	A ghostly blue shape tears free of Diablo in a storm of fire and drifts away. Flames engulf him.
+Act04end	37.75	Daylight slants from the high latticed window onto Marius, huddled by his pallet under a hanging chain.
+Act04end	42.9	Eyes shut, he weeps and presses a trembling hand to his brow.
+Act04end	67.95	The hooded stranger stands over him in the window light, face lost in the hood.
+Act04end	79.45	The stranger holds out an open hand, palm up.
+Act04end	81.7	Marius reaches into his tunic and draws out a small stone on a cord, then looks up at him.
+Act04end	89.2	He holds the yellow stone out to him.
+Act04end	103.7	Fists clenched and shaking, Marius hunches at the stranger's feet.
+Act04end	107.0	He opens his palm on the glowing stone, and the stranger's hand plucks it away, leaving his hand empty.
+Act04end	126.0	A demon's face, eyes white.
+Act04end	149.6	Baal reaches a long clawed hand for Marius's face, and all goes dark.
+Act04end	153.55	In the cell, Marius lies curled on the floor beside his pallet, the window light falling on him.
+Act04end	158.4	Baal walks away across the cell, flames trailing from his robe; the fire spreads over the floor and walls until the whole room is ablaze.
+Act04end	165.3	Baal strides out of a wall of fire into a cobbled street lined with stone arcades, barrels and pots at the doorways, his cloak swirling behind him.
+Act04end	172.7	He walks on down the street, calm, hood up, hands loose at his sides, the fire climbing the walls behind him.
+Act04end	178.2	Flames lick around his feet and the hem of his robe, embers glowing on the cobbles.
+Act04end	182.35	The flames flare white and swallow him.
 # D2x_Intro
-D2x_Intro	6.0	Out of the darkness, a vast stone hall appears, lit by chandeliers and smoking braziers.
-D2x_Intro	12.6	A broad man in a red cloak with a fur collar walks past, toward the great doors at the far end.
-D2x_Intro	19.8	A thin line of light splits the doors as they begin to open. Wind howls in.
-D2x_Intro	25.4	Beyond the open gates lies a snowy mountain pass lined with red banners.
-D2x_Intro	30.8	The man walks to the threshold, a tall banner staff in hand, and stops between the doors.
-D2x_Intro	41.8	He steps out between the huge iron-studded doors. His banner flaps in the wind.
-D2x_Intro	50.0	The fortress gate sits on a snowy ledge above a waterfall, red banners hanging down its walls.
-D2x_Intro	59.0	At the gate stands an old warrior, white-bearded, in a fur hat and studded armor.
-D2x_Intro	65.0	Facing him, red banners stand in a row, a horde of spiked demons behind them.
-D2x_Intro	70.7	He shades his eyes and peers out.
-D2x_Intro	75.3	A horn bellows across the pass.
-D2x_Intro	79.0	A great throne rolls forward between the banners, its cloth sails spread like wings.
-D2x_Intro	85.3	Armored skeletons carrying torches walk beside it.
-D2x_Intro	91.0	The old warrior stares up at it, dread on his face.
-D2x_Intro	94.9	On the throne scowls a pale demon wrapped in gnarled tendrils.
-D2x_Intro	101.9	Behind him, the great gates creak shut.
-D2x_Intro	105.9	He glances back as they slam, shutting him outside with the horde.
-D2x_Intro	111.2	He bows his head, gripping the staff, then straightens and squares his shoulders.
-D2x_Intro	117.3	He lets out a long breath and faces the throne.
-D2x_Intro	121.0	He raises his hand.
-D2x_Intro	150.9	Baal's shout echoes off the peaks. The warrior clutches his head in pain.
-D2x_Intro	156.4	Baal glowers. A yellow stone glows on his chest.
-D2x_Intro	160.1	The warrior pulls off his fur hat and holds it to his chest, his bald head bowed.
-D2x_Intro	172.4	The warrior waits. Baal closes his eyes and runs a clawed hand over the stone.
-D2x_Intro	179.6	Then he sneers and lifts his hand, claws spread.
-D2x_Intro	183.2	A rumble shakes the towering walls of the fortress. The warrior looks up.
-D2x_Intro	188.8	Baal clenches his fist, eyes shut, as the walls tremble.
-D2x_Intro	193.1	The warrior stares up, alarmed.
-D2x_Intro	195.6	Red fire swirls from Baal's hands and streaks across the field toward the gate.
-D2x_Intro	201.5	It races to the gate and coils around the warrior, hat in hand.
-D2x_Intro	206.3	The ring of fire closes on him. Only a red stain is left where he stood.
-D2x_Intro	219.0	Baal cackles on his throne.
-D2x_Intro	222.3	The horde roars and surges toward the gate: skeletons in horned helmets, hulking beasts covered in spikes.
-D2x_Intro	231.0	Act Five, in pale letters on dark stone.
-D2x_Intro	236.0	Lord of Destruction.
+D2x_Intro	6.3	Out of darkness, a vast stone hall: candle chandeliers between tall pillars, two iron braziers smoking on the flagstones, mist in the air, great carved doors at the far end.
+D2x_Intro	15.0	A broad man in a red cloak with a fur collar strides across the hall toward the doors, a pouch at his belt.
+D2x_Intro	20.4	A thin line of white light splits the doors down the middle, then widens as they swing open.
+D2x_Intro	25.05	Beyond lies a snowy mountain pass under a grey sky, a row of red banners far off in the snow. The man walks to the threshold, a tall banner staff in his hand.
+D2x_Intro	32.95	He stops between the huge iron-studded doors and stands there, the red banner hanging from his staff, its top a horned crescent, a candle chandelier burning beside him.
+D2x_Intro	41.35	The banner stirs and flaps as he waits, the pass beyond him bleak and white.
+D2x_Intro	45.15	Chains trail from the great doors on either side of him, snowy peaks rising behind.
+D2x_Intro	50.3	The gate opens onto a round stone platform on a snowy ledge above a waterfall; long red banners hang down the towering fortress walls, torches burning between them.
+D2x_Intro	58.55	At the gate stands an old warrior: white beard, round fur hat, fur-collared red cloak over studded armor, an eagle on the breastplate.
+D2x_Intro	65.3	Facing him across the snow, a row of faded red banners on spiked poles, a horde of spiked creatures massed behind.
+D2x_Intro	71.05	He shades his eyes with his hand and peers at them, frowning.
+D2x_Intro	74.15	The banners stand between two chained stone pylons, grey mountains rising behind.
+D2x_Intro	79.0	A great throne on a wagon rolls forward between the banners, sail-like cloth wings spread above it, armored skeletons with torches riding at its sides, tusks jutting from its front.
+D2x_Intro	88.1	A crowd of spiked beasts and spearmen follows behind.
+D2x_Intro	90.8	The old warrior lowers his hand and stares up at it, mouth open.
+D2x_Intro	94.9	On the throne scowls a pale, bald demon, gnarled grey tendrils sprawling from his shoulders.
+D2x_Intro	101.8	Behind the old warrior the great doors swing shut, his banner flapping in the gust, his face set and grim.
+D2x_Intro	107.6	He glances back over his shoulder as they close, shutting him outside alone with the horde.
+D2x_Intro	112.15	He bows his head, gripping the staff with both hands; then he straightens, squares his shoulders and lifts his chin.
+D2x_Intro	118.0	The throne waits among the banners. The warrior faces it and raises his free hand.
+D2x_Intro	150.8	Bent double, the warrior clutches his head in both hands, his face screwed up in pain, snowy peaks looming over the pass.
+D2x_Intro	156.9	Baal glowers from the throne, chalk-pale and bald, scalp studded with knobs, a yellow stone glowing on his chest.
+D2x_Intro	162.55	The warrior pulls off his fur hat and holds it to his chest, head bowed.
+D2x_Intro	172.3	The warrior waits bareheaded, looking up. Baal closes his eyes and runs a clawed hand over the yellow stone glowing on his chest, head tilted.
+D2x_Intro	179.45	Then he sneers and lifts the hand, claws spread wide.
+D2x_Intro	182.1	The towering fortress walls shudder, dust sifting down the stone. The warrior looks up at them.
+D2x_Intro	186.85	Dust pours from the shaking walls. Eyes shut, teeth bared, Baal clenches his fists and strains.
+D2x_Intro	191.6	The warrior stares up, mouth open, as the walls keep trembling.
+D2x_Intro	194.75	Red fire swirls out of Baal's hands and gathers into a blazing ball between them.
+D2x_Intro	198.85	A ribbon of fire streaks from the throne across the snowfield toward the gate.
+D2x_Intro	202.8	It rushes up to the warrior, standing hat in hand on the round platform, and coils around him.
+D2x_Intro	207.5	The ring of fire closes on him. Only a red stain is left where he stood.
+D2x_Intro	219.0	Baal grins wide and sweeps out a hand.
+D2x_Intro	222.0	The horde surges past the throne toward the gate: hulking beasts bristling with spikes and tusks, skeleton warriors in horned helmets bearing torches, a forest of spears behind them, the snow churned to mud under their feet.
+D2x_Intro	233.25	Act Five, in pale cracked letters on dark mottled stone.
+D2x_Intro	236.1	Lord of Destruction, in the same pale letters.
 # D2x_Out
-D2x_Out	4.2	In a vast cavern, rock spires hang over a glowing mist as slabs of stone tumble past.
-D2x_Out	17.0	Far down a ruined stone causeway lit by braziers stands Tyrael, wings of light spread wide.
-D2x_Out	24.0	His wings hover over a narrow stone bridge leading to the Worldstone, a huge mass of glowing red crystal.
-D2x_Out	31.6	Tyrael, hooded and armored, raises his great sword high, then grips it point down before him.
-D2x_Out	38.4	On the bridge, his wings of light ripple and fold around him.
-D2x_Out	43.9	Head bowed over the sword, he begins to pray, and light streams down the blade.
-D2x_Out	49.8	With a crackle, blue crystal creeps up the brazier stands on the bridge.
-D2x_Out	55.2	The crystal spreads over Tyrael's own armor as he keeps praying.
-D2x_Out	60.0	Both braziers are now sheathed in crystal, and it crusts Tyrael's arm and shoulder.
-D2x_Out	69.3	His prayer ends. He shakes off the crystal and looks up.
-D2x_Out	73.9	He raises his sword high and hurls it, a streak of light, into the red crystal.
-D2x_Out	79.7	Where it strikes, a swirling ring of white light tears open. The cavern rumbles.
-D2x_Out	85.7	Lodged in the crystal, the sword glows as red cracks spread across the mass.
-D2x_Out	91.4	The red crystal bursts, and shards rain down over the stone bridge.
-D2x_Out	96.5	Red lightning splits the crystal from within as it heaves and breaks apart.
-D2x_Out	102.1	A seam of white fire runs down its whole length, and fragments fly out into the dark.
-D2x_Out	108.4	The mass crumbles until only a glowing red seam remains.
-D2x_Out	112.6	Then a blinding blue-white blast swallows everything, and all goes dark.
+D2x_Out	4.2	In a vast cavern, ridged rock spires and carved stone pillars hang from the roof like inverted towers over a golden glowing mist, and slabs of stone tumble past into the depths.
+D2x_Out	13.1	The rock walls glow a dim red, seamed and jagged.
+D2x_Out	17.0	Far down a ruined stone causeway, lit by braziers burning on squat stone stands, stands Tyrael, tiny in the distance, his wings of light spread wide and streaming.
+D2x_Out	25.25	His wings hover over a narrow stone bridge that leads to the Worldstone, a huge mass of glowing red crystal filling the cavern wall, braziers flaming at the bridge's end.
+D2x_Out	33.8	Tyrael, hooded, his face lost in shadow, in pale ornate armor with spiked gold-edged pauldrons, raises a great sword high in both hands, then grips it point down before him.
+D2x_Out	42.5	On the bridge, his wings of light ripple and fold around him like streamers.
+D2x_Out	46.3	Head bowed over the sword, hands on the hilt, he prays, and light streams down the blade.
+D2x_Out	50.75	Blue crystal creeps up the brazier stands at the bridge's end, sheathing them in spires.
+D2x_Out	55.15	The crystal spreads over Tyrael's own armor as he keeps praying, frosting his shoulder guard.
+D2x_Out	59.8	Both braziers are now sheathed in crystal; it crusts his arm and shoulder and creeps toward his hood.
+D2x_Out	64.85	He lifts his head; on the bridge, the crystal has grown into tall blue spires.
+D2x_Out	68.75	He shakes off the crystal in glittering shards and raises his sword high in both hands.
+D2x_Out	73.15	He hurls it, a streak of light arcing over the bridge, into the red crystal.
+D2x_Out	77.5	Where it strikes, a swirling ring of white light tears open in the red mass, rubble scattered below.
+D2x_Out	82.6	Lodged in the crystal, the sword glows white, and a web of cracks spreads out from it across the red mass.
+D2x_Out	87.9	The cracks race outward, light leaking through them.
+D2x_Out	91.9	The red crystal bursts, and shards rain down over the stone bridge and its glowing lamps.
+D2x_Out	96.4	Red lightning splits the crystal from within as it heaves and breaks apart, chunks spinning away.
+D2x_Out	101.25	A seam of white fire runs down its whole length, and fragments fly out into the dark.
+D2x_Out	105.55	The mass crumbles away until only a glowing red seam remains in a cloud of pale dust.
+D2x_Out	111.0	Then a blinding blue-white blast swallows everything, dark slabs tumbling through the glare, and all goes black.

@@ -1,171 +1,201 @@
 # Audio description for the 2000 (classic) act cinematics, Spanish (Spain): story narration for the gaps between dialogue, adapted from the 2021 text to what the classic frames show. One cue per line: video, seconds, text (tab separated).
 # d2intro
-d2intro	10.8	Letras en llamas: Blizzard Entertainment presenta.
-d2intro	19.9	En un pasillo de celdas, una araña corre por el suelo y pasan unos pies con túnica.
-d2intro	26.2	Una verja chirría. Un encapuchado de túnica larga sigue por el pasillo.
-d2intro	32.1	En una celda vacía, un anciano frágil yace en el suelo bajo un haz de luz.
-d2intro	37.7	Demacrado y medio calvo, apoya la mejilla en la piedra, murmurando.
-d2intro	43.9	Tras él, la puerta de la celda se ha abierto con un chirrido y aparece el encapuchado.
-d2intro	50.4	Un látigo chasquea y un hombre grita.
-d2intro	53.6	El anciano levanta la cabeza. De lejos llegan vítores y risas.
-d2intro	58.8	Gimoteando, se encoge y su plato sale rodando.
-d2intro	63.1	Junto a la ventana enrejada, el desconocido se sienta, encapuchado.
-d2intro	74.3	Un destello: el desconocido aparece como ángel.
-d2intro	131.95	El rostro de Marius se funde en un brasero.
-d2intro	152.55	En una taberna, un camarero se acerca a Marius.
-d2intro	158.7	Marius solo gruñe, con los ojos entornados.
-d2intro	161.9	El camarero resopla con asco y se va con su bandeja.
-d2intro	193.1	Se abre una puerta y aúlla el viento. Marius mira fijo.
-d2intro	197.6	Un viajero encapuchado llena el umbral.
-d2intro	212.53	Su espada rasca.
-d2intro	230.72	Cruje el suelo al pasar junto a un bebedor.
-d2intro	235.3	El bebedor, flaco y calvo, lo mira por encima de sus velas y sonríe.
-d2intro	241.2	El viajero se sienta, clava la espada y se apoya en la empuñadura.
-d2intro	255.95	El bebedor se carcajea. El viajero hace una mueca.
-d2intro	260.4	Gruñe, y surge un resplandor verde.
-d2intro	266.9	La risa del bebedor se vuelve inhumana.
-d2intro	270.8	Con estrépito, el viajero se desploma junto a su espada.
-d2intro	275.0	El bebedor calla. Brota fuego del suelo.
-d2intro	279.3	Un demonio colmilludo y torcido gatea por el suelo, gruñendo.
-d2intro	284.0	Marius gime; el fuego barre el suelo. Ríen los demonios.
-d2intro	320.3	Esqueletos en llamas atacan. Marius mira horrorizado.
-d2intro	324.1	Un rayo blanco golpea a un cliente. Los esqueletos en llamas se acercan.
-d2intro	329.3	En una mesa, un cliente calvo alza su espada contra un esqueleto.
-d2intro	334.2	El camarero arde, gritando con los brazos en alto.
-d2intro	338.0	Un rayo blanco da en el pecho a un hombre y lo lanza atrás.
-d2intro	342.7	Un cliente forcejea con un esqueleto entre las llamas.
-d2intro	347.9	El vagabundo gime con los brazos abiertos entre esqueletos que giran.
-d2intro	353.3	Sale humo verde de su capucha. Se encorva y cae al suelo.
-d2intro	360.4	Chillan murciélagos. Un demonio rojo repta entre los barriles.
-d2intro	365.1	Marius se encoge junto a la pared, aferrando una pipa larga que cae.
-d2intro	370.8	El vagabundo está ante un muro de fuego, rodeado de cuerpos y espadas.
-d2intro	376.7	Camina despacio hacia las llamas.
-d2intro	379.6	Tras él, Marius se acerca y lo ve marchar.
-d2intro	383.2	Luego Marius lo sigue entre las llamas.
-d2intro	388.0	Sale a toda prisa, abrazándose.
-d2intro	418.0	Sobre la taberna ardiendo en el bosque nevado, letras en llamas forman Diablo II: Resurrected.
+d2intro	10.5	Sobre negro, pálidas letras metálicas: «Blizzard Entertainment presenta», con llamas sobre cada letra.
+d2intro	16.1	Las llamas se apagan hasta quedar en oscuridad.
+d2intro	19.6	Tras unos barrotes, un largo pasillo gris de prisión; luz brumosa entra por altos ventanales al fondo.
+d2intro	24.9	Una gruesa araña cruza las losas; junto a los barrotes pasa una túnica pálida.
+d2intro	29.0	La verja se abre; el desconocido encapuchado, de gris pálido, se aleja por el pasillo hacia la luz.
+d2intro	34.3	Una celda de piedra desnuda: un anciano frágil yace en el suelo bajo un haz de luz, con un jergón de paja en un rincón.
+d2intro	40.5	Demacrado, calvo y de barba blanca, mejilla en la piedra y ojos abiertos, traza formas con un dedo junto a su plato.
+d2intro	46.8	Tras él se abre la puerta de la celda y la luz inunda la pared; una figura oscura aparece en el umbral.
+d2intro	52.9	Alza la cabeza, el rostro arrugado crispado y la boca abierta, y mira alrededor.
+d2intro	57.8	Retrocede a rastras por el suelo iluminado hacia el jergón; su plato sale resbalando.
+d2intro	62.7	Pasa ante una alta ventana enrejada y se sienta ante ella, capucha puesta, manos en las rodillas, rostro en sombra.
+d2intro	74.3	Un destello: aparece como un ángel de armadura dorada y alas de luz.
+d2intro	131.92	Su rostro se funde con un brasero: cesto de hierro perforado.
+d2intro	152.5	En una taberna en penumbra, un camarero se acerca a Marius.
+d2intro	158.7	Marius, más joven, rapado, sin afeitar, se desploma en la silla, cabeza atrás, ojos cerrados.
+d2intro	163.5	El camarero, rechoncho y calvo, con túnica de punto, lo mira con desdén y se va.
+d2intro	193.1	Marius levanta la vista hacia la puerta, ceño fruncido, ojos muy abiertos.
+d2intro	196.9	Una ráfaga dobla la llama de un farol enjaulado en un poste.
+d2intro	212.5	Entra un encapuchado.
+d2intro	230.75	Espada en mano, pasa junto a la mesa de un bebedor.
+d2intro	235.3	El bebedor, calvo, nervudo, de brazos desnudos y chaleco, lo mira sobre las velas y esboza una sonrisa socarrona.
+d2intro	241.25	El vagabundo se sienta junto a un poste, clava la espada en el suelo y se derrumba sobre el pomo.
+d2intro	255.9	Bajo la capucha el vagabundo hace una mueca; su rostro destella en verde.
+d2intro	259.85	El bebedor sonríe con la jarra.
+d2intro	261.45	El vagabundo gruñe, en verde.
+d2intro	266.9	Al bebedor se le borra la sonrisa; boquiabierto.
+d2intro	269.5	Algo oscuro pasa veloz ante los faroles.
+d2intro	271.8	El vagabundo cae de cabeza sobre la mesa, junto a la espada; el bebedor, boquiabierto, se toca el cuello.
+d2intro	277.4	Brota fuego del suelo junto al poste del brasero.
+d2intro	280.0	Un demonio rojo y colmilludo repta a cuatro patas.
+d2intro	283.0	Marius mira, petrificado.
+d2intro	284.3	El fuego estalla junto al brasero, con demonios saltando, y barre el suelo.
+d2intro	320.3	Un esqueleto en llamas blande una espada; Marius mira arriba, boquiabierto.
+d2intro	324.5	Un rayo blanco alcanza a un cliente entre las llamas; un esqueleto ardiente blande una maza.
+d2intro	329.7	Sobre una mesa, un calvo con chaleco alza la espada a dos manos; un esqueleto lo ataca.
+d2intro	334.4	Las llamas envuelven al camarero y su bandeja.
+d2intro	337.2	Un rayo blanco da en el pecho a un hombre de túnica, que cae de espaldas, brazos abiertos.
+d2intro	341.7	Un cliente de brazos desnudos cruza espadas con un esqueleto en llamas y lo agarra.
+d2intro	346.0	Una columna de fuego sube por la sala, con esqueletos y demonios entre las llamas; el vagabundo abre los brazos, encapuchado.
+d2intro	352.3	Cintas blancas lo azotan y humo verde mana de sus brazos; se agarra la cabeza.
+d2intro	356.7	Murciélagos entre el fuego; el vagabundo, arrodillado en bruma verde, se encorva.
+d2intro	360.8	Llamas trepan por la pared.
+d2intro	362.3	Una babosa demoníaca roja repta entre barriles.
+d2intro	364.7	Marius, pegado al muro de piedra tras una celosía, mira; levanta su larga pipa y la deja caer.
+d2intro	370.0	El vagabundo, encapuchado, ante un muro de fuego, con cuerpos y una espada clavada a sus pies junto a un poste.
+d2intro	375.7	Camina despacio hacia las llamas, hacia la galería de arriba.
+d2intro	379.0	Marius aparece tras él, con la cabeza rapada oscura contra el incendio, y lo ve marchar.
+d2intro	383.9	Luego lo sigue, adentrándose en el fuego tras él.
+d2intro	386.4	Camina más adentro, con los brazos a los costados.
+d2intro	389.2	Cuerpos en la nieve.
+d2intro	417.9	Letras de fuego componen Diablo Dos sobre la taberna incendiada entre abetos nevados; luego, sobre negro, aparece debajo Resurrected en pequeñas mayúsculas cobrizas.
 # Act02start
-Act02start	4.8	Acto Dos, en letras pálidas sobre piedra mugrienta tallada con símbolos.
-Act02start	14.05	Desierto.
-Act02start	155.25	Una torre de la colina despide luz roja.
-Act02start	158.4	Marius despierta junto a la hoguera.
-Act02start	172.75	Un lobo aúlla a la luna. La noche da paso a una mañana luminosa.
-Act02start	192.8	Lut Gholein se extiende junto al mar.
+Act02start	2.0	Piedra pardo oxidado, descascarillada, con motas gris azul.
+Act02start	5.0	Acto Dos, en pálidas letras finas, cruza la piedra manchada; a la izquierda, una columna de emblemas oscuros.
+Act02start	10.7	Las letras se desvanecen y la pantalla se queda en negro.
+Act02start	13.8	Un desierto pálido.
+Act02start	155.3	Rayos rojos salen de una torre en una duna oscura.
+Act02start	158.5	Marius despierta de golpe junto al fuego.
+Act02start	172.8	Nubes oscuras sobre el fuego; arriba, luna llena; luego el cielo azul y el sol resplandeciente.
+Act02start	192.8	Marius sigue solo hacia la ciudad junto al mar, abajo.
 # Act03start
-Act03start	4.8	Acto Tres, en letras pálidas sobre piedra oscura manchada de rojo y naranja.
-Act03start	25.75	Entra el viento.
-Act03start	71.6	Chillan murciélagos al cruzar ambos un vasto salón oscuro; Marius alumbra.
-Act03start	77.6	Un lamento resuena lejos. El vagabundo se detiene y Marius alza la antorcha.
-Act03start	83.6	El vagabundo, calvo y demacrado, se alza sobre Marius y se dobla gruñendo.
-Act03start	89.5	Grita. Marius lo mira con espanto.
-Act03start	92.3	Bultos y cuernos brotan de su cráneo y su piel burbujea.
-Act03start	97.4	Silencio. Marius se encoge con la antorcha.
-Act03start	115.4	El fuego corre por el suelo en torno a un alto pilar envuelto en zarcillos. Un lamento.
-Act03start	121.9	El vagabundo entra a zancadas, Marius con la antorcha.
-Act03start	142.8	El vagabundo grita. Una luz blanca azota un puente de cuerda, que estalla en llamas.
-Act03start	149.6	Marius mira, antorcha en mano, cómo arde y cruje el puente.
-Act03start	154.2	Tal Rasha gime atado, con una gema brillando en el pecho.
-Act03start	158.9	Mientras el vagabundo repta por el puente, Tyrael aterriza ante él, alas abiertas.
-Act03start	164.8	Cintas de luz blanca azotan al vagabundo.
-Act03start	168.6	Tal Rasha se debate y gime. Tyrael agarra al vagabundo.
-Act03start	173.4	Marius, paralizado, mira.
-Act03start	181.2	Marius se tambalea, cabizbajo, y extiende la mano.
-Act03start	187.5	Marius cruza el puente ardiendo, antorcha en alto, asido a la cuerda.
-Act03start	192.6	Tyrael combate al vagabundo en una tormenta de luz.
-Act03start	200.0	Chocan espadas. Marius se acerca a Tal Rasha.
-Act03start	203.6	Alcanza la gema que brilla en el pecho de Tal Rasha.
-Act03start	210.5	Marius arranca la gema amarilla.
-Act03start	239.2	Tyrael clava la espada mientras Tal Rasha salta entre llamas, azotando con las cuerdas.
-Act03start	245.6	Tal Rasha se debate y grita entre las llamas, con las cuerdas azotando.
-Act03start	251.5	Marius huye a la luz del día.
+Act03start	2.0	Piedra oscura teñida de rojo y naranja, gris azulado arriba.
+Act03start	5.1	Acto Tres, en pálidas letras finas, cruza la piedra manchada; regueros rojos resbalan por ella.
+Act03start	10.1	Las letras se desvanecen, la piedra se oscurece y todo queda negro.
+Act03start	25.75	Marius entra con antorcha.
+Act03start	65.1	Entran en un salón inmenso.
+Act03start	71.6	Cruzan el gran salón sobre baldosas rotas, entre bloques caídos: delante, el vagabundo con su túnica; detrás, Marius alumbra con la antorcha; pasan murciélagos.
+Act03start	80.0	El vagabundo se detiene; Marius se pone a su lado y alza la antorcha.
+Act03start	84.5	El vagabundo, alto, calvo y demacrado, con capa oscura, se alza sobre Marius y se dobla.
+Act03start	89.0	Su pálido rostro se crispa; Marius mira, mano al pecho.
+Act03start	92.5	Bultos y cuernos brotan de su cráneo calvo mientras la piel burbujea.
+Act03start	96.3	Marius se encoge en el suelo con su antorcha, retrocediendo a rastras del vagabundo.
+Act03start	115.4	Se encienden braseros uno tras otro y el fuego corre por canales hasta rodear un alto obelisco envuelto en zarcillos sobre un montículo.
+Act03start	122.5	El vagabundo cruza a zancadas una puerta de piedra; Marius lo sigue.
+Act03start	142.8	Cintas de luz blanquiazul azotan al vagabundo y lo lanzan rodando; el puente de cuerda sobre el abismo arde, tablón a tablón.
+Act03start	149.7	Marius mira el puente en llamas, antorcha en una mano, la otra extendida.
+Act03start	153.6	Tal Rasha cuelga atado ante un muro de fuego, consumido, con los brazos extendidos.
+Act03start	158.0	El vagabundo gatea por el puente en llamas, azotado por luz blanquiazul; Tyrael cae en picado en un estallido blanco.
+Act03start	164.2	Tyrael, pequeña figura ardiente en los tablones, lanza cintas de luz blanca al vagabundo.
+Act03start	168.8	Tal Rasha se debate; una gema amarilla brilla en su pecho.
+Act03start	172.2	Tyrael, encapuchado, de blanco y oro, agarra al vagabundo.
+Act03start	181.2	Marius se tambalea, la vista baja, y extiende una mano.
+Act03start	187.5	Las llamas devoran los tablones; Marius pisa el puente.
+Act03start	190.3	Antorcha en alto, cruza agarrado a la cuerda ardiendo.
+Act03start	193.8	Tyrael, encapuchado, arde en blanco, alas abiertas.
+Act03start	200.0	Antorcha en mano, Marius se acerca a Tal Rasha y lo mira.
+Act03start	203.3	Alarga la mano hacia la gema del pecho de Tal Rasha y cierra los dedos sobre ella.
+Act03start	210.5	Marius arranca la gema y se queda mirándola.
+Act03start	239.15	Tyrael, alas de luz abiertas, clava su espada; Tal Rasha se lanza del montículo, cuerdas al aire.
+Act03start	244.5	Tyrael sube veloz en una columna de luz blanquiazul.
+Act03start	247.2	Tal Rasha se debate entre llamas, cuerdas al aire, el rostro una calavera.
+Act03start	251.6	Marius corre hacia la luz del día.
 # Act04start
-Act04start	4.8	Acto Cuatro, en letras pálidas sobre piedra oscura veteada de brasas.
-Act04start	13.4	Marius se asoma con sigilo tras un pilar.
-Act04start	70.42	Un rayo restalla.
-Act04start	89.6	El círculo de runas estalla en luz blanca y las puertas del infierno arden.
-Act04start	123.8	El vagabundo grita, con sangre brotándole de los ojos. Se encorva sobre el suelo tallado.
-Act04start	138.0	Brota fuego de su espalda. Tras un pilar, Marius mira horrorizado.
-Act04start	143.1	Largas púas negras le desgarran la espalda y se abren.
-Act04start	147.5	Las puertas del infierno arden y gimen.
-Act04start	157.7	Ante un pilar de rayos se alza Diablo, un demonio rojo erizado de púas negras.
-Act04start	163.9	Sus pasos retumban al bajar del altar, con la cola arrastrando.
-Act04start	169.5	Su garra aplasta un montón de huesos.
-Act04start	187.0	Diablo se adentra en la luz ondulante de las puertas y desaparece.
-Act04start	191.9	Oculto en un umbral, Marius llora, con los rayos destellando tras él.
-Act04start	197.2	Se lleva la piedra a los labios, y su brillo amarillo le ilumina el rostro.
-Act04start	202.6	Ante él, las puertas del infierno siguen ardiendo, con rostros atormentados que se retuercen en su superficie.
+Act04start	2.1	Piedra oscura agrietada, moteada de azul y naranja.
+Act04start	4.8	Acto Cuatro, en pálidas letras doradas sobre la piedra moteada, finas y gastadas como dorado viejo.
+Act04start	10.0	Las letras se desvanecen, y luego la piedra, hasta el negro.
+Act04start	14.8	Marius se asoma tras un pilar.
+Act04start	70.42	Mefisto: el pecho arde blanco.
+Act04start	89.6	Bajo los tres, el vasto disco de runas talladas estalla en luz blanca y escombros negros giran en el resplandor.
+Act04start	123.75	Sangre brota de los ojos del vagabundo por su rostro gris agrietado.
+Act04start	127.7	Se agacha sobre el suelo de runas, cabeza gacha.
+Act04start	138.0	Púas negras rasgan la espalda de su túnica entre fuego naranja.
+Act04start	141.2	Marius mira, tras el pilar.
+Act04start	143.0	Largas púas negras se abren desde la espalda del vagabundo como patas, con fuego entre ellas, y lo parten.
+Act04start	148.6	Las puertas del infierno arden.
+Act04start	157.7	Diablo se alza en la plataforma del altar ante una columna de rayos blancos: un enorme demonio de piel roja, púas negras por el lomo y larga cola de púas.
+Act04start	165.7	Baja a zancadas de la plataforma, cornudo y surcado de músculos.
+Act04start	169.6	Su pie con garras aplasta calaveras y huesos.
+Act04start	186.9	Diablo avanza al resplandor blanco de las puertas del infierno y se hunde en su superficie.
+Act04start	191.9	Marius llora en un umbral, ojos cerrados, con la columna de rayos y las puertas ardiendo tras él.
+Act04start	197.3	Se lleva la piedra amarilla a los labios, vista baja.
+Act04start	200.3	La sostiene ante sus ojos y la mira; su brillo baña su rostro de verde y oro.
+Act04start	204.3	Las puertas del infierno siguen ardiendo, con rostros atormentados que se retuercen en su superficie gris; luego todo se oscurece.
 # Act04end
-Act04end	4.8	Epílogo, en letras pálidas sobre piedra oscura salpicada de rojo y naranja.
-Act04end	13.7	Un portón se cierra. Marius yace en su celda.
-Act04end	21.6	En un mar de fuego, una figura azul fantasmal se arranca de Diablo.
-Act04end	37.9	Solo en su celda, Marius solloza en su catre.
-Act04end	41.5	Con los ojos cerrados, se lleva una mano temblorosa a la frente.
-Act04end	68.0	El encapuchado cruza la celda y se alza sobre él.
-Act04end	79.5	El desconocido se cierne sobre él. Marius busca bajo el cuello de su túnica la piedra.
-Act04end	89.2	Tiende la piedra.
-Act04end	103.7	Marius se encoge a sus pies.
-Act04end	106.7	Voces gritan a lo lejos. Marius abre la palma y el desconocido toma la piedra.
-Act04end	126.0	Su rostro real arde.
-Act04end	149.6	Zarcillos oscuros brotan de la túnica de Baal hacia Marius. Su grito se apaga.
-Act04end	155.7	Marius yace en un charco de sangre en la celda.
-Act04end	159.4	Baal se va mientras un fuego dorado inunda toda la celda.
-Act04end	164.5	Baal sale de un muro de fuego a un salón alto y sombrío, la túnica ondeando.
-Act04end	170.4	Escarabajos negros cubren el suelo mientras avanza, el fuego rugiendo tras él.
-Act04end	176.1	Las llamas lamen el borde de su túnica.
-Act04end	179.7	Gritos se alzan a lo lejos mientras las llamas se tornan blancas y su túnica oscura engulle la luz.
+Act04end	2.1	Piedra oscura moteada, azul y naranja, con tenues herrajes.
+Act04end	5.5	Epílogo, en pálidas letras doradas y gastadas; se desvanecen tras unos segundos y la piedra se queda en negro.
+Act04end	13.75	Marius yace en un jergón en una celda de piedra soleada.
+Act04end	21.55	Una figura azul fantasmal se arranca de Diablo, agazapado en un mar de fuego; luego, resplandor blanco.
+Act04end	37.75	La luz del día cae desde la alta ventana enrejada hasta Marius, hecho un ovillo en su jergón.
+Act04end	42.8	Calvo y de barba blanca, llora, con un puño trémulo en la frente.
+Act04end	67.95	El desconocido encapuchado, de gris pálido, cruza y se alza sobre Marius.
+Act04end	79.45	El desconocido se cierne sobre él, manos al pecho, el rostro oscuro bajo la capucha.
+Act04end	83.65	Marius se mete la mano en la túnica y alza la vista.
+Act04end	89.2	Le tiende la piedra amarilla.
+Act04end	103.7	Marius se encoge a sus pies, la piedra apretada en el puño, la cabeza baja.
+Act04end	107.8	Abre la palma sobre la piedra y los largos dedos pálidos del desconocido se la arrebatan.
+Act04end	126.0	Rostro muerto bajo la capucha.
+Act04end	149.6	Zarcillos rojos salen de Baal, un rostro de demonio cornudo salta de la capucha, y todo se oscurece.
+Act04end	154.7	En la celda, Marius yace en un charco de sangre junto a su jergón, en la luz de la ventana.
+Act04end	159.7	Baal cruza el suelo alejándose; un fuego dorado estalla tras él e inunda toda la celda, paredes incluidas.
+Act04end	165.2	Baal sale de un muro de fuego amarillo a un alto salón en penumbra de piedra pálida, con pilares cuadrados y un taburete, la túnica ondeando.
+Act04end	172.7	Escarabajos negros pululan por las losas a sus pies mientras camina; cuerdas azotan de su capucha.
+Act04end	178.2	Se acerca, sereno, llamas lamiendo el borde de su túnica.
+Act04end	181.1	Las llamas se vuelven blancas, su túnica oscura lo cubre todo; luego todo se oscurece.
 # D2x_Intro
-D2x_Intro	6.0	De la oscuridad surge un vasto y sombrío salón de piedra, iluminado por candelabros y un brasero humeante.
-D2x_Intro	14.6	Un hombre con una larga capa oscura pasa a zancadas hacia las grandes puertas del fondo.
-D2x_Intro	21.6	Una fina línea de luz parte las puertas, que se abren. Entra el viento.
-D2x_Intro	27.0	Fuera, un paso nevado de montaña con estandartes rojos.
-D2x_Intro	31.4	El hombre, con capa roja ribeteada de piel, llega al umbral con un alto asta de estandarte y se detiene.
-D2x_Intro	41.8	Sale entre las enormes puertas con remaches de hierro. Su estandarte ondea al viento.
-D2x_Intro	50.0	Desde lo alto, el vasto muro tallado de la fortaleza se precipita hacia abajo, con estandartes rojos colgando de su cara.
-D2x_Intro	59.0	En la puerta, un viejo guerrero de barba gris, gorro de piel y armadura de placas.
-D2x_Intro	65.0	Frente a él, tras un puente nevado, estandartes rojos y una horda oscura.
-D2x_Intro	70.7	Se tapa los ojos del sol y mira a lo lejos.
-D2x_Intro	75.3	Un cuerno resuena en el paso.
-D2x_Intro	78.0	Entre los estandartes se alza un gran trono, con velas de tela pálida abiertas como alas.
-D2x_Intro	84.5	A su lado marchan demonios cornudos con armadura y hachas.
-D2x_Intro	90.5	El guerrero baja la mano y mira, con espanto en el rostro.
-D2x_Intro	94.9	En el trono, un demonio pálido entre zarcillos sonríe con saña.
-D2x_Intro	101.9	Tras él, las grandes puertas crujen al cerrarse.
-D2x_Intro	105.9	Mira atrás cuando se cierran de golpe, dejándolo fuera con la horda.
-D2x_Intro	111.2	Baja la cabeza junto a su estandarte; luego la levanta y echa los hombros atrás.
-D2x_Intro	117.3	Suelta un largo suspiro y se enfrenta al trono.
-D2x_Intro	121.0	Alza la mano.
-D2x_Intro	150.9	El grito de Baal resuena en los picos. El guerrero se agarra la cabeza.
-D2x_Intro	156.4	Baal gruñe. Una piedra amarilla brilla en su pecho.
-D2x_Intro	160.1	El guerrero se quita el gorro y lo abraza contra el pecho, con la cabeza calva baja.
-D2x_Intro	172.4	El guerrero espera, descubierto. Baal acaricia la piedra luminosa con una mano de garras.
-D2x_Intro	179.6	Sonríe con desdén y alza la mano, garras abiertas.
-D2x_Intro	183.3	Un estruendo sacude los muros de la fortaleza. El guerrero alza la vista.
-D2x_Intro	188.8	Baal sonríe y encorva sus dedos de garras.
-D2x_Intro	193.0	El guerrero mira arriba, alarmado.
-D2x_Intro	195.5	Baal aferra la piedra y gruñe.
-D2x_Intro	198.3	Brota fuego de su trono y cruza el puente hacia la puerta.
-D2x_Intro	203.4	Se enrosca en torno al guerrero.
-D2x_Intro	206.3	Un anillo de fuego se cierra sobre él. Solo queda una mancha roja.
-D2x_Intro	219.0	Baal se carcajea en su trono.
-D2x_Intro	222.3	La horda ruge y avanza hacia la puerta: demonios cornudos con hachas y figuras encapuchadas que arrastran el trono.
-D2x_Intro	231.0	Diablo II Expansion, en letras pálidas sobre piedra oscura.
-D2x_Intro	236.0	Lord of Destruction.
+D2x_Intro	5.3	De la oscuridad surge un vasto y lúgubre salón de piedra: altos candelabros encendidos entre pilares cuadrados, largos cortinajes en los arcos, un brasero de hierro sobre las losas, niebla.
+D2x_Intro	15.5	Un hombre corpulento de larga capa pasa a zancadas hacia las grandes puertas del fondo.
+D2x_Intro	20.0	Se acerca a las altísimas puertas.
+D2x_Intro	22.4	Una fina línea de luz blanca parte las puertas por la mitad y se ensancha mientras se abren.
+D2x_Intro	27.1	Más allá, un pico nevado bajo un cielo pálido y, lejos, una hilera de estandartes rojos. El hombre llega al umbral.
+D2x_Intro	33.2	Se detiene entre las enormes puertas de hierro: capa roja de cuello de piel, un asta alta de estandarte y un brasero ardiendo a su lado.
+D2x_Intro	40.5	Espera; el estandarte rojo cuelga del asta, rematada en media luna con cuernos, y ondea al viento.
+D2x_Intro	46.4	Estandartes lejanos y la montaña; el paso, blanco y desolado, con nieve al viento.
+D2x_Intro	50.5	La muralla cae bajo la puerta: una plataforma redonda en un saliente nevado, con largos estandartes rojos colgando de los altos muros y antorchas entre ellos.
+D2x_Intro	58.6	En la puerta, un viejo guerrero: barba gris, gorro de piel redondo, capa roja sobre armadura de bronce tachonada, el asta en la mano.
+D2x_Intro	65.7	Ante él, en la nieve, estandartes rojos en picas entre dos columnas encadenadas y una horda detrás.
+D2x_Intro	70.7	Se protege los ojos con la mano y los mira.
+D2x_Intro	73.3	Montañas grises tras los estandartes; entre ellos se agitan figuras.
+D2x_Intro	77.0	Un gran trono se alza entre los estandartes, con alas de tela pálida como velas encima y figuras oscuras con antorchas al lado.
+D2x_Intro	83.5	Criaturas acorazadas y cornudas con hachas se agolpan en torno al trono, con sus alas extendidas encima y nieve al viento por el campo.
+D2x_Intro	90.8	El viejo guerrero baja la mano y mira, con la boca tensa y el temor en el rostro.
+D2x_Intro	94.9	En el trono, un demonio pálido y calvo frunce el ceño, zarcillos grises en los hombros.
+D2x_Intro	101.8	Tras el viejo guerrero se cierran las grandes puertas; su estandarte ondea, el rostro firme y sombrío.
+D2x_Intro	107.2	Mira atrás por encima del hombro mientras se cierran, dejándolo fuera, solo, con la horda.
+D2x_Intro	112.3	Se vuelve hacia el paso, aferrando el asta, echa los hombros atrás y alza la barbilla.
+D2x_Intro	118.7	El trono espera entre los estandartes; el guerrero levanta su mano libre.
+D2x_Intro	150.8	Picos nevados sobre el paso bajo un cielo cegador.
+D2x_Intro	153.4	Doblado, el guerrero se agarra la cabeza de dolor.
+D2x_Intro	156.0	Baal fulmina desde el trono, calvo, pálido, el cráneo lleno de bultos, una piedra amarilla brillando en el pecho.
+D2x_Intro	161.7	El guerrero se quita el gorro de piel y se lo lleva al pecho, con la cabeza calva al aire.
+D2x_Intro	172.3	Baal pasa una garra sobre la piedra de su pecho; el guerrero espera descubierto, mirando arriba; Baal cierra los ojos, cabeza ladeada.
+D2x_Intro	179.5	Luego sonríe con desdén y alza la mano abierta.
+D2x_Intro	182.2	Los altos muros se estremecen, los estandartes se balancean y cae polvo de la piedra.
+D2x_Intro	186.6	El guerrero los mira. Los muros temblorosos sueltan polvo.
+D2x_Intro	189.8	Baal, dientes apretados, aprieta los puños, la piedra brillando entre ellos.
+D2x_Intro	193.9	El guerrero, gorro en mano, mira arriba boquiabierto.
+D2x_Intro	197.0	Baal junta las manos en torno a la piedra; remolinea fuego.
+D2x_Intro	200.4	Una cinta de fuego cruza el campo nevado desde el trono y recorre el muro de la fortaleza hacia la puerta.
+D2x_Intro	205.8	Llega al guerrero, gorro en mano en la puerta, y lo rodea.
+D2x_Intro	209.3	El anillo se cierra; queda una mancha roja.
+D2x_Intro	219.0	Baal sonríe de oreja a oreja y barre el aire.
+D2x_Intro	221.5	La horda rebasa el trono hacia la puerta: brutos cornudos con hachas, figuras encapuchadas que arrastran con cuerdas el carro del trono, un bosque de lanzas, la nieve pisoteada.
+D2x_Intro	231.4	Un destello blanco; en pequeñas mayúsculas doradas sobre piedra oscura, Diablo Dos: Expansión.
+D2x_Intro	236.4	La piedra destella en oro y Lord of Destruction ocupa su lugar en mayúsculas mayores, en dos líneas.
+D2x_Intro	241.4	El título destella y todo se vuelve negro.
 # D2x_Out
-D2x_Out	4.2	En una vasta caverna, rocas dentadas y agujas negras acanaladas cuelgan sobre una niebla dorada mientras pasan flotando losas de piedra.
-D2x_Out	17.0	Al fondo de una calzada de piedra flanqueada de braseros rojos está Tyrael, con las alas de luz desplegadas.
-D2x_Out	24.8	Más allá se alza la Piedra del Mundo, un enorme cristal rojo, mientras sus alas ondulan sobre el puente.
-D2x_Out	32.4	Tyrael, con capucha y el rostro en sombras, alza su gran espada con la punta hacia abajo.
-D2x_Out	39.3	En el puente, sus alas de luz ondulan y se pliegan a su alrededor.
-D2x_Out	44.2	Cabeza gacha, manos sobre la empuñadura, empieza a rezar.
-D2x_Out	48.9	Con un crujido, el cristal azul trepa por uno de los braseros.
-D2x_Out	54.0	Sigue rezando, con la cabeza gacha.
-D2x_Out	57.6	Restallan rayos. Los dos braseros están ya cubiertos de cristal azul.
-D2x_Out	63.2	Una luz dorada baja por su espada mientras reza.
-D2x_Out	69.2	Acaba su oración. Levanta la cabeza y aferra la espada.
-D2x_Out	73.4	Se gira y lanza su espada, una estela de luz, contra el cristal rojo.
-D2x_Out	78.7	Donde golpea se abre un anillo giratorio de luz blanca y saltan chispas.
-D2x_Out	84.4	La caverna retumba. A lo lejos brilla un anillo de luz en la enorme Piedra del Mundo.
-D2x_Out	91.1	El cristal rojo estalla y fragmentos negros y rojos vuelan entre luz blanca.
-D2x_Out	97.3	Enormes fragmentos oscuros caen entre la penumbra.
-D2x_Out	104.0	Un gran pedazo oscuro gira en luz azul pálida, envuelto en una nube de astillas.
-D2x_Out	109.8	Entonces la luz se apaga y solo quedan astillas flotando antes de que todo se oscurezca.
+D2x_Out	4.2	En una vasta caverna en penumbra pasan losas oscuras; abajo, una bruma dorada.
+D2x_Out	8.5	Agujas negras estriadas cuelgan del techo como torres invertidas sobre la bruma dorada, con una repisa de roca asomando bajo ellas.
+D2x_Out	17.0	Al fondo de una calzada de bloques de piedra moteada de rojo, flanqueada de pedestales con llamitas, está Tyrael, lejos, dorado, con las alas de luz ondeando.
+D2x_Out	25.2	Entre dos pedestales oscuros, sus alas ondean sobre un puente de cristal azul hasta la Piedra del Mundo, enorme masa de cristal rojo con un bloque tallado.
+D2x_Out	33.4	Tyrael, encapuchado, el rostro en sombra, resplandeciente de blanco, alza su gran espada a dos manos y luego la sujeta punta abajo.
+D2x_Out	40.2	En el puente, sus alas de luz se pliegan a su alrededor como serpentinas; rayos se abren sobre la masa roja.
+D2x_Out	45.7	Cabeza gacha sobre la espada, manos en la empuñadura, reza.
+D2x_Out	48.9	Un rayo violeta golpea un pedestal al final del puente y el cristal azul lo reviste.
+D2x_Out	53.8	Sigue rezando, cabeza gacha, la empuñadura dorada entre sus manos.
+D2x_Out	57.7	Relampaguea; los dos pedestales están ya revestidos de cristal azul, con sus alas ondeando entre ellos.
+D2x_Out	63.0	Una luz dorada baja por su espada mientras sigue rezando, con las manos sobre la empuñadura; sus alas barren de nuevo el puente.
+D2x_Out	69.4	Termina su oración: alza la cabeza y aferra la espada.
+D2x_Out	72.3	Gira de golpe, alas en un borrón de luz.
+D2x_Out	74.6	Sobre la calzada en ruinas, bajo un cielo rojo, la espada sale de su mano, un trazo dorado.
+D2x_Out	79.2	Donde impacta se abre un anillo giratorio de luz blanca, y saltan chispas por la roca roja.
+D2x_Out	84.0	A lo lejos, la Piedra del Mundo brilla roja como una brasa, con un haz blanco clavado en su costado.
+D2x_Out	89.3	Luz blanca brota de la herida y el cristal se agrieta; saltan esquirlas negras y rojas.
+D2x_Out	93.8	Pasan girando esquirlas, largas astillas negras y trozos rojos, entre luz cegadora.
+D2x_Out	98.0	Grandes fragmentos rojos ruedan en la penumbra.
+D2x_Out	100.5	La luz blanca se abre entre los fragmentos.
+D2x_Out	103.0	Un enorme trozo oscuro gira contra el resplandor blanquiazul, soltando astillas.
+D2x_Out	107.1	Se aleja girando, envuelto en astillas negras, mientras la luz crece a su alrededor.
+D2x_Out	111.4	Luego la luz se apaga y solo quedan astillas a la deriva, antes de que todo se vuelva negro.

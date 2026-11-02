@@ -1,171 +1,202 @@
 # Audio description for the 2000 (classic) act cinematics, German: story narration for the gaps between dialogue, adapted from the 2021 text to what the classic frames show. One cue per line: video, seconds, text (tab separated).
+# Audio description for the 2000 (classic) act cinematics, English: story narration for the gaps between dialogue, adapted from the 2021 text to what the classic frames show. One cue per line: video, seconds, text (tab separated).
 # d2intro
-d2intro	10.8	Flammende Buchstaben: Blizzard Entertainment präsentiert.
-d2intro	19.9	Im Zellengang huscht eine Spinne über den Boden, während Füße in Roben vorbeigehen.
-d2intro	26.2	Ein Gitter knarrt auf. Ein vermummter Fremder geht den Gang weiter entlang.
-d2intro	32.1	In einer kahlen Zelle liegt ein gebrechlicher Alter im Lichtstrahl.
-d2intro	37.7	Hager und fast kahl liegt er mit der Wange auf dem Stein und murmelt.
-d2intro	43.9	Hinter ihm knarrt die Zellentür auf: Der Vermummte steht im Eingang.
-d2intro	50.4	Eine Peitsche knallt, ein Mann schreit.
-d2intro	53.6	Der Alte hebt den Kopf. Aus der Ferne dringen Jubel und Gelächter.
-d2intro	58.8	Wimmernd weicht er zurück, sein Teller scheppert davon.
-d2intro	63.1	Der Fremde setzt sich ans Gitterfenster, das Gesicht verborgen.
-d2intro	74.3	Licht blitzt auf: Der Fremde erscheint als Engel.
-d2intro	131.95	Marius' Gesicht wird zum Feuerbecken.
-d2intro	152.55	In einer Taverne tritt ein Kellner zu Marius.
-d2intro	158.7	Marius stöhnt, die Augen halb zu.
-d2intro	161.9	Der Kellner schnaubt angewidert und geht mit seinem Tablett davon.
-d2intro	193.1	Eine Tür geht auf, Wind heult herein. Marius starrt.
-d2intro	197.6	Ein vermummter Reisender tritt ein.
-d2intro	212.53	Schwert schabt.
-d2intro	230.72	Dielen knarren; er geht am Zecher vorbei.
-d2intro	235.3	Der hagere Glatzkopf mustert ihn über seine Kerzen hinweg und grinst.
-d2intro	241.2	Er setzt sich, rammt das Schwert in den Boden und stützt sich auf den Griff.
-d2intro	255.95	Der Zecher kichert. Der Reisende verzieht das Gesicht.
-d2intro	260.4	Er knurrt, grünes Glühen steigt auf.
-d2intro	266.9	Das Lachen des Zechers wird unmenschlich.
-d2intro	270.8	Der Reisende sackt scheppernd neben dem Schwert um.
-d2intro	275.0	Der Zecher verstummt. Feuer schießt aus dem Boden.
-d2intro	279.3	Ein krummer Dämon mit Reißzähnen kriecht knurrend herbei.
-d2intro	284.0	Marius stöhnt, Feuer fegt über den Boden. Dämonen lachen.
-d2intro	320.3	Flammende Skelette greifen an. Marius erstarrt.
-d2intro	324.1	Ein weißer Blitz trifft einen Gast. Flammende Skelette setzen nach.
-d2intro	329.3	Ein Glatzkopf hebt auf dem Tisch das Schwert gegen ein Skelett.
-d2intro	334.2	Der Kellner brennt und schreit, die Arme hoch.
-d2intro	338.0	Ein weißer Blitz trifft einen Mann und wirft ihn zurück.
-d2intro	342.7	Ein Gast ringt in den Flammen mit einem Skelett.
-d2intro	347.9	Der Wanderer stöhnt, die Arme weit, Skelette wirbeln im Feuer.
-d2intro	353.3	Grüner Rauch quillt aus seiner Kapuze. Er krümmt sich und sackt zu Boden.
-d2intro	360.4	Ein roter Schneckendämon gleitet zwischen den Fässern.
-d2intro	365.1	Marius kauert an der Wand und umklammert eine lange Pfeife, sie fällt.
-d2intro	370.8	Der Wanderer steht vor einer Feuerwand, um ihn Leichen und Schwerter.
-d2intro	376.7	Er geht langsam auf die Flammen zu.
-d2intro	379.6	Hinter ihm tritt Marius vor und sieht ihm nach.
-d2intro	383.2	Dann folgt Marius ihm in die Flammen.
-d2intro	388.0	Er hastet hinaus, umarmt sich.
-d2intro	418.0	Über der brennenden Taverne im verschneiten Wald formen flammende Buchstaben Diablo II: Resurrected.
+d2intro	10.5	Auf Schwarz stehen blasse Metallversalien: Blizzard Entertainment präsentiert, Flammen über jedem Buchstaben.
+d2intro	16.1	Die Flammen erlöschen in der Dunkelheit.
+d2intro	19.6	Durch Eisenstäbe ein langer grauer Gefängnisgang, dunstiges Tageslicht durch hohe Bogenfenster am Ende.
+d2intro	24.9	Eine dicke Spinne kriecht über die Platten, eine lange helle Robe streift Gitter.
+d2intro	29.0	Das Tor schwingt auf; der vermummte Fremde geht in heller grauer Robe den Gang hinab, dem Licht entgegen.
+d2intro	34.3	In einer kahlen Steinzelle liegt ein gebrechlicher Alter im Lichtstrahl am Boden, in der Ecke ein Strohlager.
+d2intro	40.5	Hager, kahl, weiß bestoppelt, die Wange auf dem Stein, die Augen offen, zeichnet er mit knochigem Finger Formen.
+d2intro	46.8	Hinter ihm ist die Zellentür aufgegangen und flutet die Wand mit Licht; eine dunkle Gestalt steht im Eingang.
+d2intro	52.9	Er hebt den Kopf, das faltige Gesicht verzerrt, der Mund offen, und sieht sich um.
+d2intro	57.8	Er rutscht rückwärts über den hellen Boden zum Strohlager, sein Teller schlittert davon.
+d2intro	62.7	Der Fremde setzt sich vor ein hohes Gitterfenster, Kapuze auf, Hände auf den Knien, Gesicht im Schatten.
+d2intro	74.3	Lichtblitz: Er erscheint als goldgepanzerter Engel mit Lichtflügeln.
+d2intro	131.92	Sein Gesicht verblasst in einem lodernden Eisenkorb.
+d2intro	152.5	In einer dämmrigen Holztaverne kommt ein Kellner zu Marius.
+d2intro	158.7	Marius, jünger, kurzgeschoren, unrasiert, hängt im Stuhl, Kopf zurück, Augen zu, Mund offen.
+d2intro	163.5	Der stämmige Glatzkopf-Kellner sieht höhnisch auf ihn herab und geht mit Tablett davon.
+d2intro	193.1	Marius hebt den Blick zur Tür, die Stirn gerunzelt, die Augen weit.
+d2intro	196.9	Ein Luftzug biegt die Flamme einer Käfiglaterne am Pfosten.
+d2intro	212.5	Ein Vermummter tritt ein.
+d2intro	230.75	Das Schwert gesenkt, passiert er den Kerzentisch eines Zechers.
+d2intro	235.3	Der Zecher, kahl, drahtig, nackte Arme, in ärmelloser Weste, mustert ihn über die Kerzen und grinst schlau.
+d2intro	241.25	Der Wanderer setzt sich an einen Pfosten, rammt sein Schwert in den Boden und sackt über den Knauf.
+d2intro	255.9	Unter der Kapuze verzieht der Wanderer das Gesicht; es glimmt grün.
+d2intro	259.85	Der Zecher grinst überm Krug.
+d2intro	261.45	Der Wanderer knurrt, grün.
+d2intro	266.9	Sein Grinsen erstirbt; er starrt hinab.
+d2intro	269.5	Etwas Dunkles huscht an den Laternen vorbei.
+d2intro	271.8	Der Wanderer sackt mit dem Kopf auf den Tisch neben sein Schwert; der Zecher gafft, die Hand an der Kehle.
+d2intro	277.4	Neben dem Becken schießt Feuer aus dem Boden.
+d2intro	280.0	Ein roter Dämon krabbelt auf allen vieren umher.
+d2intro	283.0	Marius starrt, starr.
+d2intro	284.3	Feuer bricht am Becken auf, Dämonen springen darin, und fegt über den Boden.
+d2intro	320.3	Ein brennendes Skelett schwingt ein Schwert über den Flammen; Marius starrt.
+d2intro	324.5	Ein weißer Blitz trifft einen Gast in den Flammen; ein brennendes Skelett schwingt eine Keule.
+d2intro	329.7	Ein Glatzkopf in Weste hebt auf dem Tisch sein Schwert beidhändig gegen ein Skelett.
+d2intro	334.4	Feuer verschlingt den Kellner mit Tablett, Arme hoch.
+d2intro	337.2	Ein weißer Blitz trifft einen Mann in Robe in die Brust; er taumelt, Arme weit, stürzt.
+d2intro	341.7	Ein Gast mit nackten Armen ficht im Feuer mit einem Skelett und packt es.
+d2intro	346.0	Eine Feuersäule steigt durch die Halle, Skelette und Dämonen flackern darin; der Wanderer breitet die Arme aus.
+d2intro	352.3	Weiße Bänder peitschen ihn, grüner Rauch quillt von seinen Armen; er packt seinen Kopf.
+d2intro	356.7	Fledermäuse kreisen im Feuer; der Wanderer kniet im grünen Dunst und krümmt sich.
+d2intro	360.8	Flammen klettern die Holzwand.
+d2intro	362.3	Ein roter Dämon gleitet zwischen Fässern.
+d2intro	364.7	Marius, von einem Gitterschirm an die Wand gedrückt, starrt, hebt die Pfeife und lässt sie fallen.
+d2intro	370.0	Der Wanderer steht vermummt vor einer Feuerwand, zu Füßen Leichen und ein Schwert, bei einem brennenden Pfosten.
+d2intro	375.7	Er geht langsam in die Flammen, zur Galerie hinauf.
+d2intro	379.0	Marius tritt hinter ihn, der kurze Kopf dunkel vorm Feuer, und sieht ihm nach.
+d2intro	383.9	Dann folgt er ihm ins Feuer.
+d2intro	386.4	Er geht tiefer in die Glut, die Arme hängend.
+d2intro	389.2	Tote liegen im Schnee.
+d2intro	417.9	Flammenschrift bildet Diablo II über der brennenden Taverne zwischen verschneiten Tannen; dann steht auf Schwarz Resurrected in kleinen Kupfer-Versalien.
 # Act02start
-Act02start	4.8	Akt Zwei, in blassen Buchstaben auf schmutzigem Stein mit eingemeißelten Symbolen.
-Act02start	14.05	Wüste.
-Act02start	155.25	Rotes Licht flammt aus einem Turm.
-Act02start	158.4	Marius erwacht keuchend am Lagerfeuer.
-Act02start	172.75	Ein Wolf heult den Mond an. Die Nacht weicht einem hellen Morgenhimmel.
-Act02start	192.8	Lut Gholein liegt unten am Meer.
+Act02start	2.0	Rostbrauner, abblätternder Stein, blaugrau gesprenkelt.
+Act02start	5.0	Akt Zwei, in blassen dünnen Versalien, treibt über den fleckigen Stein, links eine Reihe dunkler Embleme.
+Act02start	10.7	Die Buchstaben verblassen, der Bildschirm wird schwarz.
+Act02start	13.8	Eine fahle Wüste.
+Act02start	155.3	Rote Strahlen schießen von einem Turm auf dunkler Düne.
+Act02start	158.5	Marius schreckt am Feuer hoch, die Augen weit.
+Act02start	172.8	Dunkle Wolken über dem Feuer, ein Vollmond darüber, dann wird der Himmel blau, die Sonne gleißt.
+Act02start	192.8	Marius wandert allein zur Stadt am Meer.
 # Act03start
-Act03start	4.8	Akt Drei, in blassen Buchstaben auf dunklem Stein mit roten und orangen Flecken.
-Act03start	25.75	Wind pfeift.
-Act03start	71.6	Fledermäuse kreischen, als beide eine finstere Halle queren; Marius leuchtet.
-Act03start	77.6	Ein Klagen hallt fern. Der Wanderer hält an, Marius hebt die Fackel.
-Act03start	83.6	Der kahle, hagere Wanderer überragt Marius und krümmt sich grunzend.
-Act03start	89.5	Er schreit. Marius starrt entsetzt.
-Act03start	92.3	Beulen und Hörner wachsen aus seinem Schädel, die Haut blubbert.
-Act03start	97.4	Stille. Marius kauert mit der Fackel am Boden.
-Act03start	115.4	Feuer rast um eine hohe, von Ranken umwundene Säule. Ein Klagen steigt auf.
-Act03start	121.9	Der Wanderer schreitet voran, Marius folgt mit Fackel.
-Act03start	142.8	Der Wanderer brüllt. Weißes Licht peitscht über eine Seilbrücke, die Feuer fängt.
-Act03start	149.6	Marius sieht die Brücke brennen und knarren.
-Act03start	154.2	Tal Rasha klagt in Seilen, ein Edelstein glüht in der Brust.
-Act03start	158.9	Der Wanderer kriecht über die Brücke, Tyrael landet vor ihm, Flügel gespreizt.
-Act03start	164.8	Bänder aus weißem Licht peitschen um den Wanderer.
-Act03start	168.6	Tal Rasha windet sich klagend. Tyrael packt den Wanderer.
-Act03start	173.4	Marius starrt erstarrt.
-Act03start	181.2	Marius schwankt und streckt die Hand aus.
-Act03start	187.5	Fackel hoch quert Marius die brennende Brücke, am Seil.
-Act03start	192.6	Tyrael kämpft im Lichtsturm gegen den Wanderer.
-Act03start	200.0	Schwerter klirren; Marius geht zu Tal Rasha.
-Act03start	203.6	Er greift nach dem Edelstein in Tal Rashas Brust.
-Act03start	210.5	Marius reißt den Stein los.
-Act03start	239.2	Tyrael stößt zu, als Tal Rasha über die Flammen vorstürmt, Seile peitschen.
-Act03start	245.6	Tal Rasha windet sich und schreit in den Flammen, Seile peitschen um ihn.
-Act03start	251.5	Marius flieht ins Tageslicht.
+Act03start	2.0	Dunkler Stein, blutrot und orange, oben blaugrau.
+Act03start	5.1	Akt Drei in blassen dünnen Versalien treibt über den Stein, rote Streifen laufen herab.
+Act03start	10.1	Die Buchstaben verblassen, der Stein dunkelt, der Bildschirm wird schwarz.
+Act03start	25.75	Marius kommt, Fackel hoch.
+Act03start	65.1	Eine riesige, dunkle Halle.
+Act03start	71.6	Sie queren die Halle über geborstene Platten zwischen gestürzten Blöcken, der Wanderer voran, Marius mit der Fackel; Fledermäuse huschen vorbei.
+Act03start	80.0	Der Wanderer hält an; Marius tritt neben ihn und hebt die Fackel.
+Act03start	84.5	Der große, kahle, hagere Wanderer im dunklen Mantel überragt Marius und krümmt sich.
+Act03start	89.0	Sein bleiches Gesicht verzerrt sich; Marius starrt, Hand an der Brust.
+Act03start	92.5	Beulen und Hörner drängen aus der Glatze, Haut brodelt, Mund weit.
+Act03start	96.3	Marius kauert mit Fackel am Boden und weicht vor dem Wanderer zurück.
+Act03start	115.4	Feuerbecken flammen nacheinander auf, Feuerlinien rasen durch Bodenrinnen und umringen einen Obelisken voller Ranken auf einem Hügel.
+Act03start	122.5	Der Wanderer schreitet durch ein Steinportal, Marius folgt.
+Act03start	142.8	Blauweiße Bänder peitschen den Wanderer; die Seilbrücke über der Schlucht brennt Planke für Planke.
+Act03start	149.7	Marius starrt auf die brennende Brücke, Fackel in der Hand, eine ausgestreckt.
+Act03start	153.6	Tal Rasha hängt in dunklen Strängen vor einer Feuerwand, ausgezehrt, Arme ausgebreitet.
+Act03start	158.0	Der Wanderer kriecht über die brennende Brücke, blauweißes Licht peitscht hinter ihm; Tyrael stürzt in weißem Glanz herab.
+Act03start	164.2	Tyrael, kleine lodernde Gestalt auf den Planken, peitscht weißes Licht auf den Wanderer.
+Act03start	168.8	Tal Rasha windet sich, ein gelber Stein glüht in seiner Brust.
+Act03start	172.2	Tyrael, vermummt, in Weiß und Gold, packt den Wanderer.
+Act03start	181.2	Marius schwankt, Blick gesenkt, und streckt die Hand aus.
+Act03start	187.5	Flammen fressen die Planken; Marius betritt sie.
+Act03start	190.3	Fackel hoch, quert er sie, am brennenden Seil, Flammen zu Füßen.
+Act03start	193.8	Tyrael, vermummt, gleißt weiß, Flügel gespreizt.
+Act03start	200.0	Mit der Fackel geht Marius zu Tal Rasha und sieht zu ihm auf.
+Act03start	203.3	Er greift nach dem Stein in Tal Rashas Brust und schließt die Finger darum.
+Act03start	210.5	Marius reißt den Stein los und starrt ihn an.
+Act03start	239.15	Tyrael stößt mit gleißendem Schwert zu, Lichtflügel flammen; Tal Rasha stürmt vom Hügel.
+Act03start	244.5	Tyrael steigt in einer blauweißen Lichtsäule auf.
+Act03start	247.2	Tal Rasha windet sich in den Flammen, Stränge peitschen, das Gesicht ein Schädel.
+Act03start	251.6	Voraus Tageslicht; Marius rennt hin.
 # Act04start
-Act04start	4.8	Akt Vier, in blassen Buchstaben auf dunklem Stein mit Glutadern.
-Act04start	13.4	Marius späht hinter einer Säule hervor.
-Act04start	70.42	Ein Blitz zuckt.
-Act04start	89.6	Der Runenkreis birst in weißem Licht, die Pforte des Infernos glüht rot.
-Act04start	123.8	Der Wanderer schreit, Blut rinnt aus seinen Augen. Er krümmt sich über den Boden.
-Act04start	138.0	Feuer bricht aus seinem Rücken. Hinter einer Säule starrt Marius.
-Act04start	143.1	Lange schwarze Stacheln reißen aus seinem Rücken.
-Act04start	147.5	Die Pforte des Infernos glüht, klagt.
-Act04start	157.7	Vor einer Blitzsäule erhebt sich Diablo, ein roter Dämon voller schwarzer Stacheln.
-Act04start	163.9	Seine Schritte dröhnen vom Altar herab, der Schwanz schleift.
-Act04start	169.5	Sein Klauenfuß zermalmt Knochen.
-Act04start	187.0	Diablo schreitet ins wogende Licht der Pforte und verschwindet.
-Act04start	191.9	In einer Tür verborgen weint Marius, hinter ihm lodern Blitze.
-Act04start	197.2	Er hebt den Stein an die Lippen, sein gelbes Glühen erhellt sein Gesicht.
-Act04start	202.6	Vor ihm brennt die Pforte des Infernos, gequälte Gesichter winden sich darauf.
+Act04start	2.1	Dunkler rissiger Stein, blau und rostorange.
+Act04start	4.8	Akt Vier in blassgoldenen Versalien auf dem Stein, die Buchstaben dünn und abgenutzt wie altes Gold.
+Act04start	10.0	Die Buchstaben verblassen, dann der Stein, bis es schwarz ist.
+Act04start	14.8	Marius späht an einer Säule vorbei
+Act04start	70.42	Mephistos Brust gleißt weiß.
+Act04start	89.6	Unter den Dreien explodiert die riesige Runenscheibe in weißem Licht, schwarze Trümmer wirbeln auf.
+Act04start	123.75	Blut rinnt aus den Augen des Wanderers übers graue Gesicht, Zähne gebleckt.
+Act04start	127.7	Er hockt auf dem Runenboden, die Kapuze gesenkt.
+Act04start	138.0	Schwarze Stacheln brechen in orangem Feuer aus seiner Robe.
+Act04start	141.2	Marius gafft hinter seiner Säule.
+Act04start	143.0	Lange schwarze Stacheln spreizen sich wie Beine aus seinem Rücken, Feuer dazwischen, und spalten ihn.
+Act04start	148.6	Die Pforte des Infernos glüht rot.
+Act04start	157.7	Diablo erhebt sich auf dem Altar vor einer weißen Blitzsäule: ein riesiger roter Dämon, schwarze Stacheln am Rücken, langer Stachelschwanz.
+Act04start	165.7	Er schreitet von der Plattform, gehörnt, muskulös.
+Act04start	169.6	Sein Klauenfuß zermalmt einen Haufen Schädel und Knochen.
+Act04start	186.9	Diablo schreitet ins weiße Gleißen der Pforte des Infernos und sinkt in ihre wogende Fläche, fort.
+Act04start	191.9	Marius weint in einer Tür, Augen zu, hinter ihm die Blitzsäule und die brennende Pforte.
+Act04start	197.3	Er hebt den gelben Stein an die Lippen, Blick gesenkt.
+Act04start	200.3	Er hält ihn vor die Augen und starrt, sein Glanz färbt das Gesicht grüngolden.
+Act04start	204.3	Die Pforte des Infernos brennt weiter, gequälte Gesichter winden sich auf der grauen Fläche, dann wird es schwarz.
 # Act04end
-Act04end	4.8	Epilog, in blassen Buchstaben auf dunklem Stein mit roten und orangen Flecken.
-Act04end	13.7	Ein Gitter kracht zu. Marius liegt in der Zelle.
-Act04end	21.6	In einem Feuermeer reißt sich eine bläuliche Geistergestalt aus Diablo.
-Act04end	37.9	Marius schluchzt allein auf seiner Pritsche.
-Act04end	41.5	Mit geschlossenen Augen legt er die zitternde Hand an die Stirn.
-Act04end	68.0	Der Vermummte durchquert die Zelle und tritt über ihn.
-Act04end	79.5	Der Fremde ragt über ihm auf. Marius greift in den Ausschnitt seiner Tunika nach dem Stein.
-Act04end	89.2	Er hält den Stein hin.
-Act04end	103.7	Marius kauert zu Füßen des Fremden.
-Act04end	106.7	Fern rufen Stimmen. Marius öffnet die Hand, der Fremde nimmt den Stein.
-Act04end	126.0	Das wahre Ich glüht.
-Act04end	149.6	Dunkle Ranken schießen aus Baals Robe auf Marius zu. Der Schrei verklingt.
-Act04end	155.7	Marius liegt in einer Blutlache am Boden.
-Act04end	159.4	Baal geht, goldenes Feuer breitet sich aus und flutet die Zelle.
-Act04end	164.5	Baal tritt aus einer Feuerwand in eine hohe, düstere Halle, die Robe wirbelt.
-Act04end	170.4	Schwarze Käfer wimmeln über den Boden, hinter ihm brüllt das Feuer.
-Act04end	176.1	Flammen lecken am Saum seiner Robe.
-Act04end	179.7	Fern steigen Schreie auf, als die Flammen weiß aufflammen und seine dunkle Robe das Licht verschluckt.
+Act04end	2.1	Dunkler gesprenkelter Stein, blau und rostorange, feine Eisenstreben
+Act04end	5.5	Epilog in blassgoldenen abgenutzten Versalien; die Buchstaben verblassen nach Sekunden, dann wird der Stein schwarz.
+Act04end	13.75	Marius liegt auf einem Strohlager in einer sonnigen Steinzelle.
+Act04end	21.55	Eine blaue Geistergestalt reißt sich von Diablo los, der im Feuermeer hockt; weißer Glanz.
+Act04end	37.75	Tageslicht fällt vom hohen Gitterfenster über den Boden auf Marius, der sich auf dem Lager krümmt.
+Act04end	42.8	Kahl und weißbärtig weint er, eine zitternde Faust an der Stirn.
+Act04end	67.95	Der vermummte Fremde in heller grauer Robe quert den Boden und tritt über Marius.
+Act04end	79.45	Der Fremde ragt über ihm, die Hände an der Brust, das Gesicht dunkel in der Kapuze.
+Act04end	83.65	Marius greift in die Tunika und blickt zu ihm auf.
+Act04end	89.2	Er hält ihm den gelben Stein hin.
+Act04end	103.7	Marius kauert zu Füßen des Fremden, den Stein in der Faust, Kopf gesenkt.
+Act04end	107.8	Er öffnet die Hand über dem Stein, die langen bleichen Finger des Fremden pflücken ihn weg.
+Act04end	126.0	Totes Gesicht in der Kapuze.
+Act04end	149.6	Rote Ranken peitschen aus Baals Robe, ein Dämonengesicht stößt aus der Kapuze, alles wird dunkel.
+Act04end	154.7	In der Zelle liegt Marius in einer Blutlache neben seinem Lager, im Fensterlicht.
+Act04end	159.7	Baal geht über den Boden davon; goldenes Feuer bricht hinter ihm auf und flutet die ganze Zelle samt Wänden.
+Act04end	165.2	Baal tritt aus einer gelben Feuerwand in eine hohe dämmrige Halle aus hellem Stein, Pfeiler an den Wänden, ein Hocker, die dunkle Robe wirbelt.
+Act04end	172.7	Glänzende schwarze Käfer wimmeln um seine Füße, während er weitergeht, Stränge peitschen aus der Kapuze.
+Act04end	178.2	Er kommt näher, gelassen, Flammen lecken am Saum.
+Act04end	181.1	Die Flammen lodern weiß, seine dunkle Robe fegt über alles; dann wird es schwarz.
 # D2x_Intro
-D2x_Intro	6.0	Aus dem Dunkel taucht eine riesige, düstere Steinhalle auf, erhellt von Kerzen und einem rauchenden Kohlebecken.
-D2x_Intro	14.6	Ein Mann im langen dunklen Umhang geht zu den großen Türen am Ende.
-D2x_Intro	21.6	Eine Lichtlinie spaltet die Türen, die aufschwingen. Wind heult herein.
-D2x_Intro	27.0	Dahinter liegt ein verschneiter Pass mit roten Bannern.
-D2x_Intro	31.4	Der Mann im pelzbesetzten roten Umhang erreicht mit einer hohen Bannerstange die Schwelle und hält.
-D2x_Intro	41.8	Er tritt zwischen den riesigen eisenbeschlagenen Türen hinaus. Sein Banner flattert im Wind.
-D2x_Intro	50.0	Von hoch oben fällt die gewaltige behauene Festungsmauer ab, rote Banner hängen an ihr herab.
-D2x_Intro	59.0	Am Tor steht ein alter Krieger, graubärtig, mit Pelzmütze und Plattenrüstung.
-D2x_Intro	65.0	Jenseits einer verschneiten Brücke rote Banner, dahinter eine Horde.
-D2x_Intro	70.7	Er beschirmt die Augen und späht hinaus.
-D2x_Intro	75.3	Ein Horn dröhnt über den Pass.
-D2x_Intro	78.0	Zwischen den Bannern erhebt sich ein Thron, bleiche Stoffsegel wie Flügel gespreizt.
-D2x_Intro	84.5	Gehörnte, gepanzerte Dämonen mit Äxten marschieren daneben.
-D2x_Intro	90.5	Der Krieger senkt die Hand und starrt entsetzt.
-D2x_Intro	94.9	Auf dem Thron grinst ein bleicher Dämon in knorrigen Ranken.
-D2x_Intro	101.9	Hinter ihm knarren die großen Tore zu.
-D2x_Intro	105.9	Er blickt zurück, als sie zuschlagen und ihn mit der Horde aussperren.
-D2x_Intro	111.2	Er senkt den Kopf neben seinem Banner, hebt ihn dann und strafft die Schultern.
-D2x_Intro	117.3	Er atmet lange aus und stellt sich dem Thron.
-D2x_Intro	121.0	Er hebt die Hand.
-D2x_Intro	150.9	Baals Schrei hallt von den Gipfeln. Der Krieger packt sich den Kopf.
-D2x_Intro	156.4	Baal starrt, gelber Stein glüht auf der Brust.
-D2x_Intro	160.1	Der Krieger nimmt die Mütze ab und drückt sie an die Brust, den kahlen Kopf gesenkt.
-D2x_Intro	172.4	Der Krieger wartet mit bloßem Kopf. Baal streicht mit der Klaue über den glühenden Stein.
-D2x_Intro	179.6	Er grinst und hebt die Klauenhand.
-D2x_Intro	183.3	Ein Dröhnen erschüttert die hohen Festungsmauern. Der Krieger blickt auf.
-D2x_Intro	188.8	Baal grinst und krümmt die Klauenfinger.
-D2x_Intro	193.0	Alarmiert blickt er auf.
-D2x_Intro	195.5	Baal umklammert den Stein, faucht.
-D2x_Intro	198.3	Feuer bricht aus seinem Thron und rast über die Brücke zum Tor.
-D2x_Intro	203.4	Es windet sich um den Krieger.
-D2x_Intro	206.3	Ein Feuerring schließt sich um ihn. Nur ein roter Fleck bleibt.
-D2x_Intro	219.0	Baal lacht höhnisch auf seinem Thron.
-D2x_Intro	222.3	Die Horde brüllt und stürmt zum Tor: gehörnte Dämonen mit Äxten, Vermummte, die den Thron ziehen.
-D2x_Intro	231.0	Diablo II Expansion, in blassen Buchstaben auf dunklem Stein.
-D2x_Intro	236.0	Lord of Destruction.
+D2x_Intro	5.3	Aus der Dunkelheit taucht eine riesige düstere Steinhalle auf: hohe Kerzenständer zwischen quadratischen Pfeilern, lange Vorhänge an den Bögen, ein Eisenbecken auf den Platten, Nebel.
+D2x_Intro	15.5	Ein breiter Mann im langen Umhang schreitet zu den großen Toren am Ende.
+D2x_Intro	20.0	Er geht zu den hohen Toren.
+D2x_Intro	22.4	Eine dünne weiße Lichtlinie spaltet die Tore und wird breiter, als sie aufschwingen.
+D2x_Intro	27.1	Dahinter ein spitzer verschneiter Gipfel unter blassem Himmel, fern rote Banner im Schnee. Der Mann tritt zur Schwelle.
+D2x_Intro	33.2	Er bleibt zwischen den eisenbeschlagenen Toren stehen: roter Pelzkragenumhang, hohe Bannerstange, daneben ein flammendes Feuerbecken.
+D2x_Intro	40.5	Er wartet, das rote Banner hängt an der Stange, flattert im Wind, oben ein gehörnter Halbmond.
+D2x_Intro	46.4	Ferne Banner und der Berg dahinter, der Pass öde und weiß, Schneetreiben.
+D2x_Intro	50.5	Die Festungsmauer fällt unter dem Tor ab: eine runde Plattform auf verschneitem Absatz, lange rote Banner an den Mauern, dazwischen Fackeln.
+D2x_Intro	58.6	Am Tor steht ein alter Krieger: grauer Bart, runde Pelzmütze, roter Pelzkragenumhang über bronzener Nietenrüstung, die Bannerstange.
+D2x_Intro	65.7	Ihm gegenüber rote Banner auf Stangen zwischen zwei angeketteten Steinpylonen, dahinter eine Horde.
+D2x_Intro	70.7	Er beschirmt die Augen mit der Hand und späht.
+D2x_Intro	73.3	Spitze graue Berge hinter den Bannern; Gestalten regen sich dazwischen.
+D2x_Intro	77.0	Ein großer Thron erhebt sich zwischen den Bannern, blasse Stoffflügel wie Segel darüber, dunkle Gestalten mit Fackeln daneben.
+D2x_Intro	83.5	Gehörnte, gepanzerte Wesen mit Äxten scharen sich um den Thron, die Flügel über ihnen, Schnee weht übers Feld.
+D2x_Intro	90.8	Der alte Krieger senkt die Hand und starrt, den Mund fest, Furcht im Gesicht.
+D2x_Intro	94.9	Auf dem Thron starrt finster ein bleicher, kahler Dämon, graue Ranken an den Schultern.
+D2x_Intro	101.8	Hinter dem Krieger schwingen die Tore zu, sein Banner flattert im Luftzug, das Gesicht starr und finster.
+D2x_Intro	107.2	Er blickt zurück, als sie sich schließen und ihn allein mit der Horde aussperren.
+D2x_Intro	112.3	Er wendet sich dem Pass zu, die Stange fest, strafft die Schultern und hebt das Kinn.
+D2x_Intro	118.7	Der Thron wartet zwischen den Bannern; der Krieger hebt die freie Hand.
+D2x_Intro	150.8	Verschneite Gipfel ragen über dem Pass.
+D2x_Intro	153.4	Gebückt packt sich der Krieger den Kopf.
+D2x_Intro	156.0	Baal starrt vom Thron finster herab, kreidebleich, kahl, Kopf voller Knoten, gelber Stein glüht auf der Brust.
+D2x_Intro	161.7	Der Krieger zieht die Pelzmütze ab und hält sie an die Brust, der kahle Kopf bloß.
+D2x_Intro	172.3	Baal streicht mit der Klaue über den Stein auf der Brust; der Krieger wartet barhäuptig, blickt auf; Baal schließt die Augen, Kopf geneigt.
+D2x_Intro	179.5	Dann grinst er höhnisch und hebt die Klauenhand.
+D2x_Intro	182.2	Die hohen Mauern beben, Banner schwingen, Staub rieselt am Stein herab.
+D2x_Intro	186.6	Der Krieger blickt hinauf. Staub rieselt von den Mauern.
+D2x_Intro	189.8	Baal, Zähne gebleckt, ballt die Fäuste und presst, der Stein glüht dazwischen.
+D2x_Intro	193.9	Der Krieger starrt hinauf, Mund offen, zuckt zusammen.
+D2x_Intro	197.0	Baal umschließt den Stein mit den Händen; Feuer wirbelt dazwischen.
+D2x_Intro	200.4	Ein Feuerband schießt vom Thron übers Schneefeld und die Mauer entlang zum Tor.
+D2x_Intro	205.8	Es erreicht den Krieger, Mütze in der Hand am Tor, und umschlingt ihn.
+D2x_Intro	209.3	Der Ring schließt sich; nur ein Fleck bleibt.
+D2x_Intro	219.0	Baal grinst breit und streckt eine Hand aus.
+D2x_Intro	221.5	Die Horde stürmt am Thron vorbei zum Tor: gehörnte Brocken mit Äxten, Vermummte ziehen den Thronwagen an Seilen, ein Speerwald, der Schnee zertreten.
+D2x_Intro	231.4	Weißer Blitz, dann Diablo II Expansion in kleinen goldenen Versalien auf dunklem Stein.
+D2x_Intro	236.4	Der Stein flammt golden, Lord of Destruction ersetzt ihn in großen blassen Versalien in zwei Zeilen.
+D2x_Intro	241.4	Der Titel blitzt auf, alles wird schwarz.
 # D2x_Out
-D2x_Out	4.2	In einer riesigen Höhle hängen zackige Felsen und gerippte schwarze Spitzen über goldenem Dunst, Steinplatten treiben vorbei.
-D2x_Out	17.0	Weit hinten auf einem Steindamm mit roten Kohlebecken steht Tyrael, die Lichtflügel gespreizt.
-D2x_Out	24.8	Dahinter ragt der Weltstein auf, eine riesige rote Kristallmasse, seine Flügel wogen über der Brücke.
-D2x_Out	32.4	Tyrael, vermummt, das Gesicht im Schatten, hebt sein Großschwert hoch, Spitze nach unten.
-D2x_Out	39.3	Auf der Brücke wogen seine Lichtflügel und legen sich um ihn.
-D2x_Out	44.2	Mit gesenktem Kopf, die Hände am Griff, beginnt er zu beten.
-D2x_Out	48.9	Knisternd kriecht blauer Kristall an einem Kohlebecken hoch.
-D2x_Out	54.0	Er betet weiter, den Kopf gesenkt.
-D2x_Out	57.6	Blitze knistern. Beide Kohlebecken sind nun in blauen Kristall gehüllt.
-D2x_Out	63.2	Goldenes Licht rinnt an seinem Schwert herab, während er betet.
-D2x_Out	69.2	Das Gebet endet. Er blickt auf und packt das Schwert.
-D2x_Out	73.4	Er wirbelt und wirft das Schwert als Lichtstreif auf den Kristall.
-D2x_Out	78.7	Beim Einschlag reißt ein wirbelnder weißer Lichtring auf, Funken sprühen.
-D2x_Out	84.4	Die Höhle bebt. Fern glüht ein Lichtring in der Flanke des riesigen roten Weltsteins.
-D2x_Out	91.1	Der rote Kristall birst, schwarze und rote Splitter fliegen durch weißes Licht.
-D2x_Out	97.3	Riesige dunkle Brocken taumeln durch das Dunkel.
-D2x_Out	104.0	Ein dunkler Brocken dreht sich in hellblauem Licht, von Splittern umhüllt.
-D2x_Out	109.8	Dann erlischt das Licht, nur treibende Splitter bleiben, bevor alles dunkel wird.
+D2x_Out	4.2	In einer riesigen dunklen Höhle treiben Felsplatten, tief unten glüht goldener Dunst.
+D2x_Out	8.5	Gerippte schwarze Spitzen hängen wie umgekehrte Türme von der Decke über dem Dunst, darunter ein Felsvorsprung.
+D2x_Out	17.0	Am Ende eines Damms aus rot gesprenkelten Steinblöcken mit Sockeln und kleinen Flammen steht Tyrael fern, golden leuchtend, Flügel aus weißem Licht wallend.
+D2x_Out	25.2	Zwischen zwei dunklen Beckensockeln wogen seine Flügel über eine blaue Kristallbrücke zum Weltstein, einer roten Kristallmasse mit dunklem Block im Kern.
+D2x_Out	33.4	Tyrael, vermummt, im Gesicht Schatten, gleißend weiß, hebt sein Großschwert beidhändig und stellt es spitz nach unten vor sich.
+D2x_Out	40.2	Auf der Brücke wogen seine Lichtflügel und falten sich wie Bänder um ihn, Strahlen über der roten Masse.
+D2x_Out	45.7	Den Kopf übers Schwert gebeugt, die Hände am Heft, betet er.
+D2x_Out	48.9	Ein violetter Blitz trifft einen Beckensockel am Brückenende, blauer Kristall überzieht ihn.
+D2x_Out	53.8	Er betet weiter, gesenkter Kopf, das Heft glüht golden zwischen den Händen.
+D2x_Out	57.7	Blitze flackern; beide Sockel sind in blauen Kristall gehüllt, seine Flügel wogen dazwischen.
+D2x_Out	63.0	Goldenes Licht rinnt sein Schwert herab, während er betet; seine Flügel fegen wieder über die Brücke.
+D2x_Out	69.4	Sein Gebet endet: Er hebt den Kopf und packt das Schwert.
+D2x_Out	72.3	Er wirbelt herum, die Flügel ein Lichtwirbel.
+D2x_Out	74.6	Über den zerstörten Damm unter rotem Himmel fliegt das Schwert aus seiner Hand, golden.
+D2x_Out	79.2	Beim Einschlag öffnet sich ein weißer Lichtring, Funken fliegen über den roten Fels.
+D2x_Out	84.0	Fern glüht der Weltstein rot wie Kohle, ein weißer Strahl in seiner Flanke von der Kristallbrücke.
+D2x_Out	89.3	Weißes Licht bricht aus der Wunde, der rote Kristall reißt, Splitter fliegen.
+D2x_Out	93.8	Splitter wirbeln vorbei, lange schwarze und rote Brocken, durch blendendes Weiß.
+D2x_Out	98.0	Riesige dunkelrote Brocken taumeln durchs Dunkel.
+D2x_Out	100.5	Weißes Licht bricht zwischen den Brocken hervor.
+D2x_Out	103.0	Ein riesiger dunkler Brocken dreht sich im blauweißen Glanz, Splitter strömen ab.
+D2x_Out	107.1	Er wirbelt davon, in einer Wolke schwarzer Splitter, während das Licht anschwillt.
+D2x_Out	111.4	Dann verblasst das Licht, nur treibende Splitter bleiben, ehe alles schwarz wird.
