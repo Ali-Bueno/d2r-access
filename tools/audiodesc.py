@@ -13,6 +13,12 @@ The game files come from tools/casc-extract into an extract folder (`<x>`):
                           the CTest timing rule on any script file (speech.tsv beside this tool's data),
                           each cue's estimated length times the headroom; then per video the free time,
                           the share of it narrated and the silences of 3 s or more left in it
+    audiodesc.py review   <x> <hd|classic> <out>
+                          a script a tester can read and edit: every English cue with its time and the
+                          characters that fit, the English subtitle lines between them for context
+    audiodesc.py apply    <edited review> <hd|classic>
+                          takes the tester's text back into data/audiodesc/<edition>/enUS.txt (same
+                          cues and times; DELETE removes one), lists what changed and every [note]
 """
 import argparse, os, re, subprocess, sys
 
@@ -138,15 +144,7 @@ ALPHABETIC_PACE, SPEECH_MARGIN, SILENCE_REPORT = 20.0, 0.2, 3.0
 
 
 def cmd_check(a):
-    length, speech = {}, {}
-    for line in open(SPEECH_TSV, encoding="utf-8"):
-        if line.startswith("#") or not line.strip():
-            continue
-        video, first, second = line.rstrip("\n").split("\t")
-        if first == "length":
-            length[video] = float(second)
-        else:
-            speech.setdefault(video, []).append((float(first), float(second)))
+    length, speech = read_speech()
     cues, problems = {}, 0
     for n, line in enumerate(open(a.script, encoding="utf-8-sig"), 1):
         if line.startswith("#") or not line.strip():
@@ -187,6 +185,114 @@ def cmd_check(a):
     return 1 if problems else 0
 
 
+TITLES = {  # the Videos list's English names
+    "d2intro": "Sisters' Lament (the game intro)", "Act02start": "Desert Journey (Act II)",
+    "Act03start": "Mephisto's Jungle (Act III)", "Act04start": "Enter Hell (Act IV)",
+    "Act04end": "Terror's End (after Diablo)", "D2x_Intro": "Search for Baal (Act V)",
+    "D2x_Out": "Destruction's End (after Baal)",
+}
+SCRIPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "audiodesc")
+REVIEW_HEAD = """Diablo II: Resurrected cinematics: audio description script, {edition} edition, English
+
+How to edit
+- Each narration line starts with a line like "@ d2intro 10.40 | 0:10 | fits 95 characters". Keep
+  that line as it is: it tells me which cue you changed. Change the text under it freely.
+- To remove a line, replace its text with DELETE.
+- "fits" is how many characters can be read, at a fast screen reader's pace, before the next
+  narration line or the next spoken line. Going over is fine; I will trim it or move it.
+- If a line should come earlier or later, or anything else, write a note in [square brackets].
+- Lines starting with ">" are what is said or heard in the video at that moment (the English
+  subtitles), only there so you know where you are. Do not edit them.
+- The narration says only what is seen, never what is heard; names only once the story has given
+  them (the hooded stranger is Baal only from Terror's End).
+"""
+
+
+def read_script(edition):
+    cues = {}
+    for line in open(os.path.join(SCRIPT_DIR, edition, "enUS.txt"), encoding="utf-8-sig"):
+        parts = line.rstrip("\r\n").split("\t")
+        if len(parts) == 3 and not line.startswith("#"):
+            cues.setdefault(parts[0], []).append((parts[1], parts[2]))
+    return cues
+
+
+def read_speech():
+    length, speech = {}, {}
+    for line in open(SPEECH_TSV, encoding="utf-8"):
+        if line.startswith("#") or not line.strip():
+            continue
+        video, first, second = line.rstrip("\n").split("\t")
+        if first == "length":
+            length[video] = float(second)
+        else:
+            speech.setdefault(video, []).append((float(first), float(second)))
+    return length, speech
+
+
+def clock(seconds):
+    return "%d:%04.1f" % (int(seconds) // 60, seconds % 60)
+
+
+def cmd_review(a):
+    cues, (length, speech) = read_script(a.edition), read_speech()
+    name = "2021" if a.edition == "hd" else "classic (2000)"
+    out = [REVIEW_HEAD.format(edition=name)]
+    for video in VIDEOS:
+        out.append("\n== %s: %s ==\n" % (video, TITLES[video]))
+        lines = [(s, "> %s %s" % (clock(s), text)) for s, _, text, _ in
+                 srt(os.path.join(a.x, "local/lng/subtitles/enUS", video + ".srt"))]
+        listed = cues.get(video, [])
+        for i, (at, text) in enumerate(listed):
+            start = float(at)
+            limit = length[video]
+            if i + 1 < len(listed): limit = min(limit, float(listed[i + 1][0]))
+            for s, _ in speech.get(video, []):
+                if s > start: limit = min(limit, s - SPEECH_MARGIN); break
+            fits = int((limit - start) * ALPHABETIC_PACE)
+            lines.append((start, "\n@ %s %s | %s | fits %d characters\n%s\n" % (video, at, clock(start), fits, text)))
+        out += [text for _, text in sorted(lines, key=lambda line: line[0])]
+    with open(a.out, "w", encoding="utf-8", newline="\r\n") as f:
+        f.write(re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip() + "\n")
+    print("wrote", a.out, "with", sum(len(v) for v in cues.values()), "cues")
+
+
+def cmd_apply(a):
+    edited, current, notes = {}, None, []
+    for raw in open(a.review, encoding="utf-8-sig"):
+        line = raw.rstrip("\r\n")
+        m = re.match(r"^@ (\S+) (\S+) \|", line)
+        if m:
+            current = (m.group(1), m.group(2)); edited[current] = []
+        elif line.startswith("==") or line.startswith(">"):
+            current = None
+        elif current and line.strip():
+            edited[current].append(line.strip())
+    path = os.path.join(SCRIPT_DIR, a.edition, "enUS.txt")
+    lines = open(path, encoding="utf-8").read().split("\n")
+    changed = removed = 0
+    for i, line in enumerate(lines):
+        parts = line.split("\t")
+        if len(parts) != 3 or line.startswith("#") or (parts[0], parts[1]) not in edited:
+            continue
+        text = " ".join(edited.pop((parts[0], parts[1])))
+        for note in re.findall(r"\[[^\]]*\]", text):
+            notes.append("%s %s %s" % (parts[0], parts[1], note))
+        text = re.sub(r"\s*\[[^\]]*\]\s*", " ", text).strip()
+        if text.upper() == "DELETE":
+            lines[i] = None; removed += 1; print("removed %s %s: %s" % (parts[0], parts[1], parts[2]))
+        elif text and text != parts[2]:
+            lines[i] = "\t".join([parts[0], parts[1], text]); changed += 1
+            print("changed %s %s:\n  was: %s\n  now: %s" % (parts[0], parts[1], parts[2], text))
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write("\n".join(l for l in lines if l is not None))
+    for key in edited:
+        print("not in the script (time edited?):", *key)
+    for note in notes:
+        print("note:", note)
+    print("%d changed, %d removed, %d notes; run check, then retranslate those cues" % (changed, removed, len(notes)))
+
+
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -202,6 +308,10 @@ def main():
     s.set_defaults(fn=cmd_sheets)
     s = sub.add_parser("check"); s.add_argument("script"); s.add_argument("--locale", default="enUS")
     s.add_argument("--headroom", type=float, default=1.0); s.set_defaults(fn=cmd_check)
+    s = sub.add_parser("review"); s.add_argument("x"); s.add_argument("edition", choices=["hd", "classic"])
+    s.add_argument("out"); s.set_defaults(fn=cmd_review)
+    s = sub.add_parser("apply"); s.add_argument("review"); s.add_argument("edition", choices=["hd", "classic"])
+    s.set_defaults(fn=cmd_apply)
     a = p.parse_args()
     return a.fn(a)
 

@@ -89,6 +89,12 @@ Seen in the CASC data (extracted with `tools/casc-extract`, 2026-11-01). Duratio
   `sheets` (contact sheets, any fps, grid and width, each frame stamped with its time) and `check
   <script> [--locale] [--headroom 1.15]`: the CTest timing rule on any file (so writers work on their
   own files), then per video the free time, the share narrated and every silence of 3 s or more.
+  **Tester review** (bfbeast asked for a written script, 2026-11-01): `review <x> <hd|classic>
+  <out>` writes a plain-text script (CRLF) with every English cue under an `@ <video> <seconds> |
+  m:ss.s | fits N characters` line and the English subtitle lines between cues as `>` context;
+  `apply <edited> <hd|classic>` takes the text back into `enUS.txt` by video and time (DELETE
+  removes a cue, `[notes]` are listed, not applied), after which `check` and the 12 translations of
+  the changed cues follow. The copies sent are kept beside the tester news, outside the repo.
   Before the 2026-11-01 detailed rewrite, every video narrated about 70 % of its free time (2021 and
   classic alike) and opened with 6 to 9 s of silence after its act title.
 
