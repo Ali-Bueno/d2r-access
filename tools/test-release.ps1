@@ -63,6 +63,10 @@ try {
 	Copy-Into (Join-Path $buildDir $pluginDll) (Join-Path $stage "d2rloader\plugins\$pluginDll")
 	Copy-Into "third_party\prism\bin\prism.dll" (Join-Path $stage "d2rloader\plugins\d2r-access\prism.dll")
 	Copy-Into "packaging\tester\KEYBOARD.txt" (Join-Path $stage "KEYBOARD.txt")
+	# The guide as a web page: in a browser a screen reader walks its tables cell by cell.
+	$guide = (ConvertFrom-Markdown -Path "GUIDE.md").Html
+	$guideHtml = "<!DOCTYPE html>`n<html lang=`"en`">`n<head>`n<meta charset=`"utf-8`">`n<title>Diablo II Resurrected Access: commands and tutorial</title>`n</head>`n<body>`n$guide</body>`n</html>`n"
+	[IO.File]::WriteAllText((Join-Path $stage "GUIDE.html"), $guideHtml, [Text.UTF8Encoding]::new($false))
 	Copy-Into "LICENSE" (Join-Path $stage "licenses\d2r-access-LICENSE.txt")
 	Copy-Item "third_party\prism\LICENSES" (Join-Path $stage "licenses\prism") -Recurse
 	if (Get-ChildItem $stage -Recurse -Filter *.toml) { throw "A config file is staged; an update would overwrite the player's settings." }

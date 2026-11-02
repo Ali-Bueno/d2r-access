@@ -72,7 +72,9 @@ the mod follows it at once.
 ## Controls at a glance
 
 The game keeps its whole controller layout; the mod adds these (keyboard equivalents in brackets).
-The full lists are in the package's `README.txt` and `KEYBOARD.txt`, and in
+Every control for the Xbox and PlayStation pads and the keyboard, with how the menus, the belt, the
+skills and the stash work, is in BFBeast666's [commands and tutorial](GUIDE.md) (`GUIDE.html` in the
+package). The full lists are in the package's `README.txt` and `KEYBOARD.txt`, and in
 [keyboard keys](docs/keyboard-keys.md) and [keyboard play](docs/keyboard-play.md).
 
 | Controller | Keyboard | What it does |
@@ -394,6 +396,7 @@ python tools\gen_places.py --hd-root <scratch>
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
 - `tools/` — CASC extractor, layout indexer and generators, release scripts, computer-use tools.
 - `docs/` — feature notes and research. `STATUS.md` — where the mod is and what comes next.
+- `GUIDE.md` — the players' commands and tutorial; `packaging/tester/` — the package's texts.
 
 ## License
 

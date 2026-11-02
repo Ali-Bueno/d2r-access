@@ -93,6 +93,10 @@ game's own "Text language" option does not change the text; with it empty
 
 CONTROLS
 
+GUIDE.html, next to this file, is BFBeast666's commands and tutorial: every
+control for the Xbox and PlayStation pads and the keyboard, in tables, with how
+the menus, the belt, the skills and the stash work. Open it in your web browser.
+
 Controller (the game's own controller mode). The game keeps its whole layout;
 the mod adds these:
 
