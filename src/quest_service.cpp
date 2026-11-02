@@ -68,6 +68,12 @@ constexpr int TaintedSunRow = 11;
 // Levels.txt Id of the Lost City. A game joined while the quest runs starts in a town, so the
 // flags arriving there are not the eclipse falling.
 constexpr int LostCityLevel = 44;
+// Act II's areas by Levels.txt Id: Lut Gholein is 40, the Arcane Sanctuary 74; Act III begins with
+// the Kurast Docks, 75.
+constexpr int ActTwoFirstLevel = 40, ActThreeFirstLevel = 75;
+// Bit 1 of a quest's word, its goal met: here the altar destroyed and the sun back while Drognan has
+// not heard yet. Read from the other quests' words, not measured on this one.
+constexpr uint16_t QuestGoalMetBit = 0x0002;
 std::atomic<int> g_level{0};
 std::optional<bool> g_eclipse; // whether the quest ran at the last read; empty until this game's first
 // The eclipse waits for the area's name and the quest's own news to be said: they cut it off
@@ -326,6 +332,16 @@ void Reset() {
 
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
+bool Eclipsed(int level, uint16_t flags) {
+	return level >= ActTwoFirstLevel && level < ActThreeFirstLevel && EntityRadar::QuestRunning(flags) && !(flags & QuestGoalMetBit);
+}
+
+bool Eclipsed(int level) {
+	if (level < ActTwoFirstLevel || level >= ActThreeFirstLevel) return false;
+	const auto flags = NativeQuestFlags::Read(TaintedSunRow);
+	return flags && Eclipsed(level, *flags);
+}
+
 bool Enabled() { return g_enabled; }
 void SetEnabled(bool enabled) { g_command = enabled ? Command::On : Command::Off; }
 }

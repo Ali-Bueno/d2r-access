@@ -108,7 +108,8 @@ In play:
   While you walk it, the next leg is said as you come to each turn ("Now
   east, 30"), and "Off the route" once if you leave it.
 - BACK + right stick up: the description of the area you are in, in the
-  game's language. Landmarks have words too (the Hangman's Tree, the
+  game's language. While the Tainted Sun quest runs, every Act II area's
+  description ends with "An unnatural darkness blankets the land". Landmarks have words too (the Hangman's Tree, the
   Hellforge): they are said instead of the landmark's name the first time it
   comes into reach. "Landmark descriptions" (Navigation) turns off the
   landmark words. New or changed descriptions come with updates of the mod:

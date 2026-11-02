@@ -151,6 +151,11 @@ int main() {
 	Check(interrupted && heldUntil >= before + SpeechPriority::SpokenMs(Strings::Current().questEclipse),
 		"the eclipse cuts in and nothing cuts it off while it is said (a tester, 2026-10-28)");
 	speech.clear(); taintedSun = 0x0008; Tick(); Check(speech.empty(), "the eclipse is said once");
+	Check(QuestService::Eclipsed(41) && !QuestService::Eclipsed(75), "while the quest runs Act II's area descriptions say the eclipse");
+	Check(QuestService::Eclipsed(40, 0x0004) && QuestService::Eclipsed(74, 0x0004) && !QuestService::Eclipsed(39, 0x0004),
+		"the eclipse lies over Act II, from Lut Gholein to the Arcane Sanctuary");
+	Check(!QuestService::Eclipsed(44, 0) && !QuestService::Eclipsed(44, 0x0006) && !QuestService::Eclipsed(44, 0x0005),
+		"no eclipse before the quest, once its altar falls or when it is done");
 	QuestService::Note("QuestUpdate"); Event(K::GameLeft); Wait(); Check(speech.empty(), "leaving the game discards pending announcements");
 	QuestService::Unregister(); Check(removed == 5, "all lifecycle subscriptions are released");
 	listeners.clear(); failRegistration = 2;

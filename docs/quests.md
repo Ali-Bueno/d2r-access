@@ -332,3 +332,12 @@ save's order, in which the Tower is 5) and says "An unnatural darkness blankets 
 `LevelChanged`). A game joined while the quest runs starts in a town: no line. Log:
 `[quest] Tainted Sun began: flags=XXXX`; `[quest] flags row=11` shows the word. The row is
 inferred from the order, not measured yet.
+
+**The eclipse in every Act II area's description (2026-11-02).** bfbeast: the line "never fires
+when it needs to"; while the quest runs, Act II is dark and a player should hear it whenever they
+ask for an area's description. BACK + right stick up in Act II (Levels.txt 40, Lut Gholein, to 74,
+the Arcane Sanctuary) ends the description, or "No description for ...", with `questEclipse` while
+row 11 runs (`QuestService::Eclipsed`: `EntityRadar::QuestRunning` and bit 1, the goal met, clear).
+Bit 1 as "altar destroyed, sun back, Drognan not told yet" is read from the other quests' words, not
+measured. Log: `[descriptions] BACK+up in "<area>" (level N), eclipse`, and `[quest] flags row=11
+word=XXXX` on the first read. Why the moment it falls was missed is not known: no log of it yet.

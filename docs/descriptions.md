@@ -12,7 +12,8 @@ lengthening every announcement.
 - **Areas**: **BACK + right stick up** says the words of the area the player is in, or "No
   description for <area>". The first time a described area's name is announced in a run, a hint
   follows it: "Press View and right stick up for an area description" (the button named as the
-  connected controller names it).
+  connected controller names it). While the Tainted Sun runs, an Act II area's words end with "An
+  unnatural darkness blankets the land" (2026-11-02, [quests](quests.md)).
 - Switch `descriptions` (on, Navigation group): the landmark words and the area hint (the hint has
   its own switch, off, since 2026-10-26: below). Words asked for with BACK + right stick up are
   said either way.

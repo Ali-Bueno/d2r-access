@@ -21,6 +21,7 @@
 #include "navigation_mode.h"
 #include "navigation_policy.h"
 #include "pad_filter.h"
+#include "quest_service.h"
 #include "room_graph.h"
 #include "radar_config.h"
 #include "radar_trace.h"
@@ -851,7 +852,15 @@ void DescribeArea(const D2RL::PluginContext* context, int level) {
 		std::snprintf(none, sizeof none, Strings::Current().noAreaDescription, name.c_str());
 		text = none;
 	}
-	AsyncLog::InfoF(context, "[descriptions] BACK+up in \"%s\" (level %d)", name.c_str(), level);
+	// While the Tainted Sun runs, Act II lies in darkness; the words written for its sunlit land
+	// do not say so (a tester, 2026-11-02).
+	const bool eclipsed = QuestService::Eclipsed(level);
+	if (eclipsed) {
+		const char last = text.empty() ? '.' : text.back();
+		text += last == '.' || last == '!' || last == '?' || (last & 0x80) ? " " : ". ";
+		text += Strings::Current().questEclipse;
+	}
+	AsyncLog::InfoF(context, "[descriptions] BACK+up in \"%s\" (level %d)%s", name.c_str(), level, eclipsed ? ", eclipse" : "");
 	ScreenReader::Speak(text, true);
 }
 }
