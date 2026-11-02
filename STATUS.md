@@ -11,7 +11,10 @@ quick-sort). Release 1.0 updated in place, the plugin unchanged: `GUIDE.html` re
 staged package, the zip rebuilt (28 entries, 64,555,356 bytes, SHA-256 `45a2edb6…453a14`), and the
 zip, `GUIDE.html`, `release.json` and the notes' hash replaced; the public downloads match.
 
-**Next step:** the announcement of 1.0.
+1.0 announced by the user on audiogames.net and Discord servers (2026-11-02; drafts in
+`../announcement-2026-11-02-*`).
+
+**Next step:** the players' first reports on 1.0.
 
 ## Installer: the newest by default, other versions under Modify; no download text — 2026-11-02 (installer in release 1.0)
 
