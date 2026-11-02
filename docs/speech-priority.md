@@ -38,7 +38,7 @@ cursor came onto it, cut "Arrived at Cathedral" off; held, the name follows it.
 | Quest updates | `quest_service.cpp` | when urgent (queued) |
 | Places | `place_service.cpp` `Announce` | when urgent |
 | Items on the ground | `ground_item_service.cpp` nearby items | when urgent (queued) |
-| Tutorial | `tutorial_service.cpp` | waits its turn |
+| Tutorial | `tutorial_service.cpp`, a message whole (`SayWhole`, `first`: it cuts in even on a phrase another holds) | cannot be cut off (the user, 2026-11-02: it was "waits its turn"); the hold ends as the reader goes silent |
 | Arrivals at a target ("Arrived at X": the beacon's and the route's) | `beacon_service.cpp` `AnnounceArrival` | cannot be cut off |
 
 Menus, focus and window changes are not in the list: they interrupt because they are context

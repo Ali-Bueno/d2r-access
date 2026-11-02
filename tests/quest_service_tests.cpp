@@ -100,7 +100,7 @@ void Reset() {}
 }
 namespace D2RAccess::ScreenReader {
 void Speak(std::string_view text, bool interrupt) { speech.emplace_back(text); interrupted = interrupt; }
-void Urge(std::string_view text, unsigned long long untilMs) { Speak(text, true); heldUntil = untilMs; }
+void Urge(std::string_view text, unsigned long long untilMs, bool) { Speak(text, true); heldUntil = untilMs; }
 void Lead(std::string_view text, unsigned long long untilMs) { Speak(text, false); heldUntil = untilMs; }
 unsigned long long LastSpoken() { return 0; }
 }

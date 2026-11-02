@@ -27,10 +27,10 @@ void Say(Kind kind, std::string_view text, bool urgent) {
 	else ScreenReader::Speak(text, delivery.interrupt);
 }
 
-void SayWhole(Kind kind, std::string_view text) {
+void SayWhole(Kind kind, std::string_view text, bool first) {
 	const auto until = GetTickCount64() + std::max(HoldMs, SpokenMs(text));
 	if (Get(kind) == Level::Queued) ScreenReader::Lead(text, until);
-	else ScreenReader::Urge(text, until);
+	else ScreenReader::Urge(text, until, first);
 }
 
 }

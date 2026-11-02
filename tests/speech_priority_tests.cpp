@@ -22,6 +22,7 @@ int main() {
 	for (const auto kind : {Kind::LifeAlerts, Kind::BossLife, Kind::EnemyNames, Kind::GameNotices, Kind::QuestAlerts,
 			Kind::Places, Kind::NearbyItems})
 		Check(Defaults[static_cast<size_t>(kind)] == Level::WhenUrgent, "every other kind keeps the mod's own choice");
+	Check(Defaults[static_cast<size_t>(Kind::Tutorial)] == Level::Holds, "the tutorial cuts in and is not cut off (the user, 2026-11-02)");
 	Passed();
 	return 0;
 }

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 
 #include <condition_variable>
 #include <cstdio>
@@ -39,6 +40,7 @@ struct PrismApi {
 	decltype(&prism_backend_stop)          backendStop         = nullptr;
 	decltype(&prism_backend_free)          backendFree         = nullptr;
 	decltype(&prism_error_string)          errorString         = nullptr;
+	decltype(&prism_backend_is_speaking)   backendIsSpeaking   = nullptr; // optional: older DLLs may lack it
 };
 
 // Everything PRISM-related is touched only by the speech thread: a speak
@@ -67,6 +69,19 @@ std::condition_variable g_wake;
 std::deque<Request>     g_queue;
 bool                    g_quit      = false;
 std::atomic<unsigned long long> g_lastSpoken{0};
+// Whether the backend tells when it has stopped talking (PRISM's is_speaking; NVDA's controller
+// answers it from its third interface on): -1 not asked yet, 0 no, 1 yes. While it does, g_saying is
+// true from a Speak until the backend has been heard silent twice in a row, SpeakingPollMs apart and
+// at least SpeakingGraceMs after the text was handed over, as NVDA may not have begun by then.
+std::atomic<int>                g_tells{-1};
+std::atomic<bool>               g_saying{false};
+std::atomic<unsigned long long> g_handed{0}; // when the speech thread last gave the backend text
+int                             g_silentPolls = 0; // speech thread only
+// Until when a phrase led or urged holds (see Lead). The reader's silence ends it at once: a hold
+// that outlived its phrase put everything after it in line (the user, 2026-11-02: inventory and
+// scanner readings queued, a long summary not cut).
+std::atomic<unsigned long long> g_leadUntil{0};
+constexpr unsigned long long    SpeakingPollMs = 100, SpeakingGraceMs = 250;
 bool                    g_available = false; // backend acquired (set by Initialize, cleared by Shutdown)
 
 template <typename Fn>
@@ -85,7 +100,8 @@ bool ResolveApi(HMODULE library, PrismApi& api) {
 		&& Resolve(library, "prism_backend_speak", api.backendSpeak)
 		&& Resolve(library, "prism_backend_stop", api.backendStop)
 		&& Resolve(library, "prism_backend_free", api.backendFree)
-		&& Resolve(library, "prism_error_string", api.errorString);
+		&& Resolve(library, "prism_error_string", api.errorString)
+		&& (Resolve(library, "prism_backend_is_speaking", api.backendIsSpeaking), true);
 }
 
 std::string Narrow(const std::wstring& text) {
@@ -164,32 +180,69 @@ bool AcquirePrism(const std::wstring& path) {
 	return true;
 }
 
+std::atomic<const D2RL::PluginContext*> g_log{nullptr};
+
+// Speech thread only: whether the backend tells when it stops talking, found out once and logged.
+void Tells(bool yes) {
+	if (g_tells.exchange(yes ? 1 : 0) == (yes ? 1 : 0)) return;
+	if (const auto* log = g_log.load())
+		AsyncLog::InfoF(log, "[speech] the screen reader %s when it stops talking", yes ? "tells" : "does not tell");
+}
+
+// Speech thread only: asks the backend whether it still talks, once everything queued is handed over.
+void PollSpeaking() {
+	if (!g_saying || g_tells == 0 || g_state.backend == nullptr) return;
+	if (g_state.api.backendIsSpeaking == nullptr) { Tells(false); return; }
+	if (GetTickCount64() - g_handed.load() < SpeakingGraceMs) return;
+	bool speaking = true;
+	if (g_state.api.backendIsSpeaking(g_state.backend, &speaking) != PRISM_OK) {
+		Tells(false); // NVDA before its third controller interface, or a backend without the call
+		return;
+	}
+	Tells(true);
+	g_silentPolls = speaking ? 0 : g_silentPolls + 1;
+	if (g_silentPolls < 2) return;
+	std::lock_guard<std::mutex> lock(g_mutex);
+	if (!g_queue.empty()) return; // a Speak since then keeps it true
+	g_saying = false;
+	g_leadUntil = 0; // the held phrase is over
+}
+
 void SpeechThread(std::wstring path, std::promise<bool> ready) {
 	ready.set_value(AcquirePrism(path));
 	for (;;) {
 		Request request;
+		bool handed = false;
 		{
 			std::unique_lock<std::mutex> lock(g_mutex);
-			g_wake.wait(lock, [] { return g_quit || !g_queue.empty(); });
+			const auto due = [] { return g_quit || !g_queue.empty(); };
+			if (g_saying && g_tells != 0) g_wake.wait_for(lock, std::chrono::milliseconds(SpeakingPollMs), due);
+			else g_wake.wait(lock, due);
 			if (g_quit && g_queue.empty()) {
 				break;
 			}
-			request = std::move(g_queue.front());
-			g_queue.pop_front();
+			if (!g_queue.empty()) {
+				request = std::move(g_queue.front());
+				g_queue.pop_front();
+				handed = true;
+			}
 		}
 		if (g_state.backend == nullptr) {
 			continue;
 		}
-		if (request.stop) {
-			(void)g_state.api.backendStop(g_state.backend);
-		} else {
-			(void)g_state.api.backendSpeak(g_state.backend, request.text.c_str(), request.interrupt);
+		if (handed) {
+			if (request.stop) {
+				(void)g_state.api.backendStop(g_state.backend);
+			} else {
+				(void)g_state.api.backendSpeak(g_state.backend, request.text.c_str(), request.interrupt);
+			}
+			g_handed = GetTickCount64();
+			g_silentPolls = 0;
 		}
+		PollSpeaking();
 	}
 	ReleasePrism();
 }
-
-std::atomic<const D2RL::PluginContext*> g_log{nullptr};
 
 }
 
@@ -243,6 +296,13 @@ const char* BackendName() {
 
 unsigned long long LastSpoken() { return g_lastSpoken.load(); }
 
+std::optional<bool> Speaking() {
+	if (!g_available || g_tells.load() != 1) return std::nullopt;
+	return g_saying.load();
+}
+
+int TellsSpeaking() { return g_tells.load(); }
+
 std::mutex g_swallowMutex;
 std::vector<std::pair<std::string, unsigned long long>> g_swallow;
 
@@ -254,10 +314,17 @@ void Swallow(std::string_view text, unsigned long long untilMs) {
 	g_swallow.emplace_back(std::string(text), untilMs);
 }
 
-namespace { std::atomic<unsigned long long> g_leadUntil{0}; } // see Lead
+namespace {
+// A phrase led or urged still holds: until its time, unless the reader says it is over.
+bool Held() { return GetTickCount64() < g_leadUntil.load() && !(g_tells.load() == 1 && !g_saying.load()); }
 
-void Speak(std::string_view text, bool interrupt) {
-	if (interrupt && GetTickCount64() < g_leadUntil.load()) interrupt = false;
+void Deliver(std::string_view text, bool interrupt);
+}
+
+void Speak(std::string_view text, bool interrupt) { Deliver(text, interrupt && !Held()); }
+
+namespace {
+void Deliver(std::string_view text, bool interrupt) {
 	if (!text.empty()) {
 		std::lock_guard<std::mutex> lock(g_swallowMutex);
 		const unsigned long long now = GetTickCount64();
@@ -281,8 +348,10 @@ void Speak(std::string_view text, bool interrupt) {
 			g_queue.clear(); // what was waiting is now stale
 		}
 		g_queue.push_back({ std::string(text), interrupt, false });
+		g_saying = true;
 	}
 	g_wake.notify_one();
+}
 }
 
 void Lead(std::string_view text, unsigned long long untilMs) {
@@ -290,13 +359,13 @@ void Lead(std::string_view text, unsigned long long untilMs) {
 	g_leadUntil = untilMs;
 }
 
-void Urge(std::string_view text, unsigned long long untilMs) {
-	Speak(text, true);
+void Urge(std::string_view text, unsigned long long untilMs, bool first) {
+	Deliver(text, first || !Held());
 	g_leadUntil = std::max(g_leadUntil.load(), untilMs);
 }
 
 void Stop() {
-	if (!g_available || GetTickCount64() < g_leadUntil.load()) {
+	if (!g_available || Held()) {
 		return;
 	}
 	{

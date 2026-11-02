@@ -140,7 +140,7 @@ std::string FixNotice(std::string notice) { return notice; }
 namespace D2RAccess::ScreenReader {
 void Stop() { ++stops; }
 void Speak(std::string_view text, bool interrupt) { speech.push_back({std::string(text), interrupt}); }
-void Urge(std::string_view text, unsigned long long) { Speak(text, true); }
+void Urge(std::string_view text, unsigned long long, bool) { Speak(text, true); }
 void Lead(std::string_view text, unsigned long long) { Speak(text, false); }
 }
 

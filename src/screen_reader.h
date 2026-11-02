@@ -2,6 +2,7 @@
 
 #include <D2RLPlugin/api.h>
 
+#include <optional>
 #include <string_view>
 
 // Single speech sink for the whole plugin. Wraps the PRISM C API loaded
@@ -29,6 +30,12 @@ void Speak(std::string_view text, bool interrupt);
 // When anything was last given to Speak, as GetTickCount64 counts; 0 before
 // the first. For a reader of last resort that speaks only if no other did.
 unsigned long long LastSpoken();
+// Whether the screen reader is still saying what it was given: true from a Speak until the backend
+// reports silence. Empty while the backend cannot tell (PRISM's is_speaking unsupported, as with an
+// NVDA older than its controller's third interface) or before anything was said.
+std::optional<bool> Speaking();
+// 1 once the backend has answered whether it talks, 0 if it cannot, -1 before it was asked.
+int TellsSpeaking();
 // One saying of exactly `text` before `untilMs` (GetTickCount64) is dropped:
 // a switch put back at start as it was saved says its own change, which is
 // not news to the player.
@@ -39,7 +46,8 @@ void Swallow(std::string_view text, unsigned long long untilMs);
 // scroll's order, as the game moves the inventory cursor beside it).
 void Lead(std::string_view text, unsigned long long untilMs);
 // As Lead, but cutting in on what is being said: for news that must be heard at once.
-void Urge(std::string_view text, unsigned long long untilMs);
+// `first` cuts in even on a phrase another holds: the tutorial's (the user, 2026-11-02).
+void Urge(std::string_view text, unsigned long long untilMs, bool first = false);
 void Stop();
 // Every phrase given to Speak is logged through this context from now on, and
 // every one Swallow held back, so a test's log says what the player heard.

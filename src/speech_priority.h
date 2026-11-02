@@ -17,10 +17,11 @@ enum class Level { Queued, WhenUrgent, CutsIn, Holds, Count };
 inline constexpr int LevelCount = static_cast<int>(Level::Count);
 
 // What each kind did before the list existed, except status endings: a tester asked them to cut in (2026-10-19);
-// and arrivals, which a door's name under the cursor cut off (a tester, 2026-10-20).
+// arrivals, which a door's name under the cursor cut off (a tester, 2026-10-20); and the tutorial,
+// which the user asked to come first, cutting in on what the reader says (2026-11-02).
 inline constexpr std::array<Level, KindCount> Defaults{
 	Level::Holds, Level::CutsIn, Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent,
-	Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent, Level::Queued, Level::Holds};
+	Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent, Level::WhenUrgent, Level::Holds, Level::Holds};
 
 // How long a held phrase keeps later interruptions waiting (a tester, 2026-10-15: a status
 // effect's beginning, "with increased priority over other notifications").
@@ -68,6 +69,7 @@ void Set(Kind kind, Level level);
 void Say(Kind kind, std::string_view text, bool urgent = false);
 // Speaks `text` so that nothing cuts it off while it is said, cutting in unless its kind waits its
 // turn: for news said once that the player cannot have again.
-void SayWhole(Kind kind, std::string_view text);
+// `first`: cuts in even on a phrase another holds, as the tutorial's words do (the user, 2026-11-02).
+void SayWhole(Kind kind, std::string_view text, bool first = false);
 
 }
