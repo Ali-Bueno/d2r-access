@@ -2,8 +2,8 @@
 # d2intro
 d2intro	10.5	Sobre o preto, pálidas letras metálicas: “Blizzard Entertainment apresenta”, com chamas subindo de cada letra.
 d2intro	16.1	As chamas se apagam na escuridão.
-d2intro	19.6	Através de grades de ferro, um longo corredor cinza de prisão; luz enevoada entra por altas janelas.
-d2intro	24.9	Uma aranha gorda rasteja pelas lajes; junto às grades passa uma túnica clara.
+d2intro	19.6	Através de grades de ferro, um longo corredor cinza de manicômio; luz enevoada entra por altas janelas.
+d2intro	24.9	Uma aranha gorda rasteja pelas lajes; uma túnica cinza passa junto às grades.
 d2intro	29.0	O portão se abre; o desconhecido encapuzado, de túnica cinza-clara, se afasta pelo corredor rumo à luz.
 d2intro	34.3	Uma cela de pedra nua: um velho frágil jaz no chão num feixe de luz, com um catre de palha num canto.
 d2intro	40.5	Magro, careca e de barba branca, bochecha na pedra e olhos abertos, traça formas com um dedo ossudo junto ao prato.
@@ -17,16 +17,16 @@ d2intro	152.5	Numa taverna na penumbra, um garçom vai até Marius.
 d2intro	158.7	Marius, mais jovem, cabelo curto, barba por fazer, desaba na cadeira, cabeça para trás.
 d2intro	163.5	O garçom, careca e parrudo, de túnica de tricô, o olha com desdém e sai com a bandeja.
 d2intro	193.1	Marius ergue os olhos para a porta, cenho franzido, olhos arregalados.
-d2intro	196.9	Uma rajada dobra a chama de um lampião enjaulado num poste.
+d2intro	196.9	Uma rajada quase apaga um lampião quando uma figura encapuzada entra.
 d2intro	212.5	Um encapuzado entra.
-d2intro	230.75	Espada baixa na mão, passa pela mesa de um bebedor.
-d2intro	235.3	O bebedor, careca, magro, de braços nus e colete, o encara sobre as velas e abre um sorriso sonso.
+d2intro	230.75	Arrastando a espada, passa pela mesa de um farrista.
+d2intro	235.3	O bebedor, careca, magro e de colete sem mangas, o encara sobre as velas e abre um sorriso sonso.
 d2intro	241.25	O Errante senta junto a um poste, crava a espada no chão e desaba sobre o punho.
 d2intro	255.9	Sob o capuz o Errante faz uma careta; seu rosto brilha verde.
 d2intro	259.85	O bebedor sorri sobre a caneca.
-d2intro	261.45	O Errante rosna, em verde.
+d2intro	261.45	O Errante faz uma careta.
 d2intro	266.9	O sorriso do bebedor morre; ele encara, boquiaberto.
-d2intro	269.5	Algo escuro passa rápido pelos lampiões.
+d2intro	269.5	O Errante se convulsiona na mesa.
 d2intro	271.8	O Errante tomba de cabeça sobre a mesa, ao lado da espada; o bebedor, boquiaberto, leva a mão à garganta.
 d2intro	277.4	Fogo jorra do chão junto ao poste do braseiro.
 d2intro	280.0	Um demônio vermelho de presas rasteja de quatro pelo chão.
@@ -36,11 +36,11 @@ d2intro	320.3	Um esqueleto em chamas brande uma espada; Marius olha para cima, b
 d2intro	324.5	Um raio branco atinge um cliente entre as chamas; um esqueleto em brasa brande uma maça.
 d2intro	329.7	Sobre uma mesa, um careca de colete ergue a espada com as duas mãos; um esqueleto o ataca.
 d2intro	334.4	As chamas envolvem o garçom e sua bandeja.
-d2intro	337.2	Um raio branco atinge o peito de um homem de túnica, que cai de costas, braços abertos.
+d2intro	337.2	Um raio branco atinge o peito de um homem de túnica; ele recua, braços abertos, e morre.
 d2intro	341.7	Um cliente de braços nus troca golpes com um esqueleto em chamas e o agarra.
-d2intro	346.0	Uma coluna de fogo sobe pelo salão, com esqueletos e demônios nela; o Errante abre os braços, de capuz.
-d2intro	352.3	Fitas brancas o chicoteiam e fumaça verde sai de seus braços; ele agarra a cabeça.
-d2intro	356.7	Morcegos no fogo; o Errante, ajoelhado em névoa verde, se curva.
+d2intro	346.0	Uma coluna de fogo sobe pelo salão, com esqueletos e demônios nela; o Errante abre os braços, arqueando as costas.
+d2intro	352.3	Uma energia fantasmagórica o chicoteia e sai de seus braços; ele se agarra de dor.
+d2intro	356.7	Morcegos no fogo; a energia é sugada de volta para o Errante curvado.
 d2intro	360.8	Chamas sobem pela parede.
 d2intro	362.3	Um demônio-lesma vermelho rasteja entre barris.
 d2intro	364.7	Marius, colado à parede de pedra atrás de uma treliça, encara; ergue o longo cachimbo e o deixa cair.
@@ -55,8 +55,7 @@ d2intro	417.9	Letras de fogo formam Diablo Dois sobre a taverna em chamas entre 
 Act02start	2.0	Pedra descascada, marrom-ferrugem, manchada de cinza-azul.
 Act02start	5.0	Ato Dois, em letras pálidas e finas, cruza a pedra manchada; à esquerda, uma coluna de emblemas redondos escuros.
 Act02start	10.7	As letras somem e a tela escurece.
-Act02start	13.8	Um deserto pálido.
-Act02start	155.3	Raios vermelhos saem de uma torre numa duna escura.
+Act02start	155.3	Raios vermelhos saem de um pilar na tumba.
 Act02start	158.5	Marius acorda sobressaltado junto ao fogo.
 Act02start	172.8	Nuvens escuras sobre o fogo; acima, lua cheia; depois o céu clareia em azul e o sol brilha.
 Act02start	192.8	Marius segue sozinho rumo à cidade junto ao mar, lá embaixo.
@@ -68,24 +67,24 @@ Act03start	25.75	Marius entra com tocha.
 Act03start	65.1	Eles entram num salão imenso.
 Act03start	71.6	Cruzam o grande salão sobre lajes quebradas, entre blocos caídos: à frente o Errante de túnica; atrás, Marius ilumina com a tocha; morcegos passam.
 Act03start	80.0	O Errante para; Marius se põe ao lado e ergue a tocha.
-Act03start	84.5	O Errante, alto, careca e magro, de capa escura, assoma sobre Marius e se dobra.
+Act03start	84.5	O Errante, alto, careca e magro, é tomado por cãibras agonizantes e se dobra.
 Act03start	89.0	Seu rosto pálido se contorce; Marius olha, mão no peito.
-Act03start	92.5	Caroços e chifres surgem no crânio careca enquanto a pele borbulha.
+Act03start	92.5	Caroços ósseos brotam do crânio careca e uma cratera se abre na testa.
 Act03start	96.3	Marius se encolhe no chão com a tocha, recuando do Errante.
 Act03start	115.4	Braseiros se acendem um após outro e o fogo corre por canais no chão até cercar um alto obelisco enrolado em tentáculos num monte.
 Act03start	122.5	O Errante cruza a passos largos uma porta de pedra; Marius o segue.
-Act03start	142.8	Fitas de luz azul-branca chicoteiam o Errante e o jogam rolando; a ponte de corda sobre o abismo pega fogo, prancha a prancha.
+Act03start	142.8	As asas de Tyrael chicoteiam o Errante e o jogam rolando; a ponte de corda sobre o abismo pega fogo, prancha a prancha.
 Act03start	149.7	Marius encara a ponte em chamas, tocha numa mão, a outra estendida.
 Act03start	153.6	Tal Rasha pende amarrado diante de uma muralha de fogo, definhado, braços abertos.
-Act03start	158.0	O Errante rasteja pela ponte em chamas, chicoteado por luz azul-branca; Tyrael mergulha num clarão branco.
-Act03start	164.2	Tyrael, pequena figura em brasa nas pranchas, lança fitas de luz branca contra o Errante.
-Act03start	168.8	Tal Rasha se debate; uma gema amarela brilha em seu peito.
+Act03start	158.0	O Errante rasteja pela ponte em chamas sob as asas de Tyrael; Tyrael mergulha num clarão branco.
+Act03start	164.2	Tyrael, pequena figura ardente nas pranchas, chicoteia o Errante com as asas.
+Act03start	168.8	Tal Rasha tenta se soltar; uma gema amarela brilha em seu peito.
 Act03start	172.2	Tyrael, encapuzado, de branco e ouro, agarra o Errante.
-Act03start	181.2	Marius cambaleia, olhos baixos, e estende a mão.
+Act03start	181.2	Marius cambaleia e estende uma mão trêmula para Tal Rasha.
 Act03start	187.5	Chamas devoram as pranchas; Marius pisa na ponte.
 Act03start	190.3	Tocha erguida, atravessa agarrado à corda em chamas.
 Act03start	193.8	Tyrael, encapuzado, arde em branco, asas abertas.
-Act03start	200.0	Tocha na mão, Marius se aproxima de Tal Rasha e olha para ele.
+Act03start	200.0	Marius se aproxima de Tal Rasha e olha para ele.
 Act03start	203.3	Estende a mão à gema no peito de Tal Rasha e a agarra.
 Act03start	210.5	Marius arranca a gema e fica olhando para ela.
 Act03start	239.15	Tyrael, asas de luz abertas, crava sua espada; Tal Rasha salta do monte, cordas ao ar.
@@ -109,7 +108,7 @@ Act04start	157.7	Diablo se ergue na plataforma do altar diante de uma coluna de 
 Act04start	165.7	Desce da plataforma a passos largos, chifrudo e marcado de músculos.
 Act04start	169.6	Seu pé de garras esmaga caveiras e ossos.
 Act04start	186.9	Diablo avança para o clarão branco do Portão Infernal e afunda em sua superfície ondulante.
-Act04start	191.9	Marius chora numa porta, olhos fechados, com a coluna de raios e o Portão em chamas no salão atrás.
+Act04start	191.9	Marius chora atrás do pilar, de olhos fechados, com os raios e o Portão em chamas no salão adiante.
 Act04start	197.3	Leva a pedra amarela aos lábios, olhos baixos.
 Act04start	200.3	Segura-a diante dos olhos e a encara; o brilho banha seu rosto de verde e ouro.
 Act04start	204.3	O Portão Infernal segue ardendo, rostos atormentados se contorcendo em sua superfície cinza; depois tudo escurece.
@@ -120,17 +119,17 @@ Act04end	13.75	Marius jaz num catre numa cela de pedra ensolarada.
 Act04end	21.55	Uma figura azul fantasmagórica se solta de Diablo, agachado num mar de fogo; depois, clarão branco.
 Act04end	37.75	A luz do dia cai da alta janela gradeada até Marius, encolhido no catre.
 Act04end	42.8	Careca e de barba branca, chora, punho trêmulo na testa.
-Act04end	67.95	O desconhecido encapuzado, de cinza-claro, cruza o piso e assoma sobre Marius.
+Act04end	67.95	O desconhecido, banhado de luz, cruza o chão e se ergue sobre Marius.
 Act04end	79.45	O desconhecido se debruça sobre ele, mãos no peito, rosto escuro sob o capuz.
 Act04end	83.65	Marius enfia a mão na túnica e ergue o olhar.
-Act04end	89.2	Estende-lhe a pedra amarela.
+Act04end	89.2	Ele arranca o cordão do pescoço.
 Act04end	103.7	Marius se encolhe a seus pés, a pedra apertada no punho, cabeça baixa.
 Act04end	107.8	Abre a palma sobre a pedra brilhante e os longos dedos pálidos do desconhecido a pegam.
 Act04end	126.0	Rosto morto sob o capuz.
 Act04end	149.6	Tentáculos vermelhos saem de Baal, um rosto de demônio chifrudo salta do capuz, e tudo escurece.
 Act04end	154.7	Na cela, Marius jaz numa poça de sangue junto ao catre, na luz da janela.
 Act04end	159.7	Baal cruza o piso; fogo dourado explode atrás dele e inunda a cela inteira, paredes e tudo.
-Act04end	165.2	Baal sai de uma muralha de fogo amarelo para um alto salão na penumbra, de pedra clara, pilares quadrados e um banquinho, o manto ondulando.
+Act04end	165.2	Baal sai de uma muralha de fogo amarelo para um alto salão na penumbra, de pedra clara, a túnica escura ondulando.
 Act04end	172.7	Besouros negros enxameiam as lajes a seus pés enquanto ele anda; cordas chicoteiam do capuz.
 Act04end	178.2	Aproxima-se, calmo, chamas lambendo a barra do manto.
 Act04end	181.1	As chamas ficam brancas, seu manto escuro cobre tudo; então tudo escurece.
@@ -155,9 +154,9 @@ D2x_Intro	94.9	No trono, um demônio pálido e careca franze o cenho, gavinhas c
 D2x_Intro	101.8	Atrás do velho guerreiro, as grandes portas se fecham; seu estandarte ondula, o rosto firme e sombrio.
 D2x_Intro	107.2	Olha por cima do ombro enquanto se fecham, deixando-o fora, sozinho com a horda.
 D2x_Intro	112.3	Volta-se para a passagem, agarrado ao mastro, estufa o peito e ergue o queixo.
-D2x_Intro	118.7	O trono espera entre os estandartes; o guerreiro ergue a mão livre.
+D2x_Intro	118.7	O demônio espera entre os estandartes; o guerreiro ergue a mão livre.
 D2x_Intro	150.8	Picos nevados sobre a passagem sob céu ofuscante.
-D2x_Intro	153.4	Curvado, o guerreiro agarra a cabeça de dor.
+D2x_Intro	153.4	O guerreiro agarra a cabeça diante do grito de Baal.
 D2x_Intro	156.0	Baal fuzila do trono, careca, pálido, o crânio cheio de caroços, uma pedra amarela brilhando no peito.
 D2x_Intro	161.7	O guerreiro tira o chapéu de pele e o leva ao peito, cabeça careca à mostra.
 D2x_Intro	172.3	Baal passa uma garra pela pedra do peito; o guerreiro espera sem chapéu, olhando para cima; Baal fecha os olhos, cabeça inclinada.
@@ -177,22 +176,22 @@ D2x_Intro	236.4	A pedra brilha em ouro e Lord of Destruction toma o lugar em mai
 D2x_Intro	241.4	O título pisca e tudo escurece.
 # D2x_Out
 D2x_Out	4.2	Numa vasta caverna na penumbra passam lajes escuras; lá embaixo, uma névoa dourada.
-D2x_Out	8.5	Agulhas negras estriadas pendem do teto como torres invertidas sobre a névoa dourada, uma saliência de rocha sob elas.
+D2x_Out	8.5	Agulhas negras estriadas pendem como torres invertidas de uma plataforma suspensa no ar sobre a névoa dourada.
 D2x_Out	17.0	Ao fim de uma estrada de blocos de pedra rajada de vermelho, ladeada de pedestais com chamas pequenas, está Tyrael, longe, dourado, asas de luz ondulando.
-D2x_Out	25.2	Entre dois pedestais escuros, suas asas ondulam sobre uma ponte de cristal azul até a Pedra do Mundo, enorme massa de cristal vermelho com um bloco entalhado.
+D2x_Out	25.2	Entre dois pedestais escuros, suas asas pairam sobre uma ponte até a Pedra do Mundo, massa de cristal vermelho com um bloco entalhado no centro.
 D2x_Out	33.4	Tyrael, encapuzado, rosto na sombra, resplandecente de branco, ergue a grande espada a duas mãos e a segura depois ponta para baixo.
 D2x_Out	40.2	Na ponte, suas asas de luz se dobram ao redor dele como serpentinas; raios se abrem sobre a massa vermelha.
 D2x_Out	45.7	Cabeça baixa sobre a espada, mãos no punho, reza.
-D2x_Out	48.9	Um raio violeta atinge um pedestal no fim da ponte e o cristal azul o reveste.
+D2x_Out	48.9	Um raio violeta atinge um pedestal no fim da ponte, e energia azul o envolve.
 D2x_Out	53.8	Segue rezando, cabeça baixa, o punho dourado entre as mãos.
-D2x_Out	57.7	Relâmpagos; os dois pedestais estão revestidos de cristal azul, as asas ondulando entre eles.
+D2x_Out	57.7	Relâmpagos piscam; os dois pedestais estão envoltos em energia azul, suas asas ondulando entre eles.
 D2x_Out	63.0	Luz dourada desce pela espada enquanto ele reza, mãos sobre o punho; as asas varrem de novo a ponte.
 D2x_Out	69.4	A prece termina: ergue a cabeça e agarra a espada.
 D2x_Out	72.3	Gira de repente, asas num borrão de luz.
-D2x_Out	74.6	Sobre a estrada em ruínas, sob um céu vermelho, a espada sai de sua mão, um traço dourado.
-D2x_Out	79.2	No impacto, um anel giratório de luz branca se abre, faíscas voando pela rocha vermelha.
-D2x_Out	84.0	Longe, a Pedra do Mundo brilha vermelha como brasa, um feixe branco cravado em seu flanco.
-D2x_Out	89.3	Luz branca jorra da ferida e o cristal se racha; voam estilhaços negros e vermelhos.
+D2x_Out	74.6	Ele arremessa a espada, um raio dourado, sobre a estrada em ruínas até a Pedra do Mundo.
+D2x_Out	79.2	No impacto, um anel giratório de luz branca se abre no cristal, e faíscas voam.
+D2x_Out	84.0	Ao longe, a Pedra do Mundo brilha vermelha como brasa, um feixe branco cravado em seu flanco.
+D2x_Out	89.3	Luz branca jorra da ferida; a Pedra do Mundo se despedaça, estilhaços voando.
 D2x_Out	93.8	Estilhaços giram, longas lascas negras e pedaços vermelhos, em luz ofuscante.
 D2x_Out	98.0	Grandes fragmentos vermelhos rolam na penumbra.
 D2x_Out	100.5	A luz branca se abre entre os fragmentos.

@@ -139,7 +139,7 @@ never says what is happening there". The model is the Witcher 3 mod
 
 - **First pass** (replaced): 293 + 290 short captions by two Sonnet writers from 400 px sheets. The
   user listened to it (Videos list) and found it generic.
-- **Detailed rewrite** (current, 2026-11-01, after bfbeast's note on sounds and the user's request
+- **Detailed rewrite** (2026-11-01, edited by the tester since, after bfbeast's note on sounds and the user's request
   for more detail): four Fable writers from fresh frames (1 to 4 fps sheets, full frames for detail),
   two per edition, each on half the videos; the classic writers adapted the new 2021 text beat by
   beat to the 2000 frames. 2021: 171 cues, classic: 193; at 20 c/s they narrate 74 to 93 % of each
@@ -151,6 +151,21 @@ never says what is happening there". The model is the Witcher 3 mod
   a round platform, the Act V throne is a wagon; classic: white bolts, a slug-like demon between
   barrels, a dim pillared hall with beetles instead of a street, "Diablo II Expansion" with no Act Five
   card, no crystal on Tyrael's armor. Unsure moments are in the writers' notes below the first pass.
+- **Tester edit** (current, 2026-11-02): bfbeast went through the 2021 English with `review` and
+  found it "much more accurate but WAY too verbose ... Claude went way overboard in the description
+  details"; he trimmed for "a somewhat lower" mental load and corrected oversights: energy, not
+  crystal, in the `D2x_Out` ending (the Worldstone named), Tyrael's wings, not ribbons of light, in
+  `Act03start`, an asylum, the Wanderer convulsing in the tavern, a pillar inside the tomb in
+  `Act02start`, Baal's scream in `D2x_Intro`. 48 cues changed, 2 dropped
+  (`apply`; he deleted two by removing their `@` lines, which `apply` ignores, so they were removed by
+  hand); director fixes: typos, three cues trimmed to fit, the tavern's newcomer "a hooded figure",
+  apart from the asylum's "hooded stranger". The classic English was brought in line by an Opus agent
+  checking the classic frames at each edit: 35 changed, 1 dropped; kept where the classic picture
+  differs (beetles in a hall, bony lumps and a crater instead of the crystal in `Act03start` 92.5, no doorway at d2intro 375.7,
+  Marius alone on the ridge, no sword slam). Translations edited line for line by two Sonnet agents.
+  He then confirmed the classic differences and that the vermin fleeing Baal are beetles in both
+  editions (his "sea of rats" became "a swarm of beetles"). Next writer: aim lower on detail than the
+  rewrite did.
 - **Narration** (replaced by the rewrite): English by an Opus writer to the revised guide, from 640 px sheets of the
   free stretches, the dialogue sheets for the story and 2 fps frames for unclear moments. 2021: 161
   cues (d2intro 43, Act02start 5, Act03start 27, Act04start 15, Act04end 18, D2x_Intro 35, D2x_Out

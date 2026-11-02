@@ -2,6 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Tainted Sun darkness in Act II area descriptions — 2026-11-02
+
+- bfbeast: the eclipse line "never fires when it needs to"; asked that, while the quest runs, every
+  Act II area description (BACK + right stick up) end with it. Done: `QuestService::Eclipsed`
+  (levels 40-74, row 11 running, bit 1 clear) used by `DescribeArea` in `beacon_service.cpp`.
+  CTest 137/137. [quests](docs/quests.md#the-tainted-suns-eclipse-2026-10-20).
+- Not tested live. The user has a character with the quest running: expect the line on BACK+up in
+  Act II and `[descriptions] ... , eclipse` + `[quest] flags row=11 word=XXXX` in the log.
+- bfbeast edited the whole 2021 cinematic script ("WAY too verbose"; energy, not crystal; Tyrael's
+  wings ...): applied, classic brought in line from its own frames, all 26 files edited, `check` 0
+  problems. [Tester edit](docs/cinematics-audio-description.md#written-so-far-2026-11-01).
+- bfbeast: the Act I to Act II cinematic fired correctly after Andariel on a fresh character, and his
+  log shows `InGameMoviePlayerPanel/MoviePlayer found` and `video clock found in slot +0x120`: the
+  in-play act video keeps time with the video clock too (he quit 24 s in).
+
 ## Cinematic narration: no sounds, then a detailed rewrite — 2026-11-01 (released as test-2026-11-01-6 from 24fd49e)
 
 - bfbeast: "Claude does audio cues which really don't need describing since they are mostly
@@ -74,15 +89,14 @@
   a 48 kHz audio count, lagged the picture ~0.5 s and was not where it was in the next play
   ([doc](docs/cinematics-audio-description.md#runtime-built-2026-11-01-unverified-live)). The deep
   probe now runs only when the clock is not found. Installed DLL `54a48f5d…`, CTest 137/137.
-  **Unverified:** in-play act videos (InGameMoviePlayerPanel) and a real hitch (the clock stops with
-  the video by design).
+  **Unverified:** a real hitch (the clock stops with the video by design). In-play act videos
+  verified by bfbeast's log, 2026-11-02 (section above).
 
 Release test-2026-11-01-6 (the user asked: commit, push, release): 28 entries, 64,511,409 bytes,
 SHA-256 `4a3fbe7e…46d653a7`, 137/137 CTest in the release build; news
 `../tester-news-draft-2026-11-01f.txt`.
 
-**Next step:** a tester's in-play act video (log `video clock found`, narration matching the
-video); a real hitch heard by the user. Then release with tester news `../tester-news-draft-2026-11-01f.txt` when the user asks.
+**Next step:** a real hitch heard by the user.
 
 ## The whole game played through by testers; README rewritten — 2026-11-01
 
