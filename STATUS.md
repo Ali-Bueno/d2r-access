@@ -16,11 +16,11 @@ the public repo, then announce it.
   "What's new".
 - Just after the visibility change GitHub answered `git ls-remote` with "repository is disabled";
   the script took that as "no such tag". It now stops when the query fails.
-- **Unverified live:** the installer against the public release (install, the pages before
-  install, "already up to date" after); 1.0 said at start; the 1.0 launcher's log
-  (`installed 1.0, latest 1.0`, up to date).
+- The user tested the installer against the public release: "funcionó todo".
+- The 46 test releases were deleted (the user asked); only 1.0 is left. Their `test-` git tags
+  remain, so the "released as test-…" lines here still name real tags.
 
-**Next step:** the user tests the installer with the public repo; then the announcement.
+**Next step:** the announcement of 1.0.
 
 ## Installer: the language box named; "already up to date"; guide and README buttons — 2026-11-02 (released as 1.0)
 
