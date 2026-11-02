@@ -29,6 +29,9 @@ struct Experience {
 	bool maximum = false; // at the level cap there is nothing to reach
 };
 std::optional<Experience> PlayerExperience() noexcept;
+// The local player's points not yet spent.
+struct Unspent { int attributes = 0, skills = 0; };
+std::optional<Unspent> PlayerUnspent() noexcept;
 
 struct Mercenary {
 	uint32_t id = 0;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 // Value controls (sliders, dropdowns) fire a UI update event when the player
 // changes them, but the event carries no value, only that the control
 // changed. To speak "increased"/"decreased" the plugin infers the direction
@@ -185,6 +187,14 @@ Stick LeftStick();
 // Whether a pad was used -- a button pressed, a stick or trigger pushed past
 // its threshold -- since the previous Take(), then cleared.
 bool TakePadUse();
+// Every button pressed on any pad since the previous Take() (XInput masks), and
+// whether a stick or trigger was pushed past its threshold: for the tutorial's
+// question, which answers to some presses and hears every other.
+struct PadPresses { uint16_t buttons = 0; bool moved = false; };
+PadPresses TakePadPresses();
+// Drops every gesture the last Poll() recorded, so no reader acts on it: while
+// the tutorial's question is open the pad is its own. Call right after Poll().
+void DropGestures();
 // The share of a stick's travel that counts as a deliberate push, not drift.
 inline constexpr float StickPushFraction = 0.5f;
 

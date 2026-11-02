@@ -68,11 +68,12 @@ before leaving it). The step's message ends with how to steer them (`auditionAga
 - Decided once per game, after `LocalPlayerReady`, while the switch `tutorial` (Alerts group of the
   Ctrl+S list, default on) is on: the character's name and the roster (`ReadRosterCorpses`); with
   other players in the game it is not offered. A character with a record resumes at its step; one
-  without a record begins only at character level 1 (`PlayerExperience`).
+  without a record is asked first (below), and only at character level 1 (`PlayerExperience`).
 - Records (`tutorial_records.*`): `<pluginDirectory>/d2r-access/tutorial.txt`, `name@created=step`,
-  18 meaning finished, and `#version=2`. A file without the version (16 steps, before the Den's
-  rooms and the waypoint) is brought up to date once (`Tutorial::FromVersion1`: the Den's step
-  begins again at its rooms, the way back and the reward move on one, finished stays finished);
+  20 meaning finished, and `#version=3`. An older file is brought up to date once
+  (`Tutorial::FromVersion`): version 1 (16 steps, before the Den's rooms and the waypoint) has the
+  Den's step begin again at its rooms and the way back and the reward move on one; version 2 (18
+  steps, before the shop and the skill point) has its waypoint (17) move on two; finished stays finished;
   `created` is when the character's save (`<Saved Games>/Diablo II Resurrected/<name>.d2s`) was
   made, in Unix seconds, so a character deleted and made again under the same name starts afresh
   (the user, 2026-10-21: the new one resumed at the old one's Akara step). The game keeps a save's
@@ -116,13 +117,56 @@ before leaving it). The step's message ends with how to steer them (`auditionAga
 - **The radar's words** (the user, 2026-10-21): its message says the tutorial plays the sounds and
   nothing need be pressed; each sound comes after its name and meaning ("Floor: you can walk that
   way; further on there may be anything, a passage too"), and the task after them is only to walk
-  until a wall. A sound waits for its words at 45 ms a character, at least 1.2 s (`ReadMs`); the
-  first, and the world's sounds let in, wait so for the message before (it was 60 ms: "a little
-  shorter", the user).
+  until a wall. A sound waits for its words: the screen reader's own word that it has stopped
+  (below), else 45 ms a character, at least 1.2 s (`ReadMs`); the first, and the world's sounds let
+  in, wait so for the message before (it was 60 ms: "a little shorter", the user).
+- **Waiting on the screen reader** (2026-11-02, the user: "30 seconds or more" before the radar's
+  sounds; the log: 20 s from the radar's words to the first name, which NVDA had long finished).
+  `ScreenReader::Speaking()` asks PRISM's `prism_backend_is_speaking` on the speech thread every
+  100 ms once all queued text is handed over and 250 ms have passed; two silent answers in a row
+  end it. NVDA answers from its controller's third interface (PRISM `source/backends/nvda.cpp`,
+  `NvdaController3`); an older NVDA or another reader cannot tell, and the guess stands. The log
+  says once `[speech] the screen reader tells|does not tell when it stops talking`. What waits on
+  it: the first sound after a step's words and each sound after its name (`Audition::Tick(now,
+  said)`; the gap after a sound is kept), the world's sounds let in, a message read back's sound,
+  news held while the tutorial talks (`Busy`), the calm the lessons wait for, and the question's
+  closing words. The guess stays the bound: never later than before.
 - **Place names** are the game's own (`NativeEntities::LevelName`, tokens `{den}` and `{moor}`): Spain's
   Spanish says Cubil del Mal and Landa de Sangre, Mexico's Guarida del Mal and Páramo Sangriento
   (`game-data/local/lng/strings/levels.json`). The texts avoid an article before them.
 - Logs: `[tutorial] begins|resumes at step N for NAME`, `step N reached`, `finished for NAME`.
+
+## The question before it (2026-11-02)
+
+The user: before the tutorial begins, ask whether the player wants it; while asked, the game gets no
+input at all; two presses answer, and anything else asks again. Asked where the welcome used to
+start (`Question` in `tutorial_service.cpp`): `ArrivalMs` after the decision, once speech has paused.
+
+| Answer (twice) | Pad (XInput) | Keyboard | Then |
+|---|---|---|---|
+| yes | A (PlayStation cross) | Enter | the tutorial begins; its record is written |
+| not now | B (circle) | Escape | nothing kept: asked again in the next game while the character is level 1 |
+| never ask again | Y (triangle) | Backspace | the switch `tutorial` turns off and the settings file keeps it; turned on again, the question returns |
+
+- Two presses of one answer within the system's double-click time (`GetDoubleClickTime`, 500 ms by
+  default) give it (`Tutorial::Offer`, tested). One press alone, two different answers, any other
+  button, key or mouse click, or a stick or trigger pushed past its threshold say the question again.
+  Shift, Ctrl, Alt, Windows, Insert, Caps Lock and Num Lock are the screen reader's and count as nothing.
+- Sounds (the user): the tutorial's message sound, then the question `ChimeMs` later, each time it is
+  said; the step-done sound on the answer. Then `AnsweredMs` (1 s) before the welcome, or before the
+  words that close it ("not now", or where to turn it back on), so neither is cut.
+- From the decision until it is answered and closed, the world's sounds and the news wait
+  (`QuietWorld`, `Busy`); after "not now" or "never" they come back once the closing words are said.
+- **Nothing reaches the game** while it is open (`TutorialOffer::Tick`, right after
+  `InputDirection::Poll`): `PadFilter::HoldAll` hands the game no buttons, triggers or sticks, and a
+  button pressed meanwhile stays kept to its release, so the answering press does nothing in the
+  game; `MessageHold` (a `WH_GETMESSAGE` hook on the game window's thread) turns key and mouse-button
+  messages into `WM_NULL` the same way, Alt+F4 excepted; `InputDirection::DropGestures` keeps the
+  mod's own pad gestures from every reader. Both holds lapse 500 ms after the last tick, so a
+  question that stops ticking cannot leave input held.
+- Log: `[tutorial] the question asked for NAME`, `asked again`, `answered: yes|not now|never ask again`.
+- To check live: that the loader's own key actions (the mod's keys) do not fire while it is open;
+  that holding the answering button or key does nothing in the game once it closes.
 
 ## Steps
 
@@ -154,9 +198,24 @@ default buttons (A talks and picks up, B closes).
 | 13 | Den of Evil | the ways out of this room (BACK+Y / Ctrl+Y) | asked |
 | 14 | Den of Evil | room sounds, the monster counter | the Den's quest: reward pending, goal done or completed |
 | 15 | Den of Evil | the town portal scroll, or walking back; with a pad, the button the town portal is bound to | the player is in the camp |
-| 16 | Camp | the reward and the skill tree | the Den's quest completed |
-| 17 | anywhere | waypoints keep the way: the Cold Plains' | a waypoint's menu open outside the camp |
-| 18 | Camp | farewell: the settings list; right stick down in menus | — |
+| 16 | Camp | talking to Akara for the reward; in her menu, the shop step's words | her menu open with the Den cleared, or the quest completed |
+| 17 | Camp | Akara sells tomes: her menu's trade entry (`{trade}`, ui.json `NPCMenuTrade`) | a shop opened since the reward |
+| 18 | Camp | spending the skill point: the skill tree's keys | no skill point left (`PlayerSkillPoints`, stat 5) |
+| 19 | Camp | waypoints keep the way: the camp's own, found with the scanner, route and beacon | a waypoint's menu open |
+| 20 | Camp | farewell: the settings list; right stick down in menus | — |
+
+**After the Den, 2026-11-02** (the user's live run): the reward step said "talk to Akara, then
+spend the point" but finished as the quest completed, so the waypoint's words came over Akara's
+dialogue and nothing followed the point; buying the tomes was never taught; and the waypoint step
+sent the player through the Blood Moor to the Cold Plains, where they died. Now the reward is only
+the talk, the shop and the point are steps of their own, each passed unsaid when already done
+(`PassedBy`: a shop since the reward, no point left), and the waypoint is the camp's: its menu is
+explained as it opens (`waypointMenu`: rows, "undiscovered", "you are here", A travels, LT/RT or
+Page Up/Down change the act, the Cold Plains' next). The shop lesson is said again in the first
+shop of the shop step, now with how to buy: the tabs (LT/RT, Page Up/Down), the cells, the
+description, A and its confirmation or D, and Akara as the tomes' seller. LT/RT change a shop's tabs
+on the pad (the game's glyph table, "tab left, right", [glyphs](controller-glyphs.md); confirmed by
+the user, 2026-11-02).
 
 The tester (2026-10-21): Ctrl+Y says the ways out of a room, and a room is a maze level's cell
 (`docs/rooms.md`), so outdoors it says nothing: it moved into the Den. Gold is picked up by walking
@@ -174,8 +233,9 @@ obstacle, each after its name and meaning; the unexplored ones are the radar's d
 
 **The level-up lesson** (the user, 2026-10-21: menus, attributes, tooltips and the skill tree once
 the character levels up, but not in a fight, and without having to shut one menu to reach the
-next) runs beside the steps, once per character. From level 2, once no enemy has been on screen
-(`CombatTarget::OnScreen`) for 3 s (`CalmMs`) and the tutorial is not talking, it says in play to
+next) runs beside the steps, once per character. From level 2, once no monster has been within 15
+units (`CalmRadius`, walking or standing; it was any on screen, some 25, for 3 s: the user,
+2026-11-02, "the equipment lesson was long in coming") for 2 s (`CalmMs`) and the tutorial is not talking, it says in play to
 open the character sheet (pad: Menu, the button the game's own "Press Menu to assign Stat Points"
 names; keyboard: C), then follows the player through the menus (`WatchLesson`, every poll):
 
@@ -225,6 +285,48 @@ Tome of Identify and the Tome of Town Portal from Akara if the gold is there (th
 inventory. How gold is deposited with the pad is left to the stash's own reading (not measured).
 The tomes' and pages' names are the game's own (`Localization::Text`: `tbk`, `ibk`).
 
+**The level-up lesson in its own menu** (2026-11-02, the user: it came over a minute after the
+level-up, the Den full of monsters, and the player had opened the sheet meanwhile): the sheet or the
+tree opened before the calm comes begins the lesson there (`[tutorial] level-up lesson begins in
+its menu`).
+
+**The level-up lesson by the points left** (2026-11-02, second run, the user: "track better the part
+between assigning the skill and the attribute points"). The log: Menu opened the skill tree, not the
+sheet; the point was never spent (the pad spends it by *holding* A, the game's own legend "A: hold
+to assign skill point(s)", and the text said "A spends"); shutting the tree ended the lesson, the
+attribute points never named, and the in-play "press Menu" was said after it. Now the lesson reads
+the points left (`NativeStatus::PlayerUnspent`: ItemStatCost rows 4 statpts and 5 newskills, by
+GetStat) and follows the sheet and the tree in either order: each one's words as it opens; in the
+tree, the point spent: how to bind a skill, then, attribute points left, the way to the sheet
+(`levelUpToSheet`: LB / C); in the sheet, its points spent with the skill point left: the way to the
+tree. Both open (the keyboard's T beside the sheet): the one with points left speaks. Back in play
+with points left, once: `levelUpSheetLater` or `levelUpTreeLater`, and the lesson waits for the
+menus again; then, or with none left, it is given. The in-play prompts are dropped once a menu opens
+(`Action::holds`). The pad's tree and skill-point texts say "holding A". Log: `[tutorial] level-up
+lesson: N attribute and M skill point(s) left`.
+
+**Akara's reward in one talk** (2026-11-02, second run: the first talk opened her menu 2.4 s, the
+quest unchanged, `201e`; the second gave the reward, `2001`, 0.5 s after it opened; the first run's
+single talk gave it at once). The reward step now ends on her menu open with the Den cleared
+(`RewardTalk`) or the quest completed, and the shop step's words are said in that menu
+(`[tutorial] the shop step said in Akara's menu`), so Trade can be chosen there; a shop opened since
+the Den was cleared counts for the shop step, and the shop's lesson is said in it. Shut without
+trading, the shop step is said in play ("if you closed it, talk to her again"). Third run (12:41):
+the shop words came over her speech (opened 16.6 s, speech ended 21.5 s, "Akara. Talk" read after
+it), so they now wait for a choice of her menu to have the focus (`DialogChoices`). And the game
+marked the Den done (`2001`) only at a later talk (12:43:03), after the player had spent the point
+(12:42:11, `UseSkillPoint`): the skill point step now ends on no point left, the quest's flag aside. Nothing need be
+bought: the shop opened and left ends the step, and the shop lesson says so (the user, 2026-11-02:
+there may be no gold for the tomes). The skill point step
+ends when no skill point is left.
+
+**The tutorial first** (2026-11-02, the user: "the tutorial's text should have priority, cutting in
+on what the reader says"): `priority-tutorial` defaults to "cannot be cut off" (`Level::Holds`), and
+each message is said whole (`SpeechPriority::SayWhole`): it cuts in, and what would cut in meanwhile
+queues behind it until the reader says it is over (`ScreenReader` lets a held phrase go when
+`is_speaking` answers silence), the guessed length at most. The settings list can still set it back. A menu message is now tied to its menu (`MenuMessage(text, shown)`) and dropped once
+that menu shuts: the sheet's words were said in the tree after the player had moved on.
+
 **Words in a menu** (fixed 2026-10-21): the first level-up test heard nothing in the sheet. In a
 menu the reader of what has focus always owns speech (`GameTextReader::Tick` returns true while the
 interaction reader has focus), so a menu message waited for `uiOwnsSpeech` to clear, which it never
@@ -256,7 +358,9 @@ The radar's sounds are audition cues (`CueSource::audition`), which no radar rea
 | InTown, InBloodMoor, InDen | `LevelChanged`: Levels.txt rows 1, 2 and 8 (`src/generated/level_flags.h`) |
 | DenCleared, DenDone | `NativeQuestFlags::Read(1)`: row 1 inferred from the save's order (the Tower is 5, Act II begins at 8); bits 1 and 13, and `QuestDoneBits` |
 | Kill | `NativeStatus::PlayerExperience()->total` rising outside the camp |
-| Waypoint | a `WaypointsPanel*` open outside the camp |
+| Waypoint | a `WaypointsPanel*` open, the camp's included |
+| Shopped | a `VendorPanelLayout` open while the Den's quest is done (state, per game) |
+| SkillsSpent | `NativeStatus::PlayerSkillPoints() == 0`: ItemStatCost row 5, newskills, by the game's GetStat (state) |
 | (gold lesson) | `NativeGroundItems::PlayerGold()` rising outside the camp |
 
 ## To check live

@@ -2,6 +2,84 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tutorial, third run — 2026-11-02 (evening)
+
+- **Holds that outlived their phrase** (the user: after the tutorial spoke, every reading queued,
+  inventory and scanner; a Back+B summary was not cut by the next tutorial words). The lead lasted
+  its guessed length and any speech meanwhile renewed it. Now the reader's silence ends the hold
+  (`ScreenReader` clears `g_leadUntil`), and the tutorial's words cut in even on a phrase another
+  holds (`Urge(..., first)`, `SayWhole(..., first)`).
+- **Akara**: the shop words wait for her menu's choices (they came over her speech); the skill
+  point step ends on no point left, not on the quest's flag (the game set `2001` only at a later
+  talk, after the point was spent).
+- **Calm** for the lessons (level-up, equipment, gold): no monster within 15 units for 2 s, walking
+  or not (was: none on screen, 3 s).
+- CTest 137/137; DLL `c636dac9` installed. **Not tested live.**
+
+## The character's name with the right stick — 2026-11-02
+
+- The user: the lobby's right-stick keyboard "worked very well"; the name box now has it too
+  (`MenuNavigation::TypeName` -> `PadTyping`), on the game's text entry panel or on the box itself.
+  "Typing. Enter or Escape..." is said only for the keyboard's cursor now. CTest 137/137; DLL
+  `c5d80693` installed. Tried: the letters right, but the game's A shut its `TextInputModal`
+  after each one; A is now kept from the game while the stick types (`PadFilter::HoldA`). Doubled
+  stick steps were DS4Windows plus Steam Input. CTest 137/137; DLL `5b3f6b10` installed.
+  [multiplayer](docs/multiplayer.md#the-characters-name-with-the-right-stick-2026-11-02)
+
+## The tutorial, second run — 2026-11-02 (afternoon)
+
+- The user's second run (log 10:52-11:14): the waits, the popup, Akara's shop, the camp's waypoint
+  and the name box worked. The reader tells when it stops (`[speech] the screen reader tells`).
+- Fixed: **level-up points** (Menu opened the tree, the point not spent: the pad needs A held; the
+  tree shut ended the lesson, attribute points never named). The lesson now follows the points left
+  (stats 4 and 5) through sheet and tree in either order, names what is left once back in play, and
+  drops its in-play prompt once a menu opens. **Akara**: her menu back from the Den ends the reward
+  step (the game gave the reward only at the second talk) and says the shop step there.
+  **Priority**: the tutorial cuts in and is not cut off by default (`priority-tutorial` = Holds),
+  each message whole, let go as the reader goes silent.
+- New or changed texts in 12 languages (ten machine-translated): levelUp, levelUpTree (pad),
+  levelUpToSheet, levelUpSheetLater, steps 17 (shop) and 18 (pad). The shop lesson now ends "even if you buy nothing, the tutorial
+  goes on" (the user: there may be no gold); the step never needed a purchase, only the shop opened
+  and left. CTest 137/137; DLL `a5d93ec2` installed. **Not tested live.**
+- To check: a level-up with the tree opened first, then the sheet; the reminder back in play; the
+  first talk with Akara after the Den moving on with the shop words in her menu; tutorial words
+  cutting in and not cut by the radar or the focus.
+
+## The tutorial after the user's run, and typing in a box — 2026-11-02
+
+- The user's run (log 09:26-10:03): the popup works. Fixed from it:
+  - **Waits**: 20 s from the radar's words to its first sound (guessed at 45 ms a character). The
+    tutorial now waits on the screen reader's own word that it stopped (`ScreenReader::Speaking`,
+    PRISM `is_speaking`, NVDA's controller 3), the guess as fallback and bound.
+  - **Level-up**: the lesson came 71 s after the level-up (no calm in the Den). The sheet or tree
+    opened first now begins it there; a menu message is dropped once its menu shuts.
+  - **After the Den**: reward (talk to Akara) -> shop (tomes, how to buy) -> skill point (spent:
+    stat 5 at 0) -> the camp's waypoint and its menu, not the Cold Plains' (the user died in the
+    Blood Moor). Steps 16-20, records version 3 (`Tutorial::FromVersion`).
+  - **Name box**: with the pad's focus on it, a typed "a" clicked. A focused box (cursor or game
+    focus) now has the typing keys; Enter or Escape leaves it (kept from the game), with words said.
+- New texts in 12 languages (ten machine-translated): steps 16-19, `shop`, `waypointMenu`, `trade`,
+  `textBoxTyping`, `textBoxLeft`. CTest 137/137; DLL `c7f7cba0` installed. **Not tested live.**
+- To check: `[speech] the screen reader tells when it stops talking` (else the old guesses stand);
+  the sounds right after the words; the level-up lesson in the sheet; the shop step's lesson in
+  Akara's shop (LT/RT change its tabs: confirmed by the user); step 18 passing once the point is spent; the waypoint menu's
+  words; the name box with pad focus and keyboard typing, then Enter/Escape. [tutorial](docs/tutorial.md#steps),
+  [keys](docs/keyboard-keys.md)
+
+## The question before the tutorial — 2026-11-02
+
+- The user: ask a fresh character whether to take the tutorial; two presses answer (A / cross /
+  Enter yes, B / circle / Escape not now, Y / triangle / Backspace never ask again, which turns the
+  `tutorial` switch off; on again, the question returns). One press alone or anything else asks
+  again. While asked, the game gets no pad, key or mouse-button input and the mod's pad gestures
+  are dropped. A sound as it is asked and as it is answered, then 1 s before what follows; the
+  world's sounds and news wait until it is closed. [tutorial](docs/tutorial.md#the-question-before-it-2026-11-02)
+- New: `tutorial_offer.*` (the question), `message_hold.*` (keys and mouse kept from the game),
+  `PadFilter::HoldAll`, `InputDirection::TakePadPresses`/`DropGestures`, `Tutorial::Offer` (pure).
+  Texts in all 12 tables (ten machine-translated). CTest 137/137; DLL `e53355f3` installed by the build.
+- Not tested live. Check: a new level 1 character, with the pad and with the keyboard; that the
+  mod's own keys stay silent while asked; log `[tutorial] the question ...`.
+
 ## Tainted Sun darkness in Act II area descriptions — 2026-11-02
 
 - bfbeast: the eclipse line "never fires when it needs to"; asked that, while the quest runs, every

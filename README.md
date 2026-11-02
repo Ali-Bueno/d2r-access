@@ -258,9 +258,12 @@ language ([audio language audit](docs/audio-language-audit.md)).
 - **Audio description of the cinematics** ([cinematics](docs/cinematics-audio-description.md)): the
   seven act cinematics, in both the 2021 and the classic 2000 versions, are narrated between their
   spoken lines in every language the mod speaks. Switch `audio-description`.
-- **Tutorial** ([tutorial](docs/tutorial.md)): a new level 1 character playing alone is guided
-  through the mod's tools up to the Den of Evil's reward and the first waypoint, with short lessons
-  on levelling up, the inventory, gold and shops.
+- **Tutorial** ([tutorial](docs/tutorial.md)): a new level 1 character playing alone is first asked
+  whether to take it (press A / cross or Enter twice for yes, B / circle or Escape twice for not now,
+  Y / triangle or Backspace twice to never be asked again; the game takes no input until then), then
+  guided through the mod's tools up to the Den of Evil's reward, buying tomes from Akara, spending
+  the skill point and the camp's waypoint, with short lessons on levelling up, the inventory, gold
+  and shops. Its waits follow the screen reader when it can tell that it has stopped talking (NVDA).
 
 ### Playing with others
 

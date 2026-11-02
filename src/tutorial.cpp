@@ -27,7 +27,11 @@ Signals Needs(Step step) {
 	case Step::DenRooms: return Bit(Signal::RoomWays);
 	case Step::ClearDen: return Bit(Signal::DenCleared);
 	case Step::ReturnToTown: return Bit(Signal::InTown);
-	case Step::Reward: return Bit(Signal::DenDone);
+	// Akara's menu back from the Den, or the reward taken (PassedBy): the game may give it only at a
+	// second talk (the user, 2026-11-02).
+	case Step::Reward: return Bit(Signal::RewardTalk);
+	case Step::Shop: return Bit(Signal::Shopped);
+	case Step::SpendSkill: return Bit(Signal::SkillsSpent);
 	case Step::Waypoint: return Bit(Signal::Waypoint);
 	case Step::Finished: break;
 	}
@@ -38,17 +42,29 @@ Signals PassedBy(Step step) {
 	const Signals cleared = Bit(Signal::DenCleared) | Bit(Signal::DenDone);
 	switch (step) {
 	case Step::LeaveTown: case Step::Surroundings: case Step::Fight: case Step::FindDen: case Step::DenRooms: return cleared;
-	case Step::ReturnToTown: return Bit(Signal::DenDone);
+	case Step::ReturnToTown: case Step::Reward: return Bit(Signal::DenDone);
+	// A shop already visited since the reward, or the point already spent: their words would be late.
+	case Step::Shop: return Bit(Signal::Shopped);
+	case Step::SpendSkill: return Bit(Signal::SkillsSpent);
 	default: return 0;
 	}
 }
 
-Step FromVersion1(int step) {
-	// Version 1 had no DenRooms nor Waypoint: its ClearDen (13) now begins at the Den's rooms.
-	constexpr int OldReturnToTown = 14, OldFinished = 16;
-	if (step < 0 || step >= OldFinished) return Step::Finished;
-	if (step >= OldReturnToTown) return static_cast<Step>(step + 1);
-	return static_cast<Step>(step);
+Step FromVersion(int version, int step) {
+	if (step < 0) return Step::Finished;
+	if (version < 2) {
+		// Version 1 had no DenRooms nor Waypoint: its ClearDen (13) now begins at the Den's rooms.
+		constexpr int OldReturnToTown = 14, OldFinished = 16;
+		if (step >= OldFinished) return Step::Finished;
+		if (step >= OldReturnToTown) ++step;
+	}
+	if (version < 3) {
+		// Version 2 had no Shop nor SpendSkill: its Waypoint (17) and Finished (18) are two further on.
+		constexpr int OldWaypoint = 17, OldFinished = 18;
+		if (step >= OldFinished) return Step::Finished;
+		if (step >= OldWaypoint) step += 2;
+	}
+	return step >= static_cast<int>(Step::Finished) ? Step::Finished : static_cast<Step>(step);
 }
 
 void Post(Signal signal) { g_posted.fetch_or(Bit(signal), std::memory_order_relaxed); }
@@ -90,8 +106,8 @@ void Audition::Start(std::vector<uint64_t> reads, uint64_t now, uint64_t gap, bo
 	m_phase = m_reads.empty() ? Phase::Done : Phase::Name;
 }
 
-Audition::Due Audition::Tick(uint64_t now) {
-	if (now < m_due) return {};
+Audition::Due Audition::Tick(uint64_t now, bool said) {
+	if (now < m_due && !(said && m_phase == Phase::Sound)) return {};
 	switch (m_phase) {
 	case Phase::Name:
 		m_phase = Phase::Sound;
@@ -153,5 +169,24 @@ std::optional<History::Reading> History::First() {
 	if (Empty()) return std::nullopt;
 	m_cursor = 0;
 	return At();
+}
+
+Offer::Reply Offer::Feed(Press press, uint64_t now) {
+	if (const auto late = Tick(now); late != Reply::None) return late;
+	if (press != Press::Other && !m_first) {
+		m_first = press;
+		m_at = now;
+		return Reply::None;
+	}
+	const bool twice = m_first == press && press != Press::Other;
+	m_first.reset();
+	if (!twice) return Reply::Again;
+	return press == Press::Yes ? Reply::Yes : press == Press::No ? Reply::No : Reply::Never;
+}
+
+Offer::Reply Offer::Tick(uint64_t now) {
+	if (!m_first || now - m_at <= m_window) return Reply::None;
+	m_first.reset();
+	return Reply::Again;
 }
 }

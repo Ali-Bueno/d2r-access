@@ -16,10 +16,11 @@ namespace {
 constexpr uint64_t FileTimeTicksPerSecond = 10'000'000, FileTimeUnixEpochSeconds = 11'644'473'600;
 // Outside a game, how often a recorded character's save is looked for.
 constexpr uint64_t DeletedPollMs = 1000;
-// Version 2 gave the Den's rooms and the waypoint steps of their own (Tutorial::FromVersion1);
-// a file without this record is version 1. No character name can be empty.
+// Version 2 gave the Den's rooms and the waypoint steps of their own, version 3 the shop and the
+// skill point (Tutorial::FromVersion); a file without this record is version 1. No character name
+// can be empty.
 constexpr std::string_view VersionKey = "#version";
-constexpr int CurrentVersion = 2;
+constexpr int CurrentVersion = 3;
 
 const D2RL::PluginContext* g_context = nullptr;
 std::filesystem::path g_file;
@@ -37,10 +38,12 @@ bool IsStep(const std::string& key) { return !key.empty() && key.find('#') == st
 // Every write carries the version, so only a file from before it is brought up to date.
 void Upgrade() {
 	const std::string version(VersionKey);
-	if (g_records.contains(version)) return;
+	const auto found = g_records.find(version);
+	const int stored = found == g_records.end() ? 1 : found->second;
+	if (stored >= CurrentVersion) return;
 	const bool old = !g_records.empty();
 	for (auto& [key, step] : g_records)
-		if (IsStep(key)) step = static_cast<int>(Tutorial::FromVersion1(step));
+		if (IsStep(key)) step = static_cast<int>(Tutorial::FromVersion(stored, step));
 	g_records[version] = CurrentVersion;
 	if (!old) return;
 	Write();

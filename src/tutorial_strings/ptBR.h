@@ -99,18 +99,31 @@ inline constexpr Texts ptBR{
 			"Não restam monstros em {den}. Volte ao acampamento: abra o inventário com I, vá até o pergaminho do Portal "
 			"da Cidade e pressione D para lê-lo; feche o inventário e pressione D ao lado do portal. Você também pode "
 			"voltar andando com a rota e a guia."},
-		{"Fale com Akara para receber a sua recompensa, um ponto de habilidade. Depois abra a árvore de habilidades com {menu} e gaste-o.",
-			"Fale com Akara para receber a sua recompensa, um ponto de habilidade. Depois abra a árvore de habilidades com T e gaste-o."},
-		{"Mais uma coisa que o jogo não conta: os pontos de passagem guardam o seu caminho. O jogo guarda as missões "
-			"que você cumpriu, mas toda vez que você volta começa no acampamento, e uma área distante se alcança pelo "
-			"seu ponto de passagem, que só é seu depois de você tocá-lo. O primeiro fora do acampamento fica em "
-			"{plains}, depois de {moor}. Encontre-o na categoria de pontos de passagem do scanner, chegue perto e "
-			"pressione {a}: o menu dele abre, e ele é seu. Feche o menu com {b}.",
-			"Mais uma coisa que o jogo não conta: os pontos de passagem guardam o seu caminho. O jogo guarda as missões "
-			"que você cumpriu, mas toda vez que você volta começa no acampamento, e uma área distante se alcança pelo "
-			"seu ponto de passagem, que só é seu depois de você tocá-lo. O primeiro fora do acampamento fica em "
-			"{plains}, depois de {moor}. Encontre-o na categoria de pontos de passagem do scanner, chegue perto e "
-			"pressione D: o menu dele abre, e ele é seu. Feche o menu com Esc."},
+		{
+			"Fale com Akara para receber a sua recompensa, um ponto de habilidade: ao lado dela, pressione {a}.",
+			"Fale com Akara para receber a sua recompensa, um ponto de habilidade: ao lado dela, pressione D."},
+		{
+			"Akara também vende livros, que economizam espaço no inventário. No menu dela, escolha {trade} com "
+			"{dpad} e pressione {a}; se você o fechou, fale com ela de novo. Lá dentro eu explico como comprar.",
+			"Akara também vende livros, que economizam espaço no inventário. No menu dela, escolha {trade} com as "
+			"setas e pressione A; se você o fechou, fale com ela de novo com D. Lá dentro eu explico como "
+			"comprar."},
+		{
+			"Agora gaste o seu ponto de habilidade: abra a árvore de habilidades com {menu}. LT e RT mudam o "
+			"ramo, {dpad} percorre as habilidades dele, e manter {a} pressionado gasta o ponto na habilidade em "
+			"que você está. Quando terminar, feche-a com {b}.",
+			"Agora gaste o seu ponto de habilidade: abra a árvore de habilidades com T. Page Up e Page Down mudam "
+			"o ramo, as setas percorrem as habilidades dele, e A gasta o ponto na habilidade em que o cursor "
+			"está. Quando terminar, feche-a com Esc."},
+		{
+			"Mais uma coisa que o jogo não conta: os pontos de passagem guardam o seu caminho. Toda vez que você "
+			"volta a jogar, começa no acampamento, e uma área distante se alcança pelo seu ponto de passagem, que "
+			"só é seu depois de você tocá-lo. O acampamento tem o dele: encontre-o na categoria de pontos de "
+			"passagem do scanner, peça a rota, siga a guia e pressione {a} ao lado dele para abrir o menu.",
+			"Mais uma coisa que o jogo não conta: os pontos de passagem guardam o seu caminho. Toda vez que você "
+			"volta a jogar, começa no acampamento, e uma área distante se alcança pelo seu ponto de passagem, que "
+			"só é seu depois de você tocá-lo. O acampamento tem o dele: encontre-o na categoria de pontos de "
+			"passagem do scanner, peça a rota, siga a guia e pressione D ao lado dele para abrir o menu."},
 		{"Tutorial concluído. Você sabe se orientar: scanner, rota, guia e radar. Na maioria dos menus, {rs} para "
 			"baixo diz o que os botões fazem ali: experimente em todo menu novo para você, como o baú pessoal. Na lista "
 			"de ajustes, com {view} e {rb}, você escolhe o que o mod diz e toca. A partir daqui, o jogo é seu.",
@@ -172,19 +185,27 @@ inline constexpr Texts ptBR{
 		"Você pegou ouro; ele é pego quando você anda sobre ele. Quando você morre, perde parte do ouro que carrega, "
 		"mas o ouro do baú está a salvo. De volta ao acampamento, abra o baú pessoal e deposite o que não precisa."},
 	.shop = {
-		"Uma loja. Se tiver o ouro, compre de Akara um {idtome} e um {portaltome}: cada um guarda até 20 pergaminhos "
-		"em um espaço de uma coluna de largura e duas linhas de altura, e os pergaminhos do tipo dele que você comprar depois vão para dentro. Pergaminhos "
-		"soltos ocupam uma célula cada um e logo enchem o inventário. Um pergaminho de Identificação mostra o que é "
-		"um item não identificado: use-o e depois escolha o item.",
-		"Uma loja. Se tiver o ouro, compre de Akara um {idtome} e um {portaltome}: cada um guarda até 20 pergaminhos "
-		"em um espaço de uma coluna de largura e duas linhas de altura, e os pergaminhos do tipo dele que você comprar depois vão para dentro. Pergaminhos "
-		"soltos ocupam uma célula cada um e logo enchem o inventário. Um pergaminho de Identificação mostra o que é "
-		"um item não identificado: use-o e depois escolha o item."},
+		"Uma loja. O que ela vende fica de um lado, em abas que LT e RT trocam, e o seu inventário do outro. "
+		"{dpad} vai de célula em célula, e {rs} para cima lê a descrição do item. Procure um {portaltome} e "
+		"um {idtome}, que Akara vende; em um deles, pressione {a} e confirme para comprá-lo, se tiver o ouro. "
+		"Cada um guarda até 20 pergaminhos em um espaço de uma coluna de largura e duas linhas de altura, e "
+		"os pergaminhos do tipo dele que você comprar depois vão para dentro; pergaminhos soltos ocupam uma "
+		"célula cada um e logo enchem o inventário. Um pergaminho de Identificação mostra o que é um item não "
+		"identificado: use-o e depois escolha o item. Feche a loja com {b}."
+		" Mesmo sem comprar nada, o tutorial continua; os tomos podem esperar.",
+		"Uma loja. O que ela vende fica de um lado, em abas que Page Up e Page Down trocam, e o seu "
+		"inventário do outro. As setas levam o cursor de célula em célula, e J lê a descrição do item. "
+		"Procure um {portaltome} e um {idtome}, que Akara vende; em um deles, pressione D para comprá-lo, se "
+		"tiver o ouro. Cada um guarda até 20 pergaminhos em um espaço de uma coluna de largura e duas linhas "
+		"de altura, e os pergaminhos do tipo dele que você comprar depois vão para dentro; pergaminhos soltos "
+		"ocupam uma célula cada um e logo enchem o inventário. Um pergaminho de Identificação mostra o que é "
+		"um item não identificado: use-o e depois escolha o item. Feche a loja com Esc."
+		" Mesmo sem comprar nada, o tutorial continua; os tomos podem esperar."},
 	.levelUp = {
-		"Você subiu de nível: tem pontos de atributos e um ponto de habilidade para gastar. Pressione {menu} para abrir a "
-		"tela do personagem; vou guiar você lá dentro.",
-		"Você subiu de nível: tem pontos de atributos e um ponto de habilidade para gastar. Pressione C para abrir a "
-		"tela do personagem; vou guiar você lá dentro."},
+		"Você subiu de nível: tem pontos de atributos e um ponto de habilidade para gastar. Pressione {menu}: "
+		"abre a tela do personagem ou a árvore de habilidades, e vou guiar você lá dentro.",
+		"Você subiu de nível: tem pontos de atributos e um ponto de habilidade para gastar. Pressione C para "
+		"abrir a tela do personagem, ou T para a árvore de habilidades; vou guiar você lá dentro."},
 	.levelUpSheet = {
 		"A tela do personagem. Você está no mais de Força: {dpad} para cima e para baixo percorrem os quatro atributos, e "
 		"manter {a} pressionado gasta um ponto no atributo em que você está; manter {x} pressionado gasta cinco de uma vez. {rs} para cima e para baixo leem as suas estatísticas linha por linha, e "
@@ -197,15 +218,24 @@ inline constexpr Texts ptBR{
 		"diz o seu nome.",
 		"Os seus pontos de atributos foram gastos. Agora o seu ponto de habilidade: pressione T para abrir a árvore de habilidades ao lado da tela do personagem."},
 	.levelUpTree = {
-		"A árvore de habilidades. LT e RT mudam o ramo, {dpad} percorre as habilidades dele, e {rs} para cima lê a habilidade em que você "
-		"está. {a} gasta o ponto nela, e {rs} para a direita diz os pontos que restam. Quando terminar, feche-a "
-		"com {b}.",
+		"A árvore de habilidades. LT e RT mudam o ramo, {dpad} percorre as habilidades dele, e {rs} para cima "
+		"lê a habilidade em que você está. Manter {a} pressionado gasta o ponto nela, e {rs} para a direita "
+		"diz os pontos que restam. Quando terminar, feche-a com {b}.",
 		"A árvore de habilidades. Page Up e Page Down mudam o ramo, as setas percorrem as habilidades dele, e J lê "
 		"a habilidade em que o cursor está. A gasta o ponto nela, e Ctrl mais Page Down diz os pontos que "
 		"restam. Quando terminar, feche-a com Esc."},
 	.levelUpTreeLater = {
 		"Você ainda tem o seu ponto de habilidade. Pressione {menu}: com os atributos gastos, ele abre a árvore de habilidades.",
 		"Você ainda tem o seu ponto de habilidade. Pressione T para abrir a árvore de habilidades."},
+	.levelUpToSheet = {
+		"O seu ponto de habilidade foi gasto. Ainda restam pontos de atributos: pressione {lb} até chegar à "
+		"tela do personagem; cada menu diz o seu nome.",
+		"O seu ponto de habilidade foi gasto. Ainda restam pontos de atributos: pressione C para abrir a tela "
+		"do personagem."},
+	.levelUpSheetLater = {
+		"Você ainda tem pontos de atributos. Pressione {menu} e vá com {lb} ou {rb} até a tela do personagem; "
+		"cada menu diz o seu nome.",
+		"Você ainda tem pontos de atributos. Pressione C para abrir a tela do personagem."},
 	.levelUpBind = {
 		"Para usar uma habilidade, coloque-a em um botão: na árvore de habilidades, sobre a habilidade, pressione "
 		"{x} e depois o botão que quiser. A leitura de cada habilidade diz em qual botão ela está. Habilidades "
@@ -241,6 +271,17 @@ inline constexpr Texts ptBR{
 		"Pronto. Experimente agora a sua nova habilidade uma vez: A usa a habilidade da mão esquerda e W a da "
 		"direita; ouça como ela soa. Sempre que você subir de nível, C abre a tela do personagem e T a árvore de "
 		"habilidades. De volta ao que você estava fazendo:"},
+	.waypointMenu = {
+		"O menu do ponto de passagem. {dpad} para cima e para baixo percorre as áreas do ato que têm um: as "
+		"que dizem não descoberto você ainda não tocou, e a que diz você está aqui é esta. Em uma área "
+		"descoberta, {a} leva você até lá na hora; LT e RT mudam o ato. Por enquanto você só tem este; o "
+		"próximo fica em {plains}, depois de {moor}: toque nele, e a partir daí você viaja de um para o outro "
+		"num instante. Feche o menu com {b}.",
+		"O menu do ponto de passagem. As setas para cima e para baixo percorrem as áreas do ato que têm um: "
+		"as que dizem não descoberto você ainda não tocou, e a que diz você está aqui é esta. Em uma área "
+		"descoberta, A leva você até lá na hora; Page Up e Page Down mudam o ato. Por enquanto você só tem "
+		"este; o próximo fica em {plains}, depois de {moor}: toque nele, e a partir daí você viaja de um para "
+		"o outro num instante. Feche o menu com Esc."},
 	.routeStick = "{view} e {rs} para baixo",
 	.routeButton = "{view} e {a}",
 	.firstMessage = "Primeira mensagem",
@@ -251,5 +292,13 @@ inline constexpr Texts ptBR{
 	.portalTome = "Tomo do Portal da Cidade",
 	.identifyTome = "Tomo de Identificação",
 	.generalSkills = "Habilidades gerais",
+	.trade = "negociar",
+	.offer = {
+		"Quer fazer o tutorial do D2R Access, que ensina a usar o mod? Pressione {a} duas vezes (xis no PlayStation) para começar, {b} duas vezes (círculo) para agora não, ou {y} duas vezes (triângulo) para eu não perguntar mais. Até você responder, o jogo não recebe nenhum comando.",
+		"Quer fazer o tutorial do D2R Access, que ensina a usar o mod? Pressione Enter duas vezes para começar, Esc duas vezes para agora não, ou Backspace duas vezes para eu não perguntar mais. Até você responder, o jogo não recebe nenhum comando."},
+	.offerLater = {"Sem tutorial por enquanto. Vou perguntar de novo em outra partida.", "Sem tutorial por enquanto. Vou perguntar de novo em outra partida."},
+	.offerNever = {
+		"Não vou perguntar mais. Para ter o tutorial de volta, ligue-o na lista de ajustes, com {view} e {rb}.",
+		"Não vou perguntar mais. Para ter o tutorial de volta, ligue-o na lista de ajustes, com Ctrl mais S."},
 };
 }

@@ -23,6 +23,7 @@ add_library(d2r-access SHARED
 	src/boss_life.cpp
 	src/boss_life_service.cpp
 	src/tutorial.cpp
+	src/tutorial_offer.cpp
 	src/tutorial_records.cpp
 	src/tutorial_service.cpp
 	src/tutorial_text.cpp
@@ -154,6 +155,7 @@ add_library(d2r-access SHARED
 	src/automap_service.cpp
 	src/native_ui.cpp
 	src/pad_filter.cpp
+	src/message_hold.cpp
 	src/widget_probe.cpp
 	src/native_focus.cpp
 	src/native_skill_navigation.cpp

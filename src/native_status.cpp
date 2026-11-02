@@ -33,6 +33,8 @@ constexpr int LevelStat = 12;
 // 0x14CC8C0 takes the player's thresholds from experience.txt through
 // 0x300920(expansion, class, level - 1 or level) below its cap 0x300C70.
 constexpr int ExperienceStat = 13, NextExperienceStat = 30;
+// ItemStatCost.txt rows 4 and 5, statpts and newskills: the attribute and skill points to spend.
+constexpr int StatPointsStat = 4, NewSkillsStat = 5;
 constexpr uintptr_t ExperienceThreshold = 0x300920, LevelCap = 0x300C70, UnitClassOf = 0x349860, UnitExpansion = 0x34A0E0;
 struct Evidence { uintptr_t rva; size_t size; uint64_t hash; bool mayBeDetoured = false; };
 constexpr Evidence PoisonChecks[] = {
@@ -166,6 +168,22 @@ std::optional<Experience> PlayerExperience() noexcept {
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
 	experience.percent = Vitals::ExperiencePercent(experience.total, experience.levelStart, experience.nextLevel);
 	return experience;
+}
+
+std::optional<Unspent> PlayerUnspent() noexcept {
+	if (!g_base || !g_experienceSupported) return std::nullopt;
+	uintptr_t player = 0, tables = 0;
+	uint32_t type = 0;
+	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player
+		|| !NativeMemory::Peek(player + GroundItemLayout::UnitType, type) || type != GroundItemLayout::PlayerType) return std::nullopt;
+	Unspent points{-1, -1};
+	__try {
+		const auto stat = reinterpret_cast<int(*)(uintptr_t, int, uint32_t)>(g_base + GroundItemLayout::GetStat);
+		points.attributes = stat(player, StatPointsStat, 0);
+		points.skills = stat(player, NewSkillsStat, 0);
+	} __except (EXCEPTION_EXECUTE_HANDLER) { return std::nullopt; }
+	if (points.attributes < 0 || points.skills < 0) return std::nullopt;
+	return points;
 }
 
 std::optional<Mercenary> MercenaryLife() noexcept {

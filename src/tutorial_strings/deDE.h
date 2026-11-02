@@ -105,18 +105,34 @@ inline constexpr Texts deDE{
 			"{den} ist leer. Geh zurück ins Lager: Öffne das Inventar mit I, geh zur Schriftrolle des Stadtportals und "
 			"drücke D, um sie zu lesen; schließe das Inventar und drücke D neben dem Portal. Du kannst auch mit dem Weg "
 			"und der Zielführung zurücklaufen."},
-		{"Sprich mit Akara für deine Belohnung, einen Fertigkeitspunkt. Öffne dann den Fertigkeitsbaum mit {menu} und gib ihn aus.",
-			"Sprich mit Akara für deine Belohnung, einen Fertigkeitspunkt. Öffne dann den Fertigkeitsbaum mit T und gib ihn aus."},
-		{"Noch etwas, das dir das Spiel nicht sagt: Wegpunkte bewahren deinen Weg. Das Spiel behält die Quests, die "
-			"du erledigt hast, aber jedes Mal, wenn du zurückkommst, beginnst du im Lager, und ein fernes Gebiet "
-			"erreichst du über seinen Wegpunkt, der erst dir gehört, wenn du ihn berührt hast. Der erste außerhalb des "
-			"Lagers ist in {plains}, hinter {moor}. Finde ihn in der Kategorie Wegpunkte des Scanners, geh zu ihm und "
-			"drücke {a}: Sein Menü öffnet sich, und er gehört dir. Schließe das Menü mit {b}.",
-			"Noch etwas, das dir das Spiel nicht sagt: Wegpunkte bewahren deinen Weg. Das Spiel behält die Quests, die "
-			"du erledigt hast, aber jedes Mal, wenn du zurückkommst, beginnst du im Lager, und ein fernes Gebiet "
-			"erreichst du über seinen Wegpunkt, der erst dir gehört, wenn du ihn berührt hast. Der erste außerhalb des "
-			"Lagers ist in {plains}, hinter {moor}. Finde ihn in der Kategorie Wegpunkte des Scanners, geh zu ihm und "
-			"drücke D: Sein Menü öffnet sich, und er gehört dir. Schließe das Menü mit Esc."},
+		{
+			"Sprich mit Akara für deine Belohnung, einen Fertigkeitspunkt: Drücke neben ihr {a}.",
+			"Sprich mit Akara für deine Belohnung, einen Fertigkeitspunkt: Drücke neben ihr D."},
+		{
+			"Akara verkauft auch Bücher, die Platz im Inventar sparen. Wähle in ihrem Menü {trade} mit {dpad} und "
+			"drücke {a}; wenn du es geschlossen hast, sprich noch einmal mit ihr. Drinnen sage ich dir, wie du "
+			"kaufst.",
+			"Akara verkauft auch Bücher, die Platz im Inventar sparen. Wähle in ihrem Menü {trade} mit den "
+			"Pfeiltasten und drücke A; wenn du es geschlossen hast, sprich mit D noch einmal mit ihr. Drinnen "
+			"sage ich dir, wie du kaufst."},
+		{
+			"Gib jetzt deinen Fertigkeitspunkt aus: Öffne den Fertigkeitsbaum mit {menu}. LT und RT wechseln den "
+			"Zweig, {dpad} geht durch seine Fertigkeiten, und {a} gedrückt halten gibt den Punkt für die aus, auf "
+			"der du bist. Wenn du fertig bist, schließe ihn mit {b}.",
+			"Gib jetzt deinen Fertigkeitspunkt aus: Öffne den Fertigkeitsbaum mit T. Bild auf und Bild ab "
+			"wechseln den Zweig, die Pfeiltasten gehen durch seine Fertigkeiten, und A gibt den Punkt für die "
+			"aus, auf der der Cursor ist. Wenn du fertig bist, schließe ihn mit Esc."},
+		{
+			"Noch etwas, das dir das Spiel nicht sagt: Wegpunkte bewahren deinen Weg. Jedes Mal, wenn du "
+			"zurückkommst, beginnst du im Lager, und ein fernes Gebiet erreichst du über seinen Wegpunkt, der "
+			"erst dir gehört, wenn du ihn berührt hast. Das Lager hat seinen eigenen: Finde ihn in der Kategorie "
+			"Wegpunkte des Scanners, lass dir den Weg beschreiben, folge der Zielführung und drücke {a} neben "
+			"ihm, um sein Menü zu öffnen.",
+			"Noch etwas, das dir das Spiel nicht sagt: Wegpunkte bewahren deinen Weg. Jedes Mal, wenn du "
+			"zurückkommst, beginnst du im Lager, und ein fernes Gebiet erreichst du über seinen Wegpunkt, der "
+			"erst dir gehört, wenn du ihn berührt hast. Das Lager hat seinen eigenen: Finde ihn in der Kategorie "
+			"Wegpunkte des Scanners, lass dir den Weg beschreiben, folge der Zielführung und drücke D neben ihm, "
+			"um sein Menü zu öffnen."},
 		{"Tutorial abgeschlossen. Du weißt, wie du dich zurechtfindest: Scanner, Weg, Zielführung und Radar. In den "
 			"meisten Menüs sagt dir {rs} nach unten, was die Tasten dort tun: Probiere es in jedem Menü, das dir neu "
 			"ist, etwa in der Persönlichen Truhe. In der Einstellungsliste, mit {view} und {rb}, wählst du, was die Mod "
@@ -182,21 +198,31 @@ inline constexpr Texts deDE{
 		"des Goldes, das du bei dir trägst, aber Gold in der Persönlichen Truhe ist sicher. Zurück im Lager öffne "
 		"die Persönliche Truhe und zahle ein, was du nicht brauchst."},
 	.shop = {
-		"Ein Laden. Wenn du das Gold hast, kaufe bei Akara einen {idtome} und einen {portaltome}: Jeder fasst bis zu 20 "
-		"Schriftrollen auf einem Platz von einer Spalte Breite und zwei Zeilen Höhe, und die Schriftrollen seiner Art, die du danach kaufst, kommen "
-		"hinein. Einzelne Schriftrollen belegen je ein Feld und füllen das Inventar schnell. Eine Schriftrolle der "
-		"Identifikation zeigt, was ein nicht identifizierter Gegenstand ist: Benutze sie und wähle dann den "
-		"Gegenstand.",
-		"Ein Laden. Wenn du das Gold hast, kaufe bei Akara einen {idtome} und einen {portaltome}: Jeder fasst bis zu 20 "
-		"Schriftrollen auf einem Platz von einer Spalte Breite und zwei Zeilen Höhe, und die Schriftrollen seiner Art, die du danach kaufst, kommen "
-		"hinein. Einzelne Schriftrollen belegen je ein Feld und füllen das Inventar schnell. Eine Schriftrolle der "
-		"Identifikation zeigt, was ein nicht identifizierter Gegenstand ist: Benutze sie und wähle dann den "
-		"Gegenstand."},
+		"Ein Laden. Was er verkauft, steht auf einer Seite, in Reitern, die du mit LT und RT wechselst, und "
+		"dein Inventar auf der anderen. {dpad} geht von Feld zu Feld, und {rs} nach oben liest die "
+		"Beschreibung des Gegenstands. Suche einen {portaltome} und einen {idtome}, die Akara verkauft; "
+		"drücke auf einem davon {a} und bestätige, um ihn zu kaufen, wenn du das Gold hast. Jeder fasst bis "
+		"zu 20 Schriftrollen auf einem Platz von einer Spalte Breite und zwei Zeilen Höhe, und die "
+		"Schriftrollen seiner Art, die du danach kaufst, kommen hinein; einzelne Schriftrollen belegen je ein "
+		"Feld und füllen das Inventar schnell. Eine Schriftrolle der Identifikation zeigt, was ein nicht "
+		"identifizierter Gegenstand ist: Benutze sie und wähle dann den Gegenstand. Schließe den Laden mit "
+		"{b}."
+		" Auch wenn du nichts kaufst, geht das Tutorial weiter; die Bücher können warten.",
+		"Ein Laden. Was er verkauft, steht auf einer Seite, in Reitern, die du mit Bild auf und Bild ab "
+		"wechselst, und dein Inventar auf der anderen. Die Pfeiltasten bringen den Cursor von Feld zu Feld, "
+		"und J liest die Beschreibung des Gegenstands. Suche einen {portaltome} und einen {idtome}, die Akara "
+		"verkauft; drücke auf einem davon D, um ihn zu kaufen, wenn du das Gold hast. Jeder fasst bis zu 20 "
+		"Schriftrollen auf einem Platz von einer Spalte Breite und zwei Zeilen Höhe, und die Schriftrollen "
+		"seiner Art, die du danach kaufst, kommen hinein; einzelne Schriftrollen belegen je ein Feld und "
+		"füllen das Inventar schnell. Eine Schriftrolle der Identifikation zeigt, was ein nicht "
+		"identifizierter Gegenstand ist: Benutze sie und wähle dann den Gegenstand. Schließe den Laden mit "
+		"Esc."
+		" Auch wenn du nichts kaufst, geht das Tutorial weiter; die Bücher können warten."},
 	.levelUp = {
-		"Du bist eine Stufe aufgestiegen: Du hast Wertpunkte und einen Fertigkeitspunkt auszugeben. Drücke {menu}, um deinen "
-		"Charakterbildschirm zu öffnen; ich führe dich darin.",
-		"Du bist eine Stufe aufgestiegen: Du hast Wertpunkte und einen Fertigkeitspunkt auszugeben. Drücke C, um deinen "
-		"Charakterbildschirm zu öffnen; ich führe dich darin."},
+		"Du bist eine Stufe aufgestiegen: Du hast Wertpunkte und einen Fertigkeitspunkt auszugeben. Drücke "
+		"{menu}: Dein Charakterbildschirm oder dein Fertigkeitsbaum öffnet sich; ich führe dich darin.",
+		"Du bist eine Stufe aufgestiegen: Du hast Wertpunkte und einen Fertigkeitspunkt auszugeben. Drücke C, "
+		"um deinen Charakterbildschirm zu öffnen, oder T für den Fertigkeitsbaum; ich führe dich darin."},
 	.levelUpSheet = {
 		"Dein Charakterbildschirm. Du bist auf dem Plus von Stärke: {dpad} nach oben und unten gehen durch die vier Attribute, und "
 		"{a} gedrückt halten gibt einen Punkt für das aus, auf dem du bist; {x} gedrückt halten gibt fünf auf einmal aus. {rs} nach oben und unten lesen deine Werte Zeile für Zeile, und "
@@ -209,15 +235,24 @@ inline constexpr Texts deDE{
 		"nennt seinen Namen.",
 		"Deine Wertpunkte sind ausgegeben. Jetzt dein Fertigkeitspunkt: Drücke T, um den Fertigkeitsbaum neben deinem Charakterbildschirm zu öffnen."},
 	.levelUpTree = {
-		"Der Fertigkeitsbaum. LT und RT wechseln den Zweig, {dpad} geht durch seine Fertigkeiten, und {rs} nach oben liest die, auf der du "
-		"bist. {a} gibt den Punkt dafür aus, und {rs} nach rechts nennt die Punkte, die dir bleiben. Wenn du fertig bist, schließe "
-		"ihn mit {b}.",
+		"Der Fertigkeitsbaum. LT und RT wechseln den Zweig, {dpad} geht durch seine Fertigkeiten, und {rs} "
+		"nach oben liest die, auf der du bist. {a} gedrückt halten gibt den Punkt dafür aus, und {rs} nach "
+		"rechts nennt die Punkte, die dir bleiben. Wenn du fertig bist, schließe ihn mit {b}.",
 		"Der Fertigkeitsbaum. Bild auf und Bild ab wechseln den Zweig, die Pfeiltasten gehen durch seine Fertigkeiten, und J liest "
 		"die, auf der der Cursor ist. A gibt den Punkt dafür aus, und Strg plus Bild ab nennt die Punkte, die dir "
 		"bleiben. Wenn du fertig bist, schließe ihn mit Esc."},
 	.levelUpTreeLater = {
 		"Du hast noch deinen Fertigkeitspunkt. Drücke {menu}: Wenn die Wertpunkte ausgegeben sind, öffnet es den Fertigkeitsbaum.",
 		"Du hast noch deinen Fertigkeitspunkt. Drücke T, um den Fertigkeitsbaum zu öffnen."},
+	.levelUpToSheet = {
+		"Dein Fertigkeitspunkt ist ausgegeben. Es bleiben Wertpunkte: Drücke {lb}, bis du bei deinem "
+		"Charakterbildschirm bist; jedes Menü nennt seinen Namen.",
+		"Dein Fertigkeitspunkt ist ausgegeben. Es bleiben Wertpunkte: Drücke C, um deinen Charakterbildschirm "
+		"zu öffnen."},
+	.levelUpSheetLater = {
+		"Du hast noch Wertpunkte. Drücke {menu} und gehe mit {lb} oder {rb} zu deinem Charakterbildschirm; "
+		"jedes Menü nennt seinen Namen.",
+		"Du hast noch Wertpunkte. Drücke C, um deinen Charakterbildschirm zu öffnen."},
 	.levelUpBind = {
 		"Um eine Fertigkeit zu benutzen, lege sie auf eine Taste: Drücke im Fertigkeitsbaum auf der Fertigkeit {x} "
 		"und dann die Taste, auf die du sie legen willst. Die Ansage jeder Fertigkeit nennt, auf welcher Taste sie "
@@ -254,6 +289,18 @@ inline constexpr Texts deDE{
 		"Fertig. Probiere jetzt einmal deine neue Fertigkeit aus: A benutzt die Fertigkeit deiner linken Hand und W "
 		"die der rechten; höre, wie sie klingt. Immer wenn du eine Stufe aufsteigst, öffnet C deinen "
 		"Charakterbildschirm und T den Fertigkeitsbaum. Zurück zu dem, was du getan hast:"},
+	.waypointMenu = {
+		"Das Wegpunktmenü. {dpad} nach oben und unten geht durch die Gebiete des Akts, die einen Wegpunkt "
+		"haben: Bei denen, die unentdeckt sagen, hast du ihn noch nicht berührt, und das Gebiet, das du bist "
+		"hier sagt, ist dieses. Auf einem entdeckten Gebiet bringt dich {a} sofort dorthin; LT und RT "
+		"wechseln den Akt. Im Moment hast du nur diesen; der nächste ist in {plains}, hinter {moor}: Berühre "
+		"ihn, und von da an reist du in einem Augenblick zwischen beiden. Schließe das Menü mit {b}.",
+		"Das Wegpunktmenü. Die Pfeiltasten nach oben und unten gehen durch die Gebiete des Akts, die einen "
+		"Wegpunkt haben: Bei denen, die unentdeckt sagen, hast du ihn noch nicht berührt, und das Gebiet, das "
+		"du bist hier sagt, ist dieses. Auf einem entdeckten Gebiet bringt dich A sofort dorthin; Bild auf "
+		"und Bild ab wechseln den Akt. Im Moment hast du nur diesen; der nächste ist in {plains}, hinter "
+		"{moor}: Berühre ihn, und von da an reist du in einem Augenblick zwischen beiden. Schließe das Menü "
+		"mit Esc."},
 	.routeStick = "{view} und {rs} nach unten",
 	.routeButton = "{view} und {a}",
 	.firstMessage = "Erste Meldung",
@@ -264,5 +311,13 @@ inline constexpr Texts deDE{
 	.portalTome = "Foliant des Stadtportals",
 	.identifyTome = "Foliant der Identifikation",
 	.generalSkills = "Allgemeine Fertigkeiten",
+	.trade = "Handeln",
+	.offer = {
+		"Möchtest du das Tutorial von D2R Access, das dir zeigt, wie du die Mod benutzt? Drücke zweimal {a} (Kreuz auf PlayStation), um es zu beginnen, zweimal {b} (Kreis) für jetzt nicht oder zweimal {y} (Dreieck), damit ich nie wieder frage. Bis du antwortest, nimmt das Spiel keine Eingabe an.",
+		"Möchtest du das Tutorial von D2R Access, das dir zeigt, wie du die Mod benutzt? Drücke zweimal Eingabe, um es zu beginnen, zweimal Esc für jetzt nicht oder zweimal Rücktaste, damit ich nie wieder frage. Bis du antwortest, nimmt das Spiel keine Eingabe an."},
+	.offerLater = {"Vorerst kein Tutorial. Ich frage in einem späteren Spiel noch einmal.", "Vorerst kein Tutorial. Ich frage in einem späteren Spiel noch einmal."},
+	.offerNever = {
+		"Ich frage nicht mehr. Um das Tutorial zurückzuholen, schalte es in der Einstellungsliste ein, mit {view} und {rb}.",
+		"Ich frage nicht mehr. Um das Tutorial zurückzuholen, schalte es in der Einstellungsliste ein, mit Strg plus S."},
 };
 }

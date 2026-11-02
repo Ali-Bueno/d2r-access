@@ -97,18 +97,34 @@ inline constexpr Texts plPL{
 			"Brak już potworów w: {den}. Wróć do obozu: otwórz ekwipunek przez I, przejdź do zwoju miejskiego portalu i "
 			"naciśnij D, aby go przeczytać; zamknij ekwipunek i naciśnij D obok portalu. Możesz też wrócić pieszo z "
 			"trasą i prowadzeniem."},
-		{"Porozmawiaj z Akarą, aby odebrać nagrodę, punkt umiejętności. Potem otwórz drzewo umiejętności przez {menu} i wydaj go.",
-			"Porozmawiaj z Akarą, aby odebrać nagrodę, punkt umiejętności. Potem otwórz drzewo umiejętności przez T i wydaj go."},
-		{"Jeszcze jedno, czego gra ci nie mówi: punkty podróży strzegą twojej drogi. Gra zachowuje wykonane zadania, "
-			"ale za każdym razem, gdy wracasz, zaczynasz w obozie, a do odległego obszaru dociera się przez jego punkt "
-			"podróży, który jest twój dopiero, gdy go dotkniesz. Pierwszy poza obozem jest w: {plains}, za: {moor}. "
-			"Znajdź go w kategorii punktów podróży skanera, podejdź do niego i naciśnij {a}: otworzy się jego menu i "
-			"będzie twój. Zamknij menu przez {b}.",
-			"Jeszcze jedno, czego gra ci nie mówi: punkty podróży strzegą twojej drogi. Gra zachowuje wykonane zadania, "
-			"ale za każdym razem, gdy wracasz, zaczynasz w obozie, a do odległego obszaru dociera się przez jego punkt "
-			"podróży, który jest twój dopiero, gdy go dotkniesz. Pierwszy poza obozem jest w: {plains}, za: {moor}. "
-			"Znajdź go w kategorii punktów podróży skanera, podejdź do niego i naciśnij D: otworzy się jego menu i "
-			"będzie twój. Zamknij menu przez Esc."},
+		{
+			"Porozmawiaj z Akarą, aby odebrać nagrodę, punkt umiejętności: obok niej naciśnij {a}.",
+			"Porozmawiaj z Akarą, aby odebrać nagrodę, punkt umiejętności: obok niej naciśnij D."},
+		{
+			"Akara sprzedaje też księgi, które oszczędzają miejsce w ekwipunku. W jej menu wybierz: {trade} przez "
+			"{dpad}, a potem naciśnij {a}; jeśli je zamknąłeś, porozmawiaj z nią jeszcze raz. W środku powiem ci, "
+			"jak kupować.",
+			"Akara sprzedaje też księgi, które oszczędzają miejsce w ekwipunku. W jej menu wybierz: {trade} "
+			"strzałkami, a potem naciśnij A; jeśli je zamknąłeś, porozmawiaj z nią jeszcze raz przez D. W środku "
+			"powiem ci, jak kupować."},
+		{
+			"Teraz wydaj punkt umiejętności: otwórz drzewo umiejętności przez {menu}. LT i RT zmieniają gałąź, "
+			"{dpad} przechodzi przez jej umiejętności, a przytrzymanie {a} wydaje punkt na tę, na której jesteś. "
+			"Gdy skończysz, zamknij je przez {b}.",
+			"Teraz wydaj punkt umiejętności: otwórz drzewo umiejętności przez T. Page Up i Page Down zmieniają "
+			"gałąź, strzałki przechodzą przez jej umiejętności, a A wydaje punkt na tę, na której jest kursor. "
+			"Gdy skończysz, zamknij je przez Esc."},
+		{
+			"Jeszcze jedno, czego gra ci nie mówi: punkty podróży strzegą twojej drogi. Za każdym razem, gdy "
+			"wracasz do gry, zaczynasz w obozie, a do odległego obszaru dociera się przez jego punkt podróży, "
+			"który jest twój dopiero, gdy go dotkniesz. Obóz ma swój własny: znajdź go w kategorii punktów "
+			"podróży skanera, poproś o trasę, idź za prowadzeniem i naciśnij {a} obok niego, aby otworzyć jego "
+			"menu.",
+			"Jeszcze jedno, czego gra ci nie mówi: punkty podróży strzegą twojej drogi. Za każdym razem, gdy "
+			"wracasz do gry, zaczynasz w obozie, a do odległego obszaru dociera się przez jego punkt podróży, "
+			"który jest twój dopiero, gdy go dotkniesz. Obóz ma swój własny: znajdź go w kategorii punktów "
+			"podróży skanera, poproś o trasę, idź za prowadzeniem i naciśnij D obok niego, aby otworzyć jego "
+			"menu."},
 		{"Samouczek ukończony. Wiesz, jak odnajdywać drogę: skaner, trasa, prowadzenie i radar. W większości menu "
 			"{rs} w dół mówi, do czego służą tam przyciski: wypróbuj to w każdym menu, które jest dla ciebie nowe, na "
 			"przykład w skrzyni osobistej. Na liście ustawień, przez {view} i {rb}, wybierasz, co mod mówi i odtwarza. "
@@ -174,19 +190,27 @@ inline constexpr Texts plPL{
 		"przy sobie, ale złoto w skrzyni jest bezpieczne. Po powrocie do obozu otwórz skrzynię osobistą i wpłać to, "
 		"czego nie potrzebujesz."},
 	.shop = {
-		"Sklep. Jeśli masz złoto, kup u Akary: {idtome} i {portaltome}. Każda mieści do 20 zwojów na miejscu szerokim "
-		"na jedną kolumnę i wysokim na dwa wiersze, a zwoje jej rodzaju, które kupisz potem, trafiają do niej. Luźne zwoje zajmują po jednym polu i "
-		"szybko zapełniają ekwipunek. Zwój identyfikacji pokazuje, czym jest niezidentyfikowany przedmiot: użyj go, "
-		"a potem wybierz przedmiot.",
-		"Sklep. Jeśli masz złoto, kup u Akary: {idtome} i {portaltome}. Każda mieści do 20 zwojów na miejscu szerokim "
-		"na jedną kolumnę i wysokim na dwa wiersze, a zwoje jej rodzaju, które kupisz potem, trafiają do niej. Luźne zwoje zajmują po jednym polu i "
-		"szybko zapełniają ekwipunek. Zwój identyfikacji pokazuje, czym jest niezidentyfikowany przedmiot: użyj go, "
-		"a potem wybierz przedmiot."},
+		"Sklep. To, co sprzedaje, jest po jednej stronie, w kartach, które zmieniają LT i RT, a twój "
+		"ekwipunek po drugiej. {dpad} przechodzi z pola na pole, a {rs} w górę czyta opis przedmiotu. "
+		"Poszukaj: {portaltome} i {idtome}, które sprzedaje Akara; na jednej z nich naciśnij {a} i potwierdź, "
+		"aby kupić, jeśli masz złoto. Każda mieści do 20 zwojów na miejscu szerokim na jedną kolumnę i "
+		"wysokim na dwa wiersze, a zwoje jej rodzaju, które kupisz potem, trafiają do niej; luźne zwoje "
+		"zajmują po jednym polu i szybko zapełniają ekwipunek. Zwój identyfikacji pokazuje, czym jest "
+		"niezidentyfikowany przedmiot: użyj go, a potem wybierz przedmiot. Zamknij sklep przez {b}."
+		" Nawet jeśli nic nie kupisz, samouczek pójdzie dalej; księgi mogą poczekać.",
+		"Sklep. To, co sprzedaje, jest po jednej stronie, w kartach, które zmieniają Page Up i Page Down, a "
+		"twój ekwipunek po drugiej. Strzałki przenoszą kursor z pola na pole, a J czyta opis przedmiotu. "
+		"Poszukaj: {portaltome} i {idtome}, które sprzedaje Akara; na jednej z nich naciśnij D, aby kupić, "
+		"jeśli masz złoto. Każda mieści do 20 zwojów na miejscu szerokim na jedną kolumnę i wysokim na dwa "
+		"wiersze, a zwoje jej rodzaju, które kupisz potem, trafiają do niej; luźne zwoje zajmują po jednym "
+		"polu i szybko zapełniają ekwipunek. Zwój identyfikacji pokazuje, czym jest niezidentyfikowany "
+		"przedmiot: użyj go, a potem wybierz przedmiot. Zamknij sklep przez Esc."
+		" Nawet jeśli nic nie kupisz, samouczek pójdzie dalej; księgi mogą poczekać."},
 	.levelUp = {
-		"Awansowałeś na wyższy poziom: masz punkty atrybutów i punkt umiejętności do wydania. Naciśnij {menu}, aby otworzyć "
-		"ekran postaci; poprowadzę cię w środku.",
-		"Awansowałeś na wyższy poziom: masz punkty atrybutów i punkt umiejętności do wydania. Naciśnij C, aby otworzyć "
-		"ekran postaci; poprowadzę cię w środku."},
+		"Awansowałeś na wyższy poziom: masz punkty atrybutów i punkt umiejętności do wydania. Naciśnij "
+		"{menu}: otworzy się ekran postaci albo drzewo umiejętności; poprowadzę cię w środku.",
+		"Awansowałeś na wyższy poziom: masz punkty atrybutów i punkt umiejętności do wydania. Naciśnij C, aby "
+		"otworzyć ekran postaci, albo T dla drzewa umiejętności; poprowadzę cię w środku."},
 	.levelUpSheet = {
 		"Twój ekran postaci. Jesteś na plusie Siły: {dpad} w górę i w dół przechodzą przez cztery atrybuty, a "
 		"przytrzymanie {a} wydaje punkt na ten, na którym jesteś; przytrzymanie {x} wydaje pięć naraz. {rs} w górę i w dół czytają twoje statystyki wiersz po wierszu, a "
@@ -199,15 +223,24 @@ inline constexpr Texts plPL{
 		"mówi swoją nazwę.",
 		"Twoje punkty atrybutów są wydane. Teraz twój punkt umiejętności: naciśnij T, aby otworzyć drzewo umiejętności obok ekranu postaci."},
 	.levelUpTree = {
-		"Drzewo umiejętności. LT i RT zmieniają gałąź, {dpad} przechodzi przez jej umiejętności, a {rs} w górę czyta tę, na której "
-		"jesteś. {a} wydaje na nią punkt, a {rs} w prawo mówi, ile punktów ci zostało. Gdy skończysz, zamknij "
-		"je przez {b}.",
+		"Drzewo umiejętności. LT i RT zmieniają gałąź, {dpad} przechodzi przez jej umiejętności, a {rs} w "
+		"górę czyta tę, na której jesteś. Przytrzymanie {a} wydaje na nią punkt, a {rs} w prawo mówi, ile "
+		"punktów ci zostało. Gdy skończysz, zamknij je przez {b}.",
 		"Drzewo umiejętności. Page Up i Page Down zmieniają gałąź, strzałki przechodzą przez jej umiejętności, a J czyta "
 		"tę, na której jest kursor. A wydaje na nią punkt, a Ctrl plus Page Down mówi, ile punktów ci "
 		"zostało. Gdy skończysz, zamknij je przez Esc."},
 	.levelUpTreeLater = {
 		"Nadal masz swój punkt umiejętności. Naciśnij {menu}: gdy atrybuty są wydane, otwiera drzewo umiejętności.",
 		"Nadal masz swój punkt umiejętności. Naciśnij T, aby otworzyć drzewo umiejętności."},
+	.levelUpToSheet = {
+		"Twój punkt umiejętności jest wydany. Zostały punkty atrybutów: naciskaj {lb}, aż dojdziesz do ekranu "
+		"postaci; każde menu mówi swoją nazwę.",
+		"Twój punkt umiejętności jest wydany. Zostały punkty atrybutów: naciśnij C, aby otworzyć ekran "
+		"postaci."},
+	.levelUpSheetLater = {
+		"Nadal masz punkty atrybutów. Naciśnij {menu} i przejdź przez {lb} lub {rb} do ekranu postaci; każde "
+		"menu mówi swoją nazwę.",
+		"Nadal masz punkty atrybutów. Naciśnij C, aby otworzyć ekran postaci."},
 	.levelUpBind = {
 		"Aby użyć umiejętności, przypisz ją do przycisku: w drzewie umiejętności, na umiejętności, naciśnij {x}, a "
 		"potem przycisk, do którego ma trafić. Odczyt każdej umiejętności mówi, na którym przycisku jest. "
@@ -243,6 +276,17 @@ inline constexpr Texts plPL{
 		"Gotowe. Wypróbuj teraz raz swoją nową umiejętność: A używa umiejętności lewej ręki, a W prawej; posłuchaj, "
 		"jak brzmi. Za każdym razem, gdy awansujesz na wyższy poziom, C otwiera ekran postaci, a T drzewo "
 		"umiejętności. Wracamy do tego, co robiłeś:"},
+	.waypointMenu = {
+		"Menu punktu podróży. {dpad} w górę i w dół przechodzi przez obszary aktu, które mają taki punkt: "
+		"obszary z napisem nieodkryty nie mają jeszcze dotkniętego punktu, a ten z napisem jesteś tutaj to "
+		"ten, w którym stoisz. Na odkrytym obszarze {a} zabiera cię tam od razu; LT i RT zmieniają akt. Na "
+		"razie masz tylko ten; następny jest w: {plains}, za: {moor}: dotknij go, a od tej pory będziesz "
+		"podróżować między nimi w jednej chwili. Zamknij menu przez {b}.",
+		"Menu punktu podróży. Strzałki w górę i w dół przechodzą przez obszary aktu, które mają taki punkt: "
+		"obszary z napisem nieodkryty nie mają jeszcze dotkniętego punktu, a ten z napisem jesteś tutaj to "
+		"ten, w którym stoisz. Na odkrytym obszarze A zabiera cię tam od razu; Page Up i Page Down zmieniają "
+		"akt. Na razie masz tylko ten; następny jest w: {plains}, za: {moor}: dotknij go, a od tej pory "
+		"będziesz podróżować między nimi w jednej chwili. Zamknij menu przez Esc."},
 	.routeStick = "{view} i {rs} w dół",
 	.routeButton = "{view} i {a}",
 	.firstMessage = "Pierwszy komunikat",
@@ -253,5 +297,13 @@ inline constexpr Texts plPL{
 	.portalTome = "Księga miejskiego portalu",
 	.identifyTome = "Księga identyfikacji",
 	.generalSkills = "Ogólne umiejętności",
+	.trade = "handel",
+	.offer = {
+		"Chcesz przejść samouczek D2R Access, który uczy korzystania z moda? Naciśnij dwa razy {a} (krzyżyk na PlayStation), aby go zacząć, dwa razy {b} (kółko), jeśli nie teraz, albo dwa razy {y} (trójkąt), abym więcej nie pytał. Dopóki nie odpowiesz, gra nie odbiera żadnych poleceń.",
+		"Chcesz przejść samouczek D2R Access, który uczy korzystania z moda? Naciśnij dwa razy Enter, aby go zacząć, dwa razy Esc, jeśli nie teraz, albo dwa razy Backspace, abym więcej nie pytał. Dopóki nie odpowiesz, gra nie odbiera żadnych poleceń."},
+	.offerLater = {"Na razie bez samouczka. Zapytam ponownie w innej grze.", "Na razie bez samouczka. Zapytam ponownie w innej grze."},
+	.offerNever = {
+		"Nie zapytam więcej. Aby przywrócić samouczek, włącz go na liście ustawień, przez {view} i {rb}.",
+		"Nie zapytam więcej. Aby przywrócić samouczek, włącz go na liście ustawień, przez Ctrl plus S."},
 };
 }

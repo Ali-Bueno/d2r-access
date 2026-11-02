@@ -69,11 +69,22 @@ void States() {
 	guide.Start(Step::Reward);
 	Check(!guide.Done(Bit(Signal::InTown) | Bit(Signal::DenCleared)), "back in the camp is not yet the reward");
 	Check(guide.Done(Bit(Signal::DenDone)), "the quest done finishes the reward step");
+	Check(!guide.Done(Bit(Signal::TalkedToAkara)), "Akara spoken to before the Den does not");
+	guide.Notice(Bit(Signal::RewardTalk));
+	Check(guide.Done(Bit(Signal::InTown)), "her menu back from the Den does, the reward given or not (the user)");
 	guide.Advance();
-	Check(guide.Current() == Step::Waypoint && !guide.Done(Bit(Signal::InTown) | Bit(Signal::DenDone)),
+	Check(guide.Current() == Step::Shop && !guide.Done(Bit(Signal::InTown) | Bit(Signal::DenDone)),
+		"then Akara's shop, which the reward alone does not finish");
+	Check(guide.Done(Bit(Signal::Shopped)), "a shop visited since the reward finishes it");
+	guide.Advance();
+	Check(guide.Current() == Step::SpendSkill && !guide.Done(Bit(Signal::Shopped) | Bit(Signal::DenDone)),
+		"then the reward's skill point, still unspent");
+	Check(guide.Done(Bit(Signal::SkillsSpent)), "no skill point left finishes it");
+	guide.Advance();
+	Check(guide.Current() == Step::Waypoint && !guide.Done(~Bit(Signal::Waypoint)),
 		"then a waypoint, which nothing done so far finishes");
 	guide.Notice(Bit(Signal::Waypoint));
-	Check(guide.Done(0), "a waypoint's menu opened outside the camp finishes it");
+	Check(guide.Done(0), "the camp's waypoint menu opened finishes it");
 	guide.Advance();
 	Check(guide.Finished() && !guide.Done(~Signals{0}), "past the last step nothing remains");
 	guide.Advance();
@@ -96,14 +107,39 @@ void AheadOfTheTutorial() {
 	Check(!guide.Passed(~Signals{0}), "the camp's lessons are never passed over");
 	guide.Start(Step::Waypoint);
 	Check(!guide.Passed(~Signals{0} & ~Bit(Signal::Waypoint)), "nor the waypoint");
+	guide.Start(Step::Shop);
+	Check(guide.Passed(Bit(Signal::Shopped)) && !guide.Passed(Bit(Signal::DenDone)),
+		"a shop already visited since the reward passes its step unsaid");
+	guide.Start(Step::SpendSkill);
+	Check(guide.Passed(Bit(Signal::SkillsSpent)) && !guide.Passed(Bit(Signal::Shopped)),
+		"so does the point already spent");
 }
 
 void OlderRecords() {
-	Check(FromVersion1(0) == Step::Vitals && FromVersion1(12) == Step::FindDen, "the steps before the Den keep their number");
-	Check(FromVersion1(13) == Step::DenRooms, "in the Den, it begins again with its rooms");
-	Check(FromVersion1(14) == Step::ReturnToTown && FromVersion1(15) == Step::Reward, "the way back and the reward move on one");
-	Check(FromVersion1(16) == Step::Finished, "a tutorial finished stays finished: the waypoint is not asked of it");
-	Check(FromVersion1(-1) == Step::Finished && FromVersion1(40) == Step::Finished, "nonsense counts as finished");
+	Check(FromVersion(1, 0) == Step::Vitals && FromVersion(1, 12) == Step::FindDen, "the steps before the Den keep their number");
+	Check(FromVersion(1, 13) == Step::DenRooms, "in the Den, it begins again with its rooms");
+	Check(FromVersion(1, 14) == Step::ReturnToTown && FromVersion(1, 15) == Step::Reward, "the way back and the reward move on one");
+	Check(FromVersion(1, 16) == Step::Finished, "a tutorial finished stays finished: the waypoint is not asked of it");
+	Check(FromVersion(1, -1) == Step::Finished && FromVersion(1, 40) == Step::Finished, "nonsense counts as finished");
+	Check(FromVersion(2, 16) == Step::Reward && FromVersion(2, 15) == Step::ReturnToTown, "version 2 keeps the steps up to the reward");
+	Check(FromVersion(2, 17) == Step::Waypoint, "its waypoint moves on two, past the shop and the skill point");
+	Check(FromVersion(2, 18) == Step::Finished && FromVersion(2, -1) == Step::Finished, "finished stays finished");
+	Check(FromVersion(3, 17) == Step::Shop && FromVersion(3, 20) == Step::Finished, "the current version is kept as it is");
+}
+
+// The screen reader's word that a name is over plays its sound at once (the user, 2026-11-02: half
+// a minute before the radar's sounds); it never shortens the gap after a sound.
+void SaidEarly() {
+	using Cue = Audition::Cue;
+	Audition lesson;
+	lesson.Start({30000, 30000}, 0, 1400, false);
+	Check(lesson.Tick(0).cue == Cue::Name, "the first name");
+	Check(lesson.Tick(400).cue == Cue::None, "still being said, its sound waits");
+	const auto due = lesson.Tick(2500, true);
+	Check(due.cue == Cue::Sound && due.index == 0, "said, its sound plays long before the guess");
+	Check(lesson.Tick(2600, true).cue == Cue::None && lesson.Tick(3899, true).cue == Cue::None,
+		"the gap after the sound is kept whatever the reader says");
+	Check(lesson.Tick(3900).cue == Cue::None && lesson.Tick(3900).cue == Cue::Name, "then the next name");
 }
 
 void Sounds() {
@@ -186,11 +222,32 @@ void Browsing() {
 	Check(history.Empty() && !history.First(), "cleared, it is empty");
 }
 
+void Question() {
+	using P = Offer::Press;
+	using R = Offer::Reply;
+	constexpr uint64_t Window = 500;
+	Offer offer;
+	offer.Start(Window);
+	Check(offer.Feed(P::Yes, 1000) == R::None && offer.Feed(P::Yes, 1400) == R::Yes, "two presses of yes within the window: yes");
+	Check(offer.Feed(P::No, 2000) == R::None && offer.Feed(P::No, 2500) == R::No, "two of no: not now");
+	Check(offer.Feed(P::Never, 3000) == R::None && offer.Feed(P::Never, 3100) == R::Never, "two of never: never ask again");
+	Check(offer.Feed(P::Yes, 4000) == R::None && offer.Tick(4400) == R::None && offer.Tick(4501) == R::Again,
+		"one press alone asks again once the window has passed");
+	Check(offer.Tick(5000) == R::None, "and only once");
+	Check(offer.Feed(P::Yes, 6000) == R::None && offer.Feed(P::Yes, 6600) == R::Again, "a second press too late asks again");
+	Check(offer.Feed(P::Yes, 7000) == R::None && offer.Feed(P::No, 7100) == R::Again, "two different answers ask again");
+	Check(offer.Feed(P::Other, 8000) == R::Again, "anything else asks again");
+	Check(offer.Feed(P::Yes, 9000) == R::None && offer.Feed(P::Other, 9100) == R::Again && offer.Feed(P::Yes, 9200) == R::None,
+		"something else between two presses asks again and starts over");
+	offer.Start(Window);
+	Check(offer.Feed(P::No, 9300) == R::None, "started again, a first press waits");
+}
+
 // Every message beside the steps.
 std::vector<const Text::Lines*> Lessons(const Text::Texts& t) {
 	return {&t.radarTask, &t.worldTask, &t.leaveTask, &t.auditionAgain, &t.auditionWait, &t.portalButton, &t.gold, &t.shop,
-		&t.levelUp, &t.levelUpSheet, &t.levelUpSwitch, &t.levelUpTree, &t.levelUpTreeLater, &t.levelUpBind, &t.kit, &t.kitOpen,
-		&t.kitWorn, &t.kitDone, &t.levelUpDone};
+		&t.levelUp, &t.levelUpSheet, &t.levelUpSwitch, &t.levelUpTree, &t.levelUpTreeLater, &t.levelUpToSheet, &t.levelUpSheetLater, &t.levelUpBind, &t.kit, &t.kitOpen,
+		&t.kitWorn, &t.kitDone, &t.levelUpDone, &t.waypointMenu, &t.offer, &t.offerLater, &t.offerNever};
 }
 
 // Every string of a table in one order, to hold each translation against the English.
@@ -204,7 +261,7 @@ std::vector<const char*> All(const Text::Texts& t) {
 	all.insert(all.end(), std::begin(t.worldCues), std::end(t.worldCues));
 	all.insert(all.end(), std::begin(t.enemyCues), std::end(t.enemyCues));
 	all.insert(all.end(), {t.routeStick, t.routeButton, t.firstMessage, t.lastMessage, t.den, t.moor, t.plains, t.portalTome,
-		t.identifyTome, t.generalSkills});
+		t.identifyTome, t.generalSkills, t.trade});
 	return all;
 }
 
@@ -262,6 +319,9 @@ void Words() {
 	Check(Text::Render("{plains}: {portaltome}, {idtome}", spanish, false, mexico, names)
 			== "Llanuras Heladas: Tomo de portal al poblado, Tomo de identificación",
 		"the tomes and the next area by the game's names, the text's own where unread");
+	Check(Text::Render("{trade}", english, false, none, names) == "trade", "the shop's entry, unread, is the text's own");
+	const Text::Names negociar{.trade = "Negociar"};
+	Check(Text::Render("{trade}", spanish, false, negociar, names) == "Negociar", "read, the game's own, Mexico's here");
 	const Text::Names bound{.portal = "LT X"};
 	Check(Text::Render("{portal}", english, false, bound, names) == "LT X", "the town portal's button as the bar has it");
 	Check(Text::Render("{menu}", english, false, none, names) == "<5>", "the Menu button is the level-up prompt's");
@@ -286,9 +346,11 @@ int main() {
 	AheadOfTheTutorial();
 	OlderRecords();
 	Sounds();
+	SaidEarly();
 	EveryStepWaitsForSomething();
 	Mailbox();
 	Browsing();
+	Question();
 	Words();
 	Passed();
 }

@@ -96,20 +96,30 @@ inline constexpr Texts esES{
 			"pulsa D "
 			"para leerlo; cierra el inventario y pulsa D junto al portal. También puedes volver andando con la ruta y "
 			"la baliza."},
-		{"Habla con Akara para recibir tu recompensa, un punto de habilidad. Después abre el árbol de habilidades con "
-			"{menu} y gástalo.",
-			"Habla con Akara para recibir tu recompensa, un punto de habilidad. Después abre el árbol de habilidades con "
-			"T y gástalo."},
-		{"Una cosa más que el juego no te cuenta: los puntos de viaje guardan tu camino. El juego guarda las misiones "
-			"que has hecho, pero cada vez que vuelves empiezas en el campamento, y a una zona lejana se llega por su punto "
-			"de viaje, que solo es tuyo cuando lo has tocado. El primero fuera del campamento está en {plains}, pasada la "
-			"zona {moor}. Búscalo en la categoría de puntos de viaje del escáner, acércate y pulsa {a}: se abre su menú, "
-			"y ya es tuyo. Cierra el menú con {b}.",
-			"Una cosa más que el juego no te cuenta: los puntos de viaje guardan tu camino. El juego guarda las misiones "
-			"que has hecho, pero cada vez que vuelves empiezas en el campamento, y a una zona lejana se llega por su punto "
-			"de viaje, que solo es tuyo cuando lo has tocado. El primero fuera del campamento está en {plains}, pasada la "
-			"zona {moor}. Búscalo en la categoría de puntos de viaje del escáner, acércate y pulsa D: se abre su menú, "
-			"y ya es tuyo. Cierra el menú con Escape."},
+		{
+			"Habla con Akara para recibir tu recompensa, un punto de habilidad: a su lado, pulsa {a}.",
+			"Habla con Akara para recibir tu recompensa, un punto de habilidad: a su lado, pulsa D."},
+		{
+			"Akara también vende tomos, que te ahorran sitio en el inventario. En su menú, elige {trade} con "
+			"{dpad} y pulsa {a}; si lo has cerrado, habla con ella otra vez. Dentro te explico cómo comprar.",
+			"Akara también vende tomos, que te ahorran sitio en el inventario. En su menú, elige {trade} con las "
+			"flechas y pulsa A; si lo has cerrado, habla con ella otra vez con D. Dentro te explico cómo comprar."},
+		{
+			"Ahora gasta tu punto de habilidad: abre el árbol de habilidades con {menu}. LT y RT cambian de rama, "
+			"{dpad} recorre sus habilidades y, manteniendo {a}, gastas el punto en la que estés. Cuando acabes, "
+			"ciérralo con {b}.",
+			"Ahora gasta tu punto de habilidad: abre el árbol de habilidades con T. Re Pág y Av Pág cambian de "
+			"rama, las flechas recorren sus habilidades y A gasta el punto en la que tenga el cursor. Cuando "
+			"acabes, ciérralo con Escape."},
+		{
+			"Una cosa más que el juego no te cuenta: los puntos de viaje guardan tu camino. Cada vez que vuelves "
+			"a jugar empiezas en el campamento, y a una zona lejana se llega por su punto de viaje, que solo es "
+			"tuyo cuando lo has tocado. El campamento tiene el suyo: búscalo en la categoría de puntos de viaje "
+			"del escáner, pide la ruta, sigue la baliza y pulsa {a} a su lado para abrir su menú.",
+			"Una cosa más que el juego no te cuenta: los puntos de viaje guardan tu camino. Cada vez que vuelves "
+			"a jugar empiezas en el campamento, y a una zona lejana se llega por su punto de viaje, que solo es "
+			"tuyo cuando lo has tocado. El campamento tiene el suyo: búscalo en la categoría de puntos de viaje "
+			"del escáner, pide la ruta, sigue la baliza y pulsa D a su lado para abrir su menú."},
 		{"Tutorial completado. Ya sabes orientarte: escáner, ruta, baliza y radar. En la mayoría de los menús, {rs} "
 			"hacia abajo te dice qué hacen allí los botones: pruébalo en cada menú nuevo para ti, como el alijo. En la "
 			"lista de ajustes, con {view} y {rb}, eliges qué dice y qué suena el mod. Desde aquí, el juego es tuyo.",
@@ -165,19 +175,27 @@ inline constexpr Texts esES{
 		"Has recogido oro; se recoge al pasar por encima. Al morir pierdes parte del oro que llevas encima, pero el del "
 		"alijo está a salvo. De vuelta en el campamento, abre el alijo y deposita el que no necesites."},
 	.shop = {
-		"Una tienda. Si tienes el oro, cómprale a Akara un {idtome} y un {portaltome}: cada uno guarda hasta 20 "
-		"pergaminos en un hueco de una columna de ancho y dos filas de alto, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
-		"sueltos ocupan una casilla cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra "
-		"qué es un objeto sin identificar: úsalo y elige el objeto.",
-		"Una tienda. Si tienes el oro, cómprale a Akara un {idtome} y un {portaltome}: cada uno guarda hasta 20 "
-		"pergaminos en un hueco de una columna de ancho y dos filas de alto, y los pergaminos de su clase que compres después van dentro. Los pergaminos "
-		"sueltos ocupan una casilla cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra "
-		"qué es un objeto sin identificar: úsalo y elige el objeto."},
+		"Una tienda. Lo que vende está a un lado, en pestañas que cambias con LT y RT, y tu inventario al "
+		"otro. Con {dpad} vas de casilla en casilla, y {rs} arriba lee la descripción del objeto. Busca un "
+		"{portaltome} y un {idtome}, que vende Akara; sobre uno, pulsa {a} y confirma para comprarlo, si te "
+		"llega el oro. Cada tomo guarda hasta 20 pergaminos en un hueco de una columna de ancho y dos filas "
+		"de alto, y los pergaminos de su clase que compres después van dentro; los sueltos ocupan una casilla "
+		"cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra qué es un objeto "
+		"sin identificar: úsalo y elige el objeto. Cierra la tienda con {b}."
+		" Aunque no compres nada, el tutorial sigue; los tomos pueden esperar.",
+		"Una tienda. Lo que vende está a un lado, en pestañas que cambias con Re Pág y Av Pág, y tu "
+		"inventario al otro. Las flechas llevan el cursor de casilla en casilla, y J lee la descripción del "
+		"objeto. Busca un {portaltome} y un {idtome}, que vende Akara; sobre uno, pulsa D para comprarlo, si "
+		"te llega el oro. Cada tomo guarda hasta 20 pergaminos en un hueco de una columna de ancho y dos "
+		"filas de alto, y los pergaminos de su clase que compres después van dentro; los sueltos ocupan una "
+		"casilla cada uno y enseguida llenan el inventario. Un pergamino de identificación muestra qué es un "
+		"objeto sin identificar: úsalo y elige el objeto. Cierra la tienda con Escape."
+		" Aunque no compres nada, el tutorial sigue; los tomos pueden esperar."},
 	.levelUp = {
-		"Has subido de nivel: tienes puntos de atributo y un punto de habilidad para gastar. Pulsa {menu} para abrir "
-		"tu ficha; te guío dentro.",
-		"Has subido de nivel: tienes puntos de atributo y un punto de habilidad para gastar. Pulsa C para abrir tu "
-		"ficha; te guío dentro."},
+		"Has subido de nivel: tienes puntos de atributo y un punto de habilidad para gastar. Pulsa {menu}: se "
+		"abre tu ficha o tu árbol de habilidades, y te guío dentro.",
+		"Has subido de nivel: tienes puntos de atributo y un punto de habilidad para gastar. Pulsa C para "
+		"abrir tu ficha, o T para el árbol de habilidades; te guío dentro."},
 	.levelUpSheet = {
 		"Tu ficha. Estás en el más de Fuerza: con {dpad} arriba y abajo pasas por los cuatro atributos, y manteniendo "
 		"{a} gastas un punto en el que estés; manteniendo {x}, cinco de golpe. Con {rs} arriba y abajo lees tus estadísticas línea a línea, y a la "
@@ -190,15 +208,23 @@ inline constexpr Texts esES{
 		"Ya has repartido los atributos. Ahora tu punto de habilidad: pulsa T para abrir el árbol de habilidades junto "
 		"a tu ficha."},
 	.levelUpTree = {
-		"El árbol de habilidades. LT y RT cambian de rama, {dpad} recorre sus habilidades y {rs} arriba lee la que "
-		"tienes. {a} gasta el punto en ella, y {rs} a la derecha dice los puntos que te quedan. Cuando acabes, "
-		"ciérralo con {b}.",
+		"El árbol de habilidades. LT y RT cambian de rama, {dpad} recorre sus habilidades y {rs} arriba lee "
+		"la que tienes. Manteniendo {a} gastas el punto en ella, y {rs} a la derecha dice los puntos que te "
+		"quedan. Cuando acabes, ciérralo con {b}.",
 		"El árbol de habilidades. Re Pág y Av Pág cambian de rama, las flechas recorren sus habilidades y J lee la "
 		"que tiene el cursor. A gasta el punto en ella, y Control más Av Pág dice los puntos que te quedan. Cuando "
 		"acabes, ciérralo con Escape."},
 	.levelUpTreeLater = {
 		"Aún te queda el punto de habilidad. Pulsa {menu}: con los atributos repartidos, abre el árbol de habilidades.",
 		"Aún te queda el punto de habilidad. Pulsa T para abrir el árbol de habilidades."},
+	.levelUpToSheet = {
+		"Ya has gastado el punto de habilidad. Te quedan puntos de atributo: pulsa {lb} hasta llegar a tu "
+		"ficha; cada menú dice su nombre.",
+		"Ya has gastado el punto de habilidad. Te quedan puntos de atributo: pulsa C para abrir tu ficha."},
+	.levelUpSheetLater = {
+		"Aún te quedan puntos de atributo. Pulsa {menu} y ve con {lb} o {rb} hasta tu ficha; cada menú dice "
+		"su nombre.",
+		"Aún te quedan puntos de atributo. Pulsa C para abrir tu ficha."},
 	.levelUpBind = {
 		"Para usar una habilidad, ponla en un botón: en el árbol de habilidades, sobre ella, pulsa {x} y después el "
 		"botón en el que la quieras. La lectura de cada habilidad dice en qué botón está. Las habilidades pasivas, como "
@@ -234,6 +260,17 @@ inline constexpr Texts esES{
 		"Hecho. Prueba ahora tu nueva habilidad una vez: A usa la habilidad de tu mano izquierda y W la de la derecha; "
 		"escucha cómo suena. Cada vez que subas de nivel, C abre tu ficha y T el árbol de habilidades. Volvemos a lo "
 		"que estabas haciendo:"},
+	.waypointMenu = {
+		"El menú del punto de viaje. Con {dpad} arriba y abajo recorres las zonas del acto que tienen uno: "
+		"las que dicen sin descubrir aún no las has tocado, y la que dice estás aquí es esta. Sobre una zona "
+		"descubierta, {a} te lleva allí al momento; LT y RT cambian de acto. Por ahora solo tienes este; el "
+		"siguiente está en {plains}, pasada la zona {moor}: tócalo y desde entonces irás de uno a otro en un "
+		"instante. Cierra el menú con {b}.",
+		"El menú del punto de viaje. Las flechas arriba y abajo recorren las zonas del acto que tienen uno: "
+		"las que dicen sin descubrir aún no las has tocado, y la que dice estás aquí es esta. Sobre una zona "
+		"descubierta, A te lleva allí al momento; Re Pág y Av Pág cambian de acto. Por ahora solo tienes "
+		"este; el siguiente está en {plains}, pasada la zona {moor}: tócalo y desde entonces irás de uno a "
+		"otro en un instante. Cierra el menú con Escape."},
 	.routeStick = "{view} y {rs} hacia abajo",
 	.routeButton = "{view} y {a}",
 	.firstMessage = "Primer mensaje",
@@ -245,5 +282,13 @@ inline constexpr Texts esES{
 	.portalTome = "Tomo del portal de la ciudad",
 	.identifyTome = "Tomo de identificación",
 	.generalSkills = "Habilidades generales",
+	.trade = "Comerciar",
+	.offer = {
+		"¿Quieres hacer el tutorial de D2R Access, que te enseña a usar el mod? Pulsa dos veces {a} (la X en PlayStation) para empezarlo, dos veces {b} (círculo) para no hacerlo ahora, o dos veces {y} (triángulo) para que no vuelva a preguntar. Hasta que respondas, el juego no recibe nada.",
+		"¿Quieres hacer el tutorial de D2R Access, que te enseña a usar el mod? Pulsa dos veces Intro para empezarlo, dos veces Escape para no hacerlo ahora, o dos veces Retroceso para que no vuelva a preguntar. Hasta que respondas, el juego no recibe nada."},
+	.offerLater = {"Sin tutorial por ahora. Te lo volveré a preguntar en otra partida.", "Sin tutorial por ahora. Te lo volveré a preguntar en otra partida."},
+	.offerNever = {
+		"No volveré a preguntar. Para recuperar el tutorial, actívalo en la lista de ajustes, con {view} y {rb}.",
+		"No volveré a preguntar. Para recuperar el tutorial, actívalo en la lista de ajustes, con Control más S."},
 };
 }

@@ -14,6 +14,7 @@
 #include "native_ground_items.h"
 #include "native_quest_flags.h"
 #include "native_status.h"
+#include "native_ui.h"
 #include "native_widgets.h"
 #include "native_world.h"
 #include "panel_state.h"
@@ -26,6 +27,7 @@
 #include "speech_strings.h"
 #include "town_npcs.h"
 #include "tutorial.h"
+#include "tutorial_offer.h"
 #include "tutorial_records.h"
 #include "tutorial_text.h"
 
@@ -61,7 +63,10 @@ struct Lifecycle { bool ready = false; uint32_t player = 0; uint64_t session = 0
 // the world's sounds let in, a step's own signal. Audition plays a lesson's `cues`, each after its name.
 enum class ActionKind { Chime, Keep, Say, Do, StepDone, Audition };
 struct Cue { std::string name; std::function<void()> play; };
-// A `menu` action is said in the menu it is about; the rest wait for play.
+// A `menu` action is said in the menu it is about; the rest wait for play. Either is dropped once
+// `holds` says it no longer does: a menu message's menu shut, a prompt already answered. An
+// `afterWords` action waits for the words before it to be over: the screen reader's word when it
+// gives one, else `delay` as a guess.
 struct Action {
 	ActionKind kind;
 	uint64_t delay = 0;
@@ -69,6 +74,8 @@ struct Action {
 	std::function<void()> run;
 	bool menu = false;
 	std::vector<Cue> cues;
+	bool afterWords = false;
+	bool (*holds)() = nullptr;
 };
 
 // Levels.txt rows (src/generated/level_flags.h): Act 1 - Town; Act 1 - Wilderness 1, the
@@ -79,6 +86,8 @@ constexpr int RogueEncampment = 1, BloodMoor = 2, ColdPlains = 3, DenOfEvil = 8;
 constexpr int TownPortalSkill = 359, PortalScrollSkill = 219, PortalTomeSkill = 220;
 // The game's own names (item-names.json, ui.json), so Spain's and Mexico's Spanish each read theirs.
 constexpr std::string_view PortalTomeKey = "tbk", IdentifyTomeKey = "ibk", GeneralSkillsKey = "GeneralSkills";
+// An NPC's menu entry for its shop (ui.json): "Comerciar" in Spain's Spanish, "Negociar" in Mexico's.
+constexpr std::string_view TradeKey = "NPCMenuTrade";
 // The waypoint menu (WaypointsPanelExpansion, src/interaction_reader.cpp) and a shop's.
 constexpr std::string_view WaypointPanelPrefix = "WaypointsPanel", VendorPanel = "VendorPanelLayout";
 // Items of the world's lesson, in the player's item sounds (misc.txt, weapons.txt): gold, a
@@ -95,12 +104,16 @@ constexpr uint16_t IntroDoneBit = 0x0001;
 constexpr uint16_t RewardPendingBit = 0x0002, PrimaryGoalBit = 0x2000;
 constexpr std::string_view NpcDialogPanel = "NpcDialogPanel";
 // The level-up lesson (the user, 2026-10-21): the character sheet, its attribute points and its
-// lines, then the skill tree and its point, once the character has gone up a level and no enemy
-// has been on screen for CalmMs. The game's own prompts name the pad's Menu button for both
+// lines, then the skill tree and its point, once the character has gone up a level and no monster
+// has been near for CalmMs. The game's own prompts name the pad's Menu button for both
 // ("Press Menu to assign Stat Points" / "Skill Points", LevelUpStatsNotificationController and
 // LevelUpNotificationController). Given once per character, kept as <key>#levelup=1.
 constexpr int FirstLevelUp = 2;
-constexpr uint64_t CalmMs = 3000;
+// Calm: no monster within CalmRadius (the entities' units, as the scanner says them) for CalmMs,
+// walking or standing. It was any monster on screen, some 25 units, for 3 s: the lessons were long
+// in coming (the user, 2026-11-02: "when no monsters are near, even while walking").
+constexpr uint64_t CalmMs = 2000;
+constexpr double CalmRadius = 15;
 constexpr std::string_view CharacterPanel = "CharacterStatsPanel", SkillTreePanel = "SkillsTreePanel";
 constexpr std::string_view LevelUpSuffix = "#levelup";
 // The inventory lesson (the user, 2026-10-21): walking the inventory and putting on what was picked
@@ -116,7 +129,11 @@ constexpr uint32_t WornTypes[]{D2RL::Items::MakeItemCode("weap"), D2RL::Items::M
 // Quest flags, gold and the roster are read at most this often.
 constexpr uint64_t PollMs = 500;
 // The step-done sound, then the next message; a message's chime, then its words.
-constexpr uint64_t AfterStepMs = 1500, ChimeMs = 600;
+constexpr uint64_t AfterStepMs = 1500;
+using Tutorial::ChimeMs;
+// After the question's answer and its sound, what comes next -- the welcome, or the words that
+// close it and then the game's news -- waits a moment, so neither is cut (the user, 2026-11-02).
+constexpr uint64_t AnsweredMs = 1000;
 // After the wall that ends the radar step, the radar's sounds die down before the world's
 // lesson begins, so the two are not mixed (the user, 2026-10-21); then the world's sounds
 // play around the player this long before the scanner's step.
@@ -129,11 +146,21 @@ constexpr uint64_t SettleMs = 4000, ListenMs = 8000;
 // line behind it (a tester, 2026-10-21: the Den's messages never came).
 constexpr uint64_t ArrivalMs = 3000;
 using SpeechPriority::QuietMs, SpeechPriority::PatienceMs, SpeechPriority::MsPerCharacter;
-// What the tutorial says lasts MsPerCharacter, which news waits out. A
-// lesson's sounds wait for the words before them guessed a little faster (the user, 2026-10-21:
-// the wait before the radar's sounds was long), at least CueAfterNameMs; then CueGapMs to the next.
+// What the tutorial says lasts until the screen reader says it is over (ScreenReader::Speaking:
+// NVDA's controller tells, through PRISM); a reader that cannot tell is guessed at MsPerCharacter,
+// which news waits out. A lesson's sounds wait for the words before them guessed a little faster (the
+// user, 2026-10-21: the wait before the radar's sounds was long), at least CueAfterNameMs; then
+// CueGapMs to the next. The guess alone made the radar's wait some 20 s and more (the user,
+// 2026-11-02: "30 seconds or more"), as a blind player's reader runs far faster.
 constexpr uint64_t ReadMsPerCharacter = 45, CueAfterNameMs = 1200, CueGapMs = 1400;
 uint64_t ReadMs(std::string_view text) { return std::max<uint64_t>(CueAfterNameMs, text.size() * ReadMsPerCharacter); }
+// The screen reader has said all it was given, by its own word; false when it cannot tell.
+bool Silent() {
+	const auto speaking = ScreenReader::Speaking();
+	return speaking && !*speaking;
+}
+// Words given with `due` as their guessed end are over.
+bool Said(uint64_t now, uint64_t due) { return now >= due || Silent(); }
 
 std::mutex g_mutex;
 Lifecycle g_state;
@@ -161,13 +188,22 @@ uint64_t g_speechEnd = 0; // when what the tutorial said should be over, guessed
 SpeechPriority::Pause g_pause{QuietMs, PatienceMs}; // a message waits for a pause in speech
 bool g_active = false, g_decided = false;
 bool g_worldQuiet = false; // the world's sounds wait for their lesson (Tutorial::QuietWorld)
-// The level-up lesson: waiting for its moment; said; in the character sheet; the sheet shut before
-// the tree, which is then said; in the skill tree; given.
-enum class Lesson { Waiting, Told, Sheet, TreeTold, Tree, Given };
+// The question before a fresh character's tutorial: waiting for its moment, open, or answered "not
+// now" or "never" and closing; meanwhile the world's sounds and news wait, as the tutorial's do.
+enum class Asking { None, Waiting, Open, Closing };
+Asking g_ask = Asking::None;
+uint64_t g_askDue = 0;
+std::string g_closing; // the words that close it, said AnsweredMs after the answer
+// The level-up lesson: waiting for its moment; said, waiting for the sheet or the tree; following the
+// player through them; given.
+enum class Lesson { Waiting, Told, Following, Given };
 Lesson g_lesson = Lesson::Waiting;
 uint64_t g_calmSince = 0; // since no enemy has been on screen; 0 while one is
-bool g_sawPoints = false, g_toldSwitch = false; // in the sheet: points shown, the way to the tree said
-bool g_sawSkillPoints = false, g_toldBind = false; // in the tree: a point shown, how to bind a skill said
+// What the lesson has said: the sheet's and the tree's words, the way from one to the other, how to
+// bind a skill, the points left named back in play; and whether a skill point was there to spend.
+bool g_toldSheet = false, g_toldTree = false, g_toldSwitch = false, g_toldToSheet = false, g_toldBind = false;
+bool g_reminded = false, g_hadSkillPoint = false;
+bool g_toldShopInDialog = false; // the shop step said in Akara's menu at the reward
 // The inventory lesson: waiting for something to wear; said; in the inventory; given.
 enum class Kit { Waiting, Told, Open, Given };
 Kit g_kit = Kit::Waiting;
@@ -178,6 +214,8 @@ uint32_t g_newItem = 0; // what was picked up to wear, 0 while nothing is
 enum class News { Waiting, Armed, Given };
 News g_goldNews = News::Waiting;
 bool g_shopGiven = false;
+bool g_shopped = false;      // a shop opened since the reward: the shop step done, or passed
+bool g_toldWaypoint = false; // the waypoint's menu said at its step
 std::string g_name, g_key;
 Tutorial::Signals g_states = 0;
 int g_gold = -1;
@@ -211,7 +249,7 @@ std::string Render(const TutorialText::Lines& lines) {
 	const std::string_view text = Pad() ? lines.pad : lines.keys;
 	TutorialText::Names names{NativeEntities::LevelName(DenOfEvil), NativeEntities::LevelName(BloodMoor),
 		NativeEntities::LevelName(ColdPlains), Localization::Text(PortalTomeKey), Localization::Text(IdentifyTomeKey),
-		Localization::Text(GeneralSkillsKey), {}};
+		Localization::Text(GeneralSkillsKey), {}, Localization::Text(TradeKey)};
 	if (text.find("{portal}") != std::string_view::npos) names.portal = PortalButton();
 	return TutorialText::Render(text, Texts(), InputDirection::RouteOnA(), names,
 		[](uint32_t glyph) { return std::string(ControllerText::Button(glyph)); });
@@ -222,18 +260,19 @@ void Push(Action action) {
 	if (g_queue.empty()) g_due = GetTickCount64() + action.delay;
 	g_queue.push_back(std::move(action));
 }
-// Said in the menu it is about, ahead of whatever waits for play; `said` runs once it is, and is
-// dropped with it if the menu shuts first.
-void MenuMessage(std::string text, std::function<void()> said = {}) {
-	if (said) g_queue.push_front({ActionKind::Do, 0, {}, std::move(said), true});
-	g_queue.push_front({ActionKind::Say, ChimeMs, text, {}, true});
-	g_queue.push_front({ActionKind::Chime, 0, std::move(text), {}, true});
+// Said in the menu `shown` tells is up, ahead of whatever waits for play; `said` runs once it is, and
+// is dropped with it if that menu shuts first (the sheet's words were said in the skill tree after
+// it: 2026-11-02 log).
+void MenuMessage(std::string text, bool (*shown)(), std::function<void()> said = {}) {
+	if (said) g_queue.push_front({ActionKind::Do, 0, {}, std::move(said), true, {}, false, shown});
+	g_queue.push_front({ActionKind::Say, ChimeMs, text, {}, true, {}, false, shown});
+	g_queue.push_front({ActionKind::Chime, 0, std::move(text), {}, true, {}, false, shown});
 	g_due = GetTickCount64();
 }
 // Without the chime when it follows a message straight on, so no sound falls on its words.
-void Message(std::string text, uint64_t delay, bool chime = true) {
-	Push({chime ? ActionKind::Chime : ActionKind::Keep, delay, text});
-	Push({ActionKind::Say, chime ? ChimeMs : 0, std::move(text)});
+void Message(std::string text, uint64_t delay, bool chime = true, bool (*holds)() = nullptr) {
+	Push({chime ? ActionKind::Chime : ActionKind::Keep, delay, text, {}, false, {}, false, holds});
+	Push({ActionKind::Say, chime ? ChimeMs : 0, std::move(text), {}, false, {}, false, holds});
 }
 // One radar reading straight up, as the sound glossary plays it; `unexplored` adds the double pip.
 std::function<void()> RadarCue(Radar::State state, bool unexplored = false, bool small = false) {
@@ -312,12 +351,14 @@ void KeepStep(Step step) {
 void QueueStep(Step step, uint64_t delay, bool chime = true) {
 	const auto text = StepText(step);
 	Message(text, delay, chime);
+	// The shop's step says the shop's lesson in the next shop, even if a shop had it before.
+	if (step == Step::Shop) g_shopGiven = false;
 	if (auto cues = SoundsOf(step); !cues.empty()) {
-		Push({.kind = ActionKind::Audition, .delay = ReadMs(text), .cues = std::move(cues)});
+		Push({.kind = ActionKind::Audition, .delay = ReadMs(text), .cues = std::move(cues), .afterWords = true});
 		const auto task = Render(*TaskAfterSounds(step));
 		Message(task, 0);
 		if (step == Step::Sounds) {
-			Push({ActionKind::Do, ReadMs(task), {}, [] { g_worldQuiet = false; }});
+			Push({.kind = ActionKind::Do, .delay = ReadMs(task), .run = [] { g_worldQuiet = false; }, .afterWords = true});
 			Push({ActionKind::Do, ListenMs, {}, [] { Tutorial::Post(Signal::HeardSounds); }});
 		}
 	}
@@ -333,7 +374,7 @@ bool Audit(Action& action, uint64_t now) {
 		g_audition.Start(std::move(reads), now, CueGapMs, g_waitSounds);
 		g_named = 0;
 	}
-	const auto due = g_audition.Tick(now);
+	const auto due = g_audition.Tick(now, Silent());
 	if (due.cue == Tutorial::Audition::Cue::Name) {
 		const auto& cue = action.cues[due.index];
 		SpeechPriority::Say(SpeechPriority::Kind::Tutorial, cue.name);
@@ -359,7 +400,8 @@ void Perform(const Action& action) {
 	case ActionKind::Chime: ItemAudio::PlayTutorialMessage(); g_history.Add(action.text); break;
 	case ActionKind::Keep: g_history.Add(action.text); break;
 	case ActionKind::Say:
-		SpeechPriority::Say(SpeechPriority::Kind::Tutorial, action.text);
+		// Whole: a phrase that would cut in waits behind it (the user, 2026-11-02: the tutorial first).
+		SpeechPriority::SayWhole(SpeechPriority::Kind::Tutorial, action.text, true);
 		g_speechEnd = std::max(g_speechEnd, GetTickCount64()) + action.text.size() * MsPerCharacter;
 		break;
 	case ActionKind::Do: if (action.run) action.run(); break;
@@ -381,6 +423,9 @@ void ClearHistory() {
 
 void Stop() {
 	g_active = false;
+	g_ask = Asking::None;
+	g_closing.clear();
+	TutorialOffer::Close();
 	g_queue.clear();
 	g_audition.Reset();
 	g_speechEnd = g_pause.heldSince = 0;
@@ -388,19 +433,20 @@ void Stop() {
 	Tutorial::SetBusy(false);
 }
 
-void Begin(Step step) {
+void Begin(Step step, uint64_t arrival = ArrivalMs) {
 	g_active = true;
 	g_worldQuiet = step <= Step::Sounds;
 	g_lesson = TutorialRecords::Given(g_key, LevelUpSuffix) ? Lesson::Given : Lesson::Waiting;
 	g_calmSince = 0;
-	g_sawPoints = g_toldSwitch = false;
-	g_sawSkillPoints = g_toldBind = false;
+	g_toldSheet = g_toldTree = g_toldSwitch = g_toldToSheet = g_toldBind = false;
+	g_reminded = g_hadSkillPoint = g_toldShopInDialog = false;
 	g_kit = TutorialRecords::Given(g_key, InventorySuffix) ? Kit::Given : Kit::Waiting;
 	g_knownItems.clear();
 	g_kitArmed = g_toldWorn = false;
 	g_newItem = 0;
 	g_goldNews = TutorialRecords::Given(g_key, GoldSuffix) ? News::Given : News::Waiting;
 	g_shopGiven = TutorialRecords::Given(g_key, ShopSuffix);
+	g_shopped = g_toldWaypoint = false;
 	g_guide.Start(step);
 	ClearHistory();
 	g_queue.clear();
@@ -411,12 +457,12 @@ void Begin(Step step) {
 	const auto& texts = Texts();
 	// A resumed tutorial keeps the messages already given, unspoken, for reading back.
 	const bool fresh = step == Step::Vitals;
-	if (fresh) Message(Render(texts.welcome), ArrivalMs);
+	if (fresh) Message(Render(texts.welcome), arrival);
 	else {
 		g_history.Add(Render(texts.welcome));
 		for (size_t done = 0; done < static_cast<size_t>(step); ++done) KeepStep(static_cast<Step>(done));
 	}
-	QueueStep(step, fresh ? 0 : ArrivalMs, !fresh);
+	QueueStep(step, fresh ? 0 : arrival, !fresh);
 	Save();
 	AsyncLog::InfoF(g_context, "[tutorial] %s at step %u for %s", step == Step::Vitals ? "begins" : "resumes",
 		static_cast<unsigned>(step), g_name.c_str());
@@ -445,7 +491,49 @@ void Decide(const Lifecycle& state) {
 	const auto experience = NativeStatus::PlayerExperience();
 	if (!experience) return;
 	g_decided = true;
-	if (experience->level == 1) Begin(Step::Vitals);
+	if (experience->level != 1) return;
+	g_ask = Asking::Waiting;
+	g_askDue = GetTickCount64() + ArrivalMs;
+}
+
+// The question before the tutorial (docs/tutorial.md): asked once the arrival's news has paused,
+// as the welcome was; yes begins the tutorial, "never" turns its switch off, which the settings
+// file keeps (on again, the question returns).
+void Question(uint64_t now) {
+	switch (g_ask) {
+	case Asking::None: return;
+	case Asking::Waiting:
+		if (now < g_askDue || !RadarUi::InPlay() || !g_pause.Due(now, ScreenReader::LastSpoken())) return;
+		g_pause.heldSince = 0;
+		TutorialOffer::Open(Render(Texts().offer));
+		g_ask = Asking::Open;
+		AsyncLog::InfoF(g_context, "[tutorial] the question asked for %s", g_name.c_str());
+		return;
+	case Asking::Open: {
+		const auto reply = TutorialOffer::TakeAnswer();
+		if (reply == TutorialOffer::Reply::None) return;
+		if (reply == TutorialOffer::Reply::Yes) {
+			g_ask = Asking::None;
+			Begin(Step::Vitals, AnsweredMs);
+			return;
+		}
+		if (reply == TutorialOffer::Reply::Never) g_enabled = false;
+		g_closing = Render(reply == TutorialOffer::Reply::Never ? Texts().offerNever : Texts().offerLater);
+		g_ask = Asking::Closing;
+		g_askDue = now + AnsweredMs;
+		return;
+	}
+	case Asking::Closing:
+		if (g_closing.empty()) {
+			if (Said(now, g_askDue)) g_ask = Asking::None;
+			return;
+		}
+		if (now < g_askDue) return;
+		SpeechPriority::SayWhole(SpeechPriority::Kind::Tutorial, g_closing, true);
+		g_askDue = now + g_closing.size() * MsPerCharacter;
+		g_closing.clear();
+		return;
+	}
 }
 
 // Act I's quest rows, logged as they change: which row and bits the Den's steps set is not
@@ -482,10 +570,30 @@ Tutorial::Signals States(const Lifecycle& state) {
 		if (*flags & (RewardPendingBit | PrimaryGoalBit | EntityRadar::QuestDoneBits)) states |= Bit(Signal::DenCleared);
 		if (*flags & EntityRadar::QuestDoneBits) states |= Bit(Signal::DenDone);
 	}
+	if (g_shopped) states |= Bit(Signal::Shopped);
+	// No skill point left. Not tied to the quest's flag: the game marked the Den done only at a later
+	// talk with Akara, after the point was spent (the user, 2026-11-02, 12:42 and 12:43). Unread is not
+	// spent: the step waits rather than passing on a guess.
+	if (const auto points = NativeStatus::PlayerUnspent(); points && points->skills == 0) states |= Bit(Signal::SkillsSpent);
 	return states;
 }
 
+bool DialogShown() {
+	const auto& panels = PanelState::OpenPanels();
+	return std::find(panels.begin(), panels.end(), NpcDialogPanel) != panels.end();
+}
+// The NPC's menu offers its choices (talk, trade): one has the focus. While the NPC speaks, none
+// has (MEASURED 2026-11-02 12:41: Akara's speech ran 5 s, "Akara. Talk" read after it).
+bool DialogChoices() {
+	const auto focus = NativeUi::CurrentFocus();
+	return focus.panel && focus.widget && NativeWidgets::ReadName(focus.panel) == NpcDialogPanel
+		&& NativeUi::Classify(focus.widget).kind == UiText::Kind::ListItem;
+}
+
 // An NPC's menu open: whose is the nearest town NPC's, as the game opens one only beside its NPC.
+// Back from the Den, Akara's menu is the reward step's, whether or not the game gives the reward at
+// that talk (the user, 2026-11-02: it came only at the second), and her shop is told there, so
+// the player need not shut her menu and talk again.
 void WatchDialogue(const Lifecycle& state) {
 	const auto& panels = PanelState::OpenPanels();
 	if (std::find(panels.begin(), panels.end(), NpcDialogPanel) == panels.end()) return;
@@ -502,7 +610,17 @@ void WatchDialogue(const Lifecycle& state) {
 	}
 	if (!nearest) return;
 	if (nearest->placeId == TownNpcs::Identity(WarrivMonStats)) Tutorial::Post(Signal::TalkedToWarriv);
-	if (nearest->placeId == TownNpcs::Identity(AkaraMonStats)) Tutorial::Post(Signal::TalkedToAkara);
+	if (nearest->placeId != TownNpcs::Identity(AkaraMonStats)) return;
+	Tutorial::Post(Signal::TalkedToAkara);
+	if (!(g_states & Bit(Signal::DenCleared))) return;
+	Tutorial::Post(Signal::RewardTalk);
+	// Said once she has finished speaking and her menu offers trade (the user, 2026-11-02: it came over
+	// her words).
+	if (g_guide.Current() != Step::Reward || g_toldShopInDialog || !DialogChoices()) return;
+	g_toldShopInDialog = true;
+	g_shopGiven = false; // the shop's lesson in the shop she opens
+	MenuMessage(Render(StepLines(Step::Shop)), DialogShown);
+	AsyncLog::InfoF(g_context, "[tutorial] the shop step said in Akara's menu for %s", g_name.c_str());
 }
 
 // Experience gained outside the camp: a monster killed, as nothing else gives it there so early.
@@ -527,68 +645,108 @@ bool PanelOpen(std::string_view prefix) {
 	return std::any_of(panels.begin(), panels.end(), [&](const auto& panel) { return std::string_view(panel).starts_with(prefix); });
 }
 
-// A waypoint's menu opens as it is touched; the camp's is the player's from the start.
-void WatchWaypoint(const Lifecycle& state) {
-	if (state.level != RogueEncampment && PanelOpen(WaypointPanelPrefix)) Tutorial::Post(Signal::Waypoint);
+bool WaypointShown() { return PanelOpen(WaypointPanelPrefix); }
+bool ShopShown() { return PanelOpen(VendorPanel); }
+
+// The camp's own waypoint (the user, 2026-11-02: the Cold Plains' one meant crossing the Blood Moor,
+// where they died): its menu said as it opens at the step, which any waypoint's menu finishes.
+void WatchWaypoint() {
+	if (!WaypointShown()) return;
+	Tutorial::Post(Signal::Waypoint);
+	if (g_guide.Current() != Step::Waypoint || g_toldWaypoint) return;
+	g_toldWaypoint = true;
+	MenuMessage(Render(Texts().waypointMenu), WaypointShown);
+	AsyncLog::InfoF(g_context, "[tutorial] waypoint menu lesson for %s", g_name.c_str());
 }
 
-// The first shop: the tomes, said there (a tester, 2026-10-21: twenty loose scrolls fill the inventory).
+// The first shop, and the shop step's: the tomes and how to buy, said there (a tester, 2026-10-21:
+// twenty loose scrolls fill the inventory; the user, 2026-11-02: buying the tomes was never taught).
+// A shop since the Den was cleared is the shop step's, even before it is said, and before the game
+// has given the reward.
 void WatchShop() {
-	if (g_shopGiven || !PanelOpen(VendorPanel)) return;
+	if (!ShopShown()) return;
+	if (g_states & Bit(Signal::DenCleared)) g_shopped = true;
+	if (g_shopGiven) return;
 	g_shopGiven = true;
-	MenuMessage(Render(Texts().shop), [] { TutorialRecords::Give(g_key, ShopSuffix); });
+	MenuMessage(Render(Texts().shop), ShopShown, [] { TutorialRecords::Give(g_key, ShopSuffix); });
 	AsyncLog::InfoF(g_context, "[tutorial] shop lesson for %s", g_name.c_str());
 }
 
 // Unread counts as not calm: the lesson never starts on a guess.
-bool EnemyInSight(const Lifecycle& state) {
+bool EnemyNear(const Lifecycle& state) {
 	Radar::World world;
 	std::vector<EntityRadar::Entity> entities;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)
 		|| !NativeEntities::Read(state.player, state.session, entities)) return true;
 	return std::any_of(entities.begin(), entities.end(), [&](const auto& entity) {
-		return entity.kind == EntityRadar::Kind::Enemy && CombatTarget::OnScreen(world.player, entity.position);
+		return entity.kind == EntityRadar::Kind::Enemy
+			&& std::hypot(entity.position.x - world.player.x, entity.position.y - world.player.y) <= CalmRadius;
 	});
 }
 
-// Waiting: how long it has been calm since the first level up. Then it follows the player through
-// the menus without asking them to shut one first (the user, 2026-10-21): the sheet, said as it
-// opens; once its points are spent, the way on to the skill tree; the tree, said as it opens; back
-// in play from the tree, the lesson is given and the step it interrupted said again. Shut from the
-// sheet before the tree, the tree is said in play instead.
-void WatchLesson(uint64_t now) {
-	if (g_lesson == Lesson::Waiting) return;
+// Waiting: how long it has been calm since the first level up, or until the sheet or the tree opens.
+// Then it follows the points left, read from the character's stats, through the sheet and the tree
+// in whichever order the player opens them (the user, 2026-11-02: the tree opened first and shut
+// ended the lesson, the attribute points never taught): each menu's words as it opens; the skill
+// point spent, how to put a skill on a button, then the attribute points if any are left; the
+// attribute points spent, the way on to the tree if the skill point is left. Back in play with points
+// left, they are named once and the lesson waits for the menus again; with none, or the second time,
+// it is given and the step it interrupted said again.
+bool SheetShown() { return PanelOpen(CharacterPanel); }
+bool TreeShown() { return PanelOpen(SkillTreePanel); }
+// The lesson's words in play hold while it waits for the menus: opened, they are dropped.
+bool LessonPrompt() { return g_lesson == Lesson::Told; }
+
+void WatchLesson() {
 	if (g_lesson == Lesson::Given) return;
+	const bool tree = TreeShown(), sheet = SheetShown();
+	if (g_lesson == Lesson::Waiting) {
+		// Opened before the calm came, as the game's own prompt asks: the lesson begins there (the user,
+		// 2026-11-02: in the Den of Evil the calm took over a minute).
+		if (!tree && !sheet) return;
+		const auto experience = NativeStatus::PlayerExperience();
+		if (!experience || experience->level < FirstLevelUp) return;
+		g_lesson = Lesson::Told;
+		AsyncLog::InfoF(g_context, "[tutorial] level-up lesson begins in its menu for %s", g_name.c_str());
+	}
+	const auto points = NativeStatus::PlayerUnspent();
+	if (!points) return;
 	const auto& texts = Texts();
-	const auto& panels = PanelState::OpenPanels();
-	const auto shown = [&](std::string_view panel) { return std::find(panels.begin(), panels.end(), panel) != panels.end(); };
-	if (shown(SkillTreePanel)) {
-		if (g_lesson != Lesson::Tree) { g_lesson = Lesson::Tree; MenuMessage(Render(texts.levelUpTree)); }
-		// The point spent: how to put the skill on a button (the user, 2026-10-21).
-		const bool points = CharacterStats::HasPoints(CharacterStats::SkillChoices(NativeWidgets::FindPanel(SkillTreePanel)));
-		if (points) g_sawSkillPoints = true;
-		else if (g_sawSkillPoints && !g_toldBind) { g_toldBind = true; MenuMessage(Render(texts.levelUpBind)); }
+	if (points->skills > 0) g_hadSkillPoint = true;
+	// Both open (the keyboard's T opens the tree beside the sheet): the one with points left.
+	if (tree && (!sheet || points->skills > 0 || points->attributes == 0)) {
+		g_lesson = Lesson::Following;
+		if (!g_toldTree) { g_toldTree = true; MenuMessage(Render(texts.levelUpTree), TreeShown); }
+		if (points->skills > 0 || !g_hadSkillPoint) return;
+		if (!g_toldBind) { g_toldBind = true; MenuMessage(Render(texts.levelUpBind), TreeShown); }
+		if (points->attributes > 0 && !sheet && !g_toldToSheet) {
+			g_toldToSheet = true;
+			MenuMessage(Render(texts.levelUpToSheet), TreeShown);
+		}
 		return;
 	}
-	if (shown(CharacterPanel)) {
-		if (g_lesson == Lesson::Told) { g_lesson = Lesson::Sheet; MenuMessage(Render(texts.levelUpSheet)); }
-		if (g_lesson != Lesson::Sheet) return;
-		// The points line is the game's own; spent, it is gone or says none are left.
-		const bool points = CharacterStats::HasPoints(CharacterStats::Points(NativeWidgets::FindPanel(CharacterPanel)));
-		if (points) g_sawPoints = true;
-		else if (g_sawPoints && !g_toldSwitch) { g_toldSwitch = true; MenuMessage(Render(texts.levelUpSwitch)); }
+	if (sheet) {
+		g_lesson = Lesson::Following;
+		if (!g_toldSheet) { g_toldSheet = true; MenuMessage(Render(texts.levelUpSheet), SheetShown); }
+		if (points->attributes == 0 && points->skills > 0 && !tree && !g_toldSwitch) {
+			g_toldSwitch = true;
+			MenuMessage(Render(texts.levelUpSwitch), SheetShown);
+		}
 		return;
 	}
 	// Between two menus neither may show for a moment: only play counts as shut.
-	if ((g_lesson != Lesson::Sheet && g_lesson != Lesson::Tree) || !RadarUi::InPlay()) return;
-	if (g_lesson == Lesson::Sheet) {
-		g_lesson = Lesson::TreeTold;
-		Message(Render(texts.levelUpTreeLater), AfterStepMs);
+	if (g_lesson != Lesson::Following || !RadarUi::InPlay()) return;
+	if ((points->attributes > 0 || points->skills > 0) && !g_reminded) {
+		g_reminded = true;
+		g_lesson = Lesson::Told;
+		Message(Render(points->attributes > 0 ? texts.levelUpSheetLater : texts.levelUpTreeLater), AfterStepMs, true, LessonPrompt);
+		AsyncLog::InfoF(g_context, "[tutorial] level-up lesson: %d attribute and %d skill point(s) left", points->attributes,
+			points->skills);
 		return;
 	}
 	g_lesson = Lesson::Given;
 	TutorialRecords::Give(g_key, LevelUpSuffix);
-	// Not said in the tree (no point seen spent there): said now, before the lesson ends.
+	// Not said in the tree (the point spent elsewhere, or not at all): said now, before the lesson ends.
 	if (!g_toldBind) Message(Render(texts.levelUpBind), AfterStepMs);
 	Message(Render(texts.levelUpDone), AfterStepMs);
 	if (!g_guide.Finished()) Message(Render(StepLines(g_guide.Current())), 0, false);
@@ -648,13 +806,13 @@ void WatchKit(uint64_t now) {
 		return;
 	}
 	if (InventoryShown()) {
-		if (g_kit == Kit::Told) { g_kit = Kit::Open; MenuMessage(Render(Texts().kitOpen)); }
+		if (g_kit == Kit::Told) { g_kit = Kit::Open; MenuMessage(Render(Texts().kitOpen), InventoryShown); }
 		if (g_toldWorn) return;
 		const auto items = ReadHeld();
 		if (!items) return;
 		const bool worn = std::any_of(items->begin(), items->end(),
 			[](const Held& item) { return item.id == g_newItem && item.container == ItemContainer::Equipment; });
-		if (worn) { g_toldWorn = true; MenuMessage(Render(Texts().kitWorn)); }
+		if (worn) { g_toldWorn = true; MenuMessage(Render(Texts().kitWorn), InventoryShown); }
 		return;
 	}
 	if (g_kit != Kit::Open || !RadarUi::InPlay()) return;
@@ -672,14 +830,14 @@ void WatchCalm(const Lifecycle& state, uint64_t now) {
 	const bool levelUp = g_lesson == Lesson::Waiting && experience && experience->level >= FirstLevelUp;
 	const bool kit = g_kit == Kit::Waiting && g_newItem;
 	const bool gold = g_goldNews == News::Armed;
-	if ((!levelUp && !kit && !gold) || EnemyInSight(state)) g_calmSince = 0;
+	if ((!levelUp && !kit && !gold) || EnemyNear(state)) g_calmSince = 0;
 	else if (!g_calmSince) g_calmSince = now;
 }
 
 // A lesson being followed through its menus: another waits until it is done. One only said in play
 // does not hold the other back, as the player may never open its menu.
-bool LessonUnderWay() { return g_lesson == Lesson::Sheet || g_lesson == Lesson::Tree || g_kit == Kit::Open; }
-bool Calm(uint64_t now) { return g_calmSince && now - g_calmSince >= CalmMs && now >= g_speechEnd && !LessonUnderWay(); }
+bool LessonUnderWay() { return g_lesson == Lesson::Following || g_kit == Kit::Open; }
+bool Calm(uint64_t now) { return g_calmSince && now - g_calmSince >= CalmMs && Said(now, g_speechEnd) && !LessonUnderWay(); }
 
 bool LessonDue(uint64_t now) {
 	const auto experience = NativeStatus::PlayerExperience();
@@ -703,7 +861,7 @@ void TellKit() {
 
 void TellLesson() {
 	g_lesson = Lesson::Told;
-	Message(Render(Texts().levelUp), 0);
+	Message(Render(Texts().levelUp), 0, true, LessonPrompt);
 	AsyncLog::InfoF(g_context, "[tutorial] level-up lesson begins for %s", g_name.c_str());
 }
 
@@ -817,19 +975,21 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			WatchDialogue(state);
 			WatchKill(state);
 			WatchGold(state);
-			WatchWaypoint(state);
+			WatchWaypoint();
 			WatchShop();
-			WatchLesson(now);
+			WatchLesson();
 			WatchKit(now);
 			WatchCalm(state, now);
 		}
 	}
+	Question(now);
 	if (g_active) g_guide.Notice(posted);
 	// While a lesson's sounds play, the world's keep quiet so they are heard alone, and previous and
 	// next steer them; otherwise those browse the messages.
 	const bool auditioning = g_active && !g_queue.empty() && g_queue.front().kind == ActionKind::Audition && !g_audition.Idle();
-	Tutorial::SetQuietWorld(g_active && (g_worldQuiet || auditioning));
-	Tutorial::SetBusy(g_active && (!g_queue.empty() || now < g_speechEnd));
+	const bool asking = g_ask != Asking::None;
+	Tutorial::SetQuietWorld(asking || (g_active && (g_worldQuiet || auditioning)));
+	Tutorial::SetBusy(asking || (g_active && (!g_queue.empty() || !Said(now, g_speechEnd))));
 	// The in-play gate walks the panel tree: only when there is something to do.
 	if (command == Command::None && !g_active) return;
 	const bool inPlay = RadarUi::InPlay();
@@ -837,7 +997,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		if (auditioning && command != Command::First) Steer(command, g_queue.front(), now);
 		else Browse(command);
 	}
-	if (g_browseSound.play && now >= g_browseSound.due) {
+	if (g_browseSound.play && Said(now, g_browseSound.due)) {
 		if (inPlay) g_browseSound.play();
 		g_browseSound = {};
 	}
@@ -846,9 +1006,11 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	// is read; in a menu the reader of what has focus always owns speech (GameTextReader::Tick), so
 	// there they wait only for a pause, as every new message does (the lesson was never said: the
 	// user, 2026-10-21).
-	while (!g_queue.empty() && now >= g_due && (inPlay ? !uiOwnsSpeech : g_queue.front().menu)) {
+	const auto due = [&] { return g_queue.front().afterWords ? Said(now, g_due) : now >= g_due; };
+	while (!g_queue.empty() && due() && (inPlay ? !uiOwnsSpeech : g_queue.front().menu)) {
 		// Words for a menu already shut are dropped: they would point at what is no longer there.
-		if (inPlay && g_queue.front().menu) {
+		const auto& front = g_queue.front();
+		if ((front.menu && inPlay) || (front.holds && !front.holds())) {
 			g_queue.pop_front();
 			if (!g_queue.empty()) g_due = now + g_queue.front().delay;
 			continue;
@@ -910,6 +1072,7 @@ void Unregister() {
 	g_actions.clear();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }
 	Stop();
+	TutorialOffer::Remove();
 	ClearHistory();
 	TutorialRecords::Clear();
 	g_context = nullptr; g_lifecycle = nullptr; g_input = nullptr;

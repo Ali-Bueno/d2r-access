@@ -35,33 +35,40 @@ struct Texts {
 	Lines levelUpSheet;                   // as the character sheet opens
 	Lines levelUpSwitch;                  // in the sheet, its points spent: the way on to the skill tree
 	Lines levelUpTree;                    // as the skill tree opens
-	Lines levelUpTreeLater;               // the sheet shut before the tree
+	Lines levelUpTreeLater;               // back in play, the skill point left
+	Lines levelUpToSheet;                 // in the tree, the skill point spent: the attribute points left, in the sheet
+	Lines levelUpSheetLater;              // back in play, attribute points left
 	Lines levelUpBind;                    // the skill point spent: putting a skill on a button
 	Lines kit;                            // something to wear picked up: the inventory lesson
 	Lines kitOpen;                        // as the inventory opens
 	Lines kitWorn;                        // that item worn
 	Lines kitDone;                        // back in play from the inventory
 	Lines levelUpDone;                    // back in play from the tree
+	Lines waypointMenu;                   // in a waypoint's menu, at the waypoint step: its rows and travel
 	const char* routeStick;               // the pad's route chord, as {route}
 	const char* routeButton;              // the same with the switch pad-route-on-a
 	const char* firstMessage;
 	const char* lastMessage;
-	// {den}, {moor}, {plains}, {portaltome}, {idtome} and {general} when the game's own names cannot be read.
+	// {den}, {moor}, {plains}, {portaltome}, {idtome}, {general} and {trade} when the game's own names cannot be read.
 	const char* den;
 	const char* moor;
 	const char* plains;
 	const char* portalTome;
 	const char* identifyTome;
 	const char* generalSkills;
+	const char* trade; // an NPC's menu entry for its shop
+	Lines offer;      // the question before the tutorial, and how to answer it (tutorial_offer.h)
+	Lines offerLater; // answered "not now"
+	Lines offerNever; // answered "never ask again": where to turn the tutorial back on
 };
 const Texts& For(Strings::Language language);
 
-// The game's own names of places, tomes and the skill tree's general page, which differ between
-// Spain's Spanish and Mexico's; an empty one takes the text's own. `portal` is the button the
-// town portal is bound to.
-struct Names { std::string den, moor, plains, portalTome, identifyTome, generalSkills, portal; };
+// The game's own names of places, tomes, the skill tree's general page and an NPC's shop entry,
+// which differ between Spain's Spanish and Mexico's; an empty one takes the text's own. `portal`
+// is the button the town portal is bound to.
+struct Names { std::string den, moor, plains, portalTome, identifyTome, generalSkills, portal, trade; };
 
-// Replaces {den}, {moor}, {plains}, {portaltome}, {idtome}, {general} and {portal} with the game's
+// Replaces {den}, {moor}, {plains}, {portaltome}, {idtome}, {general}, {trade} and {portal} with the game's
 // names and the button, and {view}, {menu}, {a}, {rs} and the other pad tokens with the button
 // names `button` gives for a controller glyph; {route} first, as its chord can move.
 std::string Render(std::string_view text, const Texts& texts, bool routeOnA, const Names& names,

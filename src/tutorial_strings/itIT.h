@@ -101,18 +101,31 @@ inline constexpr Texts itIT{
 			"Non ci sono più mostri in {den}. Torna al campo: apri l'inventario con I, vai alla pergamena del Portale "
 			"Cittadino e premi D per leggerla; chiudi l'inventario e premi D accanto al portale. Puoi anche tornare a "
 			"piedi con il percorso e la guida."},
-		{"Parla con Akara per la tua ricompensa, un punto abilità. Poi apri l'albero delle abilità con {menu} e spendilo.",
-			"Parla con Akara per la tua ricompensa, un punto abilità. Poi apri l'albero delle abilità con T e spendilo."},
-		{"Un'ultima cosa che il gioco non ti dice: i waypoint custodiscono la tua strada. Il gioco conserva le "
-			"missioni che hai completato, ma ogni volta che torni cominci al campo, e un'area lontana si raggiunge "
-			"attraverso il suo waypoint, che è tuo solo dopo averlo toccato. Il primo fuori dal campo è in {plains}, "
-			"oltre {moor}. Trovalo nella categoria waypoint dello scanner, avvicinati e premi {a}: si apre il suo menu, "
-			"ed è tuo. Chiudi il menu con {b}.",
-			"Un'ultima cosa che il gioco non ti dice: i waypoint custodiscono la tua strada. Il gioco conserva le "
-			"missioni che hai completato, ma ogni volta che torni cominci al campo, e un'area lontana si raggiunge "
-			"attraverso il suo waypoint, che è tuo solo dopo averlo toccato. Il primo fuori dal campo è in {plains}, "
-			"oltre {moor}. Trovalo nella categoria waypoint dello scanner, avvicinati e premi D: si apre il suo menu, ed "
-			"è tuo. Chiudi il menu con Esc."},
+		{
+			"Parla con Akara per la tua ricompensa, un punto abilità: accanto a lei, premi {a}.",
+			"Parla con Akara per la tua ricompensa, un punto abilità: accanto a lei, premi D."},
+		{
+			"Akara vende anche libri, che fanno risparmiare spazio nell'inventario. Nel suo menu, scegli {trade} "
+			"con {dpad} e premi {a}; se l'hai chiuso, parlale di nuovo. Dentro ti spiego come comprare.",
+			"Akara vende anche libri, che fanno risparmiare spazio nell'inventario. Nel suo menu, scegli {trade} "
+			"con i tasti freccia e premi A; se l'hai chiuso, parlale di nuovo con D. Dentro ti spiego come "
+			"comprare."},
+		{
+			"Ora spendi il tuo punto abilità: apri l'albero delle abilità con {menu}. LT e RT cambiano ramo, "
+			"{dpad} scorre le sue abilità, e tenere premuto {a} spende il punto su quella in cui ti trovi. Quando "
+			"hai finito, chiudilo con {b}.",
+			"Ora spendi il tuo punto abilità: apri l'albero delle abilità con T. Pagina su e Pagina giù cambiano "
+			"ramo, i tasti freccia scorrono le sue abilità, e A spende il punto su quella su cui si trova il "
+			"cursore. Quando hai finito, chiudilo con Esc."},
+		{
+			"Un'ultima cosa che il gioco non ti dice: i waypoint custodiscono la tua strada. Ogni volta che torni "
+			"a giocare cominci al campo, e un'area lontana si raggiunge attraverso il suo waypoint, che è tuo "
+			"solo dopo averlo toccato. Il campo ha il suo: trovalo nella categoria waypoint dello scanner, chiedi "
+			"il percorso, segui la guida e premi {a} accanto ad esso per aprirne il menu.",
+			"Un'ultima cosa che il gioco non ti dice: i waypoint custodiscono la tua strada. Ogni volta che torni "
+			"a giocare cominci al campo, e un'area lontana si raggiunge attraverso il suo waypoint, che è tuo "
+			"solo dopo averlo toccato. Il campo ha il suo: trovalo nella categoria waypoint dello scanner, chiedi "
+			"il percorso, segui la guida e premi D accanto ad esso per aprirne il menu."},
 		{"Tutorial completato. Sai come orientarti: scanner, percorso, guida e radar. Nella maggior parte dei menu, "
 			"{rs} in giù dice cosa fanno lì i pulsanti: provalo in ogni menu nuovo per te, come lo scrigno personale. "
 			"Nell'elenco delle impostazioni, con {view} e {rb}, scegli cosa dice e riproduce la mod. Da qui in poi il "
@@ -179,19 +192,28 @@ inline constexpr Texts itIT{
 		"ma l'oro nello scrigno è al sicuro. Di ritorno al campo, apri lo scrigno personale e deposita ciò che non "
 		"ti serve."},
 	.shop = {
-		"Un negozio. Se hai l'oro, compra da Akara un {idtome} e un {portaltome}: ciascuno contiene fino a 20 pergamene "
-		"in uno spazio largo una colonna e alto due righe, e le pergamene del suo tipo che compri dopo ci finiscono dentro. Le pergamene sciolte "
-		"occupano una casella ciascuna e riempiono presto l'inventario. Una pergamena dell'Identificazione mostra "
-		"cos'è un oggetto non identificato: usala, poi scegli l'oggetto.",
-		"Un negozio. Se hai l'oro, compra da Akara un {idtome} e un {portaltome}: ciascuno contiene fino a 20 pergamene "
-		"in uno spazio largo una colonna e alto due righe, e le pergamene del suo tipo che compri dopo ci finiscono dentro. Le pergamene sciolte "
-		"occupano una casella ciascuna e riempiono presto l'inventario. Una pergamena dell'Identificazione mostra "
-		"cos'è un oggetto non identificato: usala, poi scegli l'oggetto."},
+		"Un negozio. Ciò che vende è da un lato, in schede che LT e RT cambiano, e il tuo inventario "
+		"dall'altro. {dpad} va da casella a casella, e {rs} in su legge la descrizione dell'oggetto. Cerca un "
+		"{portaltome} e un {idtome}, che vende Akara; su uno dei due premi {a} e conferma per comprarlo, se "
+		"hai l'oro. Ciascuno contiene fino a 20 pergamene in uno spazio largo una colonna e alto due righe, e "
+		"le pergamene del suo tipo che compri dopo ci finiscono dentro; le pergamene sciolte occupano una "
+		"casella ciascuna e riempiono presto l'inventario. Una pergamena dell'Identificazione mostra cos'è un "
+		"oggetto non identificato: usala, poi scegli l'oggetto. Chiudi il negozio con {b}."
+		" Anche se non compri nulla, il tutorial va avanti; i tomi possono aspettare.",
+		"Un negozio. Ciò che vende è da un lato, in schede che Pagina su e Pagina giù cambiano, e il tuo "
+		"inventario dall'altro. I tasti freccia portano il cursore da casella a casella, e J legge la "
+		"descrizione dell'oggetto. Cerca un {portaltome} e un {idtome}, che vende Akara; su uno dei due premi "
+		"D per comprarlo, se hai l'oro. Ciascuno contiene fino a 20 pergamene in uno spazio largo una colonna "
+		"e alto due righe, e le pergamene del suo tipo che compri dopo ci finiscono dentro; le pergamene "
+		"sciolte occupano una casella ciascuna e riempiono presto l'inventario. Una pergamena "
+		"dell'Identificazione mostra cos'è un oggetto non identificato: usala, poi scegli l'oggetto. Chiudi "
+		"il negozio con Esc."
+		" Anche se non compri nulla, il tutorial va avanti; i tomi possono aspettare."},
 	.levelUp = {
-		"Hai raggiunto un nuovo livello: hai punti caratteristica e un punto abilità da spendere. Premi {menu} per aprire la "
-		"schermata del personaggio; ti guiderò al suo interno.",
-		"Hai raggiunto un nuovo livello: hai punti caratteristica e un punto abilità da spendere. Premi C per aprire la "
-		"schermata del personaggio; ti guiderò al suo interno."},
+		"Hai raggiunto un nuovo livello: hai punti caratteristica e un punto abilità da spendere. Premi "
+		"{menu}: si apre la schermata del personaggio o l'albero delle abilità, e ti guiderò al suo interno.",
+		"Hai raggiunto un nuovo livello: hai punti caratteristica e un punto abilità da spendere. Premi C per "
+		"aprire la schermata del personaggio, o T per l'albero delle abilità; ti guiderò al suo interno."},
 	.levelUpSheet = {
 		"La schermata del personaggio. Sei sul più della Forza: {dpad} su e giù scorrono le quattro caratteristiche, e "
 		"tenere premuto {a} spende un punto su quella in cui ti trovi; tenere premuto {x} ne spende cinque in una volta. {rs} su e giù leggono le tue statistiche riga per riga, e "
@@ -204,15 +226,24 @@ inline constexpr Texts itIT{
 		"dice il suo nome.",
 		"I tuoi punti caratteristica sono spesi. Ora il tuo punto abilità: premi T per aprire l'albero delle abilità accanto alla schermata del personaggio."},
 	.levelUpTree = {
-		"L'albero delle abilità. LT e RT cambiano ramo, {dpad} scorre le sue abilità, e {rs} in su legge quella in cui ti "
-		"trovi. {a} vi spende il punto, e {rs} a destra dice i punti che ti restano. Quando hai finito, chiudilo "
-		"con {b}.",
+		"L'albero delle abilità. LT e RT cambiano ramo, {dpad} scorre le sue abilità, e {rs} in su legge "
+		"quella in cui ti trovi. Tenere premuto {a} vi spende il punto, e {rs} a destra dice i punti che ti "
+		"restano. Quando hai finito, chiudilo con {b}.",
 		"L'albero delle abilità. Pagina su e Pagina giù cambiano ramo, i tasti freccia scorrono le sue abilità, e J legge "
 		"quella su cui si trova il cursore. A vi spende il punto, e Ctrl più Pagina giù dice i punti che ti "
 		"restano. Quando hai finito, chiudilo con Esc."},
 	.levelUpTreeLater = {
 		"Hai ancora il tuo punto abilità. Premi {menu}: con le caratteristiche spese, apre l'albero delle abilità.",
 		"Hai ancora il tuo punto abilità. Premi T per aprire l'albero delle abilità."},
+	.levelUpToSheet = {
+		"Il tuo punto abilità è speso. Ti restano punti caratteristica: premi {lb} finché non arrivi alla "
+		"schermata del personaggio; ogni menu dice il suo nome.",
+		"Il tuo punto abilità è speso. Ti restano punti caratteristica: premi C per aprire la schermata del "
+		"personaggio."},
+	.levelUpSheetLater = {
+		"Hai ancora punti caratteristica. Premi {menu} e vai con {lb} o {rb} alla schermata del personaggio; "
+		"ogni menu dice il suo nome.",
+		"Hai ancora punti caratteristica. Premi C per aprire la schermata del personaggio."},
 	.levelUpBind = {
 		"Per usare un'abilità, mettila su un pulsante: nell'albero delle abilità, sull'abilità, premi {x} e poi il "
 		"pulsante che vuoi. La lettura di ogni abilità dice su quale pulsante si trova. Le abilità passive, come le "
@@ -247,6 +278,16 @@ inline constexpr Texts itIT{
 		"Fatto. Prova ora una volta la tua nuova abilità: A usa l'abilità della mano sinistra e W quella della "
 		"destra; ascolta come suona. Ogni volta che sali di livello, C apre la schermata del personaggio e T "
 		"l'albero delle abilità. Torniamo a ciò che stavi facendo:"},
+	.waypointMenu = {
+		"Il menu del waypoint. {dpad} su e giù scorre le aree dell'atto che ne hanno uno: quelle che dicono "
+		"non scoperto non le hai ancora toccate, e quella che dice sei qui è questa. Su un'area scoperta, {a} "
+		"ti porta lì subito; LT e RT cambiano atto. Per ora hai solo questo; il prossimo è in {plains}, oltre "
+		"{moor}: toccalo, e da allora andrai dall'uno all'altro in un istante. Chiudi il menu con {b}.",
+		"Il menu del waypoint. I tasti freccia su e giù scorrono le aree dell'atto che ne hanno uno: quelle "
+		"che dicono non scoperto non le hai ancora toccate, e quella che dice sei qui è questa. Su un'area "
+		"scoperta, A ti porta lì subito; Pagina su e Pagina giù cambiano atto. Per ora hai solo questo; il "
+		"prossimo è in {plains}, oltre {moor}: toccalo, e da allora andrai dall'uno all'altro in un istante. "
+		"Chiudi il menu con Esc."},
 	.routeStick = "{view} e {rs} in giù",
 	.routeButton = "{view} e {a}",
 	.firstMessage = "Primo messaggio",
@@ -257,5 +298,13 @@ inline constexpr Texts itIT{
 	.portalTome = "Tomo del Portale Cittadino",
 	.identifyTome = "Tomo dell'Identificazione",
 	.generalSkills = "Abilità generali",
+	.trade = "Commercia",
+	.offer = {
+		"Vuoi fare il tutorial di D2R Access, che ti insegna a usare la mod? Premi due volte {a} (croce su PlayStation) per iniziarlo, due volte {b} (cerchio) per non ora, o due volte {y} (triangolo) per non sentirtelo più chiedere. Finché non rispondi, il gioco non riceve comandi.",
+		"Vuoi fare il tutorial di D2R Access, che ti insegna a usare la mod? Premi due volte Invio per iniziarlo, due volte Esc per non ora, o due volte Backspace per non sentirtelo più chiedere. Finché non rispondi, il gioco non riceve comandi."},
+	.offerLater = {"Niente tutorial per ora. Te lo chiederò di nuovo in un'altra partita.", "Niente tutorial per ora. Te lo chiederò di nuovo in un'altra partita."},
+	.offerNever = {
+		"Non te lo chiederò più. Per riavere il tutorial, attivalo nell'elenco delle impostazioni, con {view} e {rb}.",
+		"Non te lo chiederò più. Per riavere il tutorial, attivalo nell'elenco delle impostazioni, con Ctrl più S."},
 };
 }

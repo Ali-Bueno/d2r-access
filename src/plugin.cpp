@@ -8,6 +8,7 @@
 #include "core_slots.h"
 #include "focus_tracker.h"
 #include "footstep_service.h"
+#include "tutorial_offer.h"
 #include "tutorial_service.h"
 #include "wall_slide_service.h"
 #include "wall_tone_service.h"
@@ -203,6 +204,8 @@ void OnUiTick(const D2RL::PluginContext* context) {
 		g_notice = D2RAccess::CallbackFault::None;
 	}
 	D2RAccess::InputDirection::Poll(); lap("InputDirection");
+	// While the tutorial's question is open, this update's input is its own, before any reader's.
+	D2RAccess::TutorialOffer::Tick(context); lap("TutorialOffer");
 	// Before every reader: a key posts the gesture a reader takes this same update.
 	D2RAccess::KeyboardService::Tick(context); lap("KeyboardService");
 	D2RAccess::KeyboardMenu::Tick(context); lap("KeyboardMenu");

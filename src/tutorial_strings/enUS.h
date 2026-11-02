@@ -96,18 +96,31 @@ inline constexpr Texts enUS{
 			"{den} is clear. Go back to the camp: open the inventory with I, go to the town portal scroll and press D "
 			"to read it; close the inventory and press D beside the portal. You can also walk back with the route and "
 			"the beacon."},
-		{"Talk to Akara for your reward, a skill point. Then open the skill tree with {menu} and spend it.",
-			"Talk to Akara for your reward, a skill point. Then open the skill tree with T and spend it."},
-		{"One more thing the game does not tell you: waypoints keep your way. The game keeps the quests you have done, "
-			"but each time you come back you start in the camp, and a far area is reached through its waypoint, which is "
-			"yours only once you have touched it. The first one outside the camp is in {plains}, past {moor}. Find it in "
-			"the scanner's waypoint category, walk up to it and press {a}: its menu opens, and it is yours. Close the "
-			"menu with {b}.",
-			"One more thing the game does not tell you: waypoints keep your way. The game keeps the quests you have done, "
-			"but each time you come back you start in the camp, and a far area is reached through its waypoint, which is "
-			"yours only once you have touched it. The first one outside the camp is in {plains}, past {moor}. Find it in "
-			"the scanner's waypoint category, walk up to it and press D: its menu opens, and it is yours. Close the "
-			"menu with Escape."},
+		{
+			"Talk to Akara for your reward, a skill point: beside her, press {a}.",
+			"Talk to Akara for your reward, a skill point: beside her, press D."},
+		{
+			"Akara also sells tomes, which save room in your inventory. In her menu, choose {trade} with {dpad} "
+			"and press {a}; if you closed it, talk to her again. Inside, I will tell you how to buy.",
+			"Akara also sells tomes, which save room in your inventory. In her menu, choose {trade} with the "
+			"arrow keys and press A; if you closed it, talk to her again with D. Inside, I will tell you how to "
+			"buy."},
+		{
+			"Now spend your skill point: open the skill tree with {menu}. LT and RT change the branch, {dpad} "
+			"goes through its skills, and holding {a} spends the point on the one you are on. When you are done, "
+			"close it with {b}.",
+			"Now spend your skill point: open the skill tree with T. Page Up and Page Down change the branch, the "
+			"arrow keys go through its skills, and A spends the point on the one the cursor is on. When you are "
+			"done, close it with Escape."},
+		{
+			"One more thing the game does not tell you: waypoints keep your way. Each time you come back to play "
+			"you start in the camp, and a far area is reached through its waypoint, which is yours only once you "
+			"have touched it. The camp has its own: find it in the scanner's waypoint category, ask for the "
+			"route, follow the beacon and press {a} beside it to open its menu.",
+			"One more thing the game does not tell you: waypoints keep your way. Each time you come back to play "
+			"you start in the camp, and a far area is reached through its waypoint, which is yours only once you "
+			"have touched it. The camp has its own: find it in the scanner's waypoint category, ask for the "
+			"route, follow the beacon and press D beside it to open its menu."},
 		{"Tutorial complete. You know how to find your way: scanner, route, beacon and radar. In most menus, {rs} down "
 			"tells you what the buttons do there: try it in every menu new to you, such as the stash. In the settings "
 			"list, with {view} and {rb}, you choose what the mod says and plays. From here on, the game is yours.",
@@ -163,17 +176,27 @@ inline constexpr Texts enUS{
 		"You picked up gold; it is picked up as you walk over it. When you die, you lose part of the gold you carry, "
 		"but gold in the stash is safe. Back in the camp, open the stash and deposit what you do not need."},
 	.shop = {
-		"A shop. If you have the gold, buy a {idtome} and a {portaltome} from Akara: each holds up to 20 scrolls in a "
-		"space one column wide and two rows tall, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
-		"soon fill your inventory. An identify scroll shows what an unidentified item is: use it, then choose the item.",
-		"A shop. If you have the gold, buy a {idtome} and a {portaltome} from Akara: each holds up to 20 scrolls in a "
-		"space one column wide and two rows tall, and the scrolls of its kind you buy afterwards go into it. Loose scrolls take a cell each and "
-		"soon fill your inventory. An identify scroll shows what an unidentified item is: use it, then choose the item."},
+		"A shop. What it sells is on one side, in tabs that LT and RT change, and your inventory on the "
+		"other. {dpad} moves from cell to cell, and {rs} up reads the item's description. Look for a "
+		"{portaltome} and a {idtome}, which Akara sells; on one, press {a} and confirm to buy it, if you have "
+		"the gold. Each tome holds up to 20 scrolls in a space one column wide and two rows high, and the "
+		"scrolls of its kind you buy later go inside; loose scrolls take a cell each and soon fill the "
+		"inventory. A scroll of identify shows what an unidentified item is: use it and choose the item. "
+		"Close the shop with {b}."
+		" Even if you buy nothing, the tutorial goes on; the tomes can wait.",
+		"A shop. What it sells is on one side, in tabs that Page Up and Page Down change, and your inventory "
+		"on the other. The arrow keys move the cursor from cell to cell, and J reads the item's description. "
+		"Look for a {portaltome} and a {idtome}, which Akara sells; on one, press D to buy it, if you have "
+		"the gold. Each tome holds up to 20 scrolls in a space one column wide and two rows high, and the "
+		"scrolls of its kind you buy later go inside; loose scrolls take a cell each and soon fill the "
+		"inventory. A scroll of identify shows what an unidentified item is: use it and choose the item. "
+		"Close the shop with Escape."
+		" Even if you buy nothing, the tutorial goes on; the tomes can wait."},
 	.levelUp = {
-		"You have gone up a level: you have attribute points and a skill point to spend. Press {menu} to open your "
-		"character sheet; I will guide you inside.",
+		"You have gone up a level: you have attribute points and a skill point to spend. Press {menu}: your "
+		"character sheet or your skill tree opens, and I will guide you inside.",
 		"You have gone up a level: you have attribute points and a skill point to spend. Press C to open your "
-		"character sheet; I will guide you inside."},
+		"character sheet, or T for the skill tree; I will guide you inside."},
 	.levelUpSheet = {
 		"Your character sheet. You are on Strength's plus: {dpad} up and down go through the four attributes, and "
 		"holding {a} spends a point on the one you are on; holding {x} spends five at once. {rs} up and down read your statistics line by line, and "
@@ -186,15 +209,23 @@ inline constexpr Texts enUS{
 		"says its name.",
 		"Your attribute points are spent. Now your skill point: press T to open the skill tree beside your sheet."},
 	.levelUpTree = {
-		"The skill tree. LT and RT change the branch, {dpad} goes through its skills, and {rs} up reads the one you "
-		"are on. {a} spends the point on it, and {rs} right says the points you have left. When you are done, close "
-		"it with {b}.",
+		"The skill tree. LT and RT change the branch, {dpad} goes through its skills, and {rs} up reads the "
+		"one you are on. Holding {a} spends the point on it, and {rs} right says the points you have left. "
+		"When you are done, close it with {b}.",
 		"The skill tree. Page Up and Page Down change the branch, the arrow keys go through its skills, and J reads "
 		"the one the cursor is on. A spends the point on it, and Control plus Page Down says the points you have "
 		"left. When you are done, close it with Escape."},
 	.levelUpTreeLater = {
 		"You still have your skill point. Press {menu}: with the attributes spent, it opens the skill tree.",
 		"You still have your skill point. Press T to open the skill tree."},
+	.levelUpToSheet = {
+		"Your skill point is spent. Attribute points are left: press {lb} until you reach your character "
+		"sheet; each menu says its name.",
+		"Your skill point is spent. Attribute points are left: press C to open your character sheet."},
+	.levelUpSheetLater = {
+		"You still have attribute points. Press {menu} and go with {lb} or {rb} to your character sheet; each "
+		"menu says its name.",
+		"You still have attribute points. Press C to open your character sheet."},
 	.levelUpBind = {
 		"To use a skill, put it on a button: in the skill tree, on the skill, press {x} and then the button you "
 		"want it on. Each skill's reading says which button it is on. Passive skills, such as the masteries, work on "
@@ -227,6 +258,17 @@ inline constexpr Texts enUS{
 		"a level, {menu} opens your character sheet. Back to what you were doing:",
 		"Done. Try your new skill once now: A uses your left hand's skill and W your right's; hear how it sounds. "
 		"Whenever you go up a level, C opens your character sheet and T the skill tree. Back to what you were doing:"},
+	.waypointMenu = {
+		"The waypoint menu. {dpad} up and down goes through the act's areas that have one: those that say "
+		"undiscovered you have not touched yet, and the one that says you are here is this one. On a "
+		"discovered area, {a} takes you there at once; LT and RT change the act. For now you only have this "
+		"one; the next is in {plains}, past {moor}: touch it, and from then on you can travel between the two "
+		"in an instant. Close the menu with {b}.",
+		"The waypoint menu. The arrow keys up and down go through the act's areas that have one: those that "
+		"say undiscovered you have not touched yet, and the one that says you are here is this one. On a "
+		"discovered area, A takes you there at once; Page Up and Page Down change the act. For now you only "
+		"have this one; the next is in {plains}, past {moor}: touch it, and from then on you can travel "
+		"between the two in an instant. Close the menu with Escape."},
 	.routeStick = "{view} and {rs} down",
 	.routeButton = "{view} and {a}",
 	.firstMessage = "First message",
@@ -237,5 +279,13 @@ inline constexpr Texts enUS{
 	.portalTome = "Tome of Town Portal",
 	.identifyTome = "Tome of Identify",
 	.generalSkills = "General Skills",
+	.trade = "trade",
+	.offer = {
+		"Do you want the D2R Access tutorial, which teaches you how to use the mod? Press {a} twice (cross on PlayStation) to start it, {b} twice (circle) for not now, or {y} twice (triangle) to never be asked again. Until you answer, the game takes no input.",
+		"Do you want the D2R Access tutorial, which teaches you how to use the mod? Press Enter twice to start it, Escape twice for not now, or Backspace twice to never be asked again. Until you answer, the game takes no input."},
+	.offerLater = {"No tutorial for now. I will ask again in a later game.", "No tutorial for now. I will ask again in a later game."},
+	.offerNever = {
+		"I will not ask again. To have the tutorial back, turn it on in the settings list, with {view} and {rb}.",
+		"I will not ask again. To have the tutorial back, turn it on in the settings list, with Control plus S."},
 };
 }

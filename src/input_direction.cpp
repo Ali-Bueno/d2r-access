@@ -75,6 +75,7 @@ bool g_leftStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
 bool g_backWithDpadUp = false;
 bool g_padUsed = false;
+PadPresses g_padPresses;
 bool g_backWithLt = false, g_backWithRt = false;
 bool g_lbAlone = false, g_rbAlone = false;
 bool g_pressedB = false;
@@ -192,6 +193,8 @@ void Poll() {
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
 			const bool pushed = Pushed(pad);
 			if ((pad.wButtons & ~edges.buttons) != 0 || (pushed && !edges.pushed)) g_padUsed = true;
+			g_padPresses.buttons |= pad.wButtons & ~edges.buttons;
+			g_padPresses.moved = g_padPresses.moved || (pushed && !edges.pushed);
 			edges.buttons = pad.wButtons;
 			edges.pushed  = pushed;
 			const bool backDown = (pad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
@@ -323,6 +326,19 @@ void Poll() {
 
 Stick LeftStick() { return g_leftStick; }
 bool TakePadUse() { return std::exchange(g_padUsed, false); }
+PadPresses TakePadPresses() { return std::exchange(g_padPresses, {}); }
+void DropGestures() {
+	g_dpad = {};
+	g_leftTrigger = {};
+	g_leftStickClick = g_lbAlone = g_rbAlone = g_pressedA = g_pressedB = false;
+	g_backWithA = g_backWithB = g_backWithX = g_backWithY = g_backWithLb = g_backWithRb = false;
+	g_backWithDpadUp = g_backWithLt = g_backWithRt = false;
+	g_leftStickPush = g_backWithRightStick = g_backWithRightStickSide = g_rightStickPush = StickPush::None;
+	g_lineStep = false;
+	g_lastHorizontal = Horizontal::None;
+	g_lastVertical = Vertical::None;
+	g_lastFaceButton = FaceButton::None;
+}
 TriggerHold LeftTrigger() { return g_leftTrigger; }
 bool TakeLeftStickClick() {
 	const bool clicked = g_leftStickClick;

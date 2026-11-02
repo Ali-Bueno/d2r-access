@@ -12,15 +12,17 @@ namespace D2RAccess::Tutorial {
 // What the player did that a step can wait for.
 enum class Signal : uint8_t {
 	Vitals, Wall, HeardSounds, ScannedWarriv, TalkedToWarriv, ScannedAkara, RouteToAkara, AtAkara, TalkedToAkara, InBloodMoor,
-	RoomWays, Terrain, Kill, InDen, DenCleared, InTown, DenDone, Waypoint, Count };
+	RoomWays, Terrain, Kill, InDen, DenCleared, InTown, DenDone, Waypoint, Shopped, SkillsSpent, RewardTalk, Count };
 using Signals = uint32_t;
 static_assert(static_cast<size_t>(Signal::Count) <= sizeof(Signals) * 8);
 constexpr Signals Bit(Signal signal) { return Signals{1} << static_cast<unsigned>(signal); }
 
-// The steps in order; Finished is past the last and has the farewell.
+// The steps in order; Finished is past the last and has the farewell. After the reward, Akara's
+// shop and the skill point, and the camp's own waypoint rather than one past the Blood Moor
+// (the user, 2026-11-02: died on the way there).
 enum class Step : uint8_t {
 	Vitals, Radar, Sounds, Scanner, MeetWarriv, FindAkara, Route, Beacon, Talk, LeaveTown, Surroundings, Fight, FindDen,
-	DenRooms, ClearDen, ReturnToTown, Reward, Waypoint, Finished };
+	DenRooms, ClearDen, ReturnToTown, Reward, Shop, SpendSkill, Waypoint, Finished };
 inline constexpr size_t StepCount = static_cast<size_t>(Step::Finished);
 
 // The signals that complete a step.
@@ -29,9 +31,9 @@ Signals Needs(Step step);
 // on the way to it, so a player ahead of the tutorial is not held at one (a tester, 2026-10-21).
 Signals PassedBy(Step step);
 
-// Records saved before the Den's rooms and the waypoint had steps of their own (version 1):
-// the step the same place has now.
-Step FromVersion1(int step);
+// A record saved by an older version: the step the same place has now. Version 1 had no Den's
+// rooms nor waypoint steps; version 2 had no shop nor skill point steps.
+Step FromVersion(int version, int step);
 
 // From any thread: a signal for the service's next tick.
 void Post(Signal signal);
@@ -77,7 +79,8 @@ public:
 	// `reads[i]`: how long the i-th name takes to say, after which its sound plays; the next
 	// name comes `gap` after it. The first name is due at once.
 	void Start(std::vector<uint64_t> reads, uint64_t now, uint64_t gap, bool wait);
-	Due Tick(uint64_t now);
+	// `said`: the screen reader tells the name is over, so its sound need not wait out the guess.
+	Due Tick(uint64_t now, bool said = false);
 	// The last sound heard, to play again; none before the first.
 	std::optional<size_t> Again();
 	void Next(uint64_t now);
@@ -95,6 +98,25 @@ private:
 	std::optional<size_t> m_heard;
 	bool m_wait = false;
 	Phase m_phase = Phase::Idle;
+};
+
+// A message's sound, then its words.
+inline constexpr uint64_t ChimeMs = 600;
+
+// The question before a new character's tutorial (the user, 2026-11-02): two presses of one answer
+// within `window` give it; one press alone, two different ones, or anything else ask it again.
+class Offer {
+public:
+	enum class Press : uint8_t { Yes, No, Never, Other };
+	enum class Reply : uint8_t { None, Yes, No, Never, Again };
+	void Start(uint64_t window) { m_window = window; m_first.reset(); }
+	Reply Feed(Press press, uint64_t now);
+	// Again once a first press has waited out the window alone.
+	Reply Tick(uint64_t now);
+
+private:
+	uint64_t m_window = 0, m_at = 0;
+	std::optional<Press> m_first;
 };
 
 // Every message said, in order, and the one the player is reading.

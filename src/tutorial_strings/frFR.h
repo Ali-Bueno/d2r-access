@@ -106,18 +106,34 @@ inline constexpr Texts frFR{
 			"Plus aucun monstre dans {den}. Retournez au camp : ouvrez l'inventaire avec I, allez au parchemin de "
 			"portail de retour en ville et appuyez sur D pour le lire ; fermez l'inventaire et appuyez sur D à côté du "
 			"portail. Vous pouvez aussi revenir à pied avec l'itinéraire et le guidage."},
-		{"Parlez à Akara pour votre récompense, un point de compétence. Ouvrez ensuite l'arbre de compétences avec {menu} et dépensez-le.",
-			"Parlez à Akara pour votre récompense, un point de compétence. Ouvrez ensuite l'arbre de compétences avec T et dépensez-le."},
-		{"Encore une chose que le jeu ne vous dit pas : les points de passage gardent votre chemin. Le jeu garde les "
-			"quêtes que vous avez faites, mais chaque fois que vous revenez, vous commencez au camp, et une zone "
-			"lointaine s'atteint par son point de passage, qui n'est à vous qu'une fois touché. Le premier hors du camp "
-			"se trouve dans {plains}, après {moor}. Trouvez-le dans la catégorie des points de passage du scanner, "
-			"approchez-vous et appuyez sur {a} : son menu s'ouvre, et il est à vous. Fermez le menu avec {b}.",
-			"Encore une chose que le jeu ne vous dit pas : les points de passage gardent votre chemin. Le jeu garde les "
-			"quêtes que vous avez faites, mais chaque fois que vous revenez, vous commencez au camp, et une zone "
-			"lointaine s'atteint par son point de passage, qui n'est à vous qu'une fois touché. Le premier hors du camp "
-			"se trouve dans {plains}, après {moor}. Trouvez-le dans la catégorie des points de passage du scanner, "
-			"approchez-vous et appuyez sur D : son menu s'ouvre, et il est à vous. Fermez le menu avec Échap."},
+		{
+			"Parlez à Akara pour votre récompense, un point de compétence : à côté d'elle, appuyez sur {a}.",
+			"Parlez à Akara pour votre récompense, un point de compétence : à côté d'elle, appuyez sur D."},
+		{
+			"Akara vend aussi des livres, qui économisent de la place dans l'inventaire. Dans son menu, "
+			"choisissez {trade} avec {dpad} puis appuyez sur {a} ; si vous l'avez fermé, parlez-lui de nouveau. À "
+			"l'intérieur, je vous explique comment acheter.",
+			"Akara vend aussi des livres, qui économisent de la place dans l'inventaire. Dans son menu, "
+			"choisissez {trade} avec les touches fléchées puis appuyez sur A ; si vous l'avez fermé, parlez-lui "
+			"de nouveau avec D. À l'intérieur, je vous explique comment acheter."},
+		{
+			"Dépensez maintenant votre point de compétence : ouvrez l'arbre de compétences avec {menu}. LT et RT "
+			"changent de branche, {dpad} parcourt ses compétences, et maintenir {a} dépense le point sur celle où "
+			"vous êtes. Quand vous avez fini, fermez-le avec {b}.",
+			"Dépensez maintenant votre point de compétence : ouvrez l'arbre de compétences avec T. Page "
+			"précédente et Page suivante changent de branche, les touches fléchées parcourent ses compétences, et "
+			"A dépense le point sur celle où se trouve le curseur. Quand vous avez fini, fermez-le avec Échap."},
+		{
+			"Encore une chose que le jeu ne vous dit pas : les points de passage gardent votre chemin. Chaque "
+			"fois que vous revenez jouer, vous commencez au camp, et une zone lointaine s'atteint par son point "
+			"de passage, qui n'est à vous qu'une fois touché. Le camp a le sien : trouvez-le dans la catégorie "
+			"des points de passage du scanner, demandez l'itinéraire, suivez le guidage et appuyez sur {a} à côté "
+			"pour ouvrir son menu.",
+			"Encore une chose que le jeu ne vous dit pas : les points de passage gardent votre chemin. Chaque "
+			"fois que vous revenez jouer, vous commencez au camp, et une zone lointaine s'atteint par son point "
+			"de passage, qui n'est à vous qu'une fois touché. Le camp a le sien : trouvez-le dans la catégorie "
+			"des points de passage du scanner, demandez l'itinéraire, suivez le guidage et appuyez sur D à côté "
+			"pour ouvrir son menu."},
 		{"Tutoriel terminé. Vous savez vous repérer : scanner, itinéraire, guidage et radar. Dans la plupart des "
 			"menus, {rs} vers le bas dit ce que font les boutons : essayez-le dans chaque menu nouveau pour vous, comme "
 			"le coffre personnel. Dans la liste des réglages, avec {view} et {rb}, vous choisissez ce que le mod dit et "
@@ -183,19 +199,31 @@ inline constexpr Texts frFR{
 		"l'or que vous portez, mais l'or du coffre est à l'abri. De retour au camp, ouvrez le coffre personnel et "
 		"déposez ce dont vous n'avez pas besoin."},
 	.shop = {
-		"Une boutique. Si vous avez l'or, achetez à Akara un {idtome} et un {portaltome} : chacun contient jusqu'à 20 "
-		"parchemins sur un emplacement d'une colonne de large et deux rangées de haut, et les parchemins de son type que vous achetez ensuite y vont. Les "
-		"parchemins isolés prennent une case chacun et remplissent vite l'inventaire. Un parchemin d'identification "
-		"montre ce qu'est un objet non identifié : utilisez-le, puis choisissez l'objet.",
-		"Une boutique. Si vous avez l'or, achetez à Akara un {idtome} et un {portaltome} : chacun contient jusqu'à 20 "
-		"parchemins sur un emplacement d'une colonne de large et deux rangées de haut, et les parchemins de son type que vous achetez ensuite y vont. Les "
-		"parchemins isolés prennent une case chacun et remplissent vite l'inventaire. Un parchemin d'identification "
-		"montre ce qu'est un objet non identifié : utilisez-le, puis choisissez l'objet."},
+		"Une boutique. Ce qu'elle vend est d'un côté, dans des onglets que LT et RT changent, et votre "
+		"inventaire de l'autre. {dpad} va de case en case, et {rs} vers le haut lit la description de "
+		"l'objet. Cherchez un {portaltome} et un {idtome}, qu'Akara vend ; sur l'un d'eux, appuyez sur {a} et "
+		"confirmez pour l'acheter, si vous avez l'or. Chacun contient jusqu'à 20 parchemins sur un "
+		"emplacement d'une colonne de large et deux rangées de haut, et les parchemins de son type que vous "
+		"achetez ensuite y vont ; les parchemins isolés prennent une case chacun et remplissent vite "
+		"l'inventaire. Un parchemin d'identification montre ce qu'est un objet non identifié : utilisez-le, "
+		"puis choisissez l'objet. Fermez la boutique avec {b}."
+		" Même si vous n'achetez rien, le tutoriel continue ; les tomes peuvent attendre.",
+		"Une boutique. Ce qu'elle vend est d'un côté, dans des onglets que Page précédente et Page suivante "
+		"changent, et votre inventaire de l'autre. Les touches fléchées amènent le curseur de case en case, "
+		"et J lit la description de l'objet. Cherchez un {portaltome} et un {idtome}, qu'Akara vend ; sur "
+		"l'un d'eux, appuyez sur D pour l'acheter, si vous avez l'or. Chacun contient jusqu'à 20 parchemins "
+		"sur un emplacement d'une colonne de large et deux rangées de haut, et les parchemins de son type que "
+		"vous achetez ensuite y vont ; les parchemins isolés prennent une case chacun et remplissent vite "
+		"l'inventaire. Un parchemin d'identification montre ce qu'est un objet non identifié : utilisez-le, "
+		"puis choisissez l'objet. Fermez la boutique avec Échap."
+		" Même si vous n'achetez rien, le tutoriel continue ; les tomes peuvent attendre."},
 	.levelUp = {
-		"Vous avez gagné un niveau : vous avez des points de caractéristiques et un point de compétence à dépenser. Appuyez sur {menu} pour ouvrir votre "
-		"écran de personnage ; je vous guiderai à l'intérieur.",
-		"Vous avez gagné un niveau : vous avez des points de caractéristiques et un point de compétence à dépenser. Appuyez sur C pour ouvrir votre "
-		"écran de personnage ; je vous guiderai à l'intérieur."},
+		"Vous avez gagné un niveau : vous avez des points de caractéristiques et un point de compétence à "
+		"dépenser. Appuyez sur {menu} : votre écran de personnage ou votre arbre de compétences s'ouvre, et "
+		"je vous guiderai à l'intérieur.",
+		"Vous avez gagné un niveau : vous avez des points de caractéristiques et un point de compétence à "
+		"dépenser. Appuyez sur C pour ouvrir votre écran de personnage, ou sur T pour l'arbre de compétences "
+		"; je vous guiderai à l'intérieur."},
 	.levelUpSheet = {
 		"Votre écran de personnage. Vous êtes sur le plus de la Force : {dpad} haut et bas parcourent les quatre caractéristiques, et "
 		"maintenir {a} dépense un point sur celle où vous êtes ; maintenir {x} en dépense cinq d'un coup. {rs} haut et bas lisent vos statistiques ligne par ligne, et "
@@ -208,15 +236,24 @@ inline constexpr Texts frFR{
 		"dit son nom.",
 		"Vos points de caractéristiques sont dépensés. Maintenant votre point de compétence : appuyez sur T pour ouvrir l'arbre de compétences à côté de votre écran de personnage."},
 	.levelUpTree = {
-		"L'arbre de compétences. LT et RT changent de branche, {dpad} parcourt ses compétences, et {rs} vers le haut lit celle où vous "
-		"êtes. {a} y dépense le point, et {rs} vers la droite dit les points qu'il vous reste. Quand vous avez fini, fermez-le "
-		"avec {b}.",
+		"L'arbre de compétences. LT et RT changent de branche, {dpad} parcourt ses compétences, et {rs} vers "
+		"le haut lit celle où vous êtes. Maintenir {a} y dépense le point, et {rs} vers la droite dit les "
+		"points qu'il vous reste. Quand vous avez fini, fermez-le avec {b}.",
 		"L'arbre de compétences. Page précédente et Page suivante changent de branche, les touches fléchées parcourent ses compétences, et J lit "
 		"celle où se trouve le curseur. A y dépense le point, et Ctrl plus Page suivante dit les points qu'il vous "
 		"reste. Quand vous avez fini, fermez-le avec Échap."},
 	.levelUpTreeLater = {
 		"Vous avez encore votre point de compétence. Appuyez sur {menu} : une fois les caractéristiques dépensées, il ouvre l'arbre de compétences.",
 		"Vous avez encore votre point de compétence. Appuyez sur T pour ouvrir l'arbre de compétences."},
+	.levelUpToSheet = {
+		"Votre point de compétence est dépensé. Il vous reste des points de caractéristiques : appuyez sur "
+		"{lb} jusqu'à atteindre votre écran de personnage ; chaque menu dit son nom.",
+		"Votre point de compétence est dépensé. Il vous reste des points de caractéristiques : appuyez sur C "
+		"pour ouvrir votre écran de personnage."},
+	.levelUpSheetLater = {
+		"Il vous reste des points de caractéristiques. Appuyez sur {menu} et allez avec {lb} ou {rb} jusqu'à "
+		"votre écran de personnage ; chaque menu dit son nom.",
+		"Il vous reste des points de caractéristiques. Appuyez sur C pour ouvrir votre écran de personnage."},
 	.levelUpBind = {
 		"Pour utiliser une compétence, placez-la sur un bouton : dans l'arbre de compétences, sur la compétence, "
 		"appuyez sur {x} puis sur le bouton voulu. La lecture de chaque compétence dit sur quel bouton elle se "
@@ -254,6 +291,18 @@ inline constexpr Texts frFR{
 		"Terminé. Essayez maintenant votre nouvelle compétence une fois : A utilise la compétence de la main gauche "
 		"et W celle de la droite ; écoutez comment elle sonne. Chaque fois que vous gagnez un niveau, C ouvre votre "
 		"écran de personnage et T l'arbre de compétences. Retour à ce que vous faisiez :"},
+	.waypointMenu = {
+		"Le menu du point de passage. {dpad} haut et bas parcourent les zones de l'acte qui en ont un : "
+		"celles qui disent non découvert, vous ne les avez pas encore touchées, et celle qui dit vous êtes "
+		"ici est celle-ci. Sur une zone découverte, {a} vous y emmène aussitôt ; LT et RT changent d'acte. "
+		"Pour l'instant vous n'avez que celui-ci ; le suivant est dans {plains}, après {moor} : touchez-le, "
+		"et dès lors vous irez de l'un à l'autre en un instant. Fermez le menu avec {b}.",
+		"Le menu du point de passage. Les touches fléchées haut et bas parcourent les zones de l'acte qui en "
+		"ont un : celles qui disent non découvert, vous ne les avez pas encore touchées, et celle qui dit "
+		"vous êtes ici est celle-ci. Sur une zone découverte, A vous y emmène aussitôt ; Page précédente et "
+		"Page suivante changent d'acte. Pour l'instant vous n'avez que celui-ci ; le suivant est dans "
+		"{plains}, après {moor} : touchez-le, et dès lors vous irez de l'un à l'autre en un instant. Fermez "
+		"le menu avec Échap."},
 	.routeStick = "{view} et {rs} vers le bas",
 	.routeButton = "{view} et {a}",
 	.firstMessage = "Premier message",
@@ -264,5 +313,13 @@ inline constexpr Texts frFR{
 	.portalTome = "Tome de portail de retour en ville",
 	.identifyTome = "Tome d’identification",
 	.generalSkills = "Compétences générales",
+	.trade = "acheter/vendre",
+	.offer = {
+		"Voulez-vous suivre le tutoriel de D2R Access, qui vous apprend à utiliser le mod ? Appuyez deux fois sur {a} (croix sur PlayStation) pour le commencer, deux fois sur {b} (rond) pour pas maintenant, ou deux fois sur {y} (triangle) pour ne plus jamais être sollicité. Tant que vous n'avez pas répondu, le jeu ne reçoit aucune commande.",
+		"Voulez-vous suivre le tutoriel de D2R Access, qui vous apprend à utiliser le mod ? Appuyez deux fois sur Entrée pour le commencer, deux fois sur Échap pour pas maintenant, ou deux fois sur Retour arrière pour ne plus jamais être sollicité. Tant que vous n'avez pas répondu, le jeu ne reçoit aucune commande."},
+	.offerLater = {"Pas de tutoriel pour l'instant. Je vous le proposerai dans une prochaine partie.", "Pas de tutoriel pour l'instant. Je vous le proposerai dans une prochaine partie."},
+	.offerNever = {
+		"Je ne vous le proposerai plus. Pour retrouver le tutoriel, activez-le dans la liste des réglages, avec {view} et {rb}.",
+		"Je ne vous le proposerai plus. Pour retrouver le tutoriel, activez-le dans la liste des réglages, avec Ctrl plus S."},
 };
 }

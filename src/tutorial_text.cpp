@@ -58,6 +58,7 @@ std::string Render(std::string_view text, const Texts& texts, bool routeOnA, con
 	name("{portaltome}", names.portalTome, texts.portalTome);
 	name("{idtome}", names.identifyTome, texts.identifyTome);
 	name("{general}", names.generalSkills, texts.generalSkills);
+	name("{trade}", names.trade, texts.trade);
 	ReplaceAll(result, "{portal}", names.portal);
 	ReplaceAll(result, "{route}", routeOnA ? texts.routeButton : texts.routeStick);
 	for (const auto& [token, glyph] : Tokens)
