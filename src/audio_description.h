@@ -30,5 +30,7 @@ void Tick(const D2RL::PluginContext* context);
 // The switch, on by default.
 bool Enabled();
 void SetEnabled(bool on);
+// The playing movie's audio count is read and holds the clock (MovieProbe looks only when it is not).
+bool VideoClockRead();
 
 }

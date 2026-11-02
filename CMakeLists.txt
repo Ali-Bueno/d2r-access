@@ -260,7 +260,7 @@ add_custom_command(OUTPUT "${D2R_DESCRIPTIONS_SEALED}" "${D2R_DESCRIPTIONS_KEY}"
 	VERBATIM)
 # The cinematics' audio description, one file per edition and language, sealed the same way
 # (docs/cinematics-audio-description.md).
-file(GLOB D2R_AUDIODESC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/data/audiodesc/*/*.txt")
+file(GLOB D2R_AUDIODESC_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/data/audiodesc/*/*.txt" "${CMAKE_CURRENT_SOURCE_DIR}/data/audiodesc/speech.tsv" "${CMAKE_CURRENT_SOURCE_DIR}/data/audiodesc/subtitles.tsv")
 set(D2R_AUDIODESC_SEALED "${CMAKE_CURRENT_BINARY_DIR}/audiodesc.sealed")
 set(D2R_AUDIODESC_KEY "${CMAKE_CURRENT_BINARY_DIR}/generated/audiodesc_key.h")
 add_custom_command(OUTPUT "${D2R_AUDIODESC_SEALED}" "${D2R_AUDIODESC_KEY}"
@@ -272,6 +272,11 @@ set(D2R_DESCRIPTIONS_RC "${CMAKE_CURRENT_BINARY_DIR}/descriptions.rc")
 file(CONFIGURE OUTPUT "${D2R_DESCRIPTIONS_RC}" CONTENT
 	"DESCRIPTIONS RCDATA \"${D2R_DESCRIPTIONS_SEALED}\"\nAUDIODESC RCDATA \"${D2R_AUDIODESC_SEALED}\"\n")
 set_property(SOURCE "${D2R_DESCRIPTIONS_RC}" APPEND PROPERTY OBJECT_DEPENDS "${D2R_DESCRIPTIONS_SEALED};${D2R_AUDIODESC_SEALED}")
+# Every seal makes a new key, so the file that compiles the keys in must follow it. Stated here rather
+# than left to ninja's header scan, which misses it when the compiler's "including file" note comes in
+# another code page than the one detected at configure time (Spanish MSVC: the 2026-11-01 build
+# embedded a stale key, "the sealed words were altered", 0 scripts).
+set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/descriptions_bundle.cpp" APPEND PROPERTY OBJECT_DEPENDS "${D2R_DESCRIPTIONS_KEY};${D2R_AUDIODESC_KEY}")
 target_sources(d2r-access PRIVATE "${D2R_DESCRIPTIONS_RC}" "${D2R_DESCRIPTIONS_KEY}" "${D2R_AUDIODESC_KEY}")
 target_include_directories(d2r-access PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_include_directories(d2r-access PRIVATE "${PRISM_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/src")

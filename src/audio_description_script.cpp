@@ -78,6 +78,120 @@ Parsed Parse(std::string_view text) {
 	return parsed;
 }
 
+double Pace(std::string_view locale) {
+	if (locale == "jaJP") return 10.0;
+	if (locale == "zhCN" || locale == "zhTW") return 6.4;
+	if (locale == "koKR") return 9.3;
+	return 20.0;
+}
+
+double EstimatedSeconds(std::string_view text, std::string_view locale) {
+	size_t codePoints = 0;
+	for (const char c : text) codePoints += (static_cast<unsigned char>(c) & 0xC0) != 0x80;
+	return static_cast<double>(codePoints) / Pace(locale);
+}
+
+SpeechStarts ParseSpeech(std::string_view text) {
+	SpeechStarts starts;
+	while (!text.empty()) {
+		const size_t end = text.find('\n');
+		const std::string_view line = Trim(text.substr(0, end));
+		text = end == std::string_view::npos ? std::string_view{} : text.substr(end + 1);
+		if (line.empty() || line.front() == '#') continue;
+		const size_t tab1 = line.find('\t');
+		const size_t tab2 = tab1 == std::string_view::npos ? tab1 : line.find('\t', tab1 + 1);
+		if (tab2 == std::string_view::npos) continue;
+		const auto video = VideoIndex(Trim(line.substr(0, tab1)));
+		const auto start = Seconds(Trim(line.substr(tab1 + 1, tab2 - tab1 - 1)));
+		if (video && start) starts[std::string(Videos[*video])].push_back(*start);
+	}
+	for (auto& [video, list] : starts) std::sort(list.begin(), list.end());
+	return starts;
+}
+
+SubtitleStarts ParseSubtitles(std::string_view text) {
+	SubtitleStarts starts;
+	while (!text.empty()) {
+		const size_t end = text.find('\n');
+		const std::string_view line = Trim(text.substr(0, end));
+		text = end == std::string_view::npos ? std::string_view{} : text.substr(end + 1);
+		if (line.empty() || line.front() == '#') continue;
+		const size_t tab1 = line.find('\t');
+		const size_t tab2 = tab1 == std::string_view::npos ? tab1 : line.find('\t', tab1 + 1);
+		if (tab2 == std::string_view::npos) continue;
+		const auto video = VideoIndex(Trim(line.substr(0, tab1)));
+		const std::string_view locale = Trim(line.substr(tab1 + 1, tab2 - tab1 - 1));
+		if (!video || locale.empty()) continue;
+		std::vector<double> list;
+		std::string_view times = Trim(line.substr(tab2 + 1));
+		while (!times.empty()) {
+			const size_t comma = times.find(',');
+			if (const auto at = Seconds(Trim(times.substr(0, comma)))) list.push_back(*at);
+			times = comma == std::string_view::npos ? std::string_view{} : times.substr(comma + 1);
+		}
+		std::sort(list.begin(), list.end());
+		if (!list.empty()) starts[std::string(Videos[*video])][std::string(locale)] = std::move(list);
+	}
+	return starts;
+}
+
+void SubtitleSync::Start(const std::vector<double>* starts) {
+	starts_ = starts && !starts->empty() ? starts : nullptr;
+	seen_.clear();
+}
+
+bool SubtitleSync::Near(double t) const {
+	const auto at = std::lower_bound(starts_->begin(), starts_->end(), t - Match);
+	return at != starts_->end() && *at <= t + Match;
+}
+
+std::optional<double> SubtitleSync::Seen(double raw) {
+	if (!starts_) return std::nullopt;
+	seen_.push_back(raw);
+	if (seen_.size() > Recent) seen_.erase(seen_.begin());
+	// Every offset that puts the newest line on a start is a candidate; the one most recent lines
+	// agree with wins, the smaller on a tie.
+	std::optional<double> best;
+	size_t bestVotes = 0;
+	for (const double start : *starts_) {
+		const double offset = start - raw;
+		if (offset < -Behind) continue;
+		if (offset > Ahead) break;
+		size_t votes = 0;
+		for (const double t : seen_) votes += Near(t + offset);
+		if (votes > bestVotes || (votes == bestVotes && best && std::abs(offset) < std::abs(*best))) {
+			best = offset;
+			bestVotes = votes;
+		}
+	}
+	return bestVotes >= 2 ? best : std::nullopt;
+}
+
+void DialogueGate::Start(const std::vector<double>* starts) {
+	starts_ = starts;
+	next_ = 0;
+	cueAt_ = 0;
+	speakingUntil_ = -1;
+}
+
+void DialogueGate::Said(double clock, double seconds) {
+	if (clock >= speakingUntil_) { // the reader is done: a new run of speech starts here
+		cueAt_ = clock;
+		speakingUntil_ = clock;
+	}
+	speakingUntil_ += seconds * SlowFactor; // a slow reader queues it after the ones still talking
+}
+
+bool DialogueGate::CutDue(double clock) {
+	bool cut = false;
+	while (starts_ && next_ < starts_->size() && (*starts_)[next_] <= clock) {
+		const double start = (*starts_)[next_++];
+		if (start >= cueAt_ && start < speakingUntil_) cut = true;
+	}
+	if (cut) speakingUntil_ = -1;
+	return cut;
+}
+
 void Scheduler::Start(const std::vector<Cue>* cues) {
 	cues_ = cues && !cues->empty() ? cues : nullptr;
 	next_ = 0;

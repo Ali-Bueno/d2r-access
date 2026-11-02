@@ -4,9 +4,15 @@ The game files come from tools/casc-extract into an extract folder (`<x>`):
     casc_extract extract <D2R folder> <x> "global\\video\\" "lng\\subtitles\\"
 
     audiodesc.py speech   <x> <out>             speech windows of every video (data/audiodesc/speech.tsv)
+    audiodesc.py subtitles <x> <out>            when each subtitle line starts, per video and language, sound
+                                                tags included (data/audiodesc/subtitles.tsv; times only)
     audiodesc.py timeline <x> <video>           English lines and the stretches free in every language
     audiodesc.py sheets   <x> <video> <out dir> [--classic] [--fps 1] [--from s] [--to s] [--grid 4] [--width 400]
                           [--free]: only the stretches free of speech, 1 s either side
+    audiodesc.py check    <script> [--locale enUS] [--headroom 1.2]
+                          the CTest timing rule on any script file (speech.tsv beside this tool's data),
+                          each cue's estimated length times the headroom; then per video the free time,
+                          the share of it narrated and the silences of 3 s or more left in it
 """
 import argparse, os, re, subprocess, sys
 
@@ -80,6 +86,21 @@ def cmd_speech(a):
     print("wrote", a.out)
 
 
+def cmd_subtitles(a):
+    """The plugin follows the video's own clock by them: each line is shown when the video reaches it."""
+    root = os.path.join(a.x, "local/lng/subtitles")
+    with open(a.out, "w", encoding="utf-8", newline="\n") as f:
+        f.write("# When each subtitle line starts, in seconds, per video and language (sound tags included),\n"
+                "# from tools/audiodesc.py subtitles. <video> TAB <locale> TAB <start>,<start>,...\n")
+        for video in VIDEOS:
+            for lang in sorted(os.listdir(root)):
+                path = os.path.join(root, lang, video + ".srt")
+                if os.path.exists(path):
+                    starts = sorted(s for s, _, _, _ in srt(path))
+                    f.write("%s\t%s\t%s\n" % (video, lang, ",".join("%.3f" % s for s in starts)))
+    print("wrote", a.out)
+
+
 def cmd_timeline(a):
     length = duration(video_file(a.x, a.video))
     print("%s, %.2f s\n\nEnglish subtitles (start, end, text):" % (a.video, length))
@@ -111,10 +132,66 @@ def cmd_sheets(a):
     print("sheets in", a.out)
 
 
+SPEECH_TSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "audiodesc", "speech.tsv")
+PACE = {"jaJP": 10.0, "zhCN": 6.4, "zhTW": 6.4, "koKR": 9.3}  # characters a second; src/audio_description_script.h
+ALPHABETIC_PACE, SPEECH_MARGIN, SILENCE_REPORT = 20.0, 0.2, 3.0
+
+
+def cmd_check(a):
+    length, speech = {}, {}
+    for line in open(SPEECH_TSV, encoding="utf-8"):
+        if line.startswith("#") or not line.strip():
+            continue
+        video, first, second = line.rstrip("\n").split("\t")
+        if first == "length":
+            length[video] = float(second)
+        else:
+            speech.setdefault(video, []).append((float(first), float(second)))
+    cues, problems = {}, 0
+    for n, line in enumerate(open(a.script, encoding="utf-8-sig"), 1):
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.rstrip("\r\n").split("\t")
+        if len(parts) != 3 or parts[0] not in VIDEOS:
+            print("line %d: not <video> TAB <seconds> TAB <text>" % n); problems += 1; continue
+        cues.setdefault(parts[0], []).append((float(parts[1]), parts[2]))
+    pace = PACE.get(a.locale, ALPHABETIC_PACE)
+    for video, raw in cues.items():
+        cue = sorted((t, t + len(text) / pace * a.headroom) for t, text in raw)
+        for i, (t, end) in enumerate(cue):
+            where = "%s %.2f" % (video, t)
+            if end > length[video]:
+                print(where, "ends after the video"); problems += 1
+            if i + 1 < len(cue) and end > cue[i + 1][0]:
+                print(where, "runs into the next cue (ends about %.2f)" % end); problems += 1
+            for s, e in speech.get(video, []):
+                if s <= t < e:
+                    print(where, "starts while someone speaks (%.2f-%.2f)" % (s, e)); problems += 1; break
+                if s > t and end > s - SPEECH_MARGIN:
+                    print(where, "ends about %.2f, over the speech at %.2f" % (end, s)); problems += 1; break
+        free, said, silences = 0.0, 0.0, []
+        for s, e in free_stretches([list(w) for w in speech.get(video, [])], length[video]):
+            free += e - s
+            cursor = s
+            for t, end in cue:
+                if s <= t < e:
+                    if t - cursor >= SILENCE_REPORT:
+                        silences.append("%.1f-%.1f" % (cursor, t))
+                    said += min(end, e) - t
+                    cursor = max(cursor, end)
+            if e - cursor >= SILENCE_REPORT:
+                silences.append("%.1f-%.1f" % (cursor, e))
+        print("%s: %d cues, free %.0f s, narrated %.0f s (%.0f%%), silences >= %.0f s: %s" % (
+            video, len(cue), free, said, 100 * said / free if free else 0, SILENCE_REPORT, " ".join(silences) or "none"))
+    print("%d problems" % problems)
+    return 1 if problems else 0
+
+
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("speech"); s.add_argument("x"); s.add_argument("out"); s.set_defaults(fn=cmd_speech)
+    s = sub.add_parser("subtitles"); s.add_argument("x"); s.add_argument("out"); s.set_defaults(fn=cmd_subtitles)
     s = sub.add_parser("timeline"); s.add_argument("x"); s.add_argument("video", choices=VIDEOS)
     s.set_defaults(fn=cmd_timeline)
     s = sub.add_parser("sheets"); s.add_argument("x"); s.add_argument("video", choices=VIDEOS); s.add_argument("out")
@@ -123,8 +200,10 @@ def main():
     s.add_argument("--grid", type=int, default=4); s.add_argument("--width", type=int, default=400)
     s.add_argument("--free", action="store_true")
     s.set_defaults(fn=cmd_sheets)
+    s = sub.add_parser("check"); s.add_argument("script"); s.add_argument("--locale", default="enUS")
+    s.add_argument("--headroom", type=float, default=1.0); s.set_defaults(fn=cmd_check)
     a = p.parse_args()
-    a.fn(a)
+    return a.fn(a)
 
 
 if __name__ == "__main__":

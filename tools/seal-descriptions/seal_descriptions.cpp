@@ -1,6 +1,7 @@
-// Build step: seals every .txt under a folder (data/descriptions/<locale>.txt,
-// data/audiodesc/<edition>/<locale>.txt) into one blob the plugin embeds, each named by its path
-// without the extension ("enUS", "hd/enUS"), and writes the key it opens with. docs/descriptions.md
+// Build step: seals every .txt and .tsv under a folder (data/descriptions/<locale>.txt,
+// data/audiodesc/<edition>/<locale>.txt, data/audiodesc/speech.tsv) into one blob the plugin
+// embeds, each named by its path without the extension ("enUS", "hd/enUS", "speech"), and writes
+// the key it opens with. docs/descriptions.md
 //   seal-descriptions <folder> <sealed output> <key header output> [<key name>]
 
 #include "sealed_text.h"
@@ -35,7 +36,7 @@ int main(int argc, char** argv) {
 	const std::filesystem::path folder = argv[1];
 	SealedText::Texts texts;
 	for (const auto& entry : std::filesystem::recursive_directory_iterator(folder))
-		if (entry.is_regular_file() && entry.path().extension() == ".txt")
+		if (entry.is_regular_file() && (entry.path().extension() == ".txt" || entry.path().extension() == ".tsv"))
 			texts[entry.path().lexically_relative(folder).replace_extension().generic_string()] = ReadFile(entry.path());
 	if (!std::ranges::any_of(texts, [](const auto& text) { return text.first == "enUS" || text.first.ends_with("/enUS"); }))
 		return Fail("no enUS.txt; every language falls back to it");
