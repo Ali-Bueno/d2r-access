@@ -11,13 +11,17 @@ The repository is private, so the link works only for a signed-in GitHub account
 
 ```powershell
 .\tools\test-release.ps1 -NewsFile <news.txt>   # build, test, package, publish
-.\tools\test-release.ps1 -NoPublish              # same, but stop at the local ZIP
+.\tools\test-release.ps1 -NoPublish              # same, but stop at the local ZIP and installer
 ```
 
 The script builds `HEAD` in `build/test-release/cmake`, whose deploy step points at
 `build/test-release/deploy`, so the plugin installed in the game is left alone. It refuses to
 publish while build inputs (`src`, `cmake`, `sounds`, `third_party`, …) have uncommitted changes
 or `HEAD` is not pushed. Every ZIP entry is checked against its source before publishing.
+
+It also builds the installer ([release launch](release-launch.md)) from `D:\code\tools\mod-installer`
+(`-InstallerDir`) with `MOD_CONFIG=d2r`, refuses to publish while that repo has uncommitted
+changes, and attaches it as `D2RAccessInstaller.exe` next to the zip and `release.json`.
 
 Each run creates a normal release tagged `test-YYYY-MM-DD` (`-2`, `-3`… on the same day) and marks
 it latest. The tag is chosen before the build and compiled in (`build.ps1 -Release`), so the

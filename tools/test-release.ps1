@@ -1,8 +1,9 @@
-# Build, test and package the complete tester ZIP (plugin, D2RLoader, VC++ runtime), then
-# publish it as the latest GitHub release. See docs/test-releases.md.
+# Build, test and package the complete tester ZIP (plugin, D2RLoader, VC++ runtime) and the
+# installer, then publish both as the latest GitHub release. See docs/test-releases.md.
 #Requires -Version 7
 param(
 	[string]$LoaderDir = (Join-Path $PSScriptRoot "..\..\loader-backups\1.3.1-beta"),
+	[string]$InstallerDir = (Join-Path $PSScriptRoot "..\..\..\..\tools\mod-installer"),
 	[string]$NewsFile,
 	[switch]$NoPublish
 )
@@ -12,6 +13,7 @@ $out = Join-Path $root "build\test-release"
 $buildDir = Join-Path $out "cmake"
 $stage = Join-Path $out "package"
 $zip = Join-Path $out "D2RAccess.zip"
+$installer = Join-Path $out "D2RAccessInstaller.exe"
 $pluginDll = "d2rl-d2r-access.dll"  # OUTPUT_NAME in CMakeLists.txt
 $vcRedist = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC"
 $runtimeDlls = "msvcp140.dll", "msvcp140_atomic_wait.dll", "vcruntime140.dll", "vcruntime140_1.dll"
@@ -35,6 +37,9 @@ try {
 	if ($changed -and -not $NoPublish) { throw "Commit the build inputs first:`n$($changed -join "`n")" }
 	if ($changed) { Write-Warning "Uncommitted build inputs: the package will not match $short." }
 	if (-not $NoPublish -and -not (git branch -r --contains $commit)) { throw "Push $short before publishing." }
+	$InstallerDir = (Resolve-Path $InstallerDir).Path
+	$installerChanged = git -C $InstallerDir status --porcelain
+	if ($installerChanged -and -not $NoPublish) { throw "Commit the installer first ($InstallerDir):`n$($installerChanged -join "`n")" }
 
 	$LoaderDir = (Resolve-Path $LoaderDir).Path
 	$loaderVersion = Split-Path $LoaderDir -Leaf
@@ -54,8 +59,13 @@ try {
 	if ($LASTEXITCODE) { throw "Build failed." }
 	ctest --test-dir $buildDir --output-on-failure
 	if ($LASTEXITCODE) { throw "Tests failed." }
+	# The installer (docs/release-launch.md) comes from its own repo, built with this mod's config.
+	$env:MOD_CONFIG = "d2r"
+	try { cargo build --release --manifest-path (Join-Path $InstallerDir "Cargo.toml") } finally { Remove-Item Env:MOD_CONFIG }
+	if ($LASTEXITCODE) { throw "Installer build failed." }
 
-	Remove-Item $stage, $zip -Recurse -Force -ErrorAction SilentlyContinue
+	Remove-Item $stage, $zip, $installer -Recurse -Force -ErrorAction SilentlyContinue
+	Copy-Item (Join-Path $InstallerDir "target\release\installer.exe") $installer
 	foreach ($file in $loaderFiles) { Copy-Into (Join-Path $LoaderDir $file) (Join-Path $stage $file) }
 	foreach ($dir in $loaderDirs) { New-Item -ItemType Directory (Join-Path $stage $dir) -Force | Out-Null }
 	foreach ($dll in $runtimeDlls) { Copy-Into (Join-Path $crt.FullName $dll) (Join-Path $stage $dll) }
@@ -73,6 +83,7 @@ try {
 
 	$repo = gh repo view --json nameWithOwner -q .nameWithOwner
 	$latestUrl = "https://github.com/$repo/releases/latest/download/$(Split-Path $zip -Leaf)"
+	$installerUrl = "https://github.com/$repo/releases/latest/download/$(Split-Path $installer -Leaf)"
 	$news = if ($NewsFile) { (Get-Content $NewsFile -Raw -Encoding utf8).Trim() -replace "`r`n", "`n" } else { "" }
 	$readmeDate = (Get-Date).ToString("MMMM d, yyyy", [Globalization.CultureInfo]::GetCultureInfo("en-US"))
 	$readme = (Get-Content "packaging\tester\README.txt" -Raw -Encoding utf8) -replace "`r`n", "`n"
@@ -94,7 +105,7 @@ try {
 		$entryCount = $archive.Entries.Count
 	} finally { $archive.Dispose() }
 	$zipHash = (Get-FileHash $zip).Hash.ToLower()
-	Write-Host "$zip`n$entryCount entries, $((Get-Item $zip).Length) bytes, SHA-256 $zipHash"
+	Write-Host "$zip`n$entryCount entries, $((Get-Item $zip).Length) bytes, SHA-256 $zipHash`n$installer"
 	if ($NoPublish) { return }
 
 	$notes = @(
@@ -103,6 +114,7 @@ try {
 		"", "## Install or update", ""
 		"Close the game, download ``$(Split-Path $zip -Leaf)`` and extract everything into the game folder (the one with ``D2R.exe``). The full instructions are in ``README.txt``, inside the zip."
 		"", "Direct link that always downloads the latest version:", "", $latestUrl
+		"", "Or run ``$(Split-Path $installer -Leaf)``: it finds the game, downloads the latest zip and installs it, keeping your settings. It is always at:", "", $installerUrl
 		"", "Zip SHA-256: ``$zipHash``"
 	) -join "`n"
 	$releaseNotes = Join-Path $out "notes.md"
@@ -111,7 +123,7 @@ try {
 	$releaseJson = Join-Path $out "release.json"
 	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $zip -Leaf); sha256 = $zipHash; notes = $notes } | ConvertTo-Json
 	[IO.File]::WriteAllText($releaseJson, $manifest, [Text.UTF8Encoding]::new($false))
-	gh release create $tag $zip $releaseJson --target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
+	gh release create $tag $zip $installer $releaseJson--target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
 	if ($LASTEXITCODE) { throw "Publishing failed." }
 	Write-Host "Published $tag. Always-latest link: $latestUrl"
 } finally {

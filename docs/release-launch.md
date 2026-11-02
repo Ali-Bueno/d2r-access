@@ -114,7 +114,8 @@ launcher's online validation, which starts `D2R.exe` directly: forum reports con
 that works with the Battle.net app closed); the download once the repo is public. A `.url` file is read in the
 system code page, so a game path with non-ASCII letters may break the Battle.net shortcut.
 Each public release must carry the zip and `D2RAccessInstaller.exe` (the Kakarot lesson: the
-installer's download link follows `/releases/latest`).
+installer's download link follows `/releases/latest`); `tools/test-release.ps1` builds and
+attaches both.
 
 ## Plan for a public installer (2026-09-26; superseded by the section above)
 
