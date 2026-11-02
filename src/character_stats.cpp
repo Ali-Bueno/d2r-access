@@ -3,6 +3,7 @@
 #include "mercenary_stats.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
+#include "tooltip_text.h"
 
 #include <cstdio>
 #include <string>
@@ -243,6 +244,16 @@ bool HasPoints(std::string_view points) {
 	const auto last = points.find_first_not_of("0123456789", first);
 	const auto digits = points.substr(first, last == std::string_view::npos ? last : last - first);
 	return digits.find_first_not_of('0') != std::string_view::npos;
+}
+
+std::string HoverWords(std::string_view body) {
+	std::string words;
+	for (const auto& line : TooltipText::Read(body).lines) {
+		// A heading line ending in a colon runs on into its value ("Average chance to hit: Fallen: 92%").
+		if (!words.empty()) words += words.back() == ':' ? " " : ". ";
+		words += line;
+	}
+	return words;
 }
 
 void Reset() {}

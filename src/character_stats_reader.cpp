@@ -127,8 +127,7 @@ void SayHover(const D2RL::PluginContext* context, uintptr_t panel) {
 	if (size && (!data || !NativeMemory::Copy(data, text.data(), text.size()))) return;
 	if (text == g_hover) return;
 	g_hover = text;
-	std::replace(text.begin(), text.end(), '\n', ' ');
-	const auto spoken = UiText::Clean(text);
+	const auto spoken = CharacterStats::HoverWords(text);
 	D2RAccess::AsyncLog::InfoF(context, "[stats] hover text \"%s\"", spoken.c_str());
 	if (!spoken.empty()) ScreenReader::Speak(spoken, false);
 }

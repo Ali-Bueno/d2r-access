@@ -54,6 +54,9 @@ std::string SkillChoices(uintptr_t panel);
 // True when a points line ("5 Stat Points Remaining") names a count above zero.
 bool HasPoints(std::string_view points);
 
+// The panel's hover text (a hit chance) as drawn: the engine stores it bottom-up.
+std::string HoverWords(std::string_view body);
+
 // The attribute a "+" button raises (StrengthPointButton: StrengthTitle and
 // StrengthStat), read whether or not the button is showing; it hides with the
 // last point spent. Empty parts when they cannot be read.

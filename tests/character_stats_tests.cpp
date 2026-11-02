@@ -417,5 +417,11 @@ int main() {
 	pending = Push::None;
 	Check(!CharacterStatsReader::Tick(nullptr, {110, 112}) && speech == std::vector<std::string>{"Kara"},
 		"changing stats-panel instances announces the new identity once");
+	// The hit-chance hover text is stored bottom-up (log, 2026-11-02: "Caído: 95%\nProbabilidad media de golpear a:").
+	Check(CharacterStats::HoverWords("Ca\xC3\xAD" "do: 95%\nProbabilidad media de golpear a:")
+		== "Probabilidad media de golpear a: Ca\xC3\xAD" "do: 95%", "the hit chance reads top first");
+	Check(CharacterStats::HoverWords("Chance to Block: 20%\nAverage chance Fallen will hit you: 40%")
+		== "Average chance Fallen will hit you: 40%. Chance to Block: 20%", "two whole lines are two sentences");
+	Check(CharacterStats::HoverWords("").empty(), "no text, nothing said");
 	Passed();
 }
