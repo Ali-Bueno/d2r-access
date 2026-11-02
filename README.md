@@ -36,7 +36,7 @@ on anything that sounds wrong are welcome.
 3. Extract everything into the game folder, the one that has `D2R.exe`, replacing files if asked.
    Do not rename or replace `D2R.exe`.
 
-The package's `README.txt` explains every step and control in detail. To update, extract a newer
+The package's manual, `README.html`, explains every step, control and setting in detail. To update, extract a newer
 package on top: it carries no settings files, so the loader's options and the mod's settings stay
 as they are.
 
@@ -74,7 +74,7 @@ the mod follows it at once.
 The game keeps its whole controller layout; the mod adds these (keyboard equivalents in brackets).
 Every control for the Xbox and PlayStation pads and the keyboard, with how the menus, the belt, the
 skills and the stash work, is in BFBeast666's [commands and tutorial](GUIDE.md) (`GUIDE.html` in the
-package). The full lists are in the package's `README.txt` and `KEYBOARD.txt`, and in
+package). The full lists are in the package's `README.html`, and in
 [keyboard keys](docs/keyboard-keys.md) and [keyboard play](docs/keyboard-play.md).
 
 | Controller | Keyboard | What it does |
@@ -396,7 +396,7 @@ python tools\gen_places.py --hd-root <scratch>
 - `tests/` — reading policy, native memory/tree fixtures and gameplay-service integration.
 - `tools/` — CASC extractor, layout indexer and generators, release scripts, computer-use tools.
 - `docs/` — feature notes and research. `STATUS.md` — where the mod is and what comes next.
-- `GUIDE.md` — the players' commands and tutorial; `packaging/tester/` — the package's texts.
+- `GUIDE.md` — the players' commands and tutorial; `packaging/README.md` — the package's manual (`README.html`).
 
 ## License
 

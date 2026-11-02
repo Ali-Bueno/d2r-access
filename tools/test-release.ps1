@@ -29,6 +29,16 @@ function Copy-Into([string]$Source, [string]$Destination) {
 	Copy-Item $Source $Destination
 }
 
+# The player documentation ships as web pages: in a browser a screen reader walks the headings,
+# and the tables cell by cell.
+function Write-Page([string]$Markdown, [string]$Title, [string]$Destination) {
+	$style = ":root{color-scheme:light dark}body{font-family:system-ui,sans-serif;line-height:1.5;max-width:60em;margin:auto;padding:1em}" +
+		"table{border-collapse:collapse}th,td{border:1px solid #888;padding:.3em .6em;text-align:left;vertical-align:top}"
+	$body = (ConvertFrom-Markdown -InputObject $Markdown).Html
+	$html = "<!DOCTYPE html>`n<html lang=`"en`">`n<head>`n<meta charset=`"utf-8`">`n<title>$Title</title>`n<style>$style</style>`n</head>`n<body>`n$body</body>`n</html>`n"
+	[IO.File]::WriteAllText($Destination, $html, [Text.UTF8Encoding]::new($false))
+}
+
 Push-Location $root
 try {
 	$commit = git rev-parse HEAD
@@ -72,11 +82,7 @@ try {
 	Copy-Into (Join-Path $buildDir "D2RAccess.exe") (Join-Path $stage "D2RAccess.exe")
 	Copy-Into (Join-Path $buildDir $pluginDll) (Join-Path $stage "d2rloader\plugins\$pluginDll")
 	Copy-Into "third_party\prism\bin\prism.dll" (Join-Path $stage "d2rloader\plugins\d2r-access\prism.dll")
-	Copy-Into "packaging\tester\KEYBOARD.txt" (Join-Path $stage "KEYBOARD.txt")
-	# The guide as a web page: in a browser a screen reader walks its tables cell by cell.
-	$guide = (ConvertFrom-Markdown -Path "GUIDE.md").Html
-	$guideHtml = "<!DOCTYPE html>`n<html lang=`"en`">`n<head>`n<meta charset=`"utf-8`">`n<title>Diablo II Resurrected Access: commands and tutorial</title>`n</head>`n<body>`n$guide</body>`n</html>`n"
-	[IO.File]::WriteAllText((Join-Path $stage "GUIDE.html"), $guideHtml, [Text.UTF8Encoding]::new($false))
+	Write-Page (Get-Content "GUIDE.md" -Raw -Encoding utf8) "Diablo II: Resurrected Access: commands and tutorial" (Join-Path $stage "GUIDE.html")
 	Copy-Into "LICENSE" (Join-Path $stage "licenses\d2r-access-LICENSE.txt")
 	Copy-Item "third_party\prism\LICENSES" (Join-Path $stage "licenses\prism") -Recurse
 	if (Get-ChildItem $stage -Recurse -Filter *.toml) { throw "A config file is staged; an update would overwrite the player's settings." }
@@ -86,12 +92,12 @@ try {
 	$installerUrl = "https://github.com/$repo/releases/latest/download/$(Split-Path $installer -Leaf)"
 	$news = if ($NewsFile) { (Get-Content $NewsFile -Raw -Encoding utf8).Trim() -replace "`r`n", "`n" } else { "" }
 	$readmeDate = (Get-Date).ToString("MMMM d, yyyy", [Globalization.CultureInfo]::GetCultureInfo("en-US"))
-	$readme = (Get-Content "packaging\tester\README.txt" -Raw -Encoding utf8) -replace "`r`n", "`n"
-	$readme = $readme.Replace("{{NEWS}}`n", $(if ($news) { "WHAT'S NEW`n`n$news`n`n`n" } else { "" }))
+	$readme = (Get-Content "packaging\README.md" -Raw -Encoding utf8) -replace "`r`n", "`n"
+	$readme = $readme.Replace("{{NEWS}}`n", $(if ($news) { "## What's new`n`n$news`n" } else { "" }))
 	$readme = $readme.Replace("{{DATE}}", $readmeDate).Replace("{{COMMIT}}", $short)
 	$readme = $readme.Replace("{{LOADER}}", $loaderVersion).Replace("{{LATEST_URL}}", $latestUrl)
-	# Notepad-friendly: CRLF with a BOM.
-	[IO.File]::WriteAllText((Join-Path $stage "README.txt"), ($readme -replace "`n", "`r`n"), [Text.UTF8Encoding]::new($true))
+	if ($readme.Contains("{{")) { throw "packaging\README.md has a placeholder the script does not fill." }
+	Write-Page $readme "Diablo II: Resurrected Access" (Join-Path $stage "README.html")
 
 	Add-Type -AssemblyName System.IO.Compression.FileSystem
 	[IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
@@ -112,7 +118,7 @@ try {
 		"Test build with the complete package: the mod (commit $short), D2RLoader $loaderVersion and the Visual C++ runtime."
 		if ($news) { "", "## What's new", "", $news }
 		"", "## Install or update", ""
-		"Close the game, download ``$(Split-Path $zip -Leaf)`` and extract everything into the game folder (the one with ``D2R.exe``). The full instructions are in ``README.txt``, inside the zip."
+		"Close the game, download ``$(Split-Path $zip -Leaf)`` and extract everything into the game folder (the one with ``D2R.exe``). The full instructions are in ``README.html``, inside the zip."
 		"", "Direct link that always downloads the latest version:", "", $latestUrl
 		"", "Or run ``$(Split-Path $installer -Leaf)``: it finds the game, downloads the latest zip and installs it, keeping your settings. It is always at:", "", $installerUrl
 		"", "Zip SHA-256: ``$zipHash``"

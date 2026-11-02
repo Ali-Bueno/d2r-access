@@ -28,8 +28,8 @@ with some audio feedback, like the clink of coins when selling an item for examp
 
 The keyboard has no Mod key and no long presses: each mod command has a key of its own, mostly with
 Ctrl or Shift, and in menus the A key is the mouse's left click and D its right click, with Shift,
-Ctrl or Alt where the game asks for a modified click. Every key is listed in the package's
-`KEYBOARD.txt`.
+Ctrl or Alt where the game asks for a modified click. Every key is listed in the Keyboard section
+of the package's `README.html`.
 
 ### General menu navigation
 

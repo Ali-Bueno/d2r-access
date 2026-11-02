@@ -1,7 +1,8 @@
 # Every key, in one place
 
-A new or changed key goes in four places: this file, the README's *Controls at a glance*, and the
-tester package's `KEYBOARD.txt` and `README.txt` (`packaging/tester/`), which ship in the zip.
+A new or changed key goes in three places: this file, the README's *Controls at a glance*, and the
+package's manual, `packaging/README.md` (its Controls and Keyboard sections), which ships in the zip
+as `README.html`.
 
 The keys of keyboard play on the `keyboard-local` branch, 2026-09-27, after
 the fourth session of that day. The mod's keys are READ from what the code
