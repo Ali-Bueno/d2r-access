@@ -268,3 +268,33 @@ topazes, 99 minor rejuvenation potions or 99 Ral runes. Given the way D2's econo
 and gems, you will rarely hit that cap aside from Rejuvenation potions, which you will amass quite
 quickly if you're frugal with them. Besides allowing for quick-sorting, these three stash tabs have
 built-in Horadric Cube functionality if the player has one in their inventory.
+
+### The Horadric Cube
+
+During the events of Act II you will receive an item called the Horadric Cube. It is one of the most
+useful things a character will get their hands on. Cain will give you a basic run-down on what you
+can do with it, but the crafting rabbit hole goes much, much deeper.
+
+In general, operating the cube works much like handling the stash or a vendor window, with some
+added comfort features.
+
+#### General operations
+
+| Action | Xbox | PlayStation | Keyboard | Notes |
+|---|---|---|---|---|
+| Open the cube | Long-press A button on the cube | Long-press Cross button on the cube | D on the cube | Opens the cube when it's in the player inventory |
+| Move cursor | Directional pad | Directional buttons | Arrows | |
+| Transmute items | Press A button on the Transmute button | Press Cross button on the Transmute button | A on the Transmute button, or Alt+T | Executes the current recipe |
+| Pick up, drop | Press A button | Press Cross button | A | Just like normal inventory operation |
+| Move item | Long-press X button | Long-press Square button | Ctrl+A | Moves any item to or from the cube |
+
+#### The cube in the stash
+
+When accessing the stash with the cube in the inventory, the gem, material and rune stash tabs will
+have the cube open right on their page, facilitating quick transmutation of gems, materials and
+runes.
+
+| Action | Xbox | PlayStation | Keyboard | Notes |
+|---|---|---|---|---|
+| Quick-move one | Press Y button | Press Triangle button | — | Moves a gem, material or rune into or out of the cube; out of the cube, it is sorted back into its tab |
+| Quick-move three | Long-press Y button | Long-press Triangle button | — | Moves three of the same gem, material or rune into the cube only |
