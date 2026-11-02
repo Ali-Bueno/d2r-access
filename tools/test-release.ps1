@@ -129,7 +129,7 @@ try {
 	$releaseJson = Join-Path $out "release.json"
 	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $zip -Leaf); sha256 = $zipHash; notes = $notes } | ConvertTo-Json
 	[IO.File]::WriteAllText($releaseJson, $manifest, [Text.UTF8Encoding]::new($false))
-	gh release create $tag $zip $installer $releaseJson--target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
+	gh release create $tag $zip $installer $releaseJson --target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
 	if ($LASTEXITCODE) { throw "Publishing failed." }
 	Write-Host "Published $tag. Always-latest link: $latestUrl"
 } finally {

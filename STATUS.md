@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Diablo II item sounds by default; the charge chord — 2026-11-02 (not released)
+## Diablo II item sounds by default; the charge chord — 2026-11-02 (released as test-2026-11-02-2 from 6365935)
 
 - The user: **Diablo II drops** is now the default item sound set (they got used to it). The
   saved value keeps its meaning, so a player who chose Diablo IV keeps it.
@@ -14,10 +14,14 @@
   chord and alternatives before settling.
 
 - The user picked variant 1's timbre in A minor (A, C, E) from the audition page; done.
+- Release (the user asked: commit, push, release): 139/139 CTest, 28 entries, 64,555,320 bytes,
+  SHA-256 `4eb63e5f…058bf628`, installer attached; news `../tester-news-draft-2026-11-02b.txt`.
+  The script's publish line lacked a space before `--target` (fixed); these files were published by
+  hand with `gh release create`.
 
-**Next step:** the user tries the chord in game.
+**Next step:** bfbeast tries the chord in game.
 
-## Help, Chronicle, loot filter and credits — 2026-11-02 (not released)
+## Help, Chronicle, loot filter and credits — 2026-11-02 (released as test-2026-11-02-2 from 6365935)
 
 The user: the loot filter, Help and Chronicle menus were only partly read, the credits not at all
 ([native UI](docs/native-ui.md#help-chronicle-loot-filter-and-credits-2026-11-02)).
@@ -55,9 +59,8 @@ The user: the loot filter, Help and Chronicle menus were only partly read, the c
 - CTest 138/138; committed as 2a97c3b. The repeated rows heard working (the user, 2026-11-02): every
   menu of this entry is now verified live.
 
-**Next step:** a test release when the user asks.
 
-## Tal Rasha's chamber maggots no NPCs — 2026-11-02 (not released)
+## Tal Rasha's chamber maggots no NPCs — 2026-11-02 (released as test-2026-11-02-2 from 6365935)
 
 bfbeast: the maggots in Tal Rasha's chamber were listed as NPCs. monstats `maggot` is a critter the
 level places itself, outside every `cmon1-4`; added to the generated critter list
@@ -78,7 +81,7 @@ Probabilidad media de golpear a:"). `CharacterStats::HoverWords` now reads it to
 `TooltipText::Read`, as [the recipe](docs/character-panel.md#hit-chance-tooltips-2026-10-25) said.
 138/138 CTest; installed by the build.
 
-## The installer asks about Steam, and looks for Battle.net — 2026-11-02 (not released)
+## The installer asks about Steam, and looks for Battle.net — 2026-11-02 (released as test-2026-11-02-2 from 6365935)
 
 The user: D2RLoader also runs on Battle.net copies (its download page: "Battle.net or Steam"), and
 some players start every game from Steam, without desktop shortcuts
