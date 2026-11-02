@@ -355,6 +355,8 @@ inline constexpr Table itIT {
 	.screenHintsOff = "Suggerimenti di schermata disattivati",
 	.hintNewCharacter = "Premi %s per creare un nuovo personaggio",
 	.hintRandomName = "Scrivi un nome, oppure premi %s per uno casuale",
+	.textBoxTyping = "Scrittura. Invio o Esc escono dalla casella",
+	.textBoxLeft = "Fuori dalla casella di testo",
 	.developmentBuild = "versione di sviluppo",
 	.shop = "Negozio",
 	.goldPickedUp = "Raccolto: %d oro",

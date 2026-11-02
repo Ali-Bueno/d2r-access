@@ -355,6 +355,8 @@ inline constexpr Table jaJP {
 	.screenHintsOff = "画面ヒントをオフ",
 	.hintNewCharacter = "%sで新しいキャラクターを作成",
 	.hintRandomName = "名前を入力するか、%sでランダムな名前",
+	.textBoxTyping = "入力中。EnterかEscで入力欄を抜けます",
+	.textBoxLeft = "入力欄を抜けました",
 	.developmentBuild = "開発版",
 	.shop = "ショップ",
 	.goldPickedUp = "%d ゴールドを拾いました",

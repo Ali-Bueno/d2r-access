@@ -31,6 +31,9 @@ constexpr float StickDriftFraction = float(XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) /
 // Diagnosis of the boxes the D-pad does not reach (the user, 2026-10-17): the form's
 // text boxes and why each is or is not a D-pad stop, and whose box is being edited.
 constexpr uint64_t InventoryEveryMs = 500;
+// Character creation, whose name box the right stick types into as it does the loader's boxes
+// (the user, 2026-11-02: "the right stick's keyboard for the character's name too").
+constexpr std::string_view CharacterCreatePanel = "CharacterCreatePanel";
 uint64_t g_inventoryAt = 0;
 std::string g_inventory;
 uintptr_t g_editor = 0;
@@ -123,8 +126,32 @@ void Initialize(const D2RL::PluginContext* context) {
 	Reset();
 	g_enabled = RadarConfig::ReadEnabled(context, "[menu_navigation]").value_or(true);
 }
+// The character's name box typed with the right stick, as the loader's boxes are: while the game's
+// text entry panel holds the focus for it (true: the D-pad is the game's), or while the box itself
+// has the focus (the D-pad stays the game's own navigation). False when neither.
+static std::optional<bool> TypeName(const D2RL::PluginContext* context, const NativeUi::Focus& focus, uint64_t now) {
+	uintptr_t owner = 0;
+	const uintptr_t editor = NativeSkillNavigation::AnyActiveTextInput(owner);
+	if (editor && owner && focus.panel != owner && NativeWidgets::ReadName(owner) == CharacterCreatePanel) {
+		PadTyping::Tick(context, {owner, editor}, true, now);
+		return true;
+	}
+	if (!focus.widget || !focus.panel || NativeWidgets::ReadName(focus.panel) != CharacterCreatePanel
+		|| NativeUi::Classify(focus.widget).kind != UiText::Kind::TextInput) return std::nullopt;
+	auto editing = NativeSkillNavigation::TextEditing();
+	if (editing && *editing) editing = NativeSkillNavigation::ActiveTextInput(focus.panel) == focus.widget;
+	PadTyping::Tick(context, focus, editing, now);
+	return false;
+}
+
 bool Tick(const D2RL::PluginContext* context) {
 	auto focus = NativeUi::CurrentFocus();
+	if (g_enabled) {
+		if (const auto typed = TypeName(context, focus, GetTickCount64())) {
+			if (g_panel) Reset();
+			return *typed;
+		}
+	}
 	// While a lobby box is edited, the game's text entry panel holds the focus: the
 	// right stick still types into the box, and the D-pad is the game's.
 	uintptr_t owner = 0;

@@ -201,6 +201,22 @@ log of pressing A on a loader box will say whether the loader starts editing
 by itself (`[field] focus ... editable=1` followed by typing) or needs the
 click.
 
+### The character's name with the right stick (2026-11-02)
+
+The user, after typing in the lobby with the stick: "do it for the character's name too". The same
+`PadTyping`, from `MenuNavigation::TypeName`: while the game's text entry panel holds the focus for
+`CharacterCreatePanel`'s box (`AnyActiveTextInput`'s owner), or while the box itself has the focus
+(its edit by the game's or, after A, the mod's begin-edit). The D-pad stays the game's; Y still asks
+the game for a random name; the game's B ends the editing, as in the lobby.
+
+First tries (the user, 11:47 and 11:50): A on the box opens the game's `TextInputModal`; the
+stick's letters were right, but the game's own A *accepted and shut the modal* after each letter
+typed (`'k' sent`, `added "k"`, `ClosePanel TextInputModal` 100 ms later). Now A is kept from the
+game while the stick types (`PadFilter::HoldA`, renewed each tick, let go as the edit ends; a press
+begun before, the one that opened the modal, reaches the game whole); B still closes the modal.
+Every stick step came twice, 12 ms apart, while DS4Windows and Steam Input both translated the
+DualShock: one translator only (the user's setup, not the mod's).
+
 ### Text boxes name the box being typed into (2026-09-25)
 
 The user heard the game-name box named while typing a password, and a box's

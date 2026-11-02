@@ -29,6 +29,7 @@
 #include "screen_reader.h"
 #include "speech_strings.h"
 #include "stash_pages.h"
+#include "text_field.h"
 #include "tooltip_text.h"
 #include "ui_text.h"
 
@@ -135,7 +136,12 @@ std::vector<Target> g_mended;
 std::string g_menu;         // the open panels by name, to tell one menu from the next
 Place g_place;
 std::atomic<bool> g_active{false};
-std::atomic<bool> g_typing{false}; // the cursor is on a box of text, which has the keys that type
+std::atomic<bool> g_typing{false}; // a box of text is typed in, which has the keys that type
+// The box being typed in, and whether Enter or Escape left it: its keys are the menu's again until
+// another box, or the same one come back to (the user, 2026-11-02, as a cinematic gives them back).
+uintptr_t g_box = 0;
+bool g_boxLeft = false;
+std::atomic<bool> g_leaveBox{false}; // Enter or Escape pressed in it, for the next tick
 bool g_engaged = false;     // the cursor is the keyboard's; false while a pad has the menu
 bool g_holding = false;     // an item was in hand when the pointer was last placed
 bool g_landed = false;      // the pointer went to where the cursor is
@@ -201,6 +207,16 @@ bool g_letterTried = false;
 const D2RL::PluginContext* g_letterContext = nullptr;
 
 LRESULT CALLBACK KeepLetters(int code, WPARAM wParam, LPARAM lParam) {
+	// Enter and Escape leave a box being typed in, and only that: the game would create the
+	// character or go back a screen.
+	if (code == HC_ACTION && wParam == PM_REMOVE && g_typing.load()) {
+		auto* message = reinterpret_cast<MSG*>(lParam);
+		if ((message->message == WM_KEYDOWN || message->message == WM_KEYUP)
+			&& (message->wParam == VK_RETURN || message->wParam == VK_ESCAPE)) {
+			if (message->message == WM_KEYDOWN && !(message->lParam & (1 << 30))) g_leaveBox = true;
+			message->message = WM_NULL;
+		}
+	}
 	if (code == HC_ACTION && wParam == PM_REMOVE && g_keepLetters.load()) {
 		auto* message = reinterpret_cast<MSG*>(lParam);
 		// Printable characters only: Enter, Esc and Backspace stay the game's.
@@ -1084,7 +1100,15 @@ bool SayStatTooltip(const D2RL::PluginContext* context, uint64_t now) {
 
 void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	switch (act) {
-	case Act::ClickLeft:    Click(context, now, MenuMouse::Button::Left); break;
+	case Act::ClickLeft:
+		// A on a box left with Enter or Escape types in it again.
+		if (g_box && g_boxLeft && g_engaged && g_place.widget == g_box) {
+			g_boxLeft = false;
+			ScreenReader::Speak(Strings::Current().textBoxTyping, true);
+			break;
+		}
+		Click(context, now, MenuMouse::Button::Left);
+		break;
 	case Act::ClickRight:   Click(context, now, MenuMouse::Button::Right); break;
 	case Act::TabPrevious:  StepTab(context, now, -1); break;
 	case Act::TabNext:      StepTab(context, now, 1); break;
@@ -1252,6 +1276,8 @@ void Tick(const D2RL::PluginContext* context) {
 	g_active = menu;
 	if (!menu) {
 		g_typing = false;
+		g_box = 0;
+		g_boxLeft = g_leaveBox = false;
 		g_keepLetters = false;
 		g_keepArrows = false;
 		// The pointer was the menu's only if the cursor put it somewhere.
@@ -1274,10 +1300,26 @@ void Tick(const D2RL::PluginContext* context) {
 	const bool editing = NativeSkillNavigation::TextEditing().value_or(false);
 	const auto* on = g_engaged ? EntryOf(g_place.widget) : nullptr;
 	const bool field = on && on->kind == Kind::TextInput;
-	g_typing = field;
+	// The box typed in: the one the cursor is on, or with the pad's focus on one, that one, whose
+	// keys a watched A clicked as a name was typed (the user, 2026-11-02).
+	const uintptr_t box = g_engaged ? (field ? g_place.widget : 0) : TextField::EditedWidget();
+	if (box != g_box) {
+		g_box = box;
+		g_boxLeft = false;
+		g_leaveBox = false;
+		if (box && g_engaged) ScreenReader::Speak(Strings::Current().textBoxTyping, false);
+	}
+	if (g_leaveBox.exchange(false) && box && !g_boxLeft) {
+		g_boxLeft = true;
+		ScreenReader::Speak(Strings::Current().textBoxLeft, true);
+		AsyncLog::Info(context, "[menu-keys] left the box of text: its keys are the menu's again");
+	}
+	const bool inBox = box && !g_boxLeft;
+	g_typing = inBox;
 	HookLetters(context);
-	g_keepLetters = g_engaged && !field && g_menu.find("CharacterCreatePanel") != std::string::npos;
-	const bool typing = editing || field;
+	// Letters are kept from the name box, which takes them wherever the cursor is, and from a box left.
+	g_keepLetters = (g_engaged && !inBox && g_menu.find("CharacterCreatePanel") != std::string::npos) || (box && g_boxLeft);
+	const bool typing = editing || inBox;
 	g_keepArrows = g_engaged && !typing && g_menu.find("CharacterSelectPanel") != std::string::npos;
 	// With no pad the menu is the keyboard's from the moment it opens; with one
 	// connected it is the pad's until an arrow key is pressed, and again once it is used.
@@ -1298,7 +1340,7 @@ void Tick(const D2RL::PluginContext* context) {
 		arrow.down = down;
 		if (!step || editing || alt || MenuMouse::Busy()) continue;
 		// Up and down leave a box of text; left and right move in what is typed.
-		if (field && (arrow.direction == Direction::Left || arrow.direction == Direction::Right)) continue;
+		if (inBox && (arrow.direction == Direction::Left || arrow.direction == Direction::Right)) continue;
 		if (control) InputDirection::PostLineStep(arrow.push);
 		else if (shift) InputDirection::PostLineStep(arrow.push, true);
 		else Step(context, now, arrow.direction);

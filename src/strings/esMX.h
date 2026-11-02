@@ -355,6 +355,8 @@ inline constexpr Table esMX {
 	.screenHintsOff = "Pistas de pantalla desactivadas",
 	.hintNewCharacter = "Presiona %s para crear un personaje nuevo",
 	.hintRandomName = "Escribe un nombre o presiona %s para uno aleatorio",
+	.textBoxTyping = "Escribiendo. Enter o Escape salen del cuadro",
+	.textBoxLeft = "Fuera del cuadro de texto",
 	.developmentBuild = "versión de desarrollo",
 	.shop = "Tienda",
 	.goldPickedUp = "Recogido: %d de oro",

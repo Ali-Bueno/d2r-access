@@ -355,6 +355,8 @@ inline constexpr Table zhTW {
 	.screenHintsOff = "畫面提示已關閉",
 	.hintNewCharacter = "按%s建立新角色",
 	.hintRandomName = "輸入名字，或按%s使用隨機名字",
+	.textBoxTyping = "正在輸入。按Enter或Esc離開輸入框",
+	.textBoxLeft = "已離開輸入框",
 	.developmentBuild = "開發版",
 	.shop = "商店",
 	.goldPickedUp = "拾取了 %d 金幣",

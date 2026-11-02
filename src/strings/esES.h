@@ -355,6 +355,8 @@ inline constexpr Table esES {
 	.screenHintsOff = "Pistas de pantalla desactivadas",
 	.hintNewCharacter = "Pulsa %s para crear un personaje nuevo",
 	.hintRandomName = "Escribe un nombre o pulsa %s para uno aleatorio",
+	.textBoxTyping = "Escribiendo. Intro o Escape salen del cuadro",
+	.textBoxLeft = "Fuera del cuadro de texto",
 	.developmentBuild = "versión de desarrollo",
 	.shop = "Tienda",
 	.goldPickedUp = "Recogido: %d de oro",

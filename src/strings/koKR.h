@@ -355,6 +355,8 @@ inline constexpr Table koKR {
 	.screenHintsOff = "화면 안내 꺼짐",
 	.hintNewCharacter = "%s 버튼으로 새 캐릭터를 만듭니다",
 	.hintRandomName = "이름을 입력하거나 %s 버튼으로 무작위 이름",
+	.textBoxTyping = "입력 중. Enter나 Esc로 입력란을 나갑니다",
+	.textBoxLeft = "입력란을 나갔습니다",
 	.developmentBuild = "개발 버전",
 	.shop = "상점",
 	.goldPickedUp = "골드 %d 획득",

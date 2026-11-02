@@ -355,6 +355,8 @@ inline constexpr Table ptBR {
 	.screenHintsOff = "Dicas de tela desativadas",
 	.hintNewCharacter = "Pressione %s para criar um novo personagem",
 	.hintRandomName = "Digite um nome ou pressione %s para um aleatório",
+	.textBoxTyping = "Digitando. Enter ou Esc saem da caixa",
+	.textBoxLeft = "Fora da caixa de texto",
 	.developmentBuild = "versão de desenvolvimento",
 	.shop = "Loja",
 	.goldPickedUp = "Pegou %d de ouro",

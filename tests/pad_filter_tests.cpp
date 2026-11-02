@@ -17,6 +17,14 @@ int main() {
 
 	Check(Filter(A | Up, true, press) == (A | Up), "every other button passes untouched during play");
 	Check(Filter(R3, true, press) == R3, "R3 is the game's during play (weapon swap)");
+	{
+		Presses typing;
+		Check(Filter(A, false, typing, false, false, false, true) == 0, "while the stick types, A is kept from the game");
+		Check(Filter(A, false, typing) == 0, "kept to its release once decided");
+		Check(Filter(0, false, typing) == 0 && Filter(A, false, typing) == A, "after, A is the game's again");
+		Check(Filter(A, false, typing, false, false, false, true) == A, "a press begun before the hold reaches the game whole");
+		Check(Filter(0, false, typing) == 0, "release");
+	}
 	Check(Filter(0, true, press) == 0, "release");
 	Check(Filter(L3, true, press) == L3, "L3 is the game's during play (run/walk; the beacon is BACK+LB)");
 	Check(Filter(0, true, press) == 0, "release");
@@ -90,5 +98,16 @@ int main() {
 	Check(!KeepsTrigger(true, true, true, trigger), "one already pulled stays the game's when BACK comes after");
 	(void)KeepsTrigger(false, false, false, trigger);
 	Check(!KeepsTrigger(true, true, false, trigger), "with BACK in a menu, the game's");
+
+	// The tutorial's question holds the whole pad (2026-11-02).
+	uint16_t held = 0;
+	Check(KeepHeld(A | Up, true, held) == 0, "while held, no button reaches the game");
+	Check(KeepHeld(A | Up | X, false, held) == X, "let go, a button pressed meanwhile stays kept, a new one is the game's");
+	Check(KeepHeld(Up | X, false, held) == X, "and still while it is down");
+	Check(KeepHeld(A | X, false, held) == (A | X), "released and pressed again, it is the game's");
+	bool pulled = false;
+	Check(KeepsHeld(true, true, pulled), "while held, a trigger is kept");
+	Check(KeepsHeld(true, false, pulled), "and stays kept to its release");
+	Check(!KeepsHeld(false, false, pulled) && !KeepsHeld(true, false, pulled), "then it is the game's again");
 	Passed();
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace D2RL {
 struct PluginContext;
 }
@@ -20,5 +22,8 @@ void Tick(const D2RL::PluginContext* context);
 // Drops the tracked field, so re-entering a panel reads its contents again
 // rather than treating the first sample as an edit.
 void Reset();
+
+// The editable box the game's focus is on, as the last Tick saw it; 0 when none.
+uintptr_t EditedWidget();
 
 }

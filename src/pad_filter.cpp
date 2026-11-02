@@ -37,7 +37,9 @@ GetStateFn                         g_original = nullptr;
 std::vector<void**>                g_slots;               // the game's slots now pointing at Filtered
 std::atomic<bool>                  g_claimed { false };
 std::atomic<uint64_t>              g_holdBUntil { 0 };    // GetTickCount64 before which B is held
+std::atomic<uint64_t>              g_holdAUntil { 0 };    // the same for A, while the right stick types
 std::atomic<uint64_t>              g_leftStickUntil { 0 }; // before which a held Y takes the left stick
+std::atomic<uint64_t>              g_holdAllUntil { 0 };   // before which the whole pad is the tutorial question's
 std::atomic<uint16_t>              g_keptPresses { 0 }; // buttons kept, for the UI tick's log line
 std::atomic<bool>                  g_keepBack { true };
 std::atomic<bool>                  g_settingsOpen { false };
@@ -46,6 +48,8 @@ uint64_t                           g_nextTry = 0;
 // Touched only on the thread the game polls from: D2R reads its pads from one
 // call site (MEASURED offline 2026-09-20, build 3.3.93787).
 std::array<Presses, XUSER_MAX_COUNT> g_press {};
+struct Held { uint16_t buttons = 0; bool lt = false, rt = false; };
+std::array<Held, XUSER_MAX_COUNT> g_held {}; // what HoldAll keeps to its release
 std::array<uint16_t, XUSER_MAX_COUNT> g_keptLast {}; // what the previous frame kept, so each press is logged once
 // The first presses the game itself polls outside play, for the UI tick's log.
 constexpr uint32_t SeenLogMax = 12;
@@ -64,8 +68,9 @@ DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 		g_seenPending.store((user << SeenSlotShift) | before | SeenSet, std::memory_order_relaxed);
 	g_seenLast[user] = before;
 	const bool holdB = GetTickCount64() < g_holdBUntil.load(std::memory_order_relaxed);
+	const bool holdA = GetTickCount64() < g_holdAUntil.load(std::memory_order_relaxed);
 	state->Gamepad.wButtons = Filter(before, g_claimed.load(std::memory_order_relaxed), g_press[user], holdB,
-		g_keepBack.load(std::memory_order_relaxed), g_settingsOpen.load(std::memory_order_relaxed));
+		g_keepBack.load(std::memory_order_relaxed), g_settingsOpen.load(std::memory_order_relaxed), holdA);
 	if (KeepsLeftStick(before, GetTickCount64() < g_leftStickUntil.load(std::memory_order_relaxed))) {
 		state->Gamepad.sThumbLX = 0;
 		state->Gamepad.sThumbLY = 0;
@@ -79,6 +84,12 @@ DWORD WINAPI Filtered(DWORD user, XINPUT_STATE* state) {
 	if (const uint16_t fresh = static_cast<uint16_t>(kept & ~g_keptLast[user]))
 		g_keptPresses.fetch_or(fresh, std::memory_order_relaxed);
 	g_keptLast[user] = kept;
+	const bool hold = GetTickCount64() < g_holdAllUntil.load(std::memory_order_relaxed);
+	Held& held = g_held[user];
+	state->Gamepad.wButtons = KeepHeld(state->Gamepad.wButtons, hold, held.buttons);
+	if (KeepsHeld(state->Gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD, hold, held.lt)) state->Gamepad.bLeftTrigger = 0;
+	if (KeepsHeld(state->Gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD, hold, held.rt)) state->Gamepad.bRightTrigger = 0;
+	if (hold) state->Gamepad.sThumbLX = state->Gamepad.sThumbLY = state->Gamepad.sThumbRX = state->Gamepad.sThumbRY = 0;
 	return result;
 }
 
@@ -158,10 +169,10 @@ uint16_t Keep(uint16_t buttons, uint16_t button, bool claimed, Press& press) {
 }
 }
 
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB, bool keepBack, bool shoulders) {
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB, bool keepBack, bool shoulders, bool holdA) {
 	const bool back = (buttons & Back) != 0;
 	buttons = Keep(buttons, Back, claimed && keepBack, presses.back);
-	buttons = Keep(buttons, XINPUT_GAMEPAD_A, claimed && back, presses.a);
+	buttons = Keep(buttons, XINPUT_GAMEPAD_A, (claimed && back) || holdA, presses.a);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_B, (claimed && back) || holdB, presses.b);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_X, claimed && back, presses.x);
 	buttons = Keep(buttons, XINPUT_GAMEPAD_Y, claimed && back, presses.y);
@@ -191,6 +202,32 @@ bool KeepsTrigger(bool pulled, bool back, bool claimed, Press& press) {
 
 void ReleaseB() {
 	g_holdBUntil.store(0, std::memory_order_relaxed);
+}
+
+void HoldA(uint64_t now) {
+	g_holdAUntil.store(now + HoldBMs, std::memory_order_relaxed);
+}
+
+void ReleaseA() {
+	g_holdAUntil.store(0, std::memory_order_relaxed);
+}
+
+void HoldAll(uint64_t now) {
+	g_holdAllUntil.store(now + HoldBMs, std::memory_order_relaxed);
+}
+
+void ReleaseAll() {
+	g_holdAllUntil.store(0, std::memory_order_relaxed);
+}
+
+uint16_t KeepHeld(uint16_t buttons, bool hold, uint16_t& kept) {
+	kept = hold ? buttons : static_cast<uint16_t>(kept & buttons);
+	return static_cast<uint16_t>(buttons & ~kept);
+}
+
+bool KeepsHeld(bool pulled, bool hold, bool& kept) {
+	kept = pulled && (hold || kept);
+	return kept;
 }
 
 bool KeepBack() { return g_keepBack.load(std::memory_order_relaxed); }

@@ -56,7 +56,9 @@ struct Presses { Press a, b, x, y, lb, rb, back, lt, rt, dpadUp; };
 // decided on the press's first frame like the rest.
 // `shoulders` keeps LB and RB alone too, while the mod's settings list is open
 // (they lower and raise a setting there; the user, 2026-10-13), in a menu as well.
-uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false, bool keepBack = false, bool shoulders = false);
+// `holdA` keeps an A press from the game while the right stick types into a box (HoldA below).
+uint16_t Filter(uint16_t buttons, bool claimed, Presses& presses, bool holdB = false, bool keepBack = false, bool shoulders = false,
+	bool holdA = false);
 // While the settings list is open, LB and RB are the list's.
 void SetSettingsOpen(bool open);
 
@@ -73,6 +75,13 @@ inline constexpr uint64_t HoldBMs = 500;
 void HoldB(uint64_t now);
 void ReleaseB();
 
+// Keeps A from the game while the right stick types into a box (PadTyping), where A types the
+// character reached: the game's own A accepted and shut its text entry panel after every letter
+// (the user, 2026-11-02, the character's name). Same lapse as HoldB; a press begun before the
+// hold reaches the game whole, as the one that opened the panel must.
+void HoldA(uint64_t now);
+void ReleaseA();
+
 // Keeps the left stick from the game while Y is held on a screen whose held-Y
 // reader it drives (an inventory item, the hire list), so moving it reads
 // rather than moving the cursor off the thing being read. Y itself still
@@ -87,5 +96,19 @@ bool KeepsLeftStick(uint16_t buttons, bool armed);
 // BACK+LT and BACK+RT, 2026-10-14): one pulled while BACK is held during play,
 // decided on its first frame and kept to its release, as a button is.
 bool KeepsTrigger(bool pulled, bool back, bool claimed, Press& press);
+
+// Keeps the whole pad from the game while the tutorial's question is open
+// (docs/tutorial.md): every button, both triggers and both sticks. Call on
+// every tick it is open; it lapses HoldBMs after the last call, so a question
+// that stops ticking can never leave the pad held.
+void HoldAll(uint64_t now);
+// Lets go at once; a button or trigger still down stays kept to its release.
+void ReleaseAll();
+// Pure: the buttons the game is handed. While `hold` is on none; a button
+// pressed meanwhile stays kept to its release, so the press that answered
+// the question does nothing in the game either.
+uint16_t KeepHeld(uint16_t buttons, bool hold, uint16_t& kept);
+// The same for one trigger: whether it is kept from the game this frame.
+bool KeepsHeld(bool pulled, bool hold, bool& kept);
 
 }

@@ -18,6 +18,8 @@ using InputDirection::StickPush;
 bool pressedA = false;
 StickPush push = StickPush::None;
 std::vector<std::string> spoken;
+uint64_t heldA = 0; // the last time A was kept from the game
+int releasedA = 0;
 
 void Tick(bool a = false, StickPush stick = StickPush::None) {
 	pressedA = a;
@@ -40,6 +42,10 @@ namespace D2RAccess::NativeWidgets { std::string ReadName(uintptr_t) { return "H
 namespace D2RAccess::NativeUi { Type Classify(uintptr_t) { return {"", UiText::Kind::TextInput, UiText::Surface::Other}; } }
 namespace D2RAccess::ScreenReader { void Speak(std::string_view text, bool) { spoken.emplace_back(text); } }
 namespace D2RAccess::AsyncLog { void InfoF(const D2RL::PluginContext*, const char*, ...) noexcept {} }
+namespace D2RAccess::PadFilter {
+void HoldA(uint64_t now) { heldA = now + 1; }
+void ReleaseA() { ++releasedA; }
+}
 
 int main() {
 	using namespace D2RAccess::PadTyping;
@@ -58,6 +64,7 @@ int main() {
 	Reset();
 	Tick();
 	Check(spoken.size() == 1 && spoken.back() == Current().typingStartedQwerty, "editing begins on the keyboard, said so");
+	Check(heldA != 0, "while the stick types, A is kept from the game, whose A shut its text panel (the user, 2026-11-02)");
 	Tick(false, StickPush::Down);
 	Tick(false, StickPush::Right);
 	Check(spoken.back() == "s", "the stick walks the keyboard, each key said");
@@ -77,6 +84,7 @@ int main() {
 
 	SetQwerty(false);
 	Reset();
+	Check(releasedA == 1, "the edit left, A is the game's again at once");
 	spoken.clear();
 	Tick();
 	Tick(false, StickPush::Up);

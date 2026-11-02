@@ -355,6 +355,8 @@ inline constexpr Table enUS {
 	.screenHintsOff = "Screen hints off",
 	.hintNewCharacter = "Press %s to create a new character",
 	.hintRandomName = "Type a name, or press %s for a random one",
+	.textBoxTyping = "Typing. Enter or Escape leaves the box",
+	.textBoxLeft = "Out of the text box",
 	.developmentBuild = "development build",
 	.shop = "Shop",
 	.goldPickedUp = "Picked up %d gold",

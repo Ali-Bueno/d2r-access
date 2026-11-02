@@ -355,6 +355,8 @@ inline constexpr Table plPL {
 	.screenHintsOff = "Podpowiedzi ekranowe wyłączone",
 	.hintNewCharacter = "Naciśnij %s, aby utworzyć nową postać",
 	.hintRandomName = "Wpisz nazwę lub naciśnij %s, aby wylosować",
+	.textBoxTyping = "Pisanie. Enter lub Escape opuszcza pole",
+	.textBoxLeft = "Poza polem tekstowym",
 	.developmentBuild = "wersja deweloperska",
 	.shop = "Sklep",
 	.goldPickedUp = "Podniesiono %d złota",

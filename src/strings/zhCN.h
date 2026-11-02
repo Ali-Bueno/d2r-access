@@ -355,6 +355,8 @@ inline constexpr Table zhCN {
 	.screenHintsOff = "屏幕提示已关闭",
 	.hintNewCharacter = "按%s创建新角色",
 	.hintRandomName = "输入名字，或按%s使用随机名字",
+	.textBoxTyping = "正在输入。按Enter或Esc离开输入框",
+	.textBoxLeft = "已离开输入框",
 	.developmentBuild = "开发版",
 	.shop = "商店",
 	.goldPickedUp = "拾取了 %d 金币",

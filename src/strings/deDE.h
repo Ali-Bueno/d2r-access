@@ -355,6 +355,8 @@ inline constexpr Table deDE {
 	.screenHintsOff = "Bildschirmhinweise aus",
 	.hintNewCharacter = "Mit %s erstellst du einen neuen Charakter",
 	.hintRandomName = "Gib einen Namen ein oder drücke %s für einen zufälligen",
+	.textBoxTyping = "Eingabe. Enter oder Escape verlässt das Feld",
+	.textBoxLeft = "Außerhalb des Textfelds",
 	.developmentBuild = "Entwicklungsversion",
 	.shop = "Laden",
 	.goldPickedUp = "%d Gold aufgehoben",

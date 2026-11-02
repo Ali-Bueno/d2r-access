@@ -104,9 +104,20 @@ Alt stay the mod's.
 On character creation the name box takes what is typed wherever the cursor
 is (READ), so **letters reach it only while the cursor is on it**: elsewhere
 on that screen they are kept from the game, and A clicks without typing an
-"a" (`dcc8e0e`, the user's report 2026-09-28; not pressed yet). Enter, Esc
-and Backspace always reach the game. The log says `[menu-keys] kept 'a' from
+"a" (`dcc8e0e`, the user's report 2026-09-28; not pressed yet). Backspace
+always reaches the game, Enter and Esc too except in a box typed in (below). The log says `[menu-keys] kept 'a' from
 the name box` for each one kept.
+
+**Typing in a box, and leaving it** (2026-11-02, the user: with the pad's focus on the name
+box, an "a" typed on the keyboard also clicked: the watched A had no box under the keyboard's
+cursor). A box is typed in when the keyboard's cursor is on it or, with the cursor not engaged, the
+game's focus is on an editable box (`TextField::EditedWidget`); then every key that types is the
+box's, as a cinematic's keys are the game's, and "Typing. Enter or Escape leaves the box" is said
+when the keyboard's cursor brought it there (with the pad, the right stick's typing speaks for itself).
+**Enter or Escape leaves it**: both are kept from the game there (it would create the character or
+go back), "Out of the text box" is said, and the keys are the menu's again, letters kept from the
+box, until another box or the same one come back to, or A on it with the keyboard's cursor. Log:
+`[menu-keys] left the box of text`.
 
 On character creation the game's own keys are: **Enter creates the
 character** once a class is chosen and the name is allowed, and Esc puts the

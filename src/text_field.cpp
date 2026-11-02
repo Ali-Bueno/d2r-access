@@ -48,6 +48,8 @@ std::string Read(uintptr_t widget) {
 
 }
 
+uintptr_t EditedWidget() { return g_editable ? g_widget : 0; }
+
 void Reset() {
 	g_widget   = 0;
 	g_editable = false;

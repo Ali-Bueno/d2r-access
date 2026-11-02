@@ -355,6 +355,8 @@ inline constexpr Table ruRU {
 	.screenHintsOff = "Подсказки экрана выключены",
 	.hintNewCharacter = "Нажмите %s, чтобы создать нового персонажа",
 	.hintRandomName = "Введите имя или нажмите %s для случайного",
+	.textBoxTyping = "Ввод текста. Enter или Escape выходят из поля",
+	.textBoxLeft = "Вне текстового поля",
 	.developmentBuild = "версия для разработки",
 	.shop = "Лавка",
 	.goldPickedUp = "Подобрано золота: %d",

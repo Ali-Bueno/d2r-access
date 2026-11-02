@@ -4,6 +4,7 @@
 #include "input_direction.h"
 #include "native_skill_navigation.h"
 #include "native_widgets.h"
+#include "pad_filter.h"
 #include "screen_reader.h"
 #include "speech_strings.h"
 
@@ -93,9 +94,12 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 		g_box = 0;
 	}
 	if (!editing || !*editing) {
+		if (g_editing) PadFilter::ReleaseA();
 		g_editing = false;
 		return;
 	}
+	// A is the mod's while the stick types: the game's accepted and shut its text entry panel.
+	PadFilter::HoldA(now);
 	// The game's text entry panel says nothing of itself (a tester, 2026-10-17: A seemed to do nothing).
 	if (!g_editing) {
 		g_editing = true;
@@ -146,6 +150,7 @@ void Tick(const D2RL::PluginContext* context, NativeUi::Focus focus, std::option
 void Reset() {
 	// An A pressed before the form showed (the one that opened it) is not a press on a box.
 	(void)InputDirection::TakeFacePress(InputDirection::FaceButton::A);
+	if (g_editing) PadFilter::ReleaseA();
 	g_box = 0;
 	g_pressedAt = 0;
 	g_editing = false;
