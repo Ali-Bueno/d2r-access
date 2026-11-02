@@ -39,6 +39,7 @@
 #include "modal_reader.h"
 #include "mod_sounds.h"
 #include "native_actions.h"
+#include "panel_state.h"
 #include "native_belt_fill.h"
 #include "native_class_choice.h"
 #include "native_list_rows.h"
@@ -2266,6 +2267,12 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize)) return D2RL::Input::ActionResult::Ignored;
 	auto command = static_cast<Command>(reinterpret_cast<uintptr_t>(userData));
 	const bool pressed = event->kind == D2RL::Input::ActionEventKind::Pressed;
+	// While a cinematic plays every key is the game's (hold to skip); the mod's come back when it
+	// ends (the user, 2026-11-01). A hand let go meanwhile is still let go.
+	if (PanelState::MoviePlaying()) {
+		if (!pressed && (command == Command::Attack || command == Command::Cast)) g_held[command == Command::Attack ? 0 : 1] = 0;
+		return D2RL::Input::ActionResult::Ignored;
+	}
 	// Space changes a switch of the settings list and is the game's otherwise.
 	if ((command == Command::SettingsChange || command == Command::SettingsBack || command == Command::SettingsLower)
 		&& !g_settingsOpen.load()) return D2RL::Input::ActionResult::Ignored;

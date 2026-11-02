@@ -36,7 +36,8 @@ void Announced(std::string_view title);
 bool TakeAnnounced(std::string_view tab);
 
 // An act cinematic covers the game without any panel the record would show.
-// Started by "MoviePlayerMessage:Play", ended by "Cinematics:MovieComplete".
+// Started by "MoviePlayerMessage:Play", ended by "Cinematics:MovieComplete" (or 8 minutes on, should
+// that message never come). While one plays the cues pause and the mod's keys are the game's.
 void MovieStarted();
 void MovieEnded();
 bool MoviePlaying();

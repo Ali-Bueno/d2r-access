@@ -1244,8 +1244,11 @@ void Tick(const D2RL::PluginContext* context) {
 	g_tickStart = Clock::now();
 	MenuMouse::Tick(now);
 	const bool padUsed = InputDirection::TakePadUse();
+	// A cinematic hides the menu under it: the Videos list must not step while one plays, and the
+	// keys come back when it ends (the user, 2026-11-01).
+	const bool movie = PanelState::MoviePlaying();
 	const bool menu = Foreground() && NativeWidgets::SupportsTree() && NativeSkillNavigation::Available()
-		&& !KeyboardService::Playing();
+		&& !KeyboardService::Playing() && !movie;
 	g_active = menu;
 	if (!menu) {
 		g_typing = false;
@@ -1253,7 +1256,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_keepArrows = false;
 		// The pointer was the menu's only if the cursor put it somewhere.
 		const bool moved = g_place.widget != 0;
-		if (g_engaged || g_place.widget) Release(context, "no menu, or the game is not in front");
+		if (g_engaged || g_place.widget) Release(context, movie ? "a cinematic plays" : "no menu, or the game is not in front");
 		HideBelt(context);
 		if (moved && Foreground() && KeyboardService::Playing()) Park(context);
 		g_pending = 0;
