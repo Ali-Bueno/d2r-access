@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Assassin charges spoken — 2026-11-02 (not released)
+## Assassin charges spoken — 2026-11-02 (released as test-2026-11-02 from 8a4cb66)
 
 bfbeast asked for the Assassin's martial-arts charges to be spoken. Each new charge cuts in
 as "<skill> <count>"; charges that run out unused are said queued; releasing them by a swing is
