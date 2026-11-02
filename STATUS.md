@@ -2,6 +2,85 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Cinematic narration: no sounds, then a detailed rewrite — 2026-11-01 (done, not released)
+
+- bfbeast: "Claude does audio cues which really don't need describing since they are mostly
+  background noise." English cues stripped of sounds (49 edited + 6 dropped per edition), the 12
+  translations edited line for line (hd done; classic by a Sonnet agent). Rule in the
+  [guide](docs/cinematics-audio-description.md#writing-guide-revised-2026-11-01-after-the-users-first-listen).
+- The user, after that: more detail, use the silences (e.g. 6 to 9 s after each act title), a more
+  capable model, every video studied carefully. `tools/audiodesc.py check` added (timing rule + share
+  of free time narrated, per file).
+- **Pace 14 → 20 characters a second** (the user's choice: at 14, a fast screen reader left most of
+  each gap silent; CJK scaled to 10, 6.4, 9.3), now `Pace()` in `audio_description_script.h`, used by
+  CTest and `check`. **Cut at dialogue:** `DialogueGate` stops the screen reader when a dialogue line
+  starts while a cue may still be speaking (twice its estimate, queued cues included), so a slower
+  voice loses a cue's tail instead of talking over the voices. `speech.tsv` is sealed in as "speech"
+  (the sealer takes `.tsv` too). Log: `[audiodesc] cut at ...`, the end line counts the cuts.
+  CTest 137/137; not tested live.
+- 2021 English rewritten by two Fable writers from fresh frames (one per half): 171 cues, narrated
+  share of the free time at 20 c/s 74-93 % per video (was ~50 %); what stays silent is black screen or
+  a title fading. They corrected the old script (no wolf in Act II, the stranger's robe is pale, the
+  tavern entrance only visible at 200.5, the gem yellow, Diablo's platform, the throne a wagon ...).
+
+- Classic English by two more Fable writers from the 2000 frames, adapting the new 2021 text: 193
+  cues, 81-91 % per video. All 24 translations rewritten (three Sonnet translators; names checked
+  against subtitles and `levels.json`; esMX Worldstone "Piedra Ecuménica"). 4732 cues, 0 timing
+  problems; build seals 27 files (26 scripts + speech); CTest 137/137; DLL `892fc96b…` (build/, not
+  deployed). Details and the corrections the frames made:
+  [doc](docs/cinematics-audio-description.md#written-so-far-2026-11-01).
+
+- **First listen, 20:09 (the user): nothing said.** Log: `[audiodesc] none: the sealed words were
+  altered`, 0 scripts. Each seal makes a new key; `descriptions_bundle.cpp` (which compiles the key
+  in) was not rebuilt, so the DLL held the old key. Cause: ninja's header scan never works in this
+  build dir: `rules.ninja` expects `Nota: inclusión del archivo:` in cp850 (`inclusi\242n`), the
+  compiler under `chcp 65001` writes UTF-8, so no header dependency is recorded (any header edit
+  rebuilds nothing that includes it). Fixed for the keys with an explicit `OBJECT_DEPENDS`
+  (CMakeLists). **Known issue, open:** the general header-dependency gap; a fresh compiler detection
+  under the same code page as the builds (or `VSLANG=1033`) should fix it, then a full rebuild.
+- The build copies the DLL into the game (`D2R_GAME_DIR`, `cmake/BestEffortCopy.cmake`): the 20:04
+  build was installed, not left in `build/` as first said.
+- **Keys during a cinematic** (the user: the keyboard kept moving in the Videos list under the video):
+  while `PanelState::MoviePlaying()` the loader's keys are all the game's (`OnAction` returns Ignored,
+  so hold-to-skip still works) and the menu cursor is released ("a cinematic plays"); both come back
+  at `Cinematics:MovieComplete`. `MoviePlaying` also ends 8 minutes after the start should the end
+  message never come (longest video 427 s). Installed DLL `8e79fc33…`, CTest 137/137, not tested live.
+
+- **Second listen, 20:17 (the user): it works**, 42 cues said on their seconds; but the intro hitched
+  and the narration ran a little ahead (Play to MovieComplete 429.8 s, 428.3 s before: ~1.5 s lost by
+  the video). The "cut by dialogue" count is not a measure of the voice: `Stop()` is sent whether or
+  not the reader is still talking (renamed "dialogue stops").
+- **The clock follows the subtitles** ([doc](docs/cinematics-audio-description.md#runtime-built-2026-11-01-unverified-live)):
+  `data/audiodesc/subtitles.tsv` (13 languages' line starts), `SubtitleSync` (two of three lines
+  agree on an offset), the subtitle box read each tick. Needs the game's subtitles on (the user's
+  `Settings.json`: `"Subtitles": 1`). Installed DLL `5396d29f…`, CTest 137/137. **Unverified live:**
+  whether the box is found (log `subtitles followed`) and the offsets it gives.
+
+- **Live 20:39-20:41 (the user: "funcionó ... parece que se sincronizó bien"):** the box is the
+  embedded one (`subtitles followed (embedded)`, found ~0.1 s before the assumed first frame, both
+  editions). Classic intro, esES: the video lagged 2.44 s (a slow start after switching edition),
+  corrected at raw 73.09 by the first two Spanish lines (68.675, 70.648); before that the cues ran up
+  to 2.4 s early, which the user heard as one or two desyncs. Keys during both videos: cursor
+  released at the start ("a cinematic plays"), no focus moves until the end, as asked.
+- Limit: before a video's first subtitle line nothing corrects the clock. English has sound-tag
+  lines early (d2intro from 3.5 s); the other languages start at the first dialogue (d2intro 68.7 s).
+
+- **The video's own clock, found** (the user asked for it and left the PC to the assistant,
+  21:00-21:22, computer-use harness): the deep probe (4 hops, 8000 objects, three looks) found the
+  playback time at `MoviePlayer+0xC0 → +0x160` (a table of nodes) `→ node → +0x0 →` object with ns at
+  +0x68 and ms at +0x88; same object every play, different slot each time, so the plugin searches the
+  table and takes the clock that advances. Live, 2021 and classic intro, 95 s each: found ~0.3 s into
+  the video, subtitle lines within 0.02 s of their SRT starts, subtitle correction 0. The first lead,
+  a 48 kHz audio count, lagged the picture ~0.5 s and was not where it was in the next play
+  ([doc](docs/cinematics-audio-description.md#runtime-built-2026-11-01-unverified-live)). The deep
+  probe now runs only when the clock is not found. Installed DLL `54a48f5d…`, CTest 137/137.
+  **Unverified:** in-play act videos (InGameMoviePlayerPanel) and a real hitch (the clock stops with
+  the video by design).
+
+**Next step:** the user listens to a video with a hitch, or a tester's in-play act video (log
+`video clock found`); release with the tester news `../tester-news-draft-2026-11-01f.txt` when the
+user asks. Then release with tester news `../tester-news-draft-2026-11-01f.txt` when the user asks.
+
 ## The whole game played through by testers; README rewritten — 2026-11-01
 
 The user reports that over the last days several testers played the complete game with the mod,

@@ -80,11 +80,17 @@ Seen in the CASC data (extracted with `tools/casc-extract`, 2026-11-01). Duratio
   `tools/audiodesc.py speech` from the game's SRTs (times only, no game text).
 - **Check:** `audio-description-tests` (CTest `audio-description`) reads every script: each line
   parses, English covers every video in both editions, and no cue starts in speech, runs into the next
-  speech line (0.2 s margin) or the next cue. Length is estimated at 14 characters a second (English
-  2.8 words/s), 7 for Japanese, 4.5 for Chinese, 6.5 for Korean. The exe reads the files at run time,
+  speech line (0.2 s margin) or the next cue. Length is estimated by `Pace()`
+  (`audio_description_script.h`): 20 characters a second, 10 for Japanese, 6.4 for Chinese, 9.3 for
+  Korean, a fast screen reader (the user's choice, 2026-11-01; before, 14, 7, 4.5 and 6.5 left most
+  of each gap silent for a fast reader). The exe reads the files at run time,
   so a script edit needs no rebuild.
-- **Authoring:** `tools/audiodesc.py timeline <extract> <video>` (English lines, free stretches) and
-  `sheets` (4x4 contact sheets at 1 fps, each frame stamped with its time).
+- **Authoring:** `tools/audiodesc.py timeline <extract> <video>` (English lines, free stretches),
+  `sheets` (contact sheets, any fps, grid and width, each frame stamped with its time) and `check
+  <script> [--locale] [--headroom 1.15]`: the CTest timing rule on any file (so writers work on their
+  own files), then per video the free time, the share narrated and every silence of 3 s or more.
+  Before the 2026-11-01 detailed rewrite, every video narrated about 70 % of its free time (2021 and
+  classic alike) and opened with 6 to 9 s of silence after its act title.
 
 ## Writing guide (revised 2026-11-01 after the user's first listen)
 
@@ -95,17 +101,26 @@ never says what is happening there". The model is the Witcher 3 mod
 `cs403_teleport`) and the Spider-Man one: narration of the story, not of pictures.
 - **Events, not snapshots:** who does what, to whom, with what result, in story order. "A hooded
   stranger strides down the asylum hall and crushes a spider underfoot." beats "A spider. A robe."
-- **Every sound gets its cause:** footsteps, doors, locks, chains, screams, laughter, impacts heard in
-  a free stretch are explained by what is seen (the English SRT tags list many: `[lock turns]`,
-  `[whip cracks, man screams]`, `[waiter screams]`).
+- **Say what happens, never what it sounds like** (revised after bfbeast, 2026-11-01: "Claude does
+  audio cues which really don't need describing since they are mostly background noise"). The player
+  hears the creak, the wind, the scream, the laughter; the narration gives only the visible action
+  behind it: "A gate swings open", not "A gate creaks open"; "Fire engulfs the waiter, his arms flung
+  up", not "... who screams". A sound whose cause is not on screen (a distant whip, cheering, a horn)
+  is not described at all. The English SRT tags (`[lock turns]`, `[waiter screams]`) show what the
+  player already hears.
 - **Introduce, then keep track:** each place and person at first sight with what makes them
   recognizable (a gaunt, white-haired prisoner in rags; a hooded stranger in pale robes); the same
   label until the story names them; Marius, the Wanderer, Tyrael and Baal by name once the dialogue
   or an earlier video has named them, never before (the stranger is Baal only from `Act04end`'s
   reveal).
-- **Sentences:** one or two full sentences a cue, usually 8 to 20 words. A long stretch gets a cue every
-  4 to 8 s, each carrying a whole beat, rather than many fragments; a short stretch gets one short
-  sentence. A still picture may be left in silence; filler ("Darkness.", "The letters fade.") never.
+- **Detail and the silences** (the user, 2026-11-01: "after the Act II logo there are 5 to 10 seconds
+  you could use to describe the setting"; "more detailed, use the silences better"): each scene
+  opening sets the place (architecture, light, weather, time of day, colors) and each person at first
+  sight (age, build, hair, clothing, what they carry, expression); then gestures, gaze, how they move
+  and what changes around them. Target 90 % of the free time narrated (`check`) and no silence of 3 s
+  inside a free stretch unless the screen is black or still.
+- **Sentences:** one to three full sentences a cue, usually 10 to 30 words, each cue a whole beat; a
+  short stretch gets a few words or nothing. Filler ("Darkness.", "The letters fade.") never.
 - Present tense, third person, no camera language ("we see", "close-up", "the shot"). Short on-screen
   text is read when it matters (the act titles).
 - **Only what is visible, understood:** use the story of the cinematics to recognize people and
@@ -118,13 +133,32 @@ never says what is happening there". The model is the Witcher 3 mod
 
 - **First pass** (replaced): 293 + 290 short captions by two Sonnet writers from 400 px sheets. The
   user listened to it (Videos list) and found it generic.
-- **Narration** (current): English by an Opus writer to the revised guide, from 640 px sheets of the
+- **Detailed rewrite** (current, 2026-11-01, after bfbeast's note on sounds and the user's request
+  for more detail): four Fable writers from fresh frames (1 to 4 fps sheets, full frames for detail),
+  two per edition, each on half the videos; the classic writers adapted the new 2021 text beat by
+  beat to the 2000 frames. 2021: 171 cues, classic: 193; at 20 c/s they narrate 74 to 93 % of each
+  video's free time (2021) and 81 to 91 % (classic), against about 50 % before; what stays silent is
+  black or a title fading. Translated by three Sonnet agents (es/pt/it, fr/de/pl/ru, ja/ko/zh), names
+  checked against the subtitles and `levels.json` (esMX Worldstone "Piedra Ecuménica"). Frames
+  corrected the old text: no wolf in Act II (a ridge, the moon rising), the stranger's robe is pale,
+  the tavern doorway is only on screen 0.7 s before speech, Tal Rasha's gem is yellow, Diablo steps off
+  a round platform, the Act V throne is a wagon; classic: white bolts, a slug-like demon between
+  barrels, a dim pillared hall with beetles instead of a street, "Diablo II Expansion" with no Act Five
+  card, no crystal on Tyrael's armor. Unsure moments are in the writers' notes below the first pass.
+- **Narration** (replaced by the rewrite): English by an Opus writer to the revised guide, from 640 px sheets of the
   free stretches, the dialogue sheets for the story and 2 fps frames for unclear moments. 2021: 161
   cues (d2intro 43, Act02start 5, Act03start 27, Act04start 15, Act04end 18, D2x_Intro 35, D2x_Out
   18). Classic: 163, adapted from the 2021 text shot by shot to what the 2000 frames show (white bolts
   instead of green, beetles in a hall instead of a burning street, a grey-bearded warrior, the title
   "Diablo II Expansion"). Director fixes: the stranger "appears as an angel" (he is Baal in disguise),
   the Worldstone named in `D2x_Out`.
+- **Sounds removed** (2026-11-01, bfbeast): 49 cues (2021) and 52 (classic) lost the sound they
+  described (creaks, wind, screams, groans, laughter, rumbles, crackles), edited from the text alone,
+  no new frames; 6 per edition that were only a sound were dropped (the whip and scream at 50.5, "His
+  sword scrapes", the drinker's laughter, the Act III wind, the Act V horn, Baal's cackle). The
+  replacements stick to what the old line already said was seen; the few new verbs (a gate "swings"
+  open, "a gust bends the flames", "a wolf faces the moon", Marius "jolts awake") are inferred from the
+  sound, not checked on frames. Same times, so the 12 translations were edited line for line.
 - Unsure moments the writers reported, the first places to fix if a tester hears something wrong:
   the fast, dark shots of the `d2intro` fire (who the bolts strike, the bats, the demon), `Act03start`
   142-171 (whose light burns the bridge), `Act04end` 21.6 (the blue shape leaving Diablo), the
@@ -173,6 +207,41 @@ never says what is happening there". The model is the Witcher 3 mod
   each due cue once without interrupting (`ScreenReader::Speak(text, false)`) and drops one more than
   2 s late; `Cinematics:MovieComplete` (end or hold-to-skip) stops it. Log: one line at the start
   (video, edition, language, cue count), one per cue said, one at the end (said, dropped).
+- **The video's own clock, read from memory** (2026-11-01, 3.3.94995; found by the deep movie probe,
+  verified live by the assistant with the computer-use harness, both editions). `MoviePlayer`
+  widget `+0xC0` → `+0x160` is a table of nodes; the object one node's first field points to holds
+  the time shown, in ns at `+0x68` (the frame's PTS: 30 fps 2021, 24 classic) and in ms at `+0x88`.
+  The object is the same from movie to movie (even across restarts: 0x1423FF110 four times), but its
+  node sits in a different slot each play (+0x60, +0xC0, +0x120, +0x240, +0x2A0 seen), so the plugin
+  searches the table's first 0x1000 bytes every 100 ms from the movie's start and takes the object
+  whose two fields agree (within 100 ms) and whose ms advanced with the wall clock (0.7-1.3x over at
+  least 0.2 s; a clock left from the last movie stands still). Found 0.02 to 0.14 s after the
+  assumed start, the video then at 0.28-0.30 s. With it, the six subtitle lines of each test play
+  showed up within 0.02 s of their SRT starts (68.675 at 68.693, 91.090 at 91.093) and the subtitle
+  correction stayed at 0. It stands still when the video hitches, so the cues wait. Not found (a game
+  update, or in play if that player differs: unverified): the wall clock with the start delay and
+  the subtitle sync below, and the deep probe runs to log the new layout. Rejected on the way: a
+  48 kHz audio sample count (`w+0xC0>+0x3C8>+0x60>+0x68` in one play, other paths in others) that
+  lags the picture by ~0.5 s. Log: `video clock found in slot +0x… at <wall>`, `line N shown at <t>
+  by the video clock` (first three), and the end line's `clock video|wall`.
+- **The video's own clock, from its subtitles** (2026-11-01, now the fallback; the user heard the narration run ahead
+  after the intro hitched: Play to MovieComplete took 429.8 s against 428.3 s before). The game shows
+  each subtitle line when the video reaches it, so `subtitles.tsv` (`tools/audiodesc.py subtitles`:
+  every line's start per video and language, sound tags included, times only; sealed in as
+  "subtitles") turns the lines seen into the video's position. The plugin reads the movie's subtitle
+  box each tick (`MoviePlayer/Subtitle` by name, else the box embedded at MoviePlayer+0x200 when its
+  name says so: inferred from the probe's strings, unverified), and `SubtitleSync` takes the offset on
+  which two of the last three lines agree (lag up to 8 s, lead up to 1 s), so a missed or extra line
+  cannot move the clock alone. The offset is added to the wall clock; it corrects a slow start at the
+  first lines and a hitch at the next line after it, not inside a long silent stretch. Subtitles off,
+  or no box found: the wall clock alone, as before. Locale: the mod's, else English. Log: `subtitles
+  followed (by name|embedded)`, `line at <raw>: the video runs <offset> s off the clock`, and the end
+  line's subtitle count and final offset.
+- **Cut at dialogue** (2026-11-01, with the faster pace): `speech.tsv` is sealed in as "speech"
+  (`ParseSpeech`); `DialogueGate` treats each cue as speaking for twice its estimate, queued after any
+  cue still speaking, and when a dialogue line starts inside that, the plugin calls
+  `ScreenReader::Stop()`. A fast voice is never cut; a slow one loses a cue's tail rather than talk over
+  the voices. Log `[audiodesc] cut at <clock>: dialogue starts`; the end line counts the cuts.
 - **Switch:** `audio-description` (Ctrl+S, Alerts group), on by default.
 - **Probe** (`movie_probe.cpp`, diagnostic): 0.5 s and 2.5 s into every movie it snapshots the
   `MoviePlayer` widget (0x1000 bytes) and every object its fields point to (0x400 bytes each), logs the
@@ -201,5 +270,5 @@ the class offsets are what the plugin uses). Sonnet RE agent; scratch decompiles
   before the intro, likely the Blizzard logos; the exe has `BlizzardLogos` and `LogoAnim` video
   names), not `Videos` order (corrected 2026-11-01 from a live log). The sender (game logic) was not
   found.
-- Playback position: not found (no SRT parser located); probably in a decoder object deeper than the
-  probe looked. Next: a depth-3 walk from `MoviePlayer` with snapshots 1 s apart.
+- Playback position: found live on 2026-11-01 four pointer hops from `MoviePlayer` (Runtime above);
+  the static side (which class owns the table, what the other slots hold) was not looked at.
