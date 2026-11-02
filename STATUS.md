@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Cinematic narration: no sounds, then a detailed rewrite — 2026-11-01 (done, not released)
+## Cinematic narration: no sounds, then a detailed rewrite — 2026-11-01 (released as test-2026-11-01-6 from 24fd49e)
 
 - bfbeast: "Claude does audio cues which really don't need describing since they are mostly
   background noise." English cues stripped of sounds (49 edited + 6 dropped per edition), the 12
@@ -77,9 +77,12 @@
   **Unverified:** in-play act videos (InGameMoviePlayerPanel) and a real hitch (the clock stops with
   the video by design).
 
-**Next step:** the user listens to a video with a hitch, or a tester's in-play act video (log
-`video clock found`); release with the tester news `../tester-news-draft-2026-11-01f.txt` when the
-user asks. Then release with tester news `../tester-news-draft-2026-11-01f.txt` when the user asks.
+Release test-2026-11-01-6 (the user asked: commit, push, release): 28 entries, 64,511,409 bytes,
+SHA-256 `4a3fbe7e…46d653a7`, 137/137 CTest in the release build; news
+`../tester-news-draft-2026-11-01f.txt`.
+
+**Next step:** a tester's in-play act video (log `video clock found`, narration matching the
+video); a real hitch heard by the user. Then release with tester news `../tester-news-draft-2026-11-01f.txt` when the user asks.
 
 ## The whole game played through by testers; README rewritten — 2026-11-01
 
