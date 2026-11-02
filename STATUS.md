@@ -37,16 +37,17 @@ The user: the loot filter, Help and Chronicle menus were only partly read, the c
 - **Fifth test (17:20):** credits read, categories say "seleccionado". In Accessories a run of
   undiscovered uniques ("Anillo" ten times) said only its first row: rows read alone were keyed by
   their index, always 0; now by their widget.
-- CTest 138/138; DLL installed. **Unverified live:** the repeated rows.
+- CTest 138/138; committed as 2a97c3b. The repeated rows heard working (the user, 2026-11-02): every
+  menu of this entry is now verified live.
 
-**Next step:** live: Crónica → Accesorios, walk the rings. Then a test release when the user asks.
+**Next step:** a test release when the user asks.
 
 ## Tal Rasha's chamber maggots no NPCs — 2026-11-02 (not released)
 
 bfbeast: the maggots in Tal Rasha's chamber were listed as NPCs. monstats `maggot` is a critter the
 level places itself, outside every `cmon1-4`; added to the generated critter list
 ([entity cues](docs/entity-cues.md#critters-are-no-enemies-2026-10-25)). CTest 138/138; DLL
-installed. **Unverified live.**
+installed. **Unverified live**; the user will pass it to bfbeast.
 
 ## Assassin charges spoken — 2026-11-02 (released as test-2026-11-02 from 8a4cb66)
 
