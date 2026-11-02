@@ -40,9 +40,9 @@ private:
 // entity cue; items and places the ground loops; guidance the beacon. Each enemy class
 // is a factor on top of the enemies' (a tester, 2026-10-15); low life is the heartbeat;
 // steps the click of the units walked, doors the door loops and doorways the crypt's
-// creaks (a tester, 2026-10-20), each on top of the items'.
+// creaks (a tester, 2026-10-20), each on top of the items'; charges the Assassin's charge chord.
 enum class Family { Radar, Enemies, Items, Guidance, OrdinaryEnemies, EliteEnemies, RangedEnemies, ShamanEnemies, BossEnemies, LowLife,
-	Steps, Doors, Doorways, Count };
+	Steps, Doors, Doorways, Charges, Count };
 inline Level& Of(Family family) {
 	static std::array<Level, static_cast<size_t>(Family::Count)> levels;
 	return levels[static_cast<size_t>(family)];

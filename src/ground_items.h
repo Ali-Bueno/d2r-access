@@ -33,7 +33,8 @@ constexpr bool IsDrop(Sound sound) { return sound >= Sound::DropFirst && sound <
 // Potion is any other potion or elixir (stamina, antidote, thawing).
 enum class Base { Equipment, Gold, Potion, HealthPotion, ManaPotion, RejuvenationPotion, Scroll, Rune, Gem };
 // The item sounds to choose from (the user, 2026-10-13): the project's Diablo IV set, the
-// same with the Last Epoch mod's gold and potions, or the sound each item makes as it lands.
+// same with the Last Epoch mod's gold and potions, or the sound each item makes as it lands,
+// the default since 2026-11-02 (the user). The order is the saved setting's value.
 enum class SoundSet { DiabloIV, LastEpoch, DiabloIIDrops, Count };
 int ItemSoundSet();
 void SetItemSoundSet(int set);

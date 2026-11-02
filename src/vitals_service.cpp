@@ -1,5 +1,6 @@
 #include "vitals_service.h"
 #include "async_log.h"
+#include "charge_chord.h"
 #include "charge_tracker.h"
 #include "equipment_census.h"
 #include "input_direction.h"
@@ -198,6 +199,18 @@ void AnnounceCharges(const D2RL::PluginContext* context, const std::vector<Charg
 	AsyncLog::InfoF(context, "[vitals] charges -> \"%s\" \"%s\"", gained.c_str(), lost.c_str());
 	if (!gained.empty()) ScreenReader::Speak(gained, true);
 	if (!lost.empty()) ScreenReader::Speak(lost, false);
+}
+
+// The charge chord (charge_chord.h): struck with the most charges just gained, or held at the most any skill has.
+void SoundCharges(const std::vector<ChargeTracker::Change>& changes, std::span<const int> counts, bool heard) {
+	const auto mode = ChargeChord::CurrentMode();
+	int notes = 0;
+	if (mode == ChargeChord::Mode::Held) for (const int count : counts) notes = std::max(notes, count);
+	ChargeChord::Hold(heard ? notes : 0);
+	if (mode != ChargeChord::Mode::Struck || !heard) return;
+	notes = 0;
+	for (const auto& change : changes) notes = std::max(notes, change.count);
+	if (notes) ChargeChord::Strike(notes);
 }
 
 // The first charge-up state of a game, with the stat read beside it: evidence that the stat holds the count.
@@ -629,6 +642,7 @@ bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	g_statusSupported = NativeStatus::Initialize(context);
 	if (!LowLifeAudio::Start(context)) AsyncLog::Warn(context, "[vitals] low-life heartbeat not started");
+	if (!ChargeChord::Start(context)) AsyncLog::Warn(context, "[vitals] charge chord not started");
 	// The controller's mercenary panel draws its experience as a bar only.
 	MercenaryStats::SetExperienceSource([] {
 		const auto mercenary = g_statusSupported ? NativeStatus::MercenaryLife() : std::nullopt;
@@ -687,6 +701,7 @@ void Unregister() {
 	g_statusSupported = false;
 	g_command = Command::None;
 	LowLifeAudio::Stop();
+	ChargeChord::Stop();
 	Reset();
 }
 
@@ -745,6 +760,7 @@ void Tick(const D2RL::PluginContext* context) {
 		g_runToggled = false;
 		g_lowLife.Reset();
 		LowLifeAudio::Play(false);
+		ChargeChord::Hold(0);
 		return;
 	}
 	const uint64_t now = GetTickCount64();
@@ -765,6 +781,7 @@ void Tick(const D2RL::PluginContext* context) {
 			g_chargeCountLogged = false;
 			g_lowLife.Reset();
 			LowLifeAudio::Play(false);
+			ChargeChord::Hold(0);
 			g_mercenary.Reset();
 			g_gait.Reset();
 			g_stamina.Reset();
@@ -778,7 +795,8 @@ void Tick(const D2RL::PluginContext* context) {
 			HintOrbText(g_orbAvailability.Update(life >= 0, mana >= 0));
 			// Quiet in a pause, a dialogue or with the game in the background, as every cue is.
 			const auto ui = RadarUi::Inspect(true);
-			const bool heard = g_lowLifeSound.load() && ui != RadarUi::State::Paused && ui != RadarUi::State::Dialogue;
+			const bool cuesHeard = ui != RadarUi::State::Paused && ui != RadarUi::State::Dialogue;
+			const bool heard = g_lowLifeSound.load() && cuesHeard;
 			const int threshold = Vitals::LowLifeThresholds[static_cast<size_t>(g_lowLifeLevel.load())];
 			bool started = false;
 			LowLifeAudio::Play(g_lowLife.Update(heard ? life : -1, threshold, &started));
@@ -834,11 +852,17 @@ void Tick(const D2RL::PluginContext* context) {
 					g_fortifiedBy = held;
 				}
 			// The Assassin's charges as they build, and as they run out unused (a tester, 2026-11-02).
-			const auto charges = g_statusSupported && g_chargeAlerts ? NativeStatus::PlayerStats(ChargeStats) : std::nullopt;
+			const bool chargeChord = ChargeChord::CurrentMode() != ChargeChord::Mode::Off;
+			const auto charges = g_statusSupported && (g_chargeAlerts || chargeChord) ? NativeStatus::PlayerStats(ChargeStats) : std::nullopt;
 			if (charges) {
 				LogChargeCount(context, charges->values);
-				AnnounceCharges(context, g_charges.Update(charges->values, charges->swinging, now));
-			} else g_charges.Reset();
+				const auto changes = g_charges.Update(charges->values, charges->swinging, now);
+				if (g_chargeAlerts) AnnounceCharges(context, changes);
+				SoundCharges(changes, charges->values, cuesHeard);
+			} else {
+				g_charges.Reset();
+				ChargeChord::Hold(0);
+			}
 			if (g_fortifiedAt && now >= g_fortifiedAt && !g_effects.EndPending()) {
 				g_fortifiedAt = 0;
 				if (g_statusAlerts) {

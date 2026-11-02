@@ -788,6 +788,8 @@ Chosen:
 Follow-up the same day: the game's own drop sounds as an alternative item set, with a speed
 setting (`docs/ground-items.md#the-games-own-drop-sounds-2026-10-13`). The user asked for sets
 to choose from: Diablo IV (default), Last Epoch gold and potions, Diablo II drops, one setting.
+2026-11-02: the user made Diablo II drops the default after playing with it; the saved value
+keeps its meaning, so a player who picked Diablo IV keeps it.
 Volumes in four families (radar and walls, enemies and NPCs, items and places, guidance),
 0-200 percent over each config level, scaling the finished samples so the synthesizers stay
 as tested (`src/sound_volume.h`). A setting of several values could not be lowered on the pad:

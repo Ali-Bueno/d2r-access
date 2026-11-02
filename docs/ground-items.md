@@ -528,8 +528,8 @@ logging or computer-control inputs are needed for this listening check.
 
 The tester suggested, and the user asked for, a set for players who do not want the Diablo IV
 sounds: every item loops the sound the game plays when it lands. It is one of three item sound
-sets (`item-sound-set`, Ctrl+S Sounds): Diablo IV (the default), Last Epoch gold and potions,
-Diablo II drops; a settings file with `last-epoch-sounds=1` keeps that set. The dropsound column of weapons.txt, armor.txt and misc.txt names a sounds.txt row whose
+sets (`item-sound-set`, Ctrl+S Sounds): Diablo IV, Last Epoch gold and potions, Diablo II drops
+(the default since 2026-11-02, the user: they got used to it playing); a settings file with `last-epoch-sounds=1` keeps that set. The dropsound column of weapons.txt, armor.txt and misc.txt names a sounds.txt row whose
 Redirect is the HD file; `tools/gen_drop_sounds.py` maps the 692 item codes to 45 sounds
 (`src/generated/drop_sounds.h`, `cmake/DropSounds.cmake`) and converts the HD files from CASC
 into `sounds/item loop sounds/d2 drops/`, embedded with +9 dB through the 0.9 limiter.

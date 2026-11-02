@@ -28,7 +28,7 @@ inline constexpr std::array<std::string_view, LanguageCount> LocaleCodes{
 // Where in the level the player stands: three screen thirds per axis.
 inline constexpr std::size_t TerrainPlaceCount = 9;
 // The sound glossary's entries, in the order sound_glossary.cpp plays them.
-inline constexpr std::size_t GlossarySoundCount = 54;
+inline constexpr std::size_t GlossarySoundCount = 55;
 inline constexpr std::size_t ManaAlertWords = 3; // Vitals::ManaAlertLevels
 inline constexpr std::size_t SettingsGroupCount = 13; // keyboard_service.cpp's SettingsGroup
 inline constexpr std::size_t SpeechPriorityKindCount = 11; // SpeechPriority::Kind
@@ -36,6 +36,7 @@ inline constexpr std::size_t SpeechPriorityLevelCount = 4; // SpeechPriority::Le
 inline constexpr std::size_t LoopPaceGroupCount = 7; // loop_pace.h's Group
 inline constexpr std::size_t LootEquipmentCount = 5; // GroundItems::EquipmentLoops
 inline constexpr std::size_t ItemSoundSetCount = 3; // GroundItems::SoundSet
+inline constexpr std::size_t ChargeChordModeCount = 3; // ChargeChord::Mode
 inline constexpr std::size_t CompassPointCount = 8; // Radar::ScreenSectors
 inline constexpr std::size_t ClockHourCount = 12;
 inline constexpr std::size_t DirectionStyleCount = 2; // SpokenDirection::Style
@@ -475,6 +476,7 @@ struct Table {
 	const char* itemVolume;
 	const char* guidanceVolume;
 	const char* lowLifeVolume; // %d = percent of the heartbeat's level
+	const char* chargeChordVolume; // %d = percent of the charge chord's level
 	const char* stepVolume; // %d = percent of the walked distance click's level
 	const char* doorVolume; // %d = percent of the door loops' level
 	const char* doorwayVolume; // %d = percent of the doorway creaks' level
@@ -578,6 +580,7 @@ struct Table {
 	const char* chargesHeld; // %s = the skill, %d = its charges: the life report (BACK+X)
 	const char* chargeAlertsOn; // the Assassin's charges said as they build and run out
 	const char* chargeAlertsOff;
+	std::array<const char*, ChargeChordModeCount> chargeChordModes; // off, struck with each charge, held while they last
 	const char* staminaFrozen; // a stamina potion began: the bar stays full
 	const char* staminaNormal; // the stamina potions ran out
 	const char* fortified; // an antidote or thawing potion began (its resistance has no end notice)
@@ -673,7 +676,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.backToModOn, t.backToModOff, t.shrineSoundsOn, t.shrineSoundsOff, t.wallTonesOn, t.wallTonesOff,
 		t.enemyClassSoundsOn, t.enemyClassSoundsOff, t.footstepVolume, t.experiencePercent, t.experienceToLevel, t.experienceReportOn, t.experienceReportOff,
 		t.mercenarySays, t.mercenaryBarkOn, t.mercenaryBarkOff, t.npcAlertOn, t.npcAlertOff,
-		t.dropSoundSpeed, t.loopSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume,
+		t.dropSoundSpeed, t.loopSpeed, t.radarVolume, t.enemyVolume, t.ordinaryEnemyVolume, t.eliteEnemyVolume, t.rangedEnemyVolume, t.shamanEnemyVolume, t.bossEnemyVolume, t.itemVolume, t.guidanceVolume, t.lowLifeVolume, t.chargeChordVolume,
 		t.goldMovedPersonal, t.goldMovedShared, t.goldMovedStash, t.compareAloudOn, t.compareAloudOff, t.compareHint, t.compareHintOn, t.compareHintOff, t.audioDescriptionOn, t.audioDescriptionOff, t.settingsEndsStop, t.settingsEndsWrap, t.routeOnAOn, t.routeOnAOff, t.zeroPointsOn, t.zeroPointsOff, t.stashNoticeOn, t.stashNoticeOff, t.itemMovedToPersonalStash, t.itemMovedToSharedStash, t.horadricCube, t.cubeOpened, t.stashCubeOpen, t.itemMovedIntoCube, t.itemMovedIntoInventory, t.itemMovedToCube, t.itemCount, t.itemNewInCube, t.curseStarted, t.curseEnded, t.shrineEnded, t.curseUnnamed, t.statusAlertsOn, t.statusAlertsOff, t.lowLifeOn, t.lowLifeOff, t.lowLifeBelow, t.corpseCueOn, t.corpseCueOff, t.minionReportOn, t.minionReportOff, t.minionCount, t.minionLife, t.minionNumbered, t.usableCorpses, t.chatOpened, t.chatClosed, t.noCompanions, t.inArea, t.potionsLastOn, t.potionsLastOff,
 		t.settingsSubmenu, t.settingsRestartOn, t.settingsRestartOff, t.mercenaryReportOn, t.mercenaryReportOff, t.partyFirstOn, t.partyFirstOff, t.corpseRepeatOnce, t.corpseRepeatEvery,
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.undiscovered, t.waypointHere, t.terrorZone,
@@ -685,6 +688,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);
+	each(t.chargeChordModes);
 	each(t.settingsGroups);
 	each(t.loopPaceNames);
 	each(t.placePresets);

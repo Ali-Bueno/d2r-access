@@ -9,7 +9,7 @@
 
 namespace D2RAccess::GroundItems {
 namespace {
-std::atomic<int> g_set{static_cast<int>(SoundSet::DiabloIV)};
+std::atomic<int> g_set{static_cast<int>(SoundSet::DiabloIIDrops)};
 }
 std::atomic<bool> g_potionsLast{true};
 int ItemSoundSet() { return g_set; }

@@ -9,6 +9,7 @@
 #include "beacon.h"
 #include "beacon_audio.h"
 #include "beacon_navigation.h"
+#include "charge_chord.h"
 #include "beacon_service.h"
 #include "combat_target.h"
 #include "entity_cue_audio.h"
@@ -1665,6 +1666,17 @@ SettingsList::Entry StepClickInterval() {
 	return entry;
 }
 
+SettingsList::Entry ChargeChordMode() {
+	static_assert(Strings::ChargeChordModeCount == static_cast<size_t>(ChargeChord::Mode::Count), "a phrase for every charge chord mode");
+	SettingsList::Entry entry;
+	entry.key = "charge-chord";
+	entry.levels = static_cast<int>(ChargeChord::Mode::Count);
+	entry.level = ChargeChord::ModeLevel;
+	entry.setLevel = ChargeChord::SetModeLevel;
+	entry.sayLevel = [](int level) { return std::string(Strings::Current().chargeChordModes[static_cast<size_t>(level)]); };
+	return entry;
+}
+
 SettingsList::Entry ItemSoundSet() {
 	static_assert(Strings::ItemSoundSetCount == static_cast<size_t>(GroundItems::SoundSet::Count), "a phrase for every item sound set");
 	SettingsList::Entry entry;
@@ -1891,6 +1903,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Volume("doorway-volume", &T::doorwayVolume, F::Doorways),
 		Volume("guidance-volume", &T::guidanceVolume, F::Guidance),
 		Volume("low-life-volume", &T::lowLifeVolume, F::LowLife),
+		Volume("charge-chord-volume", &T::chargeChordVolume, F::Charges),
 		Volume("step-volume", &T::stepVolume, F::Steps),
 		FootstepVolume(),
 	}});
@@ -1989,6 +2002,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{VitalsService::PartyFirst, VitalsService::SetPartyFirst, phrase(&T::partyFirstOn, &T::partyFirstOff), false, "party-first"},
 		{VitalsService::SkillsReported, VitalsService::SetSkillsReported, phrase(&T::skillReportOn, &T::skillReportOff), false, "skill-report"},
 		{VitalsService::ChargeAlerts, VitalsService::SetChargeAlerts, phrase(&T::chargeAlertsOn, &T::chargeAlertsOff), false, "charge-alerts"},
+		ChargeChordMode(),
 		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
 		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
 		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},

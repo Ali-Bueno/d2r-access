@@ -242,7 +242,7 @@ The in-game switches are in the Ctrl+S list (BACK+RB on the controller), in grou
 - **NPC exclamation mark chime** (on): a small bell when the "!" appears over a town NPC, also when it appears while you stand near, and after its name from the scanner or the NPC announcer. The game only shows the mark within about 15 units of the NPC.
 - **Footstep volume** (in Volumes): your own footsteps from 25 to 300 percent of the game's, in steps of 25; above 100 percent the game's step is played again on top of itself.
 - **Pan and pitch strengths** (enemies, guidance): 0 to 400 percent in steps of 25.
-- **Item sounds:** Diablo IV (the default), Last Epoch gold and potions (the rest stays Diablo IV), or Diablo II drops: every item on the ground repeats the sound the game makes when it lands (a sword, a ring, a potion...). Drop sound speed, 50 to 300 percent in steps of 25, sets how often they repeat.
+- **Item sounds:** Diablo II drops (the default): every item on the ground repeats the sound the game makes when it lands (a sword, a ring, a potion...). Drop sound speed, 50 to 300 percent in steps of 25, sets how often they repeat. The other two sets: Diablo IV, or Last Epoch gold and potions (the rest stays Diablo IV).
 - **Volumes:** radar and walls (with the wall bump and wall tones), enemies and NPCs, items and places, guidance; each from 0 to 200 percent in steps of 25.
 - **Usable corpse rattle** (Enemies and NPCs, on, Necromancer only): a short bone rattle toward the nearest corpse when corpses you can raise or explode come near. Corpses already raised or exploded do not count. "Usable corpse rattle every 3 seconds" below it repeats it while they stay near: once, or every 2, 3, 5 or 8 seconds.
 - **Minions in the life report** (Alerts, off): BACK+X also lists your summons.
@@ -262,6 +262,8 @@ The in-game switches are in the Ctrl+S list (BACK+RB on the controller), in grou
 - **Mercenary's lines named** (on): "Mercenary says: I feel much stronger now".
 - **Walk, run and stamina alerts** (on).
 - **Ammunition alerts** (on): arrows, bolts or throwing weapons running low.
+- **Assassin charge alerts** (Alerts, on): each new martial-arts charge says the skill and the count ("Tiger Strike 2"); charges that run out unused say "charges lost".
+- **Charge chord** (Alerts): a soft chord, one note per charge (A, then A and C, then A, C and E: A minor). Struck with each new charge (the default), held while the charges last, or off. Its volume is in Volumes.
 - **Weapon set number** (on): the weapon swap also says "Weapon set 1" or "2".
 - **Skill hotkeys** (on): on the keyboard, F1 to F8 say the skill they select, only when it changes.
 - **Town NPCs listed from anywhere in town** (on): every town NPC can be scanned and followed from anywhere in town, even before you have seen them.

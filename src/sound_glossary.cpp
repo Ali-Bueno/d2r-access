@@ -1,5 +1,6 @@
 #include "sound_glossary.h"
 #include "beacon_audio.h"
+#include "charge_chord.h"
 #include "entity_cue_audio.h"
 #include "ground_item_service.h"
 #include "ground_items.h"
@@ -53,6 +54,7 @@ std::vector<std::function<void()>> Players() {
 		Loot(Item::EpochGold), Loot(Item::EpochHealthPotion), Loot(Item::EpochManaPotion), Loot(Item::EpochRejuvenationPotion),
 		Loot(Item::EpochOtherPotion), Loot(Item::Shrine), Loot(Item::Well), Cue(ES::Corpse),
 		Loot(Item::Doorway), [] { ItemAudio::Preview(GroundItemService::StepBeep() ? Item::Step : Item::StepClick); },
+		ChargeChord::Preview,
 	};
 }
 }

@@ -189,6 +189,7 @@ add_library(d2r-access SHARED
 	src/vitals.cpp
 	src/vitals_service.cpp
 	src/low_life_audio.cpp
+	src/charge_chord.cpp
 	src/status_effects.cpp
 	src/speech_priority.cpp
 	src/minion_report.cpp
@@ -638,6 +639,8 @@ if(BUILD_TESTING)
 	add_test(NAME status-effects COMMAND status-effects-tests)
 	d2r_test(charge-tracker-tests tests/charge_tracker_tests.cpp)
 	add_test(NAME charge-tracker COMMAND charge-tracker-tests)
+	d2r_test(charge-chord-tests tests/charge_chord_tests.cpp)
+	add_test(NAME charge-chord COMMAND charge-chord-tests)
 	d2r_test(speech-priority-tests tests/speech_priority_tests.cpp)
 	add_test(NAME speech-priority COMMAND speech-priority-tests)
 	d2r_test(minion-report-tests tests/minion_report_tests.cpp src/minion_report.cpp)

@@ -61,3 +61,25 @@ BACK+X says "<skill> charges: <n>" in place of "<skill> active". The switch is `
 
 If the stat reads 0 while the state is on, fall back to the state alone. It shows whether charges
 are present, but not how many.
+
+## The charge chord (2026-11-02)
+
+bfbeast asked for a tone beside the speech: three notes forming a gentle chord, a C on the first
+charge, E added on the second, G on the third, held while the charges last; synthesized, since no
+sample stays pleasant over long fights. The user found holding them likely to grate, so the
+setting `charge-chord` (Alerts) has three modes: off, **struck** with each new charge (the default:
+the chord of the notes reached, fading in about a second and a half) and **held** (bfbeast's: each
+new note is struck and then settles to half its level until the charges are released or run out).
+
+- `src/charge_chord_synth.h`: the synth, tested by `tests/charge_chord_tests.cpp`. Sine notes with
+  their octave above at 0.2 of their level, 30 ms attack, 350 ms decay time constant, 0.12 of full scale each.
+- `src/charge_chord.cpp`: its own XAudio2 stream in 20 ms blocks, asleep while silent; volume
+  `charge-chord-volume` (Volumes, `SoundVolume::Family::Charges`); the mod sounds switch silences it.
+- `VitalsService` reads the charges when the alerts or the chord are on. Held mode follows the most
+  charges any skill has; struck mode strikes the most just gained. Silent in a pause or a
+  dialogue, as the low-life heartbeat. The sound glossary's last entry strikes the full chord.
+
+The user auditioned ten variants (timbres and keys) and kept this timbre in **A minor** (A3, C4, E4).
+bfbeast relayed B-E-F as echoing the Tristram theme; unverified, and B-F is a tritone and E-F a
+semitone, so it is no gentle chord.
+**Unverified live.**

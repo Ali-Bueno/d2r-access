@@ -2,6 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Diablo II item sounds by default; the charge chord — 2026-11-02 (not released)
+
+- The user: **Diablo II drops** is now the default item sound set (they got used to it). The
+  saved value keeps its meaning, so a player who chose Diablo IV keeps it.
+- bfbeast asked for a soft tri-tone chord on the Assassin's charges (C, E, G, a note per charge,
+  held). The user thought holding it would grate: `charge-chord` (Alerts) is off / **struck with
+  each new charge** (default) / held; its own volume (`charge-chord-volume`) and glossary entry.
+  Synthesized, `src/charge_chord*.{h,cpp}` ([assassin charges](docs/assassin-charges.md#the-charge-chord-2026-11-02)).
+- CTest 139/139; DLL installed. **Unverified live.** The user asked for a page to audition the
+  chord and alternatives before settling.
+
+- The user picked variant 1's timbre in A minor (A, C, E) from the audition page; done.
+
+**Next step:** the user tries the chord in game.
+
 ## Help, Chronicle, loot filter and credits — 2026-11-02 (not released)
 
 The user: the loot filter, Help and Chronicle menus were only partly read, the credits not at all
