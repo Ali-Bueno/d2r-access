@@ -2,6 +2,23 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Installer: the newest by default, other versions under Modify; no download text — 2026-11-02 (installer in release 1.0)
+
+bfbeast, and the user agreed: Update should take the latest release, not list thirty test builds;
+the installer's long text about downloading zips is not needed
+([installer](docs/release-launch.md#the-installer-the-users-mod-installer-adapted-2026-11-01)).
+(His third point, the guide and README buttons, was a misreading; left as they are.)
+- Install / Update / Reinstall installs the newest release; "Modify..." next to it has the picker.
+- The install question shows only the notes' "What's new" (`notes_section`); the launcher's update
+  question gets only the news (`release.json` `notes`, from the next release).
+- Installer committed and pushed as 9ee8c62, 26/26 tests; MSAA dump: Reinstall, Modify..., Install
+  from file... in that order. Release 1.0's `D2RAccessInstaller.exe` replaced by it (the user
+  asked; the public download's SHA-256 matches, `8c95ff29…`). The zip, `README.html` and
+  `release.json` of 1.0 are unchanged (README's new Modify sentence and the news-only notes ship
+  with the next release). **Unverified live:** Modify's picker, the trimmed question.
+
+**Next step:** the announcement of 1.0.
+
 ## Release 1.0; the repo public — 2026-11-02 (released as 1.0 from 8a47e42)
 
 The user: make the repo public and release 1.0, said in game at start; test the installer against

@@ -75,7 +75,7 @@ Flow, at each start before the license step:
    than every dated one; only a strictly newer tag is offered. A launcher from before 1.0 cannot read
    a numbered tag, so testers on a `test-` build get 1.0 from the installer or the zip, not offered. Any failure (offline, 404, bad JSON) is logged and the launcher goes on.
 3. A Yes/No `MessageBox` (topmost) in the game's language: new and installed tag, the first 1500
-   characters of the notes, and that it takes about a minute without speech. No: go on to the game.
+   characters of the notes (only the release's news since 2026-11-02, none without a news file), and that it takes about a minute without speech. No: go on to the game.
 4. Download `releases/download/<tag>/<asset>` (pinned to the tag; 10 min) to `%TEMP%\D2RAccessUpdate\<tag>\`,
    check the SHA-256, extract with `System32	ar.exe -xf` (exit code checked).
 5. Copy every file over the game folder. Never overwritten when they exist: any `*.toml`, and the plugin's

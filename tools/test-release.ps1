@@ -141,9 +141,10 @@ try {
 	) -join "`n"
 	$releaseNotes = Join-Path $out "notes.md"
 	[IO.File]::WriteAllText($releaseNotes, $notes, [Text.UTF8Encoding]::new($false))
-	# The launcher reads this manifest to offer the update (docs/launcher.md, "Self-update").
+	# The launcher reads this manifest to offer the update (docs/launcher.md, "Self-update"). Its notes are
+	# only the news: the release notes also tell web readers how to download the zip.
 	$releaseJson = Join-Path $out "release.json"
-	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $zip -Leaf); sha256 = $zipHash; notes = $notes } | ConvertTo-Json
+	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $zip -Leaf); sha256 = $zipHash; notes = $news } | ConvertTo-Json
 	[IO.File]::WriteAllText($releaseJson, $manifest, [Text.UTF8Encoding]::new($false))
 	# The pages on their own too: the installer's guide and README buttons open them before the mod is installed.
 	gh release create $tag $zip $installer $releaseJson (Join-Path $stage "README.html") (Join-Path $stage "GUIDE.html") --target $commit --title $title --notes-file $releaseNotes --latest

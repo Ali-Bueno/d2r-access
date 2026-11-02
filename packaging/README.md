@@ -22,7 +22,7 @@ Download `D2RAccessInstaller.exe` from this link, which always gives the latest 
 
 {{INSTALLER_URL}}
 
-Close the game and run it. It finds the game on Steam or Battle.net (or lets you choose the folder), downloads the latest version of the mod, installs it and asks for the game language (see [Language](#language)). On Steam it asks whether Steam's Play button should start the mod, and then it offers a desktop shortcut to `D2RAccess.exe`. If Windows does not let it write in the game folder, it offers to start again as administrator. Your settings are kept. Run it again at any time to update, reinstall or uninstall the mod.
+Close the game and run it. It finds the game on Steam or Battle.net (or lets you choose the folder), downloads the latest version of the mod, installs it and asks for the game language (see [Language](#language)). On Steam it asks whether Steam's Play button should start the mod, and then it offers a desktop shortcut to `D2RAccess.exe`. If Windows does not let it write in the game folder, it offers to start again as administrator. Your settings are kept. Run it again at any time to update to the latest version, reinstall or uninstall the mod; its Modify button installs an earlier version.
 
 ### By hand, with the zip
 

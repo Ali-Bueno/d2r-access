@@ -106,9 +106,14 @@ controls), one `configs/<mod>.toml` per mod. `configs/d2r.toml` and the code it 
   without asking.
 - Uninstall removes the launcher with the mod, so it clears the launch option if it is still the
   one it set; it can also remove D2RLoader (never the game's `mods` folder nor the VC++ DLLs).
-- Install when the installed tag (`version.txt`) is already the latest release (2026-11-02, the
-  user asked) first says "You already have the latest version" and asks whether to reinstall
-  anyway; Yes goes on to the version picker (repair or roll back), No stops.
+- The main button (Install / Update / Reinstall) always installs the newest release; **Modify...**
+  next to it opens the version picker (bfbeast, 2026-11-02: thirty test releases in the picker
+  would alarm people). When the installed tag (`version.txt`) is already the newest, it first says
+  "You already have the latest version" and asks whether to reinstall it to repair it.
+- The install question shows only the notes' "What's new" section (`[github] notes_section`), or
+  just "Install D2R Access 1.0?" without one: the rest of the release notes is the download
+  steps written for the web page, which bfbeast found a needless wall of text. The launcher's
+  update question had the same text; `release.json`'s `notes` now carries only the news.
 - The combo box was read as "cuadro combinado Spanish (es-ES)" with no name (2026-11-02). A Win32
   screen reader names an edit or combo box after the static label right before it in z-order, and
   nwg's `Label` moves itself to the top of the z-order on every `WM_SIZE` (its handler calls
