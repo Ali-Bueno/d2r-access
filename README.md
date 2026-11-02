@@ -47,8 +47,8 @@ online license before Blizzard's 30-day offline limit is reached, offers a newer
 when there is one (switch `update-check`), and starts the game through D2RLoader. The mod says
 "Diablo 2 accessibility loaded" when it is running.
 
-To use Steam's Play button instead, set the game's launch options (Properties → General → Launch
-Options) to the launcher's path followed by `%command%`:
+To use Steam's Play button instead (the installer offers to set it), set the game's launch options
+(Properties → General → Launch Options) to the launcher's path followed by `%command%`:
 
 ```
 "C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected\D2RAccess.exe" %command%

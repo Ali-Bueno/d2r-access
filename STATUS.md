@@ -16,6 +16,24 @@ Probabilidad media de golpear a:"). `CharacterStats::HoverWords` now reads it to
 `TooltipText::Read`, as [the recipe](docs/character-panel.md#hit-chance-tooltips-2026-10-25) said.
 138/138 CTest; installed by the build.
 
+## The installer asks about Steam, and looks for Battle.net — 2026-11-02 (not released)
+
+The user: D2RLoader also runs on Battle.net copies (its download page: "Battle.net or Steam"), and
+some players start every game from Steam, without desktop shortcuts
+([installer](docs/release-launch.md#the-installer-the-users-mod-installer-adapted-2026-11-01)).
+- After an install it **asks** whether Steam's Play button should start the mod (launch option
+  `"<game>\D2RAccess.exe" %command%`, no question if already set), then **asks** about the desktop
+  shortcut (an existing one is refreshed). Uninstall now removes `D2RAccess.exe` and clears the
+  option.
+- Battle.net: found by the Uninstall entry with `--uid=osi` or the default folder; a folder Windows
+  will not let it write offers a restart as administrator.
+- Installer repo uncommitted (on top of f3843f1), 23/23 tests, `dist\D2RAccessInstaller.exe`
+  rebuilt. **Unverified live:** both questions; everything on a Battle.net copy, the launcher's
+  online validation included (it starts `D2R.exe` directly).
+
+**Next step:** live: run the installer on the Steam copy (both questions); a Battle.net tester for
+the rest.
+
 ## The tutorial, third run — 2026-11-02 (evening)
 
 - **Holds that outlived their phrase** (the user: after the tutorial spoke, every reading queued,

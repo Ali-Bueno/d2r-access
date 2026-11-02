@@ -46,17 +46,17 @@ mod's d2r-access.toml are never replaced.
 
 STARTING THE GAME
 
-Start the game with D2RAccess.exe, in the game folder (the installer puts a
-shortcut to it on the desktop). It starts the game with the mod and, when the
+Start the game with D2RAccess.exe, in the game folder (the installer offers to
+put a shortcut to it on the desktop). It starts the game with the mod and, when the
 last online sign-in is about 20 days old, first validates the license online by
 itself (about half a minute, it tells you), so the 30-day offline block never
 reaches you.
 At each start it also checks for a newer version and asks before installing it;
 turn that off with the "update-check" switch in the settings list (Ctrl+S).
 
-Steam: to use Steam's Play button, in the game's Properties, General tab,
-Launch options, type the path of D2RAccess.exe in quotes followed by %command%.
-For example:
+Steam: the installer offers to make Steam's Play button start the mod. To do it
+yourself, in the game's Properties, General tab, Launch options, type the path
+of D2RAccess.exe in quotes followed by %command%. For example:
 
 "C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected\D2RAccess.exe" %command%
 

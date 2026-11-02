@@ -77,27 +77,41 @@ The user's own installer, first made for the Kakarot mod, is reused instead of I
 controls), one `configs/<mod>.toml` per mod. `configs/d2r.toml` and the code it needed were added
 2026-11-01 (uncommitted there until the user reviews); build with `MOD_CONFIG=d2r cargo build
 --release`, copied to `dist\D2RAccessInstaller.exe`. What it does for this mod:
-- Finds the game through Steam (app 2536520) or Battle.net's uninstall entry, or a chosen folder.
+- Finds the game through Steam (app 2536520), then Battle.net, or a chosen folder. Battle.net
+  (2026-11-02): the `InstallLocation` of the Uninstall key `Diablo II Resurrected` or of any entry
+  whose `UninstallString` holds `--uid=osi` (D2R's product code in Playnite's BattleNetLibrary,
+  `BattleNetGames.cs`; Blizzard's uninstaller takes `--uid=`), else
+  `Program Files (x86)\Diablo II Resurrected` (Battle.net's default).
+- If Windows refuses a file in the game folder (a Battle.net copy under Program Files may not be
+  writable; D2RMM's FAQ tells users to run it as administrator), install and uninstall offer to
+  restart the installer elevated, passing `--game-dir "<folder>"`.
 - Downloads the latest `d2r-access*.zip` from `Ali-Bueno/d2r-access` (public before the first
   release: a private repo answers 404 to an unsigned request), or installs a chosen zip.
 - Replaces the plugin (`d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/`)
-  and keeps the player's `settings.txt`, `tutorial.txt`, `explored/` and `d2r-access.toml`.
+  and the launcher (`D2RAccess.exe`, and a self-update's `.old`), and keeps the player's `settings.txt`, `tutorial.txt`, `explored/` and `d2r-access.toml`.
 - A "Game language" box (from the loader's config, else Steam's appmanifest, else Windows) sets
   `text_locale` and `audio_locale` in `d2rloader.toml`. Tested 2026-11-01: with `text_locale`
   empty the game's own option rules the text and the mod follows, but a first start through the
   loader is English whatever Steam says, so the user chose to set both
   (`[language] text_follows_game` exists in the installer, off for this mod).
-- On Steam it sets the launch option `"<game>\D2RAccess.exe" %command%` (the
-  [launcher](launcher.md)) in `localconfig.vdf`, replacing an older `"<game>\D2RLoader.exe"` one,
-  closing Steam first with the player's OK, and keeps a backup; else it says what to type.
-- A desktop shortcut, `Diablo II Resurrected Access.url`, to `D2RAccess.exe` for Steam and
-  Battle.net copies alike (`[shortcut] steam_url = false`).
-- Uninstall can also remove D2RLoader (never the game's `mods` folder nor the VC++ DLLs) and then
-  clears the launch option if it is still the one it set.
+- On Steam it **asks** (the user, 2026-11-02: some players start every game from Steam) whether
+  Steam's Play button should start the mod, showing the resulting option
+  `"<game>\D2RAccess.exe" %command%` (the [launcher](launcher.md)); on Yes it writes
+  `localconfig.vdf`, replacing an older `"<game>\D2RLoader.exe"` one, closing Steam first (said in
+  the same question) and keeping a backup. Already set: no question. On No it says what to type.
+- Then it **asks** whether to create the desktop shortcut `Diablo II Resurrected Access.url` to
+  `D2RAccess.exe` (Steam and Battle.net copies alike, `[shortcut] steam_url = false`); the question
+  says the other way to start (Steam's Play button if set; else `D2RAccess.exe` in the game folder,
+  since Battle.net's Play starts the game without the mod). An existing shortcut is refreshed
+  without asking.
+- Uninstall removes the launcher with the mod, so it clears the launch option if it is still the
+  one it set; it can also remove D2RLoader (never the game's `mods` folder nor the VC++ DLLs).
 
 **Unverified live:** whether the loader accepts a `d2rloader.toml` holding only the two locale keys
 (written when the file is missing) and adds its defaults; Steam's shutdown and the `localconfig.vdf`
-write; the Battle.net shortcut; the download once the repo is public. A `.url` file is read in the
+write; everything on a Battle.net copy (detection, the elevated restart, the shortcut, and the
+launcher's online validation, which starts `D2R.exe` directly: forum reports conflict on whether
+that works with the Battle.net app closed); the download once the repo is public. A `.url` file is read in the
 system code page, so a game path with non-ASCII letters may break the Battle.net shortcut.
 Each public release must carry the zip and `D2RAccessInstaller.exe` (the Kakarot lesson: the
 installer's download link follows `/releases/latest`).
