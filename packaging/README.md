@@ -10,10 +10,21 @@ An accessibility mod for Diablo II: Resurrected. It reads the game through your 
 
 ## Requirements
 
-- Diablo II: Resurrected from Steam or Battle.net, on 64-bit Windows 10 or 11.
-- NVDA or JAWS running before you start the game.
+- Diablo II: Resurrected 3.3.x from Steam or Battle.net, on 64-bit Windows 10 or 11.
+- On Steam, your Battle.net account linked to Steam (https://account.battle.net/connections): the game needs that link to run and to renew its license online.
+- NVDA or JAWS running before you start the game. Without either, the mod speaks with the Windows voice.
 
 ## Installation
+
+### With the installer (recommended)
+
+Download `D2RAccessInstaller.exe` from this link, which always gives the latest one:
+
+{{INSTALLER_URL}}
+
+Close the game and run it. It finds the game on Steam or Battle.net (or lets you choose the folder), downloads the latest version of the mod, installs it and asks for the game language (see [Language](#language)). On Steam it asks whether Steam's Play button should start the mod, and then it offers a desktop shortcut to `D2RAccess.exe`. If Windows does not let it write in the game folder, it offers to start again as administrator. Your settings are kept. Run it again at any time to update, reinstall or uninstall the mod.
+
+### By hand, with the zip
 
 1. Close the game.
 2. Extract everything in this zip into the game folder, the one that has `D2R.exe`. On Steam: right-click the game, Manage, Browse local files. It is usually: `C:\Program Files (x86)\Steam\steamapps\common\Diablo II Resurrected`. If it asks whether to replace files, say yes.
@@ -21,11 +32,13 @@ An accessibility mod for Diablo II: Resurrected. It reads the game through your 
 
 ## Updating
 
-The latest version can always be downloaded from this link:
+The easiest way is to say yes when `D2RAccess.exe` offers a new version as you start the game (see [Starting the game](#starting-the-game)), or to run the installer again.
+
+To update by hand, the latest zip can always be downloaded from this link:
 
 {{LATEST_URL}}
 
-To update, close the game and extract the new zip on top, just like the first time. Your settings stay as they are: the zip carries no settings files, so the loader's options (language, extra shared stash pages and the rest) and the mod's `d2r-access.toml` are never replaced.
+Close the game and extract the new zip on top, just like the first time. Your settings stay as they are: the zip carries no settings files, so the loader's options (language, extra shared stash pages and the rest) and the mod's `d2r-access.toml` are never replaced.
 
 ## Starting the game
 

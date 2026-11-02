@@ -95,7 +95,7 @@ try {
 	$readme = (Get-Content "packaging\README.md" -Raw -Encoding utf8) -replace "`r`n", "`n"
 	$readme = $readme.Replace("{{NEWS}}`n", $(if ($news) { "## What's new`n`n$news`n" } else { "" }))
 	$readme = $readme.Replace("{{DATE}}", $readmeDate).Replace("{{COMMIT}}", $short)
-	$readme = $readme.Replace("{{LOADER}}", $loaderVersion).Replace("{{LATEST_URL}}", $latestUrl)
+	$readme = $readme.Replace("{{LOADER}}", $loaderVersion).Replace("{{LATEST_URL}}", $latestUrl).Replace("{{INSTALLER_URL}}", $installerUrl)
 	if ($readme.Contains("{{")) { throw "packaging\README.md has a placeholder the script does not fill." }
 	Write-Page $readme "Diablo II: Resurrected Access" (Join-Path $stage "README.html")
 
