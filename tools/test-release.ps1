@@ -5,6 +5,9 @@ param(
 	[string]$LoaderDir = (Join-Path $PSScriptRoot "..\..\loader-backups\1.3.1-beta"),
 	[string]$InstallerDir = (Join-Path $PSScriptRoot "..\..\..\..\tools\mod-installer"),
 	[string]$NewsFile,
+	# A numbered release (1.0, 1.0.1, 1.1): its tag, which the plugin speaks at start and the launcher's
+	# update check reads as newer than every dated build. Without it, a dated test build (test-YYYY-MM-DD[-N]).
+	[string]$Version,
 	[switch]$NoPublish
 )
 $ErrorActionPreference = "Stop"
@@ -22,7 +25,7 @@ $runtimeDlls = "msvcp140.dll", "msvcp140_atomic_wait.dll", "vcruntime140.dll", "
 $loaderFiles = "D2RLoader.exe", "D2RCore.dll", "d2rloader.mpq"
 $loaderDirs = "mods", "d2rloader\crashes", "d2rloader\data", "d2rloader\logs"
 # Everything the plugin binary is built from; packaging text may change without a rebuild.
-$buildInputs = "src", "cmake", "CMakeLists.txt", "plugin.rc", "sounds", "third_party", "radar.toml", "data", "external", "LICENSE"
+$buildInputs = "src", "launcher", "cmake", "CMakeLists.txt", "plugin.rc", "sounds", "third_party", "radar.toml", "data", "external", "LICENSE"
 
 function Copy-Into([string]$Source, [string]$Destination) {
 	New-Item -ItemType Directory (Split-Path $Destination) -Force | Out-Null
@@ -59,10 +62,17 @@ try {
 	if (-not $crt) { throw "No x64 VC++ runtime found under $vcRedist." }
 
 	# The tag is chosen first: the plugin speaks it at start.
-	$date = Get-Date -Format "yyyy-MM-dd"
-	$tag = "test-$date"
-	$n = 1
-	while (git ls-remote --tags origin "refs/tags/$tag") { $n++; $tag = "test-$date-$n" }
+	if ($Version) {
+		if ($Version -notmatch '^[1-9]\d{0,3}\.(0|[1-9]\d{0,3})(\.(0|[1-9]\d{0,3}))?$') { throw "-Version takes MAJOR.MINOR[.PATCH], like 1.0." }
+		$tag = $Version
+		if (git ls-remote --tags origin "refs/tags/$tag") { throw "The tag $tag is already on GitHub." }
+	} else {
+		$date = Get-Date -Format "yyyy-MM-dd"
+		$tag = "test-$date"
+		$n = 1
+		while (git ls-remote --tags origin "refs/tags/$tag") { $n++; $tag = "test-$date-$n" }
+	}
+	$title = if ($Version) { "D2R Access $Version" } else { "Test build $($tag -replace '^test-', '')" }
 
 	# A separate build tree whose deploy step points away from the game install.
 	& (Join-Path $root "build.ps1") -BuildDir $buildDir -GameDir (Join-Path $out "deploy") -Release $tag
@@ -94,7 +104,7 @@ try {
 	$readmeDate = (Get-Date).ToString("MMMM d, yyyy", [Globalization.CultureInfo]::GetCultureInfo("en-US"))
 	$readme = (Get-Content "packaging\README.md" -Raw -Encoding utf8) -replace "`r`n", "`n"
 	$readme = $readme.Replace("{{NEWS}}`n", $(if ($news) { "## What's new`n`n$news`n" } else { "" }))
-	$readme = $readme.Replace("{{DATE}}", $readmeDate).Replace("{{COMMIT}}", $short)
+	$readme = $readme.Replace("{{VERSION}}", $(if ($Version) { "$Version, $readmeDate" } else { "of $readmeDate" })).Replace("{{COMMIT}}", $short)
 	$readme = $readme.Replace("{{LOADER}}", $loaderVersion).Replace("{{LATEST_URL}}", $latestUrl).Replace("{{INSTALLER_URL}}", $installerUrl)
 	if ($readme.Contains("{{")) { throw "packaging\README.md has a placeholder the script does not fill." }
 	Write-Page $readme "Diablo II: Resurrected Access" (Join-Path $stage "README.html")
@@ -115,7 +125,7 @@ try {
 	if ($NoPublish) { return }
 
 	$notes = @(
-		"Test build with the complete package: the mod (commit $short), D2RLoader $loaderVersion and the Visual C++ runtime."
+		"$(if ($Version) { "D2R Access $Version" } else { "Test build" }) with the complete package: the mod (commit $short), D2RLoader $loaderVersion and the Visual C++ runtime."
 		if ($news) { "", "## What's new", "", $news }
 		"", "## Install or update", ""
 		"Close the game, download ``$(Split-Path $zip -Leaf)`` and extract everything into the game folder (the one with ``D2R.exe``). The full instructions are in ``README.html``, inside the zip."
@@ -129,7 +139,8 @@ try {
 	$releaseJson = Join-Path $out "release.json"
 	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $zip -Leaf); sha256 = $zipHash; notes = $notes } | ConvertTo-Json
 	[IO.File]::WriteAllText($releaseJson, $manifest, [Text.UTF8Encoding]::new($false))
-	gh release create $tag $zip $installer $releaseJson --target $commit --title "Test build $($tag -replace '^test-', '')" --notes-file $releaseNotes --latest
+	# The pages on their own too: the installer's guide and README buttons open them before the mod is installed.
+	gh release create $tag $zip $installer $releaseJson (Join-Path $stage "README.html") (Join-Path $stage "GUIDE.html") --target $commit --title $title --notes-file $releaseNotes --latest
 	if ($LASTEXITCODE) { throw "Publishing failed." }
 	Write-Host "Published $tag. Always-latest link: $latestUrl"
 } finally {

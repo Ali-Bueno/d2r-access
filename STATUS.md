@@ -2,6 +2,27 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Installer: the language box named; "already up to date"; guide and README buttons — 2026-11-02 (not released)
+
+The user, before the release: the installer's combo box said only "cuadro combinado Spanish
+(es-ES)"; and Install on the latest version should say so
+([installer](docs/release-launch.md#the-installer-the-users-mod-installer-adapted-2026-11-01)).
+- nwg labels jump to the top of the z-order when resized, so the combo's label was no longer the
+  control before it: `restore_z_order` after each layout. MSAA dump: the combo is now named "Game
+  language:", also after a resize.
+- Install on the installed tag asks "You already have the latest version… Reinstall anyway?".
+- "Open the guide" / "Open the README" in the main window and in the final dialog (a TaskDialog
+  that stays open after one is pressed): the game folder's copy, else the latest release's asset;
+  `test-release.ps1` now attaches `README.html` and `GUIDE.html`. Fixed on the way: `layout()`
+  re-entered itself on every child resize, which overflowed the stack with the two new buttons.
+- Installer committed as 27c3157 (not pushed), 24/24 tests, `dist\D2RAccessInstaller.exe`
+  rebuilt. Checked here: MSAA names and tab order, before and after a resize; the TaskDialog in a
+  throwaway example (UIA: heading, text, both buttons, focus on Close; the user pressed both and
+  Close). **Unverified live:** NVDA on the installer; the up-to-date question; the buttons before
+  install (needs the repo public and a release carrying the pages).
+
+**Next step:** the user tries the installer with NVDA, then the release.
+
 ## Diablo II item sounds by default; the charge chord — 2026-11-02 (released as test-2026-11-02-2 from 6365935)
 
 - The user: **Diablo II drops** is now the default item sound set (they got used to it). The

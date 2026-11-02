@@ -14,6 +14,7 @@ constexpr std::size_t      Sha256Hex  = 64;
 constexpr int              HexBase    = 16;
 constexpr int              TagYearDigits = 4, TagPairDigits = 2;
 constexpr int              MaxDay = 31, MonthsInYear = 12;
+constexpr std::size_t      MaxVersionDigits = 4;
 constexpr unsigned         HighSurrogateFirst = 0xD800, LowSurrogateFirst = 0xDC00, LowSurrogateLast = 0xDFFF;
 constexpr unsigned         AstralBase = 0x10000;
 
@@ -34,6 +35,26 @@ bool Eat(std::string_view& text, char c) {
 	if (text.empty() || text.front() != c) return false;
 	text.remove_prefix(1);
 	return true;
+}
+
+// One part of a numbered tag: up to MaxVersionDigits digits, no leading zero.
+bool ReadVersionPart(std::string_view& text, int& out) {
+	std::size_t digits = 0;
+	while (digits < text.size() && std::isdigit(static_cast<unsigned char>(text[digits]))) ++digits;
+	if (digits == 0 || digits > MaxVersionDigits || (digits > 1 && text.front() == '0')) return false;
+	std::from_chars(text.data(), text.data() + digits, out);
+	text.remove_prefix(digits);
+	return true;
+}
+
+// `MAJOR.MINOR[.PATCH]`.
+std::optional<ReleaseTag> ParseNumberedTag(std::string_view rest) {
+	ReleaseTag parsed;
+	parsed.numbered = true;
+	if (!ReadVersionPart(rest, parsed.versionMajor) || !Eat(rest, '.') || !ReadVersionPart(rest, parsed.versionMinor)) return std::nullopt;
+	if (Eat(rest, '.') && !ReadVersionPart(rest, parsed.versionPatch)) return std::nullopt;
+	if (!rest.empty()) return std::nullopt;
+	return parsed;
 }
 
 void AppendUtf8(std::string& out, unsigned code) {
@@ -124,6 +145,7 @@ std::optional<ReleaseTag> ParseReleaseTag(std::string_view tag) {
 	ReleaseTag       parsed;
 	std::string_view rest = tag;
 	char             separator;
+	if (!rest.empty() && std::isdigit(static_cast<unsigned char>(rest.front()))) return ParseNumberedTag(rest);
 	if (rest.starts_with(TestPrefix)) {
 		rest.remove_prefix(TestPrefix.size());
 		separator = '-';

@@ -12,6 +12,7 @@ The repository is private, so the link works only for a signed-in GitHub account
 ```powershell
 .\tools\test-release.ps1 -NewsFile <news.txt>   # build, test, package, publish
 .\tools\test-release.ps1 -NoPublish              # same, but stop at the local ZIP and installer
+.\tools\test-release.ps1 -Version 1.0            # a numbered release: tag 1.0, title "D2R Access 1.0"
 ```
 
 The script builds `HEAD` in `build/test-release/cmake`, whose deploy step points at
@@ -25,7 +26,10 @@ changes, and attaches it as `D2RAccessInstaller.exe` next to the zip and `releas
 
 Each run creates a normal release tagged `test-YYYY-MM-DD` (`-2`, `-3`… on the same day) and marks
 it latest. The tag is chosen before the build and compiled in (`build.ps1 -Release`), so the
-plugin says it at start; a local build says "development build". They are not prereleases on purpose: GitHub's `releases/latest` link skips
+plugin says it at start; a local build says "development build". With `-Version` the tag is that
+number instead (the README's header says it too), and the launcher's update check ranks it above
+every dated build, so after 1.0 a dated build is never offered to a 1.0 player; it would still
+become `releases/latest` for the installer, so later releases should be numbered too. They are not prereleases on purpose: GitHub's `releases/latest` link skips
 prereleases. The asset name never changes, so the link above stays valid.
 
 ## Package contents

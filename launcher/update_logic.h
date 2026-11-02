@@ -22,9 +22,13 @@ inline constexpr std::size_t   ManifestMaxBytes  = 1 << 20;
 inline constexpr std::size_t   NotesShownChars   = 1'500;
 inline constexpr int           LeftoverTries     = 10;
 
-// A release tag as a comparable date: `test-YYYY-MM-DD[-N]` or `vYYYY.MM.DD[-N]`; N is the release number that day.
+// A comparable release tag. Dated builds: `test-YYYY-MM-DD[-N]` or `vYYYY.MM.DD[-N]`, N the release
+// number that day. Numbered releases, from 1.0 on: `MAJOR.MINOR[.PATCH]`, newer than every dated build
+// (members compare in order, `numbered` first).
 struct ReleaseTag {
-	int year = 0, month = 0, day = 0, number = 1;
+	bool numbered = false;
+	int  year = 0, month = 0, day = 0, number = 1;
+	int  versionMajor = 0, versionMinor = 0, versionPatch = 0;
 	auto operator<=>(const ReleaseTag&) const = default;
 };
 

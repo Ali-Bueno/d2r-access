@@ -106,6 +106,28 @@ controls), one `configs/<mod>.toml` per mod. `configs/d2r.toml` and the code it 
   without asking.
 - Uninstall removes the launcher with the mod, so it clears the launch option if it is still the
   one it set; it can also remove D2RLoader (never the game's `mods` folder nor the VC++ DLLs).
+- Install when the installed tag (`version.txt`) is already the latest release (2026-11-02, the
+  user asked) first says "You already have the latest version" and asks whether to reinstall
+  anyway; Yes goes on to the version picker (repair or roll back), No stops.
+- The combo box was read as "cuadro combinado Spanish (es-ES)" with no name (2026-11-02). A Win32
+  screen reader names an edit or combo box after the static label right before it in z-order, and
+  nwg's `Label` moves itself to the top of the z-order on every `WM_SIZE` (its handler calls
+  `SetWindowPos` without `SWP_NOZORDER`), which left "Game language:" before the Browse button.
+  `App::restore_z_order` puts every control back in creation order after each layout; an MSAA
+  dump (`AccessibleObjectFromWindow` + `accName`) then shows the combo named "Game language:",
+  also after a resize.
+- **The guide and the README** (2026-11-02, the user asked: people should not have to look for
+  them): `[docs]` in the config names `GUIDE.html` and `README.html`. The main window has "Open
+  the guide" and "Open the README" under the language box, and the final dialog of an install is
+  a TaskDialog (`dialog::message_with_actions`) with the same two buttons, which open a page
+  without closing it, and Close, which has the focus (Enter and Esc close it). If that dialog
+  cannot be shown, the plain message box is used. A button opens the copy in the game folder,
+  else the latest release's asset of that name, downloaded with the other page to
+  `%TEMP%\d2r-access-docs\<tag>\`, so README's link to the guide works: `test-release.ps1`
+  attaches both pages to each release.
+- Laying out used to re-enter itself: nwg's handler gets `OnResize` from every child too, so each
+  control resized inside `layout()` started a nested `layout()` (about 15 deep at start). Two more
+  buttons overflowed the stack; only the window's own resize lays out now.
 
 **Unverified live:** whether the loader accepts a `d2rloader.toml` holding only the two locale keys
 (written when the file is missing) and adds its defaults; Steam's shutdown and the `localconfig.vdf`

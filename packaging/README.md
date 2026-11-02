@@ -1,6 +1,6 @@
 # Diablo II: Resurrected Access
 
-Version of {{DATE}} (commit {{COMMIT}})
+Version {{VERSION}} (commit {{COMMIT}})
 
 ## What it is
 

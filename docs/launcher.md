@@ -70,8 +70,10 @@ Flow, at each start before the license step:
    `d2rloader\plugins\d2r-access\settings.txt` (the plugin's Ctrl+S switch "update-check", on by
    default and so absent until changed), or when `D2R.exe` is running.
 2. Download `releases/latest/download/release.json` (no API, no rate limit; 5 s): `tag`, `asset`,
-   `sha256`, `notes`. Tags `test-YYYY-MM-DD[-N]` and `vYYYY.MM.DD[-N]` compare as (y, m, d, n); only a
-   strictly newer one is offered. Any failure (offline, 404, bad JSON) is logged and the launcher goes on.
+   `sha256`, `notes`. Tags `test-YYYY-MM-DD[-N]` and `vYYYY.MM.DD[-N]` compare as (y, m, d, n);
+   numbered tags `MAJOR.MINOR[.PATCH]` (from 1.0, 2026-11-02) compare part by part and are newer
+   than every dated one; only a strictly newer tag is offered. A launcher from before 1.0 cannot read
+   a numbered tag, so testers on a `test-` build get 1.0 from the installer or the zip, not offered. Any failure (offline, 404, bad JSON) is logged and the launcher goes on.
 3. A Yes/No `MessageBox` (topmost) in the game's language: new and installed tag, the first 1500
    characters of the notes, and that it takes about a minute without speech. No: go on to the game.
 4. Download `releases/download/<tag>/<asset>` (pinned to the tag; 10 min) to `%TEMP%\D2RAccessUpdate\<tag>\`,

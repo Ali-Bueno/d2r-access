@@ -18,8 +18,18 @@ void Tags() {
 	Check(IsNewer(*c, *b), "the next day is newer");
 	Check(IsNewer(*ParseReleaseTag("v2026.11.02"), *ParseReleaseTag("test-2026-11-01-9")), "a v-tag beats an earlier test tag");
 	Check(!IsNewer(*ParseReleaseTag("test-2026-10-31-5"), *a), "an earlier date with a big counter is older");
+	const auto one = ParseReleaseTag("1.0");
+	Check(one && one->numbered && one->versionMajor == 1 && one->versionMinor == 0 && one->versionPatch == 0, "a numbered tag parses");
+	Check(IsNewer(*one, *ParseReleaseTag("test-2026-11-02-2")) && IsNewer(*one, *ParseReleaseTag("v2099.12.31-9")),
+		"1.0 is newer than every dated build");
+	Check(!IsNewer(*ParseReleaseTag("test-2099-12-31"), *one), "a dated build is never offered over a numbered one");
+	Check(IsNewer(*ParseReleaseTag("1.0.1"), *one) && IsNewer(*ParseReleaseTag("1.1"), *ParseReleaseTag("1.0.9")) &&
+			IsNewer(*ParseReleaseTag("1.10"), *ParseReleaseTag("1.9")) && IsNewer(*ParseReleaseTag("2.0"), *ParseReleaseTag("1.10.3")),
+		"numbered tags compare part by part");
+	Check(!IsNewer(*one, *ParseReleaseTag("1.0.0")) && !IsNewer(*ParseReleaseTag("1.0.0"), *one), "1.0 and 1.0.0 are the same release");
 	for (const char* bad : {"", "test-", "test-2026-11", "test-2026-13-01", "test-2026-11-00", "test-2026-11-01-0", "test-2026-11-01-x",
-			"test-2026-11-01-", "v2026-11-01", "2026-11-01", "test-2026-11-01x", "v2026.11.2", "latest"})
+			"test-2026-11-01-", "v2026-11-01", "2026-11-01", "test-2026-11-01x", "v2026.11.2", "latest", "1", "1.", "1.0.", "1.0.0.0",
+			"01.0", "1.00", "1.0-beta", "1.0 ", "12345.0", "v1.0"})
 		Check(!ParseReleaseTag(bad), std::string("rejected tag: ") + bad);
 }
 
