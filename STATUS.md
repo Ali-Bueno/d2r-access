@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The guide's Horadric Cube section — 2026-11-02 (in release 1.0)
+
+BFBeast666 wrote a Horadric Cube section (Xbox only) for the guide; added at the end of `GUIDE.md`
+(7c1bd24) with PlayStation and keyboard controls (keyboard from the README's table: D opens, A /
+Alt+T transmute, Ctrl+A moves; Y's quick moves in the stash tabs have no key, "—" as the stash's
+quick-sort). Release 1.0 updated in place, the plugin unchanged: `GUIDE.html` regenerated in the
+staged package, the zip rebuilt (28 entries, 64,555,356 bytes, SHA-256 `45a2edb6…453a14`), and the
+zip, `GUIDE.html`, `release.json` and the notes' hash replaced; the public downloads match.
+
+**Next step:** the announcement of 1.0.
+
 ## Installer: the newest by default, other versions under Modify; no download text — 2026-11-02 (installer in release 1.0)
 
 bfbeast, and the user agreed: Update should take the latest release, not list thirty test builds;
@@ -28,7 +39,7 @@ the public repo, then announce it.
   ([test releases](docs/test-releases.md)). Launchers from `test-` builds cannot read `1.0`: no
   update offer there, testers update with the installer or the zip.
 - `Ali-Bueno/d2r-access` is public (anonymous API 200). Release `1.0` is latest: 139/139 CTest,
-  28 entries, 64,554,840 bytes, SHA-256 `30241a2b…de85f1`; assets zip, installer, `release.json`,
+  28 entries, 64,554,840 bytes, SHA-256 `30241a2b…de85f1` (zip since rebuilt with the cube guide, above); assets zip, installer, `release.json`,
   `README.html`, `GUIDE.html` (downloadable without login). No news file: the README has no
   "What's new".
 - Just after the visibility change GitHub answered `git ls-remote` with "repository is disabled";
