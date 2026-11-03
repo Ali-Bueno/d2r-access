@@ -37,6 +37,8 @@ struct Landmark {
 	double              straightLine = 0;  // subtiles; ordering fallback and reporting
 	Radar::Position     offset;           // from the player, for its spoken direction
 	bool                reachable    = false;
+	bool                alongWay     = false; // `steps` is said in either mode: the way through teleport pads
+	std::string         detail;               // said after the name, as where a teleport pad leads
 };
 
 struct Settings {
@@ -128,6 +130,8 @@ private:
 // Distance and direction for everything known, nearest first: walking steps
 // with full assistance, otherwise the straight line alone. Unreachable objects
 // sort after reachable ones, by straight line.
+// Nearest first, by the distance each is spoken with.
+void Sort(std::vector<Landmark>& landmarks);
 std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& grid,
 	const std::vector<EntityRadar::Entity>& entities, bool fullAssistance = true);
 

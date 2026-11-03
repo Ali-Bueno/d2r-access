@@ -28,6 +28,12 @@ void SetUnexploredSpread(bool on);
 // edge of known ground; on by default (a tester, 2026-10-25; the user, 2026-10-26). docs/entity-scan.md
 bool UnexploredEverywhere();
 void SetUnexploredEverywhere(bool on);
+// A teleport pad says whether it leads where the player has stood.
+bool PadLeads();
+void SetPadLeads(bool on);
+// An unexplored room past teleport pads is as far as the way through them.
+bool PadSteps();
+void SetPadSteps(bool on);
 // Doorways listed with the doors, on by default (docs/ground-items.md#doorways-2026-10-20).
 bool DoorwaysListed();
 void SetDoorwaysListed(bool on);

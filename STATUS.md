@@ -2,6 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Arcane Sanctuary pads: where each leads, in words and sound — 2026-11-03 (release 1.0.2)
+
+The user looped over the same pads for 21 minutes (20 hops, 7 pairs; log 05:29-05:50) and asked
+to know which were used and how near the closest unexplored area is, keeping the place's chaos
+([where a pad leads](docs/keyboard-play.md#where-a-pad-leads-said), [decision](docs/decisions.md)).
+- A pad is "stood at" within 5 cells (any control); a hop of any control teaches its pair.
+- Scanner: a pad says "leads where you have been" / "leads somewhere new" (`pad-leads`); a loop at
+  each pad, bright or muted (`pad-sounds`, synthesized placeholders); unexplored areas past pads
+  measured along the way through them, in exploration mode too (`pad-steps`). 8 strings, 13 languages.
+- Built, 139/139 CTest. **Verified live** (the user, controller, 06:20-06:39): both phrases heard,
+  14 hops learned, Horazon's journal and the Summoner reached in 18 minutes ("funcionó").
+
+**Next step:** the players' reports on 1.0.2.
+
 ## Launcher: Steam or Battle.net opened before any start; Battle.net validation through the app — 2026-11-03 (released as 1.0.1 from 5f0a072)
 
 The user: make sure Steam or Battle.net is running before any start (validation or not), opening it

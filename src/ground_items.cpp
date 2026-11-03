@@ -157,6 +157,7 @@ Update Tracker::Tick(const Snapshot& snapshot, uint64_t now, bool speechEnabled,
 	Emit(snapshot.landmarks, snapshot.player, MaxVoices, result);
 	if (doorLoops) Emit(snapshot.doors, snapshot.player, MaxDoorVoices, result);
 	Emit(snapshot.doorways, snapshot.player, MaxDoorwayVoices, result); // listed only with their switch on
+	Emit(snapshot.pads, snapshot.player, MaxPadVoices, result); // the same
 	if (shrineLoops) Emit(snapshot.shrines, snapshot.player, MaxShrineVoices, result);
 	if (containerLoops) Emit(snapshot.containers, snapshot.player, MaxContainerVoices, result);
 	std::vector<std::pair<double, const Item*>> nearby;

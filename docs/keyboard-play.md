@@ -606,6 +606,58 @@ unit is the server's. The `teleported` lines answer both.
 
 **Not tested in the game.**
 
+## Where a pad leads, said
+
+The user, 2026-11-03, after 21 minutes in the Arcane Sanctuary on a controller:
+caught in a loop of pads, "necesito saber si ya usé algún teletransporte y qué
+tan cerca estoy de la zona inexplorada más próxima", without taking away the
+place's chaos. MEASURED in that log (05:29-05:50): 20 hops over 7 pairs, one
+pair 7 times, another 4; pairs are crossed both ways; every pad was said alike,
+up to 24 in the list; `0 of them seen used` all along, as only D taught a use;
+the unexplored areas said the straight line across the void (136 units).
+
+**What a sighted player is shown, READ in `objects.txt`**: the four TeleportPad
+rows have one mode only (`Mode0=1`, no operating or opened mode), lit
+(`Lit0=17`), so a pad looks the same before and after use; the automap does not
+draw them (`AutoMap=0`); two looks, token `7h` (pads 1-2) and `aa` (3-4), so the
+two pads of a pair look alike. Web sources (Maxroll, Almar's, the Basin wiki, a
+Blizzard forum thread) describe no mark for a pad used and no drawn link to
+where it leads; players take the arms one by one to their ends, and the
+Summoner's arm cannot be told in advance (Maxroll). What a sighted player has is
+memory: the automap of the ground walked, and the platform across the gap in
+view. So no "used" mark is said; where a pad leads is (`docs/decisions.md`).
+
+Built, each behind its switch in Ctrl+S, all on:
+
+- **Stood at** (`Pads::Stood`, `Been`): a pad is stood at when the player comes
+  within `LandNear` of it (5 cells, where the game puts a player it sends to
+  that pad) at a look, twice a second in play (`Sweep`), and both pads of a hop
+  of any control are (`NoteWayIn`; D's own use as before). Kept with the
+  level's map for the game. Log: `[keyboard] pads stood at: level L, by x,y`;
+  `[keyboard] hop by the pad at x,y class C to the pad at x,y`.
+- **Where it leads, said** (`pad-leads`, `Pads::Leads`): a pad in the scanner's
+  list says "leads where you have been" when the pad it leads to has been stood
+  at, else "leads somewhere new"; new as well when no other pad of its class has
+  been seen in its room, since the player was never near one. Nothing is said
+  when its room holds more than one other or is not known.
+- **Its sound** (`pad-sounds`): a loop at each pad, the nearest two, `pad new`
+  (a high twinkling triad) or `pad been` (a low, slow fifth); synthesized
+  two-second loops in `sounds/item loop sounds/exploration/`, to be replaced by
+  recordings at will. Log: `[items] teleport pads nearby: N, M leading where the
+  player has stood`.
+- **Unexplored areas past pads** (`pad-steps`, `KeyboardService::PadSteps`): in
+  a level with a pad whose way is known, an unexplored area's distance is the
+  steps of the way on foot and through the pads (`Reach::StepsWithin`, a pad
+  one step), in exploration mode as well, and the list is sorted by it. The way
+  runs over ground not seen yet, so it is the way to where the known map meets
+  the area. No pad is named: choosing them stays the player's.
+
+**Verified live** 2026-11-03 06:20-06:39 (the user, controller): the list said
+"lleva a un sitio nuevo" and, after a crossing, "lleva a donde ya estuviste";
+`hop by the pad` logged every pair taken (14); Horazon's journal and the
+Summoner reached in 18 minutes. The user: following the pads roughly toward the
+unexplored areas leads to the goal.
+
 ## The retreat: Ctrl+R, back the way in
 
 MEASURED 2026-10-02 08:39, the Arcane Sanctuary, come into by its waypoint at

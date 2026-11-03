@@ -239,14 +239,17 @@ std::vector<Landmark> Survey(const Radar::World& world, const Navigation::Grid& 
 		landmark.offset       = {entity.position.x - player.x, entity.position.y - player.y};
 		result.push_back(std::move(landmark));
 	}
-	// Nearest first, by the distance each one is spoken with: its walking steps
-	// when known, else its straight line (a tester: always the closest first, never
-	// a reachable one across the zone before an unreachable one beside the player).
+	Sort(result);
+	return result;
+}
+
+void Sort(std::vector<Landmark>& landmarks) {
+	// Its walking steps when known, else its straight line (a tester: always the closest
+	// first, never a reachable one across the zone before an unreachable one beside the player).
 	const auto spoken = [](const Landmark& landmark) { return landmark.reachable ? landmark.steps : landmark.straightLine; };
-	std::sort(result.begin(), result.end(), [&](const Landmark& a, const Landmark& b) {
+	std::sort(landmarks.begin(), landmarks.end(), [&](const Landmark& a, const Landmark& b) {
 		return std::tuple(spoken(a), a.straightLine, a.entity.id) < std::tuple(spoken(b), b.straightLine, b.entity.id);
 	});
-	return result;
 }
 
 bool KnownLine(const Radar::World& world, Radar::Position target, double distance) {

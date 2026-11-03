@@ -4,6 +4,7 @@
 #include "ground_items.h"
 #include "entity_layout.h"
 #include "item_audio.h"
+#include "keyboard_service.h"
 #include "native_entities.h"
 #include "native_ground_items.h"
 #include "native_world.h"
@@ -119,6 +120,9 @@ void Silence() { voices.clear(); }
 void Stop() { voices.clear(); }
 bool Available() { return true; }
 void PlayStep(GroundItems::Sound) {}
+}
+namespace D2RAccess::KeyboardService {
+LevelRoute::Destination PadLeads(const Radar::World&, const EntityRadar::Entity&) { return LevelRoute::Destination::Unknown; }
 }
 namespace D2RAccess::Doorways { std::vector<Rooms::Doorway> Find(const Radar::World&, const std::vector<EntityRadar::Entity>&) { return {}; } }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }

@@ -3,6 +3,17 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-11-03 — Arcane Sanctuary pads: where each leads, not which were used
+
+The user, caught in a loop of pads, asked to know which were used and how near the closest
+unexplored area is, without taking the chaos from the place. A pad looks the same before and
+after use and the automap does not draw pads (objects.txt), so a "used" mark would give more
+than the game; what a sighted player has is the automap and the platform in view. Chosen: a pad
+says, in words and by its loop, whether it leads where the player has stood, and an unexplored
+area past pads is measured along the way through them in exploration mode too (an exception to
+2026-09-24, as straight lines across the void said nothing). Rejected: naming the pad to take,
+guiding through pads, telling the Summoner's arm. `docs/keyboard-play.md#where-a-pad-leads-said`.
+
 ## 2026-11-01 — No key turns the radar on or off (the user)
 
 Ctrl+G is gone: the radar is switched in the settings list (Ctrl+S, BACK+RB), as everything without a

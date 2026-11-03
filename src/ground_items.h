@@ -24,6 +24,8 @@ enum class Sound { Gold, Potion, Scroll, Rune, Gem, Normal, Magic, Rare, Legenda
 	Doorway, Step, StepClick,
 	// The tutorial's message and step-done cues.
 	TutorialMessage, TutorialStepDone,
+	// A teleport pad's loop: bright where it leads somewhere new, muted where the player has stood.
+	PadNew, PadBeen,
 	// The game's own drop sounds (Generated::DropSoundFiles), an alternative to the
 	// Diablo IV set behind a switch (a tester, 2026-10-13).
 	DropFirst, Count = DropFirst + static_cast<int>(Generated::DropSoundFiles.size()) };
@@ -76,7 +78,7 @@ void SetEquipment(EquipmentLoops level);
 bool Loops(const Item& item);
 }
 // Landmarks, containers, quest objects, shut doors, shrines and wells only loop; proximity speech is for items.
-struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors, shrines, doorways; };
+struct Snapshot { uint64_t session = 0; Point player; std::vector<Item> items, landmarks, containers, questObjects, doors, shrines, doorways, pads; };
 struct Voice {
 	uint32_t id = 0; Sound sound{}; float right = 0, front = 0, gain = 0, pitch = 1;
 	SourceKind source = SourceKind::Item;
@@ -102,6 +104,8 @@ inline constexpr size_t MaxQuestVoices = 2;
 inline constexpr size_t MaxShrineVoices = 2;
 // Doorways between dungeon rooms, as many as doors.
 inline constexpr size_t MaxDoorwayVoices = MaxDoorVoices;
+// Teleport pads stand two of a kind in an Arcane Sanctuary room: a platform's pair is what is used from it.
+inline constexpr size_t MaxPadVoices = 2;
 // Spacing for the rest of a pile; an item that has just come within reach speaks at once.
 inline constexpr uint64_t SpeechGapMs = 900, PollMs = 50, SnapshotExpiryMs = 300;
 // Exits never move, so their list is refreshed slowly; only the listener position is polled fast.
@@ -130,7 +134,8 @@ inline constexpr SoundFile BaseSoundFiles[] = {{"loot", "gold.wav"}, {"loot", "p
 	{"exploration", "shrine.wav"}, {"exploration", "well.wav"},
 	{"exploration", "unexplored room.wav"}, {"exploration", "zone transition.wav"}, {"exploration", "inside unexplored room.wav"},
 	{"exploration", "discovered.wav"}, {"exploration", "doorway.wav"}, {"movement", "step.wav"}, {"movement", "click.wav", StepClickLevelDb},
-	{"tutorial", "message.wav"}, {"tutorial", "step done.wav"}};
+	{"tutorial", "message.wav"}, {"tutorial", "step done.wav"},
+	{"exploration", "pad new.wav"}, {"exploration", "pad been.wav"}};
 static_assert(std::size(BaseSoundFiles) == static_cast<size_t>(Sound::DropFirst));
 inline constexpr std::string_view DropFolder = "d2 drops";
 // Indexed by Sound: the files above, then the drop sounds.

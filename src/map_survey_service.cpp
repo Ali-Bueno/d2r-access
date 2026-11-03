@@ -133,6 +133,7 @@ std::atomic<bool>    g_townNpcsEverywhere{ true };
 std::atomic<bool>    g_unexploredSpread{ true }; // unexplored areas one per direction in turn
 std::atomic<bool>    g_unexploredEverywhere{ true }; // every unexplored area, not only those at the edge
 std::atomic<bool>    g_doorwaysListed{ true }; // doorways in the scanner with the doors
+std::atomic<bool>    g_padLeads{ true }, g_padSteps{ true }; // the Arcane Sanctuary's teleport pads (PadWays)
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
 size_t               g_cutLogged = 0;
@@ -217,6 +218,8 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	const Strings::Table& strings = Strings::Current();
 	// Eight compass points or twelve hours, diagonals included (the user, 2026-09-25).
 	const char* direction = SpokenDirection::Of(landmark.offset, strings);
+	std::string name = EntityRadar::SpokenName(landmark.entity, strings.listSeparator);
+	if (!landmark.detail.empty()) name += strings.listSeparator + landmark.detail;
 	// Nothing here is out of reach. The grid only covers the collision window
 	// the game keeps around the player, so a landmark it cannot route to is
 	// almost always one the catalogue can see and the grid cannot -- the
@@ -226,19 +229,48 @@ std::string Describe(const MapSurvey::Landmark& landmark) {
 	// behind a wall, but a direction and a rough distance can be acted on. Not
 	// called "straight line" aloud: next to a diagonal it made no sense (the
 	// user, 2026-09-25). Only a landmark on the player has no distance at all.
-	if (!g_fullAssistance) {
+	if (!g_fullAssistance && !landmark.alongWay) {
 		const std::string distance = EntityRadar::DistancePhrase(landmark.straightLine, EntityRadar::Settings{}, strings);
-		return Format(strings.surveySteps, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), distance.c_str(), direction);
+		return Format(strings.surveySteps, name.c_str(), distance.c_str(), direction);
 	}
 	const double reach = landmark.reachable ? static_cast<double>(landmark.steps) : landmark.straightLine;
 	if (!landmark.reachable && landmark.straightLine <= 0) {
-		return Format(strings.surveyBearing, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), direction);
+		return Format(strings.surveyBearing, name.c_str(), direction);
 	}
 	// Spoken like the scan's distance. For a reachable landmark it is the
 	// WALKING distance -- the steps the game's own graph needs to get there --
 	// and a wall between the two makes the numbers differ.
 	const std::string distance = EntityRadar::DistancePhrase(reach, EntityRadar::Settings{}, strings);
-	return Format(strings.surveySteps, EntityRadar::SpokenName(landmark.entity, strings.listSeparator).c_str(), distance.c_str(), direction);
+	return Format(strings.surveySteps, name.c_str(), distance.c_str(), direction);
+}
+
+// The Arcane Sanctuary's teleport pads, as the automap and the eye tell a sighted
+// player (docs/keyboard-play.md#where-a-pad-leads-said): each says whether it
+// leads where the player has stood, and an unexplored room past them is as far
+// as the way through them, in either mode.
+void PadWays(const Radar::World& world, std::vector<MapSurvey::Landmark>& landmarks) {
+	const Strings::Table& strings = Strings::Current();
+	if (g_padLeads)
+		for (auto& landmark : landmarks) {
+			const auto leads = landmark.entity.padClass ? KeyboardService::PadLeads(world, landmark.entity) : LevelRoute::Destination::Unknown;
+			if (leads != LevelRoute::Destination::Unknown) landmark.detail = leads == LevelRoute::Destination::Been ? strings.padLeadsBeen : strings.padLeadsNew;
+		}
+	if (!g_padSteps) return;
+	std::vector<MapSurvey::Landmark*> unexplored;
+	std::vector<const EntityRadar::Entity*> rooms;
+	for (auto& landmark : landmarks)
+		if (landmark.entity.kind == EntityRadar::Kind::Room && landmark.entity.category == EntityRadar::Category::UnexploredRoom) {
+			unexplored.push_back(&landmark);
+			rooms.push_back(&landmark.entity);
+		}
+	const auto steps = KeyboardService::PadSteps(world, rooms);
+	bool found = false;
+	for (size_t i = 0; i < steps.size(); ++i) {
+		if (steps[i] < 0) continue;
+		unexplored[i]->steps = steps[i];
+		unexplored[i]->reachable = unexplored[i]->alongWay = found = true;
+	}
+	if (found) MapSurvey::Sort(landmarks);
 }
 
 // What the act has built around this level, once per level. The exits
@@ -546,6 +578,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	catalogued.insert(catalogued.end(), death.begin(), death.end());
 	landmarks = MapSurvey::Survey(world, grid, catalogued, g_fullAssistance);
 	if (g_reachFilter) LeaveOutCutOff(world, landmarks);
+	PadWays(world, landmarks);
 	return true;
 }
 
@@ -663,6 +696,10 @@ void SetDoorwaysListed(bool on) { g_doorwaysListed = on; }
 void SetUnexploredSpread(bool on) { g_unexploredSpread = on; }
 bool UnexploredEverywhere() { return g_unexploredEverywhere.load(); }
 void SetUnexploredEverywhere(bool on) { g_unexploredEverywhere = on; }
+bool PadLeads() { return g_padLeads.load(); }
+void SetPadLeads(bool on) { g_padLeads = on; }
+bool PadSteps() { return g_padSteps.load(); }
+void SetPadSteps(bool on) { g_padSteps = on; }
 void SetReachFilter(bool on) { g_reachFilter = on; }
 
 bool Register(const D2RL::PluginContext* context) {

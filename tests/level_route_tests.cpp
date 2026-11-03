@@ -438,6 +438,12 @@ int main() {
 		const auto rooms = level.Rooms();
 		Check(pads.Within(NativeRooms::Subtiles(rooms[3])) == Answer::Reached && pads.ViaWithin(NativeRooms::Subtiles(rooms[3]), pad) && pad == edgeA,
 			"a room holding only C is reached the same way");
+		int roomSteps = 0, viaSteps = 0, walkSteps = -1;
+		Check(pads.StepsWithin(NativeRooms::Subtiles(rooms[3]), roomSteps) && pads.ViaWithin(NativeRooms::Subtiles(rooms[3]), pad, &viaSteps)
+			&& roomSteps == viaSteps, "the steps to a room past the pads are those of the way through them");
+		Check(pads.StepsWithin(NativeRooms::Subtiles(rooms[0]), walkSteps) && walkSteps >= 0 && !pads.ViaWithin(NativeRooms::Subtiles(rooms[0]), pad),
+			"a room walked to has its steps as well, with no pad");
+		Check(!walking.StepsWithin(NativeRooms::Subtiles(rooms[3]), walkSteps), "a search made without pads counts no steps");
 		const LevelRoute::Reach fromB(memory, onB, 1, both, 3, 7);
 		Check(fromB.Via(onC, 1, pad) && pad == edgeB, "from B, C is by B's own pad");
 		Check(fromB.To(onA, 1) == Answer::Reached && fromB.Via(onA, 1, pad) && pad == floorB,

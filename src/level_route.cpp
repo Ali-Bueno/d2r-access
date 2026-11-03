@@ -479,20 +479,34 @@ Reach::Answer Reach::Within(const NativeRooms::Bounds& bounds) const {
 	return Among(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
 }
 
-bool Reach::First(int minX, int minY, int maxX, int maxY, Pad& pad, int* steps) const {
+bool Reach::Fewest(int minX, int minY, int maxX, int maxY, int32_t& steps, uint16_t& via) const {
 	if (!linked_ || !any_) return false;
-	int32_t fewest = -1;
-	uint16_t via = 0;
+	steps = -1;
+	via = 0;
 	for (int y = std::max(minY, y_); y < std::min(maxY, y_ + height_); ++y) {
 		for (int x = std::max(minX, x_); x < std::min(maxX, x_ + width_); ++x) {
 			if (At(x, y) != Got) continue;
 			const size_t at = static_cast<size_t>(y - y_ + 1) * (static_cast<size_t>(width_) + 2) + static_cast<size_t>(x - x_ + 1);
-			if (fewest < 0 || steps_[at] < fewest) { fewest = steps_[at]; via = via_[at]; }
+			if (steps < 0 || steps_[at] < steps) { steps = steps_[at]; via = via_[at]; }
 		}
 	}
-	if (!via) return false;
+	return steps >= 0;
+}
+
+bool Reach::First(int minX, int minY, int maxX, int maxY, Pad& pad, int* steps) const {
+	int32_t fewest = -1;
+	uint16_t via = 0;
+	if (!Fewest(minX, minY, maxX, maxY, fewest, via) || !via) return false;
 	pad = links_[via - 1].from;
 	if (steps) *steps = fewest;
+	return true;
+}
+
+bool Reach::StepsWithin(const NativeRooms::Bounds& bounds, int& steps) const {
+	int32_t fewest = -1;
+	uint16_t via = 0;
+	if (!Fewest(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY, fewest, via)) return false;
+	steps = fewest;
 	return true;
 }
 

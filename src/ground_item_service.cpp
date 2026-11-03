@@ -8,6 +8,7 @@
 #include "entity_cue_audio.h"
 #include "entity_radar.h"
 #include "item_audio.h"
+#include "keyboard_service.h"
 #include "doorways.h"
 #include "panel_state.h"
 #include "radar_config.h"
@@ -50,8 +51,8 @@ bool g_supported = false, g_exitsSupported = false, g_boundariesSupported = fals
 bool g_speech = true, g_sound = true, g_exits = true, g_chests = true, g_doors = true, g_quests = true, g_stash = true, g_suspended = true, g_stashOpen = false;
 uint64_t g_revision = 0, g_lastPoll = 0, g_entitiesRead = 0;
 // Fixed sources share a slow unit read; the tracker updates listener-relative audio.
-std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors, g_shrines, g_doorways;
-std::atomic<bool> g_shrineSounds{true}, g_doorwaySounds{true}, g_openDoorSounds{false}, g_stepClicks{false}, g_stepBeep{false};
+std::vector<GroundItems::Item> g_landmarks, g_containers, g_questObjects, g_shutDoors, g_shrines, g_doorways, g_pads;
+std::atomic<bool> g_shrineSounds{true}, g_doorwaySounds{true}, g_openDoorSounds{false}, g_stepClicks{false}, g_stepBeep{false}, g_padSounds{true};
 // Into StepCounter::Intervals: 5 units (a tester, 2026-10-21: 1 is spam, 10 too coarse indoors).
 std::atomic<int> g_stepInterval{1};
 std::atomic<bool> g_distanceSteps{false};
@@ -188,6 +189,23 @@ std::vector<GroundItems::Item> ShrineSources(const std::vector<EntityRadar::Enti
 	}
 	return result;
 }
+// Teleport pads by where each leads (KeyboardService::PadLeads): bright where the
+// player has not stood (docs/keyboard-play.md#where-a-pad-leads-said).
+std::vector<GroundItems::Item> PadSources(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities, size_t& been) {
+	std::vector<GroundItems::Item> result;
+	been = 0;
+	for (const auto& entity : entities) {
+		if (entity.kind != EntityRadar::Kind::Object || !entity.padClass) continue;
+		GroundItems::Item source;
+		source.id = entity.id; source.position = {entity.position.x, entity.position.y};
+		const bool back = KeyboardService::PadLeads(world, entity) == LevelRoute::Destination::Been;
+		source.sound = back ? GroundItems::Sound::PadBeen : GroundItems::Sound::PadNew;
+		source.source = GroundItems::SourceKind::Object;
+		been += back;
+		result.push_back(std::move(source));
+	}
+	return result;
+}
 // The user's door recordings for the game's five opening sounds: its "gate" sound belongs
 // to the great wooden double doors (docs/ground-items.md#door-loops).
 std::optional<GroundItems::Sound> DoorLoop(Generated::DoorSound sound) {
@@ -232,7 +250,7 @@ void Suspend(const D2RL::PluginContext* context, const char* reason) {
 	ItemAudio::Silence();
 	g_nearbyLabels.clear();
 	g_odometer.Reset();
-	g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear(); g_doorways.clear(); g_entitiesRead = 0;
+	g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear(); g_doorways.clear(); g_pads.clear(); g_entitiesRead = 0;
 	if (!g_suspended) AsyncLog::InfoF(context, "[items] suspended: %s", reason);
 	g_suspended = true;
 }
@@ -373,8 +391,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		AsyncLog::InfoF(context, "[items] gold picked up: %d", gain);
 		ScreenReader::Speak(phrase, false);
 	}
-	const bool doorways = g_doorwaySounds.load(), steps = g_stepClicks.load();
-	if (!g_supported || !state.ready || (!g_speech && !g_sound && !g_exits && !g_chests && !g_doors && !g_quests && !g_stash && !doorways && !steps)) {
+	const bool doorways = g_doorwaySounds.load(), steps = g_stepClicks.load(), pads = g_padSounds.load();
+	if (!g_supported || !state.ready || (!g_speech && !g_sound && !g_exits && !g_chests && !g_doors && !g_quests && !g_stash && !doorways && !steps && !pads)) {
 		Suspend(context, "lifecycle/disabled");
 		return;
 	}
@@ -390,14 +408,14 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_labelsUpdated = now;
 	// Fixed exits, containers, quest objects and doors share one slower unit read.
 	const bool shrines = g_shrineSounds.load(), drafts = g_secretDrafts.load();
-	if ((g_exits || g_chests || g_quests || g_doors || g_stash || shrines || doorways || drafts) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
+	if ((g_exits || g_chests || g_quests || g_doors || g_stash || shrines || doorways || drafts || pads) && g_exitsSupported && (!g_entitiesRead || now - g_entitiesRead >= GroundItems::ExitRefreshMs)) {
 		g_entitiesRead = now;
 		std::vector<EntityRadar::Entity> entities;
 		const bool read = NativeEntities::Read(state.player, state.session, entities);
 		auto landmarks = read && (g_exits || g_stash) ? Landmarks(entities, g_exits, g_stash) : std::vector<GroundItems::Item>{};
 		const bool borders = g_exits && g_boundariesSupported;
 		Radar::World world;
-		const bool worldRead = (borders || doorways) && NativeWorld::Read(state.player, state.session, 0, world);
+		const bool worldRead = (borders || doorways || pads) && NativeWorld::Read(state.player, state.session, 0, world);
 		if (borders && worldRead) {
 			NativeLevelExits::Layout layout;
 			if (NativeEntities::ReadLayout(state.player, true, layout)) AddTransitions(landmarks, entities, ZoneTransitions::Find(world, layout));
@@ -416,6 +434,10 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		auto gaps = worldRead && doorways ? DoorwaySources(world, entities) : std::vector<GroundItems::Item>{};
 		if (gaps.size() != g_doorways.size()) AsyncLog::InfoF(context, "[items] doorways nearby: %zu level=%d", gaps.size(), world.level);
 		g_doorways = std::move(gaps);
+		size_t been = 0;
+		auto padLoops = worldRead && pads ? PadSources(world, entities, been) : std::vector<GroundItems::Item>{};
+		if (padLoops.size() != g_pads.size()) AsyncLog::InfoF(context, "[items] teleport pads nearby: %zu, %zu leading where the player has stood", padLoops.size(), been);
+		g_pads = std::move(padLoops);
 		auto wells = read && shrines ? ShrineSources(entities) : std::vector<GroundItems::Item>{};
 		if (wells.size() != g_shrines.size()) AsyncLog::InfoF(context, "[items] shrines and wells nearby: %zu", wells.size());
 		g_shrines = std::move(wells);
@@ -440,6 +462,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	snapshot.doors = g_shutDoors;
 	if (shrines) snapshot.shrines = g_shrines;
 	if (doorways) snapshot.doorways = g_doorways;
+	if (pads) snapshot.pads = g_pads;
 	g_itemLabels.clear();
 	for (const auto& item : snapshot.items)
 		if (!item.baseName.empty()) g_itemLabels.push_back(item.baseName);
@@ -482,6 +505,8 @@ bool SecretDrafts() { return g_secretDrafts.load(); }
 void SetSecretDrafts(bool enabled) { g_secretDrafts = enabled; }
 bool DoorwaySounds() { return g_doorwaySounds.load(); }
 void SetDoorwaySounds(bool enabled) { g_doorwaySounds = enabled; }
+bool PadSounds() { return g_padSounds.load(); }
+void SetPadSounds(bool enabled) { g_padSounds = enabled; }
 bool OpenDoorSounds() { return g_openDoorSounds.load(); }
 void SetOpenDoorSounds(bool enabled) { g_openDoorSounds = enabled; }
 bool StepClicks() { return g_stepClicks.load(); }

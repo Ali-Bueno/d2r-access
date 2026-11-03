@@ -1,6 +1,7 @@
 #pragma once
 
 #include "entity_radar.h"
+#include "pad_links.h"
 #include "radar.h"
 
 #include <D2RLPlugin/api.h>
@@ -61,6 +62,12 @@ std::vector<bool> CutOff(const Radar::World& world, const std::vector<const Enti
 // The teleport pads among `entities`, read in the level `world` is of, are kept
 // with that level's map, to work out where each leads (pad_links.h).
 void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
+// Whether the teleport pad `pad` leads where the player has stood (Pads::Leads).
+LevelRoute::Destination PadLeads(const Radar::World& world, const EntityRadar::Entity& pad);
+// For each of `rooms` (scanner room entries), the steps of the way to it on foot
+// and through the teleport pads; -1 when unknown, and all of them in a level
+// with no pad whose way is known.
+std::vector<int> PadSteps(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& rooms);
 // The shut doors among `entities` into the level's kept map, so a way passes one whose cells the
 // game marks as an object's, not a door's (LevelRoute::Memory::NoteDoor).
 void NoteDoors(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);

@@ -23,6 +23,9 @@ void SetSecretDrafts(bool enabled);
 // A creak at each doorway with no door (Doorways::Find; a tester, 2026-10-20), on by default.
 bool DoorwaySounds();
 void SetDoorwaySounds(bool enabled);
+// A loop at each teleport pad, by where it leads (KeyboardService::PadLeads).
+bool PadSounds();
+void SetPadSounds(bool enabled);
 // Opened doors keep their loop (a tester, 2026-10-20), off by default.
 bool OpenDoorSounds();
 void SetOpenDoorSounds(bool enabled);

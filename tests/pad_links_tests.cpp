@@ -4,6 +4,7 @@
 #include <vector>
 
 using namespace D2RAccess;
+using LevelRoute::Destination;
 using LevelRoute::Link;
 using LevelRoute::Pad;
 using LevelRoute::Pads;
@@ -14,7 +15,7 @@ NativeRooms::Room Room(int column, int row) {
 	const int x = 5000 + column * 12, y = 1000 + row * 12;
 	return {x, y, 12, 12, NativeRooms::Identity(x, y)};
 }
-const std::vector<NativeRooms::Room> Rooms{Room(1, 6), Room(2, 6), Room(1, 7), Room(1, 8)};
+const std::vector<NativeRooms::Room> Rooms{Room(1, 6), Room(2, 6), Room(1, 7), Room(1, 8), Room(7, 5)};
 
 bool Leads(const Pads& pads, Pad from, Pad to, bool seen = false) {
 	const auto link = pads.Lead(from, Rooms);
@@ -58,6 +59,7 @@ void NoGuessing() {
 	pads.Note(third);
 	Check(LeadsNowhere(pads, Floor) && LeadsNowhere(pads, Edge) && LeadsNowhere(pads, third),
 		"with three of a class in a room the game's pick depends on an order not read: none is assumed");
+	Check(pads.Leads(Floor, Rooms) == Destination::Unknown, "nor is it said whether such a pad leads where the player has stood");
 	const Pad alone{25087, 5386, 304};
 	pads.Note(alone);
 	Check(LeadsNowhere(pads, alone), "a pad alone of its class in its room leads nowhere known");
@@ -67,6 +69,7 @@ void NoGuessing() {
 	const Pad outside{24990, 5400, 304};
 	pads.Note(outside);
 	Check(LeadsNowhere(pads, outside), "a pad in no room of the level leads nowhere known");
+	Check(pads.Leads(outside, Rooms) == Destination::Unknown, "and is not said to lead anywhere");
 	Check(!pads.Note(Pad{25100, 5400, 0}), "an object of no pad class is no pad");
 }
 
@@ -89,6 +92,31 @@ void SeenWins() {
 	Check(fresh.Used(Floor, {25143.0, 5390.0}, to) && to == Edge && fresh.All().size() == 2,
 		"landing 2026-10-02 08:50:13 at 25143,5390 is beside the edge pad, and the pad used is kept");
 }
+
+// 2026-11-03 05:32-05:50, the user on a controller: the pair at 25452,5331 and
+// 25477,5341 crossed seven times, every pad heard alike.
+void WhereEachLeads() {
+	const Pad Hub{25452, 5331, 304}, Across{25477, 5341, 304};
+	Pads pads;
+	pads.Note(Hub);
+	Check(pads.Leads(Hub, Rooms) == Destination::New, "a pad whose partner was never seen leads somewhere new: the player was never near it");
+	pads.Note(Across);
+	Check(pads.Leads(Hub, Rooms) == Destination::New && pads.Leads(Across, Rooms) == Destination::New, "neither pad stood at yet");
+	Check(pads.Stood({25450.6, 5332.2}) && pads.Been(Hub) && !pads.Been(Across), "standing at a pad marks that pad alone");
+	Check(pads.Leads(Across, Rooms) == Destination::Been && pads.Leads(Hub, Rooms) == Destination::New,
+		"the pad across leads back where the player stands; this one still somewhere new");
+	Check(!pads.Stood({25450.6, 5332.2}), "standing there again is nothing new");
+	Check(!pads.Stood({25465.0, 5336.0}), "farther than a landing from both, none is marked");
+	Check(pads.Nearest({25478.0, 5343.0}, LevelRoute::LandNear) == Across && !pads.Nearest({25465.0, 5336.0}, LevelRoute::LandNear),
+		"the pad nearest a place, within a landing of it");
+	Pad to;
+	Check(pads.Used(Hub, {25478.0, 5343.0}, to) && to == Across && pads.Been(Across), "a pad taken marks the pad it put the player beside");
+	Check(pads.Leads(Hub, Rooms) == Destination::Been && pads.Leads(Across, Rooms) == Destination::Been,
+		"after one crossing both lead where the player has been: the loop is heard");
+	Pads taken;
+	taken.Note(Across);
+	Check(taken.Used(Hub, {25478.0, 5343.0}, to) && taken.Been(Hub) && taken.Been(Across), "a pad taken from afar marks both ends");
+}
 }
 
 int main() {
@@ -96,6 +124,7 @@ int main() {
 	FloorAndEdge();
 	NoGuessing();
 	SeenWins();
+	WhereEachLeads();
 	Passed();
 	return 0;
 }

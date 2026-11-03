@@ -190,6 +190,9 @@ public:
 	// False when the way takes no pad, or there is none.
 	bool Via(Position place, int margin, Pad& pad, int* steps = nullptr) const;
 	bool ViaWithin(const NativeRooms::Bounds& bounds, Pad& pad, int* steps = nullptr) const;
+	// The steps of the shortest way to a room, on foot and through the pads
+	// alike. False when the search was made without pads or does not get there.
+	bool StepsWithin(const NativeRooms::Bounds& bounds, int& steps) const;
 private:
 	// Outside the level; no place for the body; a place for it, not got to; got to.
 	enum Mark : uint8_t { Outside, Shut, Stood, Got };
@@ -197,6 +200,7 @@ private:
 	Mark At(int x, int y) const;
 	Answer Among(int minX, int minY, int maxX, int maxY) const; // max exclusive
 	bool First(int minX, int minY, int maxX, int maxY, Pad& pad, int* steps) const; // max exclusive
+	bool Fewest(int minX, int minY, int maxX, int maxY, int32_t& steps, uint16_t& via) const; // max exclusive
 	uint64_t session_ = 0, revision_ = 0, pads_ = 0;
 	int level_ = 0, pattern_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0, fromX_ = 0, fromY_ = 0;
 	bool any_ = false, linked_ = false;

@@ -75,8 +75,9 @@ d2r_sounds("item loop sounds" loot "gold" "potion" "scroll" "rune" "gem" "normal
 	"chest" "quest item" "corpse" "weapon rack" "stash")
 # "doorway" is a tester's creaking-wood recording (2026-10-20), mono, cut to the creak before its
 # clacks (2026-10-21: they flapped on every pass) and padded to a two-second pass.
+# "pad new" and "pad been" are synthesized two-second loops (docs/keyboard-play.md#where-a-pad-leads-said).
 d2r_sounds("item loop sounds" exploration "portal" "wooden door" "metal door" "stone door" "slime door"
-	"unexplored room" "zone transition" "inside unexplored room" "shrine" "well" "doorway")
+	"unexplored room" "zone transition" "inside unexplored room" "shrine" "well" "doorway" "pad new" "pad been")
 # Taken from the author's Last Epoch accessibility mod: its gold loop and the game's
 # four potion pickups, one per kind; each file is one pass of the loop.
 d2r_sounds("item loop sounds" "last epoch" "gold" "health potion" "mana potion" "rejuvenation potion" "other potion")

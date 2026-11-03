@@ -670,6 +670,11 @@ void NoteWayIn(const Lifecycle& state, const Radar::World& world, uint64_t now) 
 		AsyncLog::InfoF(g_context, "[keyboard] hop from %.0f,%.0f to %.0f,%.0f", g_wayIn.last.x, g_wayIn.last.y, world.player.x, world.player.y);
 		g_wayIn.hopped = {world.player};
 		g_wayIn.hop = true;
+		// A pad taken with any control, not only D, is learned (Sent).
+		LevelRoute::Pad to;
+		auto* pads = PadsOf(state);
+		if (const auto from = pads ? pads->Nearest(g_wayIn.last, LevelRoute::LandNear) : std::nullopt; from && pads->Used(*from, world.player, to))
+			AsyncLog::InfoF(g_context, "[keyboard] hop by the pad at %d,%d class %u to the pad at %d,%d", from->x, from->y, from->padClass, to.x, to.y);
 	}
 	g_wayIn.last = world.player;
 	g_wayIn.lastAt = now;
@@ -735,6 +740,8 @@ void Sweep(const Lifecycle& state, uint64_t now) {
 	// The floor is remembered here too, twice a second in play: what the arrows
 	// walk past is known to a later walk.
 	(void)Remember(state, world);
+	if (auto* pads = PadsOf(state); pads && pads->Stood(world.player))
+		AsyncLog::InfoF(g_context, "[keyboard] pads stood at: level %d, by %.0f,%.0f", state.level, world.player.x, world.player.y);
 	TakeOffMarkers(state, world, false);
 }
 // The order is "refused" while it is given again and again from the same
@@ -1882,6 +1889,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{item(Item::Doors), setItem(Item::Doors), [](bool on) { return std::string(GroundItemText::DoorSoundEnabled(on)); }, true, "door-sounds"},
 		{GroundItemService::OpenDoorSounds, GroundItemService::SetOpenDoorSounds, phrase(&T::openDoorSoundsOn, &T::openDoorSoundsOff), false, "open-door-sounds"},
 		{GroundItemService::DoorwaySounds, GroundItemService::SetDoorwaySounds, phrase(&T::doorwaySoundsOn, &T::doorwaySoundsOff), false, "doorway-sounds"},
+		{GroundItemService::PadSounds, GroundItemService::SetPadSounds, phrase(&T::padSoundsOn, &T::padSoundsOff), false, "pad-sounds"},
 		{GroundItemService::SecretDrafts, GroundItemService::SetSecretDrafts, phrase(&T::secretDraftsOn, &T::secretDraftsOff), false, "secret-drafts"},
 		{GroundItemService::StepClicks, GroundItemService::SetStepClicks, phrase(&T::stepClicksOn, &T::stepClicksOff), false, "step-clicks"},
 		StepClickInterval(),
@@ -1968,6 +1976,8 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{Descriptions::HintEnabled, Descriptions::SetHintEnabled, phrase(&T::descriptionHintOn, &T::descriptionHintOff), false, "description-hint"},
 		{TerrainService::PlaceAlerts, TerrainService::SetPlaceAlerts, phrase(&T::discoveriesOn, &T::discoveriesOff), false, "discoveries"},
 		{MapSurveyService::ReachFilter, MapSurveyService::SetReachFilter, phrase(&T::reachFilterOn, &T::reachFilterOff), false, "reach-filter"},
+		{MapSurveyService::PadLeads, MapSurveyService::SetPadLeads, phrase(&T::padLeadsOn, &T::padLeadsOff), false, "pad-leads"},
+		{MapSurveyService::PadSteps, MapSurveyService::SetPadSteps, phrase(&T::padStepsOn, &T::padStepsOff), false, "pad-steps"},
 		{MapSurveyService::TownNpcsEverywhere, MapSurveyService::SetTownNpcsEverywhere, phrase(&T::townNpcsEverywhereOn, &T::townNpcsEverywhereOff), false, "town-npcs-everywhere"},
 		{MapSurveyService::UnexploredSpread, MapSurveyService::SetUnexploredSpread, phrase(&T::unexploredSpreadOn, &T::unexploredSpreadOff), false, "unexplored-spread"},
 		{MapSurveyService::UnexploredEverywhere, MapSurveyService::SetUnexploredEverywhere, phrase(&T::unexploredEverywhereOn, &T::unexploredEverywhereOff), false, "unexplored-everywhere"},
@@ -2624,6 +2634,30 @@ void NotePads(const Radar::World& world, const std::vector<EntityRadar::Entity>&
 	state.session = world.session;
 	state.level = world.level;
 	NotePads(state, entities);
+}
+
+LevelRoute::Destination PadLeads(const Radar::World& world, const EntityRadar::Entity& pad) {
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	const auto* pads = pad.padClass ? PadsOf(state) : nullptr;
+	const auto* graph = pads ? Rooms(state) : nullptr;
+	return graph ? pads->Leads(PadOf(pad), graph->rooms) : LevelRoute::Destination::Unknown;
+}
+
+std::vector<int> PadSteps(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& rooms) {
+	std::vector<int> steps(rooms.size(), -1);
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	const auto* reach = rooms.empty() ? nullptr : PadReached(state, world);
+	const auto* graph = reach ? Rooms(state) : nullptr;
+	if (!graph) return steps;
+	for (size_t i = 0; i < rooms.size(); ++i) {
+		const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == rooms[i]->placeId; });
+		if (room != graph->rooms.end()) (void)reach->StepsWithin(NativeRooms::Subtiles(*room), steps[i]);
+	}
+	return steps;
 }
 
 void NoteDoors(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities) {
