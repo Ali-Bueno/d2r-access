@@ -15,8 +15,25 @@ namespace {
 constexpr const wchar_t* SteamKey         = L"Software\\Valve\\Steam";
 constexpr const wchar_t* SteamExeValue    = L"SteamExe";
 constexpr const wchar_t* SteamActiveKey   = L"Software\\Valve\\Steam\\ActiveProcess";
+constexpr const wchar_t* BattleNetUninstallKey = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Battle.net";
+constexpr const wchar_t* InstallLocationValue  = L"InstallLocation";
+constexpr const wchar_t* BattleNetExeName      = L"Battle.net.exe";
 constexpr const wchar_t* SteamUserValue   = L"ActiveUser";
 constexpr const wchar_t* SettingsRelative = L"Diablo II Resurrected\\Settings.json";
+constexpr DWORD          LongPathChars    = 32'768; // Windows' longest path, in UTF-16 units
+
+std::optional<DWORD> FindProcessId(const wchar_t* exeName) {
+	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	if (snapshot == INVALID_HANDLE_VALUE) return std::nullopt;
+	PROCESSENTRY32W entry{};
+	entry.dwSize = sizeof(entry);
+	std::optional<DWORD> found;
+	for (BOOL ok = Process32FirstW(snapshot, &entry); ok && !found; ok = Process32NextW(snapshot, &entry)) {
+		if (_wcsicmp(entry.szExeFile, exeName) == 0) found = entry.th32ProcessID;
+	}
+	CloseHandle(snapshot);
+	return found;
+}
 
 struct WindowSearch {
 	DWORD pid;
@@ -113,17 +130,28 @@ void CloseHandleOf(Process& process) {
 	process.handle = nullptr;
 }
 
-bool IsProcessRunning(const wchar_t* exeName) {
-	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-	if (snapshot == INVALID_HANDLE_VALUE) return false;
-	PROCESSENTRY32W entry{};
-	entry.dwSize = sizeof(entry);
-	bool found   = false;
-	for (BOOL ok = Process32FirstW(snapshot, &entry); ok && !found; ok = Process32NextW(snapshot, &entry)) {
-		found = _wcsicmp(entry.szExeFile, exeName) == 0;
-	}
-	CloseHandle(snapshot);
-	return found;
+bool IsProcessRunning(const wchar_t* exeName) { return FindProcessId(exeName).has_value(); }
+
+std::optional<Process> OpenRunning(const wchar_t* exeName) {
+	const auto id = FindProcessId(exeName);
+	if (!id) return std::nullopt;
+	HANDLE handle = OpenProcess(SYNCHRONIZE | PROCESS_TERMINATE | PROCESS_QUERY_LIMITED_INFORMATION, FALSE, *id);
+	if (!handle) return std::nullopt;
+	return Process{handle, *id};
+}
+
+std::optional<std::wstring> RunningExePath(const wchar_t* exeName) {
+	const auto id = FindProcessId(exeName);
+	if (!id) return std::nullopt;
+	HANDLE handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, *id);
+	if (!handle) return std::nullopt;
+	std::wstring path(LongPathChars, L'\0');
+	DWORD        size = static_cast<DWORD>(path.size());
+	const BOOL   ok   = QueryFullProcessImageNameW(handle, 0, path.data(), &size);
+	CloseHandle(handle);
+	if (!ok) return std::nullopt;
+	path.resize(size);
+	return path;
 }
 
 std::optional<std::wstring> SteamExePath() {
@@ -131,6 +159,18 @@ std::optional<std::wstring> SteamExePath() {
 	DWORD   size = sizeof(buffer) - sizeof(wchar_t);
 	if (RegGetValueW(HKEY_CURRENT_USER, SteamKey, SteamExeValue, RRF_RT_REG_SZ, nullptr, buffer, &size) != ERROR_SUCCESS) return std::nullopt;
 	return std::wstring(buffer);
+}
+
+std::optional<std::wstring> BattleNetInstalledExe() {
+	wchar_t buffer[MAX_PATH * 2]{};
+	DWORD   size = sizeof(buffer) - sizeof(wchar_t);
+	// The app is 32-bit, so its Uninstall entry lives in the 32-bit registry view.
+	if (RegGetValueW(HKEY_LOCAL_MACHINE, BattleNetUninstallKey, InstallLocationValue, RRF_RT_REG_SZ | RRF_SUBKEY_WOW6432KEY, nullptr, buffer, &size) != ERROR_SUCCESS) {
+		return std::nullopt;
+	}
+	std::wstring exe = std::wstring(buffer) + L"\\" + BattleNetExeName;
+	if (!FileExists(exe)) return std::nullopt;
+	return exe;
 }
 
 bool SteamUserActive() {

@@ -14,26 +14,39 @@ Shipped in the game folder next to `D2R.exe` and `D2RLoader.exe`. Sources: `laun
 
 1. Game folder is the exe's own folder. Arguments (Steam's `%command%` adds the `D2R.exe` path) go to
    `D2RLoader.exe` unchanged, environment inherited.
-2. `User Last Online` younger than 20 days: start the loader, silent.
-3. Otherwise speak that the license is validated online (about half a minute). A Steam copy
-   (`steam_appid.txt`) starts `steam.exe -silent` if needed and waits for `ActiveUser` (60 s). Start
-   `D2R.exe` without arguments.
-4. Every 250 ms read `Settings.json`; every 1.5 s focus the game window and hold Escape 600 ms
+2. `User Last Online` younger than 20 days: fresh. Otherwise speak that the license is validated
+   online (about half a minute).
+3. The store app is opened if closed, on both paths (the user, 2026-11-03). A copy with
+   `steam_appid.txt` is a Steam copy: `steam.exe -silent` if not running, then up to 60 s for
+   `ActiveUser`. Any other copy is a Battle.net copy: `Battle.net.exe` from the running process
+   (`QueryFullProcessImageNameW`) or from `InstallLocation` of the Uninstall entry `Battle.net`
+   (32-bit view); fresh path: started without arguments if not running (no signed-in check is
+   known); validation: always run with `--exec="launch OSI"`, which a running app takes over and a
+   closed one opens with. Failure: an error box ("could not start the game, this copy needs Steam /
+   the Battle.net app open and signed in"), exit. Fresh: start the loader.
+4. Validation starts the unmodded game. Steam: `D2R.exe` without arguments. Battle.net (a direct
+   `D2R.exe` or the game's own launcher exe only opens the Battle.net app, reported 2026-11-03):
+   wait up to 90 s for the `D2R.exe` it launches and open it by name. None: an error box (install
+   or update the game in Battle.net first, or validate by hand: Play, main menu, close), then step 6.
+5. Every 250 ms read `Settings.json`; every 1.5 s focus the game window and hold Escape 600 ms
    (SendInput, scan code). Escape never activates Play at the main menu. When the date changes: release,
    `WM_CLOSE`, wait 10 s, `TerminateProcess`, then speak "License validated" and start the loader.
-5. Timeout (120 s), the game exiting by itself, or any start failure: close the game. Date 20-30 days
+6. Timeout (120 s), the game exiting by itself, or any start failure: close the game. Date 20-30 days
    old: speak that the game starts anyway and start the loader. 30 days or more, or no date at all:
    speak to check the internet and try again; no loader.
 
 Language: `text_locale` under `[d2rloader]` in `d2rloader\config\d2rloader.toml`, else English.
-Speech: PRISM from `d2rloader\plugins\d2r-access\prism.dll`; silent if it cannot load. The launcher waits
-about 70 ms per character of the last sentence before exiting.
+Speech: PRISM from `d2rloader\plugins\d2r-access\prism.dll`; silent if it cannot load. The first
+sentence interrupts the screen reader, the later ones queue; the launcher waits about 70 ms per
+character of what is still queued before exiting. Progress is said as it goes (the user, 2026-11-03:
+silence felt like a long wait): launcher started, opening Steam / Battle.net (only when the launcher
+opens it), validating, validated, starting the game.
 
 ## Constants
 
 `launcher/launcher_logic.h`: `ValidateAfterDays` 20, `OfflineLimitDays` 30, `EscapeHoldMs` 600,
 `EscapePeriodMs` 1500, `PollMs` 250, `WaitTimeoutMs` 120000, `CloseWaitMs` 10000, `KillWaitMs` 5000,
-`SteamTimeoutMs` 60000.
+`SteamTimeoutMs` 60000, `GameAppearTimeoutMs` 90000. `launcher_main.cpp`: `BattleNetLaunch`.
 
 ## Log
 
@@ -52,9 +65,24 @@ stages it at the zip root. The installer's desktop shortcut is the installer rep
 key", window brought forward from the background), `WM_CLOSE` closed the game in 1.4 s, "License
 validated" said, D2RLoader started; the fresh path (0 days) started the loader at once.
 
+2026-11-03, the user, Steam copy: with Steam closed the launcher opened it and went on, on the
+fresh path and with `--validate`.
+
+2026-11-03, the user's Battle.net app (Diablo IV installed, no D2R): with the app running,
+`Battle.net.exe --exec="launch Fen"` (Fen: Diablo IV's code, from bnetlauncher) started
+`Diablo IV.exe` within 1 s. So `--exec` presses Play in the current app, not only selects the game
+(bnetlauncher <https://github.com/dafzor/bnetlauncher> warned that some versions only select it).
+
 ## Not verified live
 
-- Battle.net copies: no `steam_appid.txt`, so the game is started directly; untested.
+- Everything on a Battle.net copy of D2R: `OSI` as its `--exec` code (one source, a Lutris installer,
+  <https://lutris.net/games/install/37245/view>), whether its `Settings.json` gets the same date,
+  whether D2RLoader needs Battle.net open. A closed Battle.net app opened with `--exec`.
+- The "app not open" boxes on both stores; the progress sentences heard in order.
+- Rejected: `D2R.exe -uid OSI` needs a `WEB_TOKEN` that Battle.net writes under
+  `HKCU\SOFTWARE\Blizzard Entertainment\Battle.net\Launch Options\OSI` and an elevated start
+  (<https://github.com/shupershuff/d2r-multiboxing-without-a-script>); `-username -password` needs the
+  player's credentials.
 - With the date missing from `Settings.json` a failed validation counts as past the limit.
 
 ## Self-update

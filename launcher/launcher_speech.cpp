@@ -15,6 +15,8 @@ namespace {
 constexpr const wchar_t* PrismRelativePath = L"d2rloader\\plugins\\d2r-access\\prism.dll";
 constexpr DWORD MsPerCharacter   = 70; // a screen reader reads roughly 14 characters a second
 constexpr DWORD MaxSpeechWaitMs  = 15'000;
+// A screen reader announces a new foreground window within this; speaking after it wins over it.
+constexpr DWORD FocusSettleMs    = 500;
 constexpr unsigned char Utf8ContinuationMask = 0xC0, Utf8ContinuationBits = 0x80;
 
 struct Api {
@@ -33,7 +35,7 @@ HMODULE       g_library = nullptr;
 Api           g_api;
 PrismContext* g_context = nullptr;
 PrismBackend* g_backend = nullptr;
-ULONGLONG     g_doneAt  = 0; // tick when the last sentence should have been read
+ULONGLONG     g_doneAt  = 0; // tick when the queued sentences should have been read
 
 template <typename Fn>
 bool Resolve(const char* name, Fn& out) {
@@ -95,15 +97,23 @@ void Configure(const std::wstring& gameFolder) {
 	g_path = gameFolder + L"\\" + PrismRelativePath;
 }
 
-void Say(std::string_view text) {
+void Speak(std::string_view text, bool interrupt) {
 	Log::Line("say: " + std::string(text));
 	if (!g_tried) {
 		g_tried = true;
 		Acquire();
 	}
 	if (!g_backend) return;
-	(void)g_api.backendSpeak(g_backend, std::string(text).c_str(), true);
-	g_doneAt = GetTickCount64() + SpeakingTimeMs(text);
+	(void)g_api.backendSpeak(g_backend, std::string(text).c_str(), interrupt);
+	const ULONGLONG now = GetTickCount64();
+	g_doneAt            = (interrupt ? now : std::max(now, g_doneAt)) + SpeakingTimeMs(text);
+}
+
+void Say(std::string_view text) { Speak(text, false); }
+
+void SayOverFocus(std::string_view text) {
+	Sleep(FocusSettleMs);
+	Speak(text, true);
 }
 
 void Finish() {

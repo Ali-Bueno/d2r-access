@@ -23,6 +23,7 @@ inline constexpr std::uint64_t WaitTimeoutMs  = 120'000;
 inline constexpr std::uint64_t CloseWaitMs    = 10'000; // after WM_CLOSE, before TerminateProcess
 inline constexpr std::uint64_t KillWaitMs     = 5'000;
 inline constexpr std::uint64_t SteamTimeoutMs = 60'000;
+inline constexpr std::uint64_t GameAppearTimeoutMs = 90'000; // Battle.net asked to launch (and maybe opening and signing in), until D2R.exe runs
 
 enum class Verdict { Fresh, Stale, Expired };
 

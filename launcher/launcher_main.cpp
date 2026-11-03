@@ -22,10 +22,17 @@ constexpr const wchar_t* LoaderExe    = L"D2RLoader.exe";
 constexpr const wchar_t* SteamAppId   = L"steam_appid.txt";
 constexpr const wchar_t* SteamProcess = L"steam.exe";
 constexpr const wchar_t* SteamSilent  = L"-silent";
+constexpr const wchar_t* BattleNetProcess = L"Battle.net.exe";
 constexpr const wchar_t* LogRelative  = L"\\d2rloader\\logs\\d2r-access-launcher.log";
 constexpr const wchar_t* TomlRelative = L"\\d2rloader\\config\\d2rloader.toml";
+constexpr const char*    BoxTitle     = "D2R Access";
+// OSI is D2R's Battle.net product code (Blizzard's uninstaller `--uid=osi`); switch from a Lutris installer.
+constexpr const wchar_t* BattleNetLaunch = L"--exec=\"launch OSI\"";
 
 constexpr int ExitOk = 0, ExitFailed = 1;
+
+// The store the copy came from: Steam copies carry steam_appid.txt, Battle.net copies do not.
+enum class Client { Steam, BattleNet };
 
 enum class Wait { Validated, Timeout, GameExited };
 
@@ -56,6 +63,10 @@ int StartLoader(const std::wstring& gameFolder, const std::wstring& arguments) {
 	return ExitOk;
 }
 
+Client ClientOf(const std::wstring& gameFolder) {
+	return Sys::FileExists(gameFolder + L"\\" + SteamAppId) ? Client::Steam : Client::BattleNet;
+}
+
 bool EnsureSteam() {
 	if (!Sys::IsProcessRunning(SteamProcess)) {
 		const auto steam = Sys::SteamExePath();
@@ -70,6 +81,7 @@ bool EnsureSteam() {
 		}
 		Sys::CloseHandleOf(*process);
 		Log::Line("Steam started");
+		Speech::Say(Strings::Current().launcherOpeningSteam);
 	}
 	const std::uint64_t deadline = Sys::NowMs() + SteamTimeoutMs;
 	while (!Sys::SteamUserActive()) {
@@ -83,11 +95,65 @@ bool EnsureSteam() {
 	return true;
 }
 
+// Runs Battle.net.exe with `arguments`: a closed app opens with them, a running one takes them over.
+bool RunBattleNet(const std::wstring& arguments) {
+	auto exe           = Sys::RunningExePath(BattleNetProcess);
+	const bool opening = !exe;
+	if (opening) exe = Sys::BattleNetInstalledExe();
+	if (!exe) {
+		Log::Line("Battle.net is not running and not installed (no Uninstall entry)");
+		return false;
+	}
+	auto process = Sys::Start(*exe, arguments, exe->substr(0, exe->find_last_of(L"\\/")));
+	if (!process) {
+		Log::Line(std::format("Battle.net.exe failed to start, error {}", GetLastError()));
+		return false;
+	}
+	Sys::CloseHandleOf(*process);
+	if (opening) Speech::Say(Strings::Current().launcherOpeningBattleNet);
+	Log::Line(arguments.empty() ? "Battle.net started" : "asked Battle.net to launch the game");
+	return true;
+}
+
+// The copy's store app open, opened if closed. With `launchGame` Battle.net is also asked to launch
+// the game, since a direct D2R.exe start on a Battle.net copy only opens the app.
+bool EnsureClient(Client client, bool launchGame) {
+	if (client == Client::Steam) return EnsureSteam();
+	if (launchGame) return RunBattleNet(std::wstring(BattleNetLaunch));
+	if (Sys::IsProcessRunning(BattleNetProcess)) {
+		Log::Line("Battle.net is running");
+		return true;
+	}
+	return RunBattleNet({});
+}
+
+// The unmodded game, online: started here on Steam, picked up by name once Battle.net launched it.
+std::optional<Sys::Process> StartGame(Client client, const std::wstring& gameFolder) {
+	if (client == Client::Steam) {
+		auto game = Sys::Start(gameFolder + L"\\" + GameExe, {}, gameFolder);
+		Log::Line(game ? "D2R.exe started" : std::format("D2R.exe failed to start, error {}", GetLastError()));
+		return game;
+	}
+	const std::uint64_t deadline = Sys::NowMs() + GameAppearTimeoutMs;
+	for (;;) {
+		if (auto game = Sys::OpenRunning(GameExe)) {
+			Log::Line("D2R.exe started by Battle.net");
+			return game;
+		}
+		if (Sys::NowMs() >= deadline) {
+			Log::Line("Battle.net did not start D2R.exe in time");
+			return std::nullopt;
+		}
+		Sleep(static_cast<DWORD>(PollMs));
+	}
+}
+
 // Presses Escape on a schedule until Settings.json shows a new date, the game exits or the time runs out.
 Wait WaitForNewDate(const Sys::Process& game, const std::wstring& settingsPath, std::optional<std::uint64_t> before) {
 	const std::uint64_t deadline = Sys::NowMs() + WaitTimeoutMs;
 	std::optional<std::uint64_t> lastPress;
-	bool held = false;
+	bool held      = false;
+	bool announced = false;
 	Wait result;
 	for (;;) {
 		const std::uint64_t now = Sys::NowMs();
@@ -101,6 +167,11 @@ Wait WaitForNewDate(const Sys::Process& game, const std::wstring& settingsPath, 
 				Sys::BringToForeground(window);
 				// Never press into another program when Windows refused to bring the game forward.
 				if (GetForegroundWindow() != window) break;
+				if (!announced) {
+					// Said once the game has the focus, so the screen reader's window title does not cut it.
+					Speech::SayOverFocus(Strings::Current().launcherValidating);
+					announced = true;
+				}
 				Sys::SetEscapeDown(true);
 				held      = true;
 				lastPress = now;
@@ -135,10 +206,10 @@ void CloseGame(Sys::Process& game) {
 int GiveUp(Verdict verdict, const std::wstring& gameFolder, const std::wstring& arguments) {
 	const Strings::Table& text = Strings::Current();
 	if (verdict == Verdict::Stale) {
-		Speech::Say(text.launcherFailedStartsAnyway);
+		Speech::SayOverFocus(text.launcherFailedStartsAnyway);
 		return StartLoader(gameFolder, arguments);
 	}
-	Speech::Say(text.launcherFailedExpired);
+	Speech::SayOverFocus(text.launcherFailedExpired);
 	Log::Line("license past the offline limit, the loader is not started");
 	return ExitFailed;
 }
@@ -154,6 +225,7 @@ int Run() {
 	Log::Line(std::format("start in {}", Log::Narrow(gameFolder)));
 	ChooseLanguage(gameFolder);
 	const Strings::Table& text = Strings::Current();
+	Speech::SayOverFocus(text.launcherStarted); // started from Run or a menu, the focus has just moved
 
 	if (!Sys::FileExists(gameFolder + L"\\" + GameExe) || !Sys::FileExists(gameFolder + L"\\" + LoaderExe)) {
 		Log::Line("D2R.exe or D2RLoader.exe not found next to the launcher");
@@ -164,6 +236,7 @@ int Run() {
 	Update::CleanLeftover(gameFolder);
 	if (Update::Offer(gameFolder, originalArguments)) return ExitOk;
 
+	const Client client = ClientOf(gameFolder);
 	const std::wstring settingsPath = Sys::SettingsJsonPath();
 	const auto settings             = Sys::ReadTextFile(settingsPath);
 	const auto before               = settings ? ParseLastOnline(*settings) : std::nullopt;
@@ -172,28 +245,28 @@ int Run() {
 	const Verdict verdict           = unforced && classified == Verdict::Fresh ? Verdict::Stale : classified;
 	Log::Line(before ? std::format("User Last Online is {} days old", AgeDays(*before, now)) : "User Last Online missing");
 	if (unforced) Log::Line("validation forced by --validate");
-	if (!NeedsValidation(verdict)) {
-		Log::Line("license is fresh");
+	const bool validate = NeedsValidation(verdict);
+	Log::Line(validate ? "validating the license online" : "license is fresh");
+	if (!EnsureClient(client, validate)) {
+		Sys::ShowBox(BoxTitle, client == Client::Steam ? text.launcherNeedsSteam : text.launcherNeedsBattleNet, Sys::BoxKind::Error);
+		return ExitFailed;
+	}
+	if (!validate) {
+		Speech::Say(text.launcherStartingGame);
 		return StartLoader(gameFolder, arguments);
 	}
 
-	Log::Line("validating the license online");
-	Speech::Say(text.launcherValidating);
-	if (Sys::FileExists(gameFolder + L"\\" + SteamAppId) && !EnsureSteam()) {
-		Speech::Say(text.launcherSteamTimeout);
-		return ExitFailed;
-	}
-	auto game = Sys::Start(gameFolder + L"\\" + GameExe, {}, gameFolder);
+	auto game = StartGame(client, gameFolder);
 	if (!game) {
-		Log::Line(std::format("D2R.exe failed to start, error {}", GetLastError()));
+		if (client == Client::BattleNet) Sys::ShowBox(BoxTitle, text.launcherBattleNetNoGame, Sys::BoxKind::Error);
 		return GiveUp(verdict, gameFolder, arguments);
 	}
-	Log::Line("D2R.exe started");
 	const Wait wait = WaitForNewDate(*game, settingsPath, before);
 	Log::Line(std::format("wait finished: {}", WaitName(wait)));
 	CloseGame(*game);
 	if (wait != Wait::Validated) return GiveUp(verdict, gameFolder, arguments);
-	Speech::Say(text.launcherValidated);
+	Speech::SayOverFocus(text.launcherValidated); // the game's window just closed
+	Speech::Say(text.launcherStartingGame);
 	return StartLoader(gameFolder, arguments);
 }
 

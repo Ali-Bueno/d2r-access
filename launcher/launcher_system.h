@@ -31,8 +31,14 @@ void                   Terminate(const Process& process);
 void                   CloseHandleOf(Process& process);
 
 bool IsProcessRunning(const wchar_t* exeName);
+// A running process found by exe name, opened to wait for, close or end it.
+std::optional<Process>      OpenRunning(const wchar_t* exeName);
+// The full exe path of a running process found by exe name.
+std::optional<std::wstring> RunningExePath(const wchar_t* exeName);
 std::optional<std::wstring> SteamExePath();
 bool SteamUserActive();
+// Battle.net.exe in the folder of the app's Uninstall entry, if it is there.
+std::optional<std::wstring> BattleNetInstalledExe();
 
 // The process' top-level visible window, if it has one yet.
 HWND FindMainWindow(DWORD processId);

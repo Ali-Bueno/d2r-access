@@ -611,10 +611,16 @@ struct Table {
 	const char* lowerCase;
 	const char* launcherMissingFiles;
 	const char* launcherValidating;
-	const char* launcherSteamTimeout;
+	const char* launcherNeedsSteam; // a box: the copy's store app is not open (docs/launcher.md)
+	const char* launcherNeedsBattleNet;
+	const char* launcherStarted; // the launcher's progress, said as it goes (docs/launcher.md)
+	const char* launcherOpeningSteam;
+	const char* launcherOpeningBattleNet;
+	const char* launcherStartingGame;
 	const char* launcherValidated;
 	const char* launcherFailedStartsAnyway;
 	const char* launcherFailedExpired;
+	const char* launcherBattleNetNoGame; // a box: Battle.net was asked to launch the game and did not
 	const char* launcherUpdateTitle; // the launcher's update boxes; %s are release tags
 	const char* launcherUpdateAsk; // new tag, installed tag; the notes follow
 	const char* launcherUpdated;
@@ -684,7 +690,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
 		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.chargesGained, t.chargesLost, t.chargesHeld, t.chargeAlertsOn, t.chargeAlertsOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
 		t.padQwertyOn, t.padQwertyOff, t.typingStartedQwerty, t.capsLockKey, t.backspaceKey, t.upperCase, t.lowerCase,
-		t.launcherMissingFiles, t.launcherValidating, t.launcherSteamTimeout, t.launcherValidated, t.launcherFailedStartsAnyway, t.launcherFailedExpired, t.launcherUpdateTitle, t.launcherUpdateAsk, t.launcherUpdated, t.launcherUpdateFailed}) visit(s);
+		t.launcherMissingFiles, t.launcherValidating, t.launcherNeedsSteam, t.launcherNeedsBattleNet, t.launcherStarted, t.launcherOpeningSteam, t.launcherOpeningBattleNet, t.launcherStartingGame, t.launcherValidated, t.launcherFailedStartsAnyway, t.launcherFailedExpired, t.launcherBattleNetNoGame, t.launcherUpdateTitle, t.launcherUpdateAsk, t.launcherUpdated, t.launcherUpdateFailed}) visit(s);
 	each(t.lootEquipment);
 	each(t.manaAlerts);
 	each(t.itemSoundSets);

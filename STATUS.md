@@ -2,6 +2,30 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Launcher: Steam or Battle.net opened before any start; Battle.net validation through the app — 2026-11-03 (uncommitted)
+
+The user: make sure Steam or Battle.net is running before any start (validation or not), opening it
+as the launcher already did for Steam, with a message naming the one the copy needs when that fails;
+on Battle.net a direct `D2R.exe` only opens the app, so the license could not be validated there
+([launcher](docs/launcher.md), Flow 3 and 4).
+- `steam_appid.txt` → Steam (opened with `-silent`, then `ActiveUser`), else Battle.net (opened from
+  its Uninstall entry's folder); failure → error box, exit (`launcherSteamTimeout` replaced by
+  `launcherNeedsSteam` / `launcherNeedsBattleNet`, 13 languages). Steam is now also opened on the
+  fresh path.
+- Battle.net validation: `Battle.net.exe --exec="launch OSI"` (one source; opens a closed app too),
+  then the `D2R.exe` it starts is picked up by name (90 s); none → box with the manual route
+  (`launcherBattleNetNoGame`). Research and rejected routes in the doc.
+- The launcher says what it is doing (the user: silence felt like a long wait): started, opening
+  Steam / Battle.net, validating, validated, starting the game. Its sentences now queue; only the
+  first interrupts. 4 new strings, 13 languages.
+- Built, 139/139 CTest, `D2RAccess.exe` copied to the game folder. **Verified live** (the user):
+  Steam closed → opened, fresh path and `--validate`; on the user's Battle.net app
+  `--exec="launch Fen"` started Diablo IV in 1 s (it presses Play). **Unverified live:** the
+  progress sentences; everything on a Battle.net copy of D2R.
+
+**Next step:** the user hears the progress sentences (fresh path, `--validate`, Steam closed); a
+Battle.net tester for D2R (`--validate`, then the log).
+
 ## The guide's Horadric Cube section — 2026-11-02 (in release 1.0)
 
 BFBeast666 wrote a Horadric Cube section (Xbox only) for the guide; added at the end of `GUIDE.md`
@@ -12,7 +36,8 @@ staged package, the zip rebuilt (28 entries, 64,555,356 bytes, SHA-256 `45a2edb6
 zip, `GUIDE.html`, `release.json` and the notes' hash replaced; the public downloads match.
 
 1.0 announced by the user on audiogames.net and Discord servers (2026-11-02; drafts in
-`../announcement-2026-11-02-*`).
+`../announcement-2026-11-02-*`). Both posts gained a "No Battle.net, Ladder or Seasons" disclaimer;
+the routes to Ladder were researched in [battle-net-and-ladder](docs/battle-net-and-ladder.md).
 
 **Next step:** the players' first reports on 1.0.
 

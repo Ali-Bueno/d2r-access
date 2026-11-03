@@ -45,7 +45,8 @@ as they are.
 Start it with **`D2RAccess.exe`** in the game folder ([launcher](docs/launcher.md)). It renews the
 online license before Blizzard's 30-day offline limit is reached, offers a newer version of the mod
 when there is one (switch `update-check`), and starts the game through D2RLoader. The mod says
-"Diablo 2 accessibility loaded" when it is running.
+"Diablo 2 accessibility loaded" when it is running. It opens Steam or the Battle.net app, whichever
+your copy came from, when it is closed; if that fails it shows a message and does not start the game.
 
 To use Steam's Play button instead (the installer offers to set it), set the game's launch options
 (Properties → General → Launch Options) to the launcher's path followed by `%command%`:
@@ -284,6 +285,9 @@ sounds. The rest of the configuration lives in `d2rloader/config/d2r-access.toml
 
 ## Known limitations
 
+- No Battle.net: D2RLoader runs the game offline, so there is no Ladder, no Seasons and no online
+  characters. Offline characters can still play together over D2RLoader's TCP/IP multiplayer
+  ([Battle.net, Ladder and Seasons](docs/battle-net-and-ladder.md)).
 - Native readers are tied to the supported game and loader builds. A game patch may silence some
   readings until the mod is updated (see
   [regenerating the UI catalog](#regenerating-the-ui-catalog-after-a-game-patch)).
