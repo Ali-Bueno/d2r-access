@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Launcher: first launch on a new PC no longer blocks the validation — 2026-11-03 (not released)
+## Launcher: first launch on a new PC no longer blocks the validation — 2026-11-03 (release 1.0.3)
 
 The user suspected the game's first-start screens behind players who cannot validate. Confirmed live
 on a reset save folder: gamma, screen-space and colour-blind calibrations, each with only
@@ -12,11 +12,15 @@ hung there ([first run](docs/launcher.md#first-run)).
   mark); the game skips the three screens and the cinematic. Never overwrites a file.
 - Built, 139/139 CTest (one new check). **Verified live** with no save folder: date written 15 s
   after `D2R.exe` started, loader started.
-- The user's saves: copy in `../save-backups/2026-11-03-before-fresh-start/` (135 files, hashes
-  match); the live folder was moved to `Saved Games\Diablo II Resurrected.mine` for the test.
+- The user's saves: copy in `../save-backups/2026-11-03-before-fresh-start/` (135 files); the live
+  folder was moved aside for the test and restored afterwards, hashes identical to the copy.
 - Not covered: Steam account never linked to Battle.net, EULA never accepted (online-only boxes).
+- Release 1.0.3 from 05535bb (the user asked): 139/139 CTest, 28 entries, 64,937,934 bytes,
+  SHA-256 `21b42032…44c47a`; zip, installer, `release.json` (news from
+  `../tester-news-draft-2026-11-03c.txt`), README and GUIDE; latest.
 
-**Next step:** restore the user's save folder; release when the user asks.
+**Next step:** the players who could not validate try 1.0.3; if one still fails, their launcher log
+(suspects: the account-linking and EULA boxes).
 
 ## Arcane Sanctuary pads: where each leads, in words and sound — 2026-11-03 (release 1.0.2)
 
