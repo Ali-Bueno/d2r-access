@@ -31,7 +31,9 @@ constexpr const wchar_t* BattleNetLaunch = L"--exec=\"launch OSI\"";
 
 constexpr int ExitOk = 0, ExitFailed = 1;
 
-// The store the copy came from: Steam copies carry steam_appid.txt, Battle.net copies do not.
+constexpr const wchar_t* SettingsBackupSuffix = L".before-d2raccess";
+
+// The store the copy came from: Steam copies sit in a Steam library or carry steam_appid.txt.
 enum class Client { Steam, BattleNet };
 
 enum class Wait { Validated, Timeout, GameExited };
@@ -64,7 +66,46 @@ int StartLoader(const std::wstring& gameFolder, const std::wstring& arguments) {
 }
 
 Client ClientOf(const std::wstring& gameFolder) {
-	return Sys::FileExists(gameFolder + L"\\" + SteamAppId) ? Client::Steam : Client::BattleNet;
+	return InSteamLibrary(gameFolder) || Sys::FileExists(gameFolder + L"\\" + SteamAppId) ? Client::Steam : Client::BattleNet;
+}
+
+// Without steam_appid.txt a D2R.exe started outside Steam quits and asks Steam to start it again, so
+// the validation watched a closed game; D2RLoader writes the same file the first time it runs.
+void EnsureSteamAppId(const std::wstring& gameFolder) {
+	const std::wstring path = gameFolder + L"\\" + SteamAppId;
+	if (Sys::FileExists(path)) return;
+	const std::size_t name      = gameFolder.find_last_of(L'\\');
+	const std::size_t common    = name == std::wstring::npos ? name : gameFolder.find_last_of(L'\\', name - 1);
+	if (common == std::wstring::npos) return;
+	const std::string folderName = Log::Narrow(gameFolder.substr(name + 1));
+	for (const std::wstring& manifest : Sys::FilesMatching(gameFolder.substr(0, common) + L"\\appmanifest_*.acf")) {
+		const auto text  = Sys::ReadTextFile(manifest);
+		const auto appId = text ? ManifestAppIdFor(*text, folderName) : std::nullopt;
+		if (!appId) continue;
+		Log::Line(Sys::CreateNewTextFile(path, *appId + "\n")
+			? std::format("steam_appid.txt missing: written with {} from {}", *appId, Log::Narrow(manifest))
+			: "steam_appid.txt missing and could not be written");
+		return;
+	}
+	Log::Line("steam_appid.txt missing and no Steam manifest names this folder");
+}
+
+// The game's first-run screens only pass with a click, so the validation would wait for nothing
+// (docs/launcher.md, "First run"); "First Time" 1 is the game's own mark that they were seen.
+void MarkFirstRunSeen(const std::wstring& settingsPath) {
+	if (settingsPath.empty()) return;
+	const auto existing = Sys::ReadTextFile(settingsPath);
+	if (!existing) {
+		Log::Line(Sys::CreateNewTextFile(settingsPath, FirstRunSettings)
+			? "Settings.json missing: written with First Time 1, so the game skips its first-run screens"
+			: "Settings.json missing and could not be written");
+		return;
+	}
+	const auto marked = WithFirstTimeMarked(*existing);
+	if (!marked) return;
+	Log::Line(Sys::ReplaceTextFile(settingsPath, *marked, settingsPath + SettingsBackupSuffix)
+		? "Settings.json without First Time 1: marked, the original kept as Settings.json.before-d2raccess"
+		: "Settings.json without First Time 1 could not be changed");
 }
 
 bool EnsureSteam() {
@@ -238,11 +279,7 @@ int Run() {
 
 	const Client client = ClientOf(gameFolder);
 	const std::wstring settingsPath = Sys::SettingsJsonPath();
-	if (!settingsPath.empty() && !Sys::FileExists(settingsPath)) {
-		Log::Line(Sys::CreateNewTextFile(settingsPath, FirstRunSettings)
-			? "Settings.json missing: written with First Time 1, so the game skips its first-run screens"
-			: "Settings.json missing and could not be written");
-	}
+	MarkFirstRunSeen(settingsPath);
 	const auto settings             = Sys::ReadTextFile(settingsPath);
 	const auto before               = settings ? ParseLastOnline(*settings) : std::nullopt;
 	const std::uint64_t now         = Sys::NowUnixNanos();
@@ -261,6 +298,7 @@ int Run() {
 		return StartLoader(gameFolder, arguments);
 	}
 
+	if (client == Client::Steam) EnsureSteamAppId(gameFolder);
 	auto game = StartGame(client, gameFolder);
 	if (!game) {
 		if (client == Client::BattleNet) Sys::ShowBox(BoxTitle, text.launcherBattleNetNoGame, Sys::BoxKind::Error);

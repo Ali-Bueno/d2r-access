@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 // Win32 glue of the launcher: files, Steam, processes, windows and keys.
 namespace D2RAccess::Launcher::System {
@@ -21,7 +22,11 @@ bool                        FileExists(const std::wstring& path);
 std::optional<std::string>  ReadTextFile(const std::wstring& path);
 // Creates the file and its folder; never replaces a file that exists.
 bool                        CreateNewTextFile(const std::wstring& path, std::string_view content);
+// Replaces the file's text; the first original is kept at `backupPath` and never overwritten.
+bool                        ReplaceTextFile(const std::wstring& path, std::string_view content, const std::wstring& backupPath);
 std::wstring                SettingsJsonPath();
+// Full paths of the files matching a wildcard pattern such as `C:\x\*.acf`.
+std::vector<std::wstring>   FilesMatching(const std::wstring& pattern);
 std::uint64_t               NowUnixNanos();
 std::uint64_t               NowMs();
 

@@ -97,6 +97,30 @@ bool CreateNewTextFile(const std::wstring& path, std::string_view content) {
 	return ok;
 }
 
+bool ReplaceTextFile(const std::wstring& path, std::string_view content, const std::wstring& backupPath) {
+	if (!CopyFileW(path.c_str(), backupPath.c_str(), TRUE) && GetLastError() != ERROR_FILE_EXISTS) return false;
+	const std::wstring temporary = path + L".tmp";
+	DeleteFileW(temporary.c_str());
+	if (!CreateNewTextFile(temporary, content)) return false;
+	if (MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) return true;
+	DeleteFileW(temporary.c_str());
+	return false;
+}
+
+std::vector<std::wstring> FilesMatching(const std::wstring& pattern) {
+	std::vector<std::wstring> files;
+	const std::size_t slash  = pattern.find_last_of(L'\\');
+	const std::wstring folder = slash == std::wstring::npos ? L"" : pattern.substr(0, slash + 1);
+	WIN32_FIND_DATAW found{};
+	const HANDLE search = FindFirstFileW(pattern.c_str(), &found);
+	if (search == INVALID_HANDLE_VALUE) return files;
+	do {
+		if (!(found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) files.push_back(folder + found.cFileName);
+	} while (FindNextFileW(search, &found));
+	FindClose(search);
+	return files;
+}
+
 std::wstring SettingsJsonPath() {
 	PWSTR known = nullptr;
 	if (FAILED(SHGetKnownFolderPath(FOLDERID_SavedGames, 0, nullptr, &known))) {

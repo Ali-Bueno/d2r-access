@@ -14,18 +14,24 @@ Shipped in the game folder next to `D2R.exe` and `D2RLoader.exe`. Sources: `laun
 
 1. Game folder is the exe's own folder. Arguments (Steam's `%command%` adds the `D2R.exe` path) go to
    `D2RLoader.exe` unchanged, environment inherited.
-2. No `Settings.json` (the game never reached its main menu on this PC): it is created with only
-   `"First Time": 1` ("First run" below). `User Last Online` younger than 20 days: fresh. Otherwise
-   speak that the license is validated online (about half a minute).
-3. The store app is opened if closed, on both paths (the user, 2026-11-03). A copy with
-   `steam_appid.txt` is a Steam copy: `steam.exe -silent` if not running, then up to 60 s for
+2. No `Settings.json`: it is created with only `"First Time": 1`; one without `"First Time": 1` gets
+   it, the original kept once as `Settings.json.before-d2raccess` ("First run" below). `User Last
+   Online` younger than 20 days: fresh. Otherwise speak that the license is validated online (about
+   half a minute).
+3. The store app is opened if closed, on both paths (the user, 2026-11-03). A copy in a Steam
+   library (`<library>\steamapps\common\<folder>`) or with `steam_appid.txt` is a Steam copy (the
+   file is not installed by Steam: D2RLoader writes it at its first run, so a new player's copy
+   was taken for Battle.net, reported by drg 2026-11-03): `steam.exe -silent` if not running, then up to 60 s for
    `ActiveUser`. Any other copy is a Battle.net copy: `Battle.net.exe` from the running process
    (`QueryFullProcessImageNameW`) or from `InstallLocation` of the Uninstall entry `Battle.net`
    (32-bit view); fresh path: started without arguments if not running (no signed-in check is
    known); validation: always run with `--exec="launch OSI"`, which a running app takes over and a
    closed one opens with. Failure: an error box ("could not start the game, this copy needs Steam /
    the Battle.net app open and signed in"), exit. Fresh: start the loader.
-4. Validation starts the unmodded game. Steam: `D2R.exe` without arguments. Battle.net (a direct
+4. Validation starts the unmodded game. Steam: `D2R.exe` without arguments, after writing a missing
+   `steam_appid.txt` with the `appid` of the `steamapps\appmanifest_*.acf` whose `installdir` is the
+   game folder's name (without it `D2R.exe` quits in 1.5 s and asks Steam to start it again, which
+   runs the Steam launch options; measured 2026-11-03). Battle.net (a direct
    `D2R.exe` or the game's own launcher exe only opens the Battle.net app, reported 2026-11-03):
    wait up to 90 s for the `D2R.exe` it launches and open it by name. None: an error box (install
    or update the game in Battle.net first, or validate by hand: Play, main menu, close), then step 6.
@@ -62,6 +68,16 @@ in its other defaults. So the launcher writes it when the file is missing (`Crea
 `CREATE_NEW`, never over an existing file, the folder created if needed; constant
 `FirstRunSettings`). Verified live end to end the same day with no save folder at all: file written,
 the date 15 s after `D2R.exe` started, the loader started.
+
+A Russian player on 1.0.3 still timed out: their log had no "Settings.json missing" line, so the file
+existed without the date, and their modded game showed the gamma screen. Measured here, neither a
+`WM_CLOSE` on the gamma screen nor D2RLoader writes `Settings.json` on a new PC, so theirs came from
+elsewhere (perhaps an older install; not known). Since then any `Settings.json` without
+`"First Time": 1` gets the key (a `0` or other number becomes `1`, a missing key is added after the
+`{`, nothing else changes; written through a `.tmp` file and `MoveFileExW`), the original kept as
+`Settings.json.before-d2raccess` (never overwritten). Verified live with the user's old file minus
+"First Time" and the date, and no `steam_appid.txt`: marked, the appid written from the manifest, the
+date 16 s after `D2R.exe` started, the loader started, one launcher run.
 
 Not covered: a Steam account never linked to Battle.net (the game's `AccountLinkingModal`, a code to
 type at a web address) and an account that never accepted the EULA (`EULAModal`, Accept / Cancel).

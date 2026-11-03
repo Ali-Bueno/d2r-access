@@ -62,6 +62,36 @@ void Arguments() {
 	Check(ArgumentsAfterProgram(L"").empty(), "empty command line");
 }
 
+void FirstRunMark() {
+	Check(!WithFirstTimeMarked(R"({"A": 2, "First Time": 1, "B": 3})"), "already marked: left alone");
+	Check(WithFirstTimeMarked(R"({"A": 2, "First Time": 0, "B": 3})") == R"({"A": 2, "First Time": 1, "B": 3})", "0 becomes 1, nothing else changes");
+	Check(WithFirstTimeMarked("{\n    \"First Time\" :  12\n}") == "{\n    \"First Time\" :  1\n}", "any other number becomes 1");
+	Check(WithFirstTimeMarked("{\n    \"Gamma\": 155\n}") == "{\n    \"First Time\": 1,\n    \"Gamma\": 155\n}", "a missing key is added first");
+	Check(WithFirstTimeMarked("\xEF\xBB\xBF{\"Gamma\": 155}") == "\xEF\xBB\xBF{\n    \"First Time\": 1,\"Gamma\": 155}", "after a UTF-8 BOM");
+	Check(WithFirstTimeMarked("{ }") == "{\n    \"First Time\": 1 }", "an empty object gets no comma");
+	Check(!WithFirstTimeMarked(""), "an empty file is left alone");
+	Check(!WithFirstTimeMarked("garbage {"), "text that is not an object is left alone");
+	Check(!WithFirstTimeMarked(R"({"First Time": "yes"})"), "a value that is not a number is left alone");
+	Check(!WithFirstTimeMarked(FirstRunSettings), "the first-run file is already marked");
+}
+
+void SteamLibrary() {
+	Check(InSteamLibrary(L"D:\\games\\steam\\steamapps\\common\\Diablo II Resurrected"), "a Steam library");
+	Check(InSteamLibrary(L"C:\\Program Files (x86)\\Steam\\SteamApps\\Common\\Diablo II Resurrected\\"), "any case, trailing backslash");
+	Check(InSteamLibrary(L"E:/SteamLibrary/steamapps/common/Diablo II Resurrected"), "forward slashes");
+	Check(!InSteamLibrary(L"C:\\Program Files (x86)\\Diablo II Resurrected"), "a Battle.net folder");
+	Check(!InSteamLibrary(L"D:\\games\\steam\\steamapps\\common"), "the library's common folder itself");
+	Check(!InSteamLibrary(L"D:\\games\\mysteamapps\\common\\Diablo II Resurrected"), "only a whole steamapps folder counts");
+	Check(!InSteamLibrary(L""), "an empty path");
+
+	constexpr std::string_view Manifest = "\"AppState\"\n{\n\t\"appid\"\t\t\"2536520\"\n\t\"name\"\t\t\"Diablo II: Resurrected\"\n\t\"installdir\"\t\t\"Diablo II Resurrected\"\n}\n";
+	Check(ManifestAppIdFor(Manifest, "Diablo II Resurrected") == "2536520", "the manifest's app id");
+	Check(ManifestAppIdFor(Manifest, "diablo ii resurrected") == "2536520", "folder names compare in any case");
+	Check(!ManifestAppIdFor(Manifest, "Diablo IV"), "another game's manifest");
+	Check(!ManifestAppIdFor("\"AppState\" { \"installdir\" \"Diablo II Resurrected\" }", "Diablo II Resurrected"), "no app id");
+	Check(!ManifestAppIdFor("\"appid\" \"12x\" \"installdir\" \"D\"", "D"), "an app id that is not a number");
+}
+
 void KeySchedule() {
 	Check(NextKeyAction(0, std::nullopt, false) == KeyAction::Press, "the first press is immediate");
 	Check(NextKeyAction(EscapeHoldMs - 1, 0, true) == KeyAction::None, "the key stays down for the hold time");
@@ -80,6 +110,8 @@ int main() {
 	Locale();
 	Arguments();
 	KeySchedule();
+	FirstRunMark();
+	SteamLibrary();
 	Passed();
 	return 0;
 }

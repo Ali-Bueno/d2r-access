@@ -28,6 +28,15 @@ inline constexpr std::uint64_t GameAppearTimeoutMs = 90'000; // Battle.net asked
 // Written as Settings.json when the game has none: "First Time" 1 is the game's own mark that its
 // first-run screens were seen, which only a mouse click passes (docs/launcher.md, "First run").
 inline constexpr std::string_view FirstRunSettings = "{\n    \"First Time\": 1\n}\n";
+// An existing Settings.json with "First Time" set to 1, changing nothing else; nothing when it already
+// is 1 or the text is not a JSON object.
+std::optional<std::string> WithFirstTimeMarked(std::string_view settingsJson);
+
+// Steam installs every game in <library>\steamapps\common\<game>; steam_appid.txt only appears there
+// once D2RLoader has run (docs/launcher.md, Flow).
+bool InSteamLibrary(std::wstring_view gameFolder);
+// The "appid" of a Steam appmanifest_*.acf whose "installdir" is `installDir` (any case).
+std::optional<std::string> ManifestAppIdFor(std::string_view manifest, std::string_view installDir);
 
 enum class Verdict { Fresh, Stale, Expired };
 

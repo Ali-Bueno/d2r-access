@@ -1,6 +1,7 @@
 #include "launcher_logic.h"
 
 #include <cctype>
+#include <cwctype>
 #include <limits>
 
 namespace D2RAccess::Launcher {
@@ -8,6 +9,9 @@ namespace D2RAccess::Launcher {
 namespace {
 
 constexpr std::string_view LastOnlineKey = "\"User Last Online\"";
+constexpr std::string_view FirstTimeKey  = "\"First Time\"";
+constexpr std::string_view Utf8Bom       = "\xEF\xBB\xBF";
+constexpr std::wstring_view SteamCommonFolder = L"\\steamapps\\common";
 constexpr std::string_view LocaleKey     = "text_locale";
 constexpr std::string_view LocaleSection = "d2rloader";
 
@@ -15,6 +19,19 @@ std::string_view Trim(std::string_view text) {
 	while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) text.remove_prefix(1);
 	while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back()))) text.remove_suffix(1);
 	return text;
+}
+
+// The quoted value after the first quoted `key` of a Valve KeyValues text.
+std::optional<std::string_view> VdfValue(std::string_view vdf, std::string_view key) {
+	const std::string quoted = "\"" + std::string(key) + "\"";
+	const std::size_t at     = vdf.find(quoted);
+	if (at == std::string_view::npos) return std::nullopt;
+	std::string_view rest = Trim(vdf.substr(at + quoted.size()));
+	if (!rest.starts_with('"')) return std::nullopt;
+	rest.remove_prefix(1);
+	const std::size_t end = rest.find('"');
+	if (end == std::string_view::npos) return std::nullopt;
+	return rest.substr(0, end);
 }
 
 }
@@ -37,6 +54,51 @@ std::optional<std::uint64_t> ParseLastOnline(std::string_view json) {
 	}
 	if (digits == 0) return std::nullopt;
 	return value;
+}
+
+std::optional<std::string> WithFirstTimeMarked(std::string_view json) {
+	const std::size_t key = json.find(FirstTimeKey);
+	if (key != std::string_view::npos) {
+		std::size_t at = key + FirstTimeKey.size();
+		while (at < json.size() && std::isspace(static_cast<unsigned char>(json[at]))) ++at;
+		if (at == json.size() || json[at] != ':') return std::nullopt;
+		++at;
+		while (at < json.size() && std::isspace(static_cast<unsigned char>(json[at]))) ++at;
+		std::size_t end = at;
+		while (end < json.size() && json[end] >= '0' && json[end] <= '9') ++end;
+		if (end == at || json.substr(at, end - at) == "1") return std::nullopt;
+		std::string marked(json);
+		marked.replace(at, end - at, "1");
+		return marked;
+	}
+	std::string_view head = json;
+	if (head.starts_with(Utf8Bom)) head.remove_prefix(Utf8Bom.size());
+	head = Trim(head);
+	if (!head.starts_with('{')) return std::nullopt;
+	const std::size_t open  = json.find('{');
+	const bool        empty = Trim(json.substr(open + 1)).starts_with('}');
+	std::string marked(json);
+	marked.insert(open + 1, empty ? "\n    \"First Time\": 1" : "\n    \"First Time\": 1,");
+	return marked;
+}
+
+bool InSteamLibrary(std::wstring_view gameFolder) {
+	std::wstring folder;
+	for (const wchar_t c : gameFolder) folder += c == L'/' ? L'\\' : static_cast<wchar_t>(std::towlower(c));
+	while (!folder.empty() && folder.back() == L'\\') folder.pop_back();
+	const std::size_t game = folder.find_last_of(L'\\');
+	return game != std::wstring::npos && game + 1 < folder.size() && folder.substr(0, game).ends_with(SteamCommonFolder);
+}
+
+std::optional<std::string> ManifestAppIdFor(std::string_view manifest, std::string_view installDir) {
+	const auto folder = VdfValue(manifest, "installdir");
+	const auto appId  = VdfValue(manifest, "appid");
+	if (!folder || !appId || appId->empty() || folder->size() != installDir.size()) return std::nullopt;
+	for (std::size_t i = 0; i < installDir.size(); ++i) {
+		if (std::tolower(static_cast<unsigned char>((*folder)[i])) != std::tolower(static_cast<unsigned char>(installDir[i]))) return std::nullopt;
+	}
+	for (const char c : *appId) if (c < '0' || c > '9') return std::nullopt;
+	return std::string(*appId);
 }
 
 std::uint64_t AgeDays(std::uint64_t last, std::uint64_t now) {
