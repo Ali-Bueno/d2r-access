@@ -2,6 +2,38 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Keyboard only, tested end to end — 2026-11-03 (with the launcher fixes below)
+
+Players: the keyboard "does not work"; H says no unexplored areas. Tested live, no pad, rorgan
+(paladin 11): menus, Play, scanner, Z/X, Ctrl+Y, arrows, Shift+Home, D, H x5 in the Blood Moor, Tab,
+A, I, pause menu ([keyboard play](docs/keyboard-play.md#keyboard-only-tested-end-to-end--2026-11-03)).
+- Fixed: Play left the pointer over the world, so the game's hover target ("Deckard Cain") was
+  spoken about once a second, cutting every other line, H's included. A park is now owed whenever
+  the cursor moves the pointer and done once the HUD is drawn. Verified: silent standing and walking.
+- Fixed: D2RLoader's `PluginIconTooltip` left out of the cursor (a stop between characters); the
+  cursor starts on the game's focus (the chosen character) instead of the topmost place. The
+  loader's notification button stays reachable (the user).
+- Verified the menus' pointer and clicks in a 1280x720 window and with Windows at 1920x1080 / 125 %
+  (the user's: 2560x1440 / 150 %, restored after).
+- Seen, not changed: "DownArrow"/"ScrollBar" spoken raw; Down from the notification button skips
+  two rows; the inventory starts on Close; "Title Screen" and "yendo a Game" in English.
+
+## Launcher: an old Settings.json and a missing steam_appid.txt — 2026-11-03 (not released)
+
+1.0.3 still failed for a Russian player (their `Settings.json` existed without the date and without
+"First Time" 1: their modded game showed the gamma screen), and drg's Steam copy was taken for
+Battle.net ([launcher](docs/launcher.md#first-run), Flow 2-4).
+- Any `Settings.json` without `"First Time": 1` gets it; the original kept once as
+  `Settings.json.before-d2raccess`.
+- Steam copy = folder in `steamapps\common` or `steam_appid.txt`. That file is written by D2RLoader,
+  not Steam; without it `D2R.exe` quits and asks Steam to relaunch it. The launcher now writes it
+  from the Steam manifest (`appmanifest_*.acf` whose `installdir` is the folder).
+- Built, launcher tests pass (three new groups). **Verified live** with the user's settings minus
+  "First Time" and the date, no `steam_appid.txt`: one run, date in 16 s, loader started. The user's
+  saves moved aside for it and restored, hashes identical to the backup.
+
+**Next step:** commit, push and release when the user asks; then the Russian player and drg retry.
+
 ## Launcher: first launch on a new PC no longer blocks the validation — 2026-11-03 (release 1.0.3)
 
 The user suspected the game's first-start screens behind players who cannot validate. Confirmed live

@@ -777,3 +777,41 @@ pressed, or a stick or trigger past its threshold, on any pad) releases it
 (`[cursor] released: a pad was used`), whether the pad was plugged in late or was connected all
 along and the arrows had taken the menu. An arrow key takes it again, as before. Confirmed live
 by the user, 2026-10-31.
+
+## Keyboard only, tested end to end — 2026-11-03
+
+Players reported that the keyboard "does not work", and one that H says no unexplored areas. Tested
+live with the user's paladin, no pad connected, from the title screen to the Blood Moor and back:
+the character list, Play, the scanner (PageUp/PageDown, Ctrl+PageUp/PageDown, Home), Z, X, Ctrl+Y,
+the arrows (a walk of two seconds moved the exit's distance from 129 to 136), Shift+Home to Akara
+and to the Blood Moor, D (Akara spoken to, life 33 to 100 per cent), H five times in the Blood Moor
+(each "Walking to unexplored ground", then "Unexplored ground reached"), Tab, A held, I with the
+arrows, the pause menu and Save and Exit. All of it worked. Found and fixed:
+
+- **The pointer over the world.** Play clicked with A left the pointer on the Play button's spot,
+  over the world, and the game named what passed under it: "Deckard Cain", interrupting, about once
+  a second for over a minute, standing still, cutting every scanner line and H's words. `Park` ran
+  only on the update the menu closed, when the game was still loading (the cursor's place had been
+  emptied by the loading screen, so no park was owed). Now a park is owed whenever the cursor puts
+  the pointer somewhere, and is done on the first update in play the HUD is drawn
+  (`[cursor] play goes on: the pointer to x,y, between the skill buttons`). After it: no world
+  target in 15 s standing and in a walk past Cain.
+- **D2RLoader's plugin icon** (`PluginIconTooltip`, a nameless `FocusableWidget` on each character
+  row) was a stop between two characters, spoken by that name. Left out of the cursor. Its
+  notification and settings buttons stay (the user).
+- **The first place** was the topmost one, D2RLoader's notification button above the character
+  list. It is now the place that holds the game's own focus (the chosen character; "Return to Game"
+  in the pause menu), else the topmost as before (`Focused`).
+
+The same walk through the menus, Play and the inventory was repeated in a 1280x720 window
+(`Window Mode` 0) and with Windows at 1920x1080 (scale 125 per cent; the user's own is 2560x1440 at
+150 per cent): the pointer landed on every place and the clicks took. The cursor's rectangles are the
+game's client pixels and the pointer is put through the game window, so neither the window nor the
+Windows resolution or scale moves it.
+
+H in the Rogue Encampment says "Nothing left to explore here" with rooms the scanner still lists as
+areas: they are outside the palisade, cut off on foot (`explore: nothing left, 35 rooms, 21
+explored, 0 given up, 16 cut off`), as designed.
+
+Seen, not changed: the list's scroll arrows and bar are spoken as "DownArrow", "ScrollBar"; a step
+down from the notification button skips two characters; the inventory starts on Close.

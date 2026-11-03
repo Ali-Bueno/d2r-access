@@ -70,6 +70,7 @@ constexpr size_t MaxEntries = 256;
 constexpr int MaxDepth = 32;
 
 constexpr std::string_view Hud = "HUDPanel";
+constexpr std::string_view LoaderPluginIcon = "PluginIconTooltip"; // D2RLoader's, drawn on each row of the character list
 // The HUD's two skill buttons. Between them the HUD has nothing of its own.
 constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSkillButton";
 // The list of skills, one panel for both hands, and the game's own words for
@@ -141,6 +142,8 @@ uint64_t g_landedAt = 0;    // when the cursor came to where it is, 0 once that 
 std::string g_toSay;        // what to say if no reader does
 std::string g_said;         // what the cursor said of where it is, when no reader did
 bool g_beltShown = false;   // the game's "show belt" was turned on from here, and is to be turned off
+bool g_parkOwed = false;    // the cursor put the pointer somewhere, and play has not parked it yet
+bool g_parkTold = false;    // a park that could not be done yet is logged once
 int g_beltRows = 0;         // the rows of the belt when the menu was last read, 0 with no belt in it
 uint64_t g_lastClick = 0;
 uint64_t g_lastFill = 0;
@@ -319,6 +322,8 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 	entry.name = NativeWidgets::ReadName(widget);
 	// A template container of the layouts, not a part of the menu.
 	if (entry.name == "Templates") return;
+	// The plugin icon D2RLoader draws on each character row: nameless, and a stop between two characters (2026-11-03).
+	if (entry.name == LoaderPluginIcon) return;
 	const auto type = NativeUi::Classify(widget);
 	entry.kind = type.kind;
 	entry.type = type.name;
@@ -626,6 +631,7 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	const bool same = point.x == g_pointerAt.x && point.y == g_pointerAt.y;
 	g_landed = placed && (same || pointer.x != before.x || pointer.y != before.y);
 	if (g_landed) g_pointerAt = point;
+	if (g_landed) g_parkOwed = true; // the pointer is the cursor's until play takes it off the world
 	else AsyncLog::WarnF(context, "[cursor] the pointer did not go to %s: it is at %ld,%ld and was put on %d,%d; a click is refused",
 		entry->name.c_str(), pointer.x, pointer.y, point.x, point.y);
 	AsyncLog::InfoF(context, "[cursor] on %s (%s) cell %d,%d rect %d,%d %dx%d holding=%u placed=%u pointer %ld,%ld; %.1f ms into the tick",
@@ -728,21 +734,26 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 // When play goes on the pointer is put on the HUD, between its two skill
 // buttons. Left where the menu had it, it would be over the world, where the
 // game takes what is under it for what the player means and names it.
-void Park(const D2RL::PluginContext* context) {
+// False while the HUD is not drawn yet: a game just joined draws it a moment
+// after play starts, and until then the pointer is left over the world.
+bool Park(const D2RL::PluginContext* context) {
 	const uintptr_t hud = NativeWidgets::FindPanel(Hud);
 	const uintptr_t left = FindNamed(hud, LeftSkill, false, 0), right = FindNamed(hud, RightSkill, false, 0);
 	const auto from = left ? NativeSkillNavigation::RectAt(left, NativeUi::FocusSelection(left)) : std::nullopt;
 	const auto to = right ? NativeSkillNavigation::RectAt(right, NativeUi::FocusSelection(right)) : std::nullopt;
 	const int gap = from && to ? to->x - (from->x + from->width) : 0;
 	if (gap < 2) {
-		AsyncLog::InfoF(context, "[cursor] the pointer stays where the menu left it: left skill button %s, right %s, %d between them",
+		if (!g_parkTold) AsyncLog::InfoF(context, "[cursor] the pointer waits over the world: left skill button %s, right %s, %d between them",
 			!left ? "not shown" : from ? "found" : "has no rectangle", !right ? "not shown" : to ? "found" : "has no rectangle", gap);
-		return;
+		g_parkTold = true;
+		return false;
 	}
 	const NativeUi::Rect rest{from->x + from->width, from->y, gap, from->height};
 	AsyncLog::InfoF(context, "[cursor] play goes on: the pointer to %d,%d, between the skill buttons",
 		rest.x + rest.width / 2, rest.y + rest.height / 2);
 	MenuMouse::PlaceAfter(rest);
+	g_parkTold = false;
+	return true;
 }
 
 // The list of skills is one panel for both hands and has no title. The hand it
@@ -763,6 +774,16 @@ void SayHand(const D2RL::PluginContext* context, uint64_t now, const std::string
 
 // The menu as it is now, and the cursor on it: where it was if that still
 // stands, at the menu's first thing otherwise.
+// The place that holds the game's own focus: the character the list has chosen, not D2RLoader's
+// notification button drawn above the list, the topmost place (2026-11-03). Empty when none does.
+Place Focused() {
+	uintptr_t widget = NativeUi::CurrentFocus().widget;
+	for (int depth = 0; widget && depth < MaxDepth; ++depth, widget = NativeUi::Parent(widget))
+		for (const auto& target : g_targets)
+			if (target.widget == widget) return target.grid.width > 0 ? Place{} : Place{widget, {}, {}};
+	return {};
+}
+
 void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	g_refreshAt = now + RefreshMs;
 	const auto checks = NativeMemory::Checks();
@@ -809,6 +830,7 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	}
 	g_beltRows = rows;
 	auto place = MenuCursor::Settle(g_targets, g_place);
+	if (!place.widget) place = Focused();
 	if (!place.widget) place = MenuCursor::First(g_targets);
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
 	if (place == g_place && holding == g_holding && !redrawn) return;
@@ -1264,11 +1286,11 @@ void Tick(const D2RL::PluginContext* context) {
 		g_boxLeft = g_leaveBox = false;
 		g_keepLetters = false;
 		g_keepArrows = false;
-		// The pointer was the menu's only if the cursor put it somewhere.
-		const bool moved = g_place.widget != 0;
 		if (g_engaged || g_place.widget) Release(context, movie ? "a cinematic plays" : "no menu, or the game is not in front");
 		HideBelt(context);
-		if (moved && Foreground() && KeyboardService::Playing()) Park(context);
+		// Play from a menu (Play on the character list) starts with the pointer where the cursor
+		// left it, over the world, and the game names whatever passes under it (2026-11-03: Cain, every second).
+		if (g_parkOwed && Foreground() && KeyboardService::Playing() && Park(context)) g_parkOwed = false;
 		g_pending = 0;
 		for (auto& arrow : g_arrows) arrow.down = Down(arrow.key);
 		for (auto& key : g_watched) { key.down = Down(key.key); key.waiting = false; }
