@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Keyboard only, tested end to end — 2026-11-03 (with the launcher fixes below)
+## Keyboard only, tested end to end — 2026-11-03 (release 1.0.4, with the launcher fixes below)
 
 Players: the keyboard "does not work"; H says no unexplored areas. Tested live, no pad, rorgan
 (paladin 11): menus, Play, scanner, Z/X, Ctrl+Y, arrows, Shift+Home, D, H x5 in the Blood Moor, Tab,
@@ -18,7 +18,7 @@ A, I, pause menu ([keyboard play](docs/keyboard-play.md#keyboard-only-tested-end
 - Seen, not changed: "DownArrow"/"ScrollBar" spoken raw; Down from the notification button skips
   two rows; the inventory starts on Close; "Title Screen" and "yendo a Game" in English.
 
-## Launcher: an old Settings.json and a missing steam_appid.txt — 2026-11-03 (not released)
+## Launcher: an old Settings.json and a missing steam_appid.txt — 2026-11-03 (release 1.0.4)
 
 1.0.3 still failed for a Russian player (their `Settings.json` existed without the date and without
 "First Time" 1: their modded game showed the gamma screen), and drg's Steam copy was taken for
@@ -32,7 +32,11 @@ Battle.net ([launcher](docs/launcher.md#first-run), Flow 2-4).
   "First Time" and the date, no `steam_appid.txt`: one run, date in 16 s, loader started. The user's
   saves moved aside for it and restored, hashes identical to the backup.
 
-**Next step:** commit, push and release when the user asks; then the Russian player and drg retry.
+- Release 1.0.4 from 548e876 (the user asked): 139/139 CTest, 28 entries, 64,944,518 bytes,
+  SHA-256 `312405a8…a03ef6f`; zip, installer, `release.json` (news from
+  `../tester-news-draft-2026-11-03d.txt`), README and GUIDE; latest.
+
+**Next step:** the Russian player, drg and the keyboard players retry 1.0.4; their logs if not.
 
 ## Launcher: first launch on a new PC no longer blocks the validation — 2026-11-03 (release 1.0.3)
 
