@@ -13,6 +13,9 @@ to know which were used and how near the closest unexplored area is, keeping the
   measured along the way through them, in exploration mode too (`pad-steps`). 8 strings, 13 languages.
 - Built, 139/139 CTest. **Verified live** (the user, controller, 06:20-06:39): both phrases heard,
   14 hops learned, Horazon's journal and the Summoner reached in 18 minutes ("funcionó").
+- Release 1.0.2 from ca1d029 (the user asked): 139/139 CTest, 28 entries, 64,937,407 bytes,
+  SHA-256 `850a6405…bbe0386`; zip, installer, `release.json` (news from
+  `../tester-news-draft-2026-11-03b.txt`), README and GUIDE; latest.
 
 **Next step:** the players' reports on 1.0.2.
 
