@@ -25,6 +25,10 @@ inline constexpr std::uint64_t KillWaitMs     = 5'000;
 inline constexpr std::uint64_t SteamTimeoutMs = 60'000;
 inline constexpr std::uint64_t GameAppearTimeoutMs = 90'000; // Battle.net asked to launch (and maybe opening and signing in), until D2R.exe runs
 
+// Written as Settings.json when the game has none: "First Time" 1 is the game's own mark that its
+// first-run screens were seen, which only a mouse click passes (docs/launcher.md, "First run").
+inline constexpr std::string_view FirstRunSettings = "{\n    \"First Time\": 1\n}\n";
+
 enum class Verdict { Fresh, Stale, Expired };
 
 // "User Last Online" of Settings.json: nanoseconds since the Unix epoch.

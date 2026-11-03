@@ -14,8 +14,9 @@ Shipped in the game folder next to `D2R.exe` and `D2RLoader.exe`. Sources: `laun
 
 1. Game folder is the exe's own folder. Arguments (Steam's `%command%` adds the `D2R.exe` path) go to
    `D2RLoader.exe` unchanged, environment inherited.
-2. `User Last Online` younger than 20 days: fresh. Otherwise speak that the license is validated
-   online (about half a minute).
+2. No `Settings.json` (the game never reached its main menu on this PC): it is created with only
+   `"First Time": 1` ("First run" below). `User Last Online` younger than 20 days: fresh. Otherwise
+   speak that the license is validated online (about half a minute).
 3. The store app is opened if closed, on both paths (the user, 2026-11-03). A copy with
    `steam_appid.txt` is a Steam copy: `steam.exe -silent` if not running, then up to 60 s for
    `ActiveUser`. Any other copy is a Battle.net copy: `Battle.net.exe` from the running process
@@ -41,6 +42,30 @@ sentence interrupts the screen reader, the later ones queue; the launcher waits 
 character of what is still queued before exiting. Progress is said as it goes (the user, 2026-11-03:
 silence felt like a long wait): launcher started, opening Steam / Battle.net (only when the launcher
 opens it), validating, validated, starting the game.
+
+## First run
+
+Measured live 2026-11-03 (the user's Steam copy, the save folder moved aside so the game started as
+on a new PC; the user's idea after players failed to validate). With no `Settings.json` the game shows,
+after the logos and the title screen, three screens that each have one button, "Continuar", and no
+Close: "Calibración gamma", "Calibración de espacio de pantalla" and "Calibración de daltonismo" (with
+a "Texto a voz" checkbox), then the full intro cinematic. Escape (tap or hold) and Enter do nothing
+on them; only a click on "Continuar" passes them (or a controller's A). The validation held Escape
+until its timeout, and once the game stopped responding on the gamma screen (Windows' "no responde"
+box after about 18 s of Escape holds). Clicking through them, then holding Escape past the cinematic,
+reached the main menu and wrote `User Last Online`; no EULA or account-linking box came (this account
+had accepted and linked before).
+
+The game writes `"First Time": 1` in `Settings.json` once they are done. A `Settings.json` holding only
+that key skips all three and the cinematic: title screen, main menu, date written, the game filling
+in its other defaults. So the launcher writes it when the file is missing (`CreateFileW`
+`CREATE_NEW`, never over an existing file, the folder created if needed; constant
+`FirstRunSettings`). Verified live end to end the same day with no save folder at all: file written,
+the date 15 s after `D2R.exe` started, the loader started.
+
+Not covered: a Steam account never linked to Battle.net (the game's `AccountLinkingModal`, a code to
+type at a web address) and an account that never accepted the EULA (`EULAModal`, Accept / Cancel).
+Both are online-only, need the player, and could not be reproduced on the user's account.
 
 ## Constants
 

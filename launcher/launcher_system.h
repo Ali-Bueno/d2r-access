@@ -19,6 +19,8 @@ std::wstring                ExeFolder();
 std::wstring                OwnCommandLine();
 bool                        FileExists(const std::wstring& path);
 std::optional<std::string>  ReadTextFile(const std::wstring& path);
+// Creates the file and its folder; never replaces a file that exists.
+bool                        CreateNewTextFile(const std::wstring& path, std::string_view content);
 std::wstring                SettingsJsonPath();
 std::uint64_t               NowUnixNanos();
 std::uint64_t               NowMs();

@@ -238,6 +238,11 @@ int Run() {
 
 	const Client client = ClientOf(gameFolder);
 	const std::wstring settingsPath = Sys::SettingsJsonPath();
+	if (!settingsPath.empty() && !Sys::FileExists(settingsPath)) {
+		Log::Line(Sys::CreateNewTextFile(settingsPath, FirstRunSettings)
+			? "Settings.json missing: written with First Time 1, so the game skips its first-run screens"
+			: "Settings.json missing and could not be written");
+	}
 	const auto settings             = Sys::ReadTextFile(settingsPath);
 	const auto before               = settings ? ParseLastOnline(*settings) : std::nullopt;
 	const std::uint64_t now         = Sys::NowUnixNanos();

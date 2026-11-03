@@ -2,6 +2,22 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Launcher: first launch on a new PC no longer blocks the validation — 2026-11-03 (not released)
+
+The user suspected the game's first-start screens behind players who cannot validate. Confirmed live
+on a reset save folder: gamma, screen-space and colour-blind calibrations, each with only
+"Continuar" (mouse or A; Escape and Enter do nothing), so the validation timed out; once the game
+hung there ([first run](docs/launcher.md#first-run)).
+- With no `Settings.json` the launcher now writes one holding only `"First Time": 1` (the game's own
+  mark); the game skips the three screens and the cinematic. Never overwrites a file.
+- Built, 139/139 CTest (one new check). **Verified live** with no save folder: date written 15 s
+  after `D2R.exe` started, loader started.
+- The user's saves: copy in `../save-backups/2026-11-03-before-fresh-start/` (135 files, hashes
+  match); the live folder was moved to `Saved Games\Diablo II Resurrected.mine` for the test.
+- Not covered: Steam account never linked to Battle.net, EULA never accepted (online-only boxes).
+
+**Next step:** restore the user's save folder; release when the user asks.
+
 ## Arcane Sanctuary pads: where each leads, in words and sound — 2026-11-03 (release 1.0.2)
 
 The user looped over the same pads for 21 minutes (20 hops, 7 pairs; log 05:29-05:50) and asked

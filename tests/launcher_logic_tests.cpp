@@ -19,6 +19,7 @@ void SettingsDate() {
 	Check(!ParseLastOnline(R"({"User Last Online" 5})"), "a missing colon gives nothing");
 	Check(!ParseLastOnline(R"({"User Last Online": 99999999999999999999})"), "an overflowing number gives nothing");
 	Check(!ParseLastOnline(R"({"User Last Online":)"), "a truncated file gives nothing");
+	Check(!ParseLastOnline(FirstRunSettings), "the first-run file has no date, so the license is still validated");
 }
 
 void Decision() {

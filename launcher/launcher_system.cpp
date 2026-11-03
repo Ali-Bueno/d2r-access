@@ -86,6 +86,17 @@ std::optional<std::string> ReadTextFile(const std::wstring& path) {
 	return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 }
 
+bool CreateNewTextFile(const std::wstring& path, std::string_view content) {
+	const std::size_t slash = path.find_last_of(L'\\');
+	if (slash != std::wstring::npos) CreateDirectoryW(path.substr(0, slash).c_str(), nullptr);
+	const HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (file == INVALID_HANDLE_VALUE) return false;
+	DWORD written  = 0;
+	const bool ok  = WriteFile(file, content.data(), static_cast<DWORD>(content.size()), &written, nullptr) && written == content.size();
+	CloseHandle(file);
+	return ok;
+}
+
 std::wstring SettingsJsonPath() {
 	PWSTR known = nullptr;
 	if (FAILED(SHGetKnownFolderPath(FOLDERID_SavedGames, 0, nullptr, &known))) {
