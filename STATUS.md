@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Launcher: Steam or Battle.net opened before any start; Battle.net validation through the app — 2026-11-03 (uncommitted)
+## Launcher: Steam or Battle.net opened before any start; Battle.net validation through the app — 2026-11-03 (released as 1.0.1 from 5f0a072)
 
 The user: make sure Steam or Battle.net is running before any start (validation or not), opening it
 as the launcher already did for Steam, with a message naming the one the copy needs when that fails;
@@ -22,9 +22,14 @@ on Battle.net a direct `D2R.exe` only opens the app, so the license could not be
   Steam closed → opened, fresh path and `--validate`; on the user's Battle.net app
   `--exec="launch Fen"` started Diablo IV in 1 s (it presses Play). **Unverified live:** the
   progress sentences; everything on a Battle.net copy of D2R.
+- The sentences were cut by focus changes (the launcher has no window: Run → desktop, the game
+  opening and closing). They now wait `FocusSettleMs` (500) and interrupt (`SayOverFocus`);
+  "validating" is said once the game has the focus. The user: "se oyen bien" with `--validate`.
+- Release 1.0.1 (the user chose the number): 139/139 CTest, 28 entries, 64,562,274 bytes,
+  SHA-256 `c71ca2c0…6f403f`; zip, installer, `release.json` (tag 1.0.1, news from
+  `../tester-news-draft-2026-11-03.txt`), README and GUIDE; latest.
 
-**Next step:** the user hears the progress sentences (fresh path, `--validate`, Steam closed); a
-Battle.net tester for D2R (`--validate`, then the log).
+**Next step:** a Battle.net tester for D2R (`--validate`, then the log).
 
 ## The guide's Horadric Cube section — 2026-11-02 (in release 1.0)
 
