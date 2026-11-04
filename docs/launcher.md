@@ -176,8 +176,8 @@ not changed since 1.0, and `tools/test-release.ps1` stops if it does: a new `pri
 knowingly, and reaches 1.0.1 to 1.0.4 only through the installer or the zip. Those players still go
 through this zip once; from then on their launcher could install a whole one.
 
-Not verified live: `D2RUpdate.zip` on a published release (repeat the throwaway run after the next one);
-the boxes read by a screen reader.
+Verified on the published 1.0.5: the 1.0.1 and 1.0.4 launchers installed it through `D2RUpdate.zip`
+(`install: 23 replaced, 0 created`). Not verified live: the boxes read by a screen reader.
 
 ## Forcing a validation
 

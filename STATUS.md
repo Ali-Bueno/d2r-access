@@ -2,14 +2,15 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## bfbeast's 1.0.2 notes and the launcher's update — 2026-11-03 (not released, not committed)
+## bfbeast's 1.0.2 notes and the launcher's update — 2026-11-03 (release 1.0.5)
 
 bfbeast's notes (dual-claw Assassin log) and a player stuck below 1.0.4. Built, 140/140 CTest.
 - **Launcher update fixed.** 1.0.1 to 1.0.4 could never install an update: `prism.dll`, loaded to speak,
   cannot be overwritten. It is now moved aside like the exe; `release.json` will name `D2RUpdate.zip`
   (no `prism.dll`) so installed launchers get through too ([launcher](docs/launcher.md#self-update)).
   **Verified live:** failure reproduced on the published 1.0.3; a fixed launcher tagged 1.0.3 installed
-  the real 1.0.4. Unverified: `D2RUpdate.zip` on a published release.
+  the real 1.0.4; the published 1.0.1 and 1.0.4 launchers installed the published 1.0.5 through
+  `D2RUpdate.zip` (plugin and launcher hashes match it, `prism.dll` kept).
 - **Two weapons:** damage and attack rating read one number per weapon (`...StatTop`/`...StatBottom`,
   [character panel](docs/character-panel.md#two-weapons-in-hand-2026-11-03)). Which hand is first is
   not settled, so none is named. **Unverified live.**
@@ -22,8 +23,13 @@ bfbeast's notes (dual-claw Assassin log) and a player stuck below 1.0.4. Built, 
 - Known issues: `NativeQuestFlags` lags the same way for its other users, not reviewed; the keyboard has
   no full report, so durability is only its spoken alert there.
 
-**Next step:** the user decides on a release; then repeat the 1.0.3 throwaway update run, and bfbeast
-checks the three notes (news: `../tester-news-draft-2026-11-03e.txt`).
+- Release 1.0.5 from 34ca7f2 (the user asked): 140/140 CTest, 28 entries, 64,949,363 bytes,
+  SHA-256 `da9c536a…d799eb21`; `D2RUpdate.zip` 64,466,043 bytes, SHA-256 `03f797d4…85fe9e71`; zip,
+  installer, `release.json`, README and GUIDE; latest. Published news: only the part of
+  `../tester-news-draft-2026-11-03e.txt` before "Your questions" (replies to paste, not public notes).
+
+**Next step:** bfbeast checks the three notes, including which hand each number is; the stuck players
+update through the launcher.
 
 ## Keyboard only, tested end to end — 2026-11-03 (release 1.0.4, with the launcher fixes below)
 
