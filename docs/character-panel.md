@@ -297,7 +297,10 @@ number (except when there is no skill: it returns first). `0x28D2D0` takes the t
 body locations 4 and 5 both hold weapons. `RowValue` reads the pair after the single box, in screen
 order, joined by a comma: "Damage. 35-71, 21-82".
 
-**Which hand is which is not settled**, so no hand is named. The first string comes from the weapon
-`0x387690` picks (the one whose id is in the inventory's main-weapon field, tried in slot 5 then 4);
-Top as the first string is inferred from the names' order. To settle it: two different weapons,
-note Top, swap them between the hands.
+**Top is the right hand, Bottom the left (MEASURED 2026-11-04)**, so `RowValue` names them with the
+slots' own words: "Damage. Right weapon slot 35-71, Left weapon slot 21-82". yarkey, swords of 5-17
+(right) and 5-15 (left): "14-48, 18-56"; swapped between the hands, "18-56, 14-48"; a sword lifted
+with the Attack skill left the other's number alone, which was the first of the pair; set II, a rare
+with +51 attack rating on the right and a 2-9 on the left: damage "15-47, 7-33", rating "776, 627".
+The first string comes from the weapon `0x387690` picks by the inventory's main-weapon field, so the
+order was also tested against the order of equipping: the right sword put on last changed nothing.

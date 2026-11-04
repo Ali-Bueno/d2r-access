@@ -215,7 +215,8 @@ int main() {
 	widgets[73].text.clear();
 	Add(74, "AttackDamageStatTop", "35-71", 71);
 	Add(75, "AttackDamageStatBottom", "21-82", 71);
-	Check(CharacterStats::Lines(Panel)[8] == "Daño. 35-71, 21-82", "two weapons read a number for each");
+	const auto& slots = Strings::Current().equipmentSlots;
+	Check(CharacterStats::Lines(Panel)[8] == "Daño. " + std::string(slots[4]) + " 35-71, " + slots[5] + " 21-82", "two weapons read a number for each hand, the right first");
 	Check(CharacterStats::Lines(Panel)[9] == "Daño. 5 a 9", "and the other skill block keeps its own");
 	widgets[75].text.clear();
 	Check(CharacterStats::Lines(Panel)[8] == "Daño. 35-71", "one number alone is read alone");

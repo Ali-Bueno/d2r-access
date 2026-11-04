@@ -68,6 +68,8 @@ uintptr_t TitleOf(NativeUi::Focus focus) {
 	return NativeWidgets::ReadName(parent).ends_with(TitleSuffix) ? parent : 0;
 }
 
+constexpr size_t RightHand = 4, LeftHand = 5; // equipmentSlots, by the game's body locations
+
 // A row's value by the rules above; `text` gives the words of the widget called `name`.
 template <class Lookup>
 std::string RowValue(std::string_view title, const Lookup& text) {
@@ -84,9 +86,12 @@ std::string RowValue(std::string_view title, const Lookup& text) {
 	const std::string stem(title.substr(0, title.size() - TitleSuffix.size()));
 	for (const char* suffix : ValueSuffixes)
 		if (auto value = text(stem + suffix); !value.empty()) return value;
-	// Two weapons in hand: the game empties <stem>Stat and states one number per weapon.
+	// Two weapons in hand: the game empties <stem>Stat and states one number per weapon, the right
+	// hand's on top. MEASURED 2026-11-04, docs/character-panel.md.
 	const auto top = text(stem + "StatTop"), bottom = text(stem + "StatBottom");
-	return top.empty() || bottom.empty() ? top + bottom : top + ", " + bottom;
+	if (top.empty() || bottom.empty()) return top + bottom;
+	const auto& slots = Strings::Current().equipmentSlots;
+	return std::string(slots[RightHand]) + " " + top + ", " + slots[LeftHand] + " " + bottom;
 }
 
 std::string Value(uintptr_t panel, std::string_view title, std::string_view panelName) {
