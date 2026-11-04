@@ -68,15 +68,14 @@ uintptr_t TitleOf(NativeUi::Focus focus) {
 	return NativeWidgets::ReadName(parent).ends_with(TitleSuffix) ? parent : 0;
 }
 
-std::string Value(uintptr_t panel, std::string_view title, std::string_view panelName) {
-	// The hireling layout uses HPStat, while the character panel splits life
-	// into CurrentHP and MaxHP. Its other rows use the shared naming rules.
-	if (panelName == HirelingPanel && title == "HPTitle") return ChildText(panel, "HPStat");
+// A row's value by the rules above; `text` gives the words of the widget called `name`.
+template <class Lookup>
+std::string RowValue(std::string_view title, const Lookup& text) {
 	for (const auto& row : ValueRows) {
 		if (title != row.title) continue;
-		const auto current = ChildText(panel, row.current);
+		const auto current = text(row.current);
 		if (!row.maximum || current.empty()) return current;
-		const auto maximum = ChildText(panel, row.maximum);
+		const auto maximum = text(row.maximum);
 		if (maximum.empty()) return current;
 		char phrase[100]{};
 		std::snprintf(phrase, sizeof(phrase), Strings::Current().currentOfMaximum, current.c_str(), maximum.c_str());
@@ -84,8 +83,17 @@ std::string Value(uintptr_t panel, std::string_view title, std::string_view pane
 	}
 	const std::string stem(title.substr(0, title.size() - TitleSuffix.size()));
 	for (const char* suffix : ValueSuffixes)
-		if (auto value = ChildText(panel, stem + suffix); !value.empty()) return value;
-	return {};
+		if (auto value = text(stem + suffix); !value.empty()) return value;
+	// Two weapons in hand: the game empties <stem>Stat and states one number per weapon.
+	const auto top = text(stem + "StatTop"), bottom = text(stem + "StatBottom");
+	return top.empty() || bottom.empty() ? top + bottom : top + ", " + bottom;
+}
+
+std::string Value(uintptr_t panel, std::string_view title, std::string_view panelName) {
+	// The hireling layout uses HPStat, while the character panel splits life
+	// into CurrentHP and MaxHP. Its other rows use the shared naming rules.
+	if (panelName == HirelingPanel && title == "HPTitle") return ChildText(panel, "HPStat");
+	return RowValue(title, [&](std::string_view name) { return ChildText(panel, name); });
 }
 
 // Text of the sibling called `name`, i.e. a node with the same parent. Rows
@@ -100,20 +108,7 @@ std::string SiblingText(const UiText::Snapshot& snapshot, int parent, std::strin
 
 // Value of a row, by the same rules as Value() above but scoped to siblings.
 std::string SiblingValue(const UiText::Snapshot& snapshot, int parent, std::string_view title) {
-	for (const auto& row : ValueRows) {
-		if (title != row.title) continue;
-		const auto current = SiblingText(snapshot, parent, row.current);
-		if (!row.maximum || current.empty()) return current;
-		const auto maximum = SiblingText(snapshot, parent, row.maximum);
-		if (maximum.empty()) return current;
-		char phrase[100]{};
-		std::snprintf(phrase, sizeof(phrase), Strings::Current().currentOfMaximum, current.c_str(), maximum.c_str());
-		return phrase;
-	}
-	const std::string stem(title.substr(0, title.size() - TitleSuffix.size()));
-	for (const char* suffix : ValueSuffixes)
-		if (auto value = SiblingText(snapshot, parent, stem + suffix); !value.empty()) return value;
-	return {};
+	return RowValue(title, [&](std::string_view name) { return SiblingText(snapshot, parent, name); });
 }
 
 // The character's class and level as the panel states them. The HD layout adds

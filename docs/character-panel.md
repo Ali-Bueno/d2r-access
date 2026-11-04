@@ -286,3 +286,18 @@ stop after the number, though the right stick said "Attack Rating. 602. Fallen: 
 hit": the stop after "Rating" came, the one after "602." did not. A row ending in a digit is now
 followed by a comma ("Attack Rating. 602, Fallen: 95%..."), any other by a period as before
 (`WithChance`, `character_stats_reader.cpp`).
+
+## Two weapons in hand (2026-11-03)
+
+A tester's dual-claw Assassin heard "Damage" with no number and Attack Rating with only the chance.
+Each skill block has `AttackDamageStat`, `AttackDamageStatTop`, `AttackDamageStatBottom` and the
+same three for `AttackRating`. The filler `0x14E60E0(panel, player, hand)` empties all of them, then
+writes the pair when it has two strings and the single box otherwise, so hidden boxes hold no stale
+number (except when there is no skill: it returns first). `0x28D2D0` takes the two-string path when
+body locations 4 and 5 both hold weapons. `RowValue` reads the pair after the single box, in screen
+order, joined by a comma: "Damage. 35-71, 21-82".
+
+**Which hand is which is not settled**, so no hand is named. The first string comes from the weapon
+`0x387690` picks (the one whose id is in the inventory's main-weapon field, tried in slot 5 then 4);
+Top as the first string is inferred from the names' order. To settle it: two different weapons,
+note Top, swap them between the hands.

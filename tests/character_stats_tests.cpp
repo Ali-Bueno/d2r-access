@@ -4,6 +4,7 @@
 #include "speech_strings.h"
 #include "test_support.h"
 
+#include <algorithm>
 #include <map>
 #include <string>
 #include <vector>
@@ -210,6 +211,18 @@ int main() {
 		"a box that states a statistic without naming it borrows the game's own word for it");
 	Check(lines[8] == "Daño. 12 a 30" && lines[9] == "Daño. 5 a 9",
 		"the two identically named attack rows read their own siblings, not each other's");
+	// Two weapons in hand: the single stat is emptied and each weapon gets a number (a tester, 2026-11-03).
+	widgets[73].text.clear();
+	Add(74, "AttackDamageStatTop", "35-71", 71);
+	Add(75, "AttackDamageStatBottom", "21-82", 71);
+	Check(CharacterStats::Lines(Panel)[8] == "Daño. 35-71, 21-82", "two weapons read a number for each");
+	Check(CharacterStats::Lines(Panel)[9] == "Daño. 5 a 9", "and the other skill block keeps its own");
+	widgets[75].text.clear();
+	Check(CharacterStats::Lines(Panel)[8] == "Daño. 35-71", "one number alone is read alone");
+	widgets.erase(74);
+	widgets.erase(75);
+	order.erase(std::remove_if(order.begin(), order.end(), [](uintptr_t id) { return id == 74 || id == 75; }), order.end());
+	widgets[73].text = "12 a 30";
 	Add(4, "Level", "7");
 	Check(CharacterStats::Lines(Panel)[1] == "Bárbaro. Nivel 7", "the original layout's separate level box joins the class");
 	widgets.erase(4);
