@@ -229,6 +229,7 @@ add_library(d2r-access SHARED
 	src/native_hit_chance.cpp
 	src/native_waypoints.cpp
 	src/native_quest_flags.cpp
+	src/native_eclipse.cpp
 	src/descriptions.cpp
 	src/descriptions_bundle.cpp
 	src/audio_description.cpp

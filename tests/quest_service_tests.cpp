@@ -1,3 +1,5 @@
+#include "eclipse_watch.h"
+#include "native_eclipse.h"
 #include "quest_service.h"
 #include "quest_progress.h"
 #include "quest_seals.h"
@@ -24,7 +26,8 @@ bool interrupted = false, ownsSpeech = false, available = true, visible = false;
 unsigned long long heldUntil = 0;
 bool serviceAvailable = true;
 int removed = 0, failRegistration = -1;
-uint16_t taintedSun = 0; // the Tainted Sun's quest word (row 11)
+uintptr_t act = 0; // the act the client holds, none outside a game
+bool dark = false; // the client's eclipse flag
 uintptr_t panel = 0;
 RadarUi::State ui = RadarUi::State::Playing;
 std::string title = "Misiones", shortText = "El Cubil del Mal", longText = "Monstruos restantes: 3";
@@ -91,8 +94,8 @@ std::string Text(std::string_view key) { const auto found = strings.find(key); r
 std::string Text(uint32_t id) { return id == 3714 ? "El Cubil del Mal" : std::string(); }
 }
 namespace D2RAccess::RadarUi { State Inspect(bool) { return ui; } }
-namespace D2RAccess::NativeQuestFlags {
-std::optional<uint16_t> Read(int quest) { return quest == 11 ? std::optional<uint16_t>(taintedSun) : std::nullopt; }
+namespace D2RAccess::NativeEclipse {
+std::optional<Sky> Read() { return act ? std::optional<Sky>(Sky{act, dark}) : std::nullopt; }
 }
 namespace D2RAccess::CairnScrollService {
 void Tick(const D2RL::PluginContext*, uint64_t, bool, bool) {}
@@ -144,18 +147,25 @@ int main() {
 	ownsSpeech = false; Tick();
 	Check(speech.size() == 1 && speech.back() == QuestSeals::LeftText(4, Strings::Current()) && !interrupted, "an opened seal says how many are left");
 	speech.clear(); Tick(); Check(speech.empty(), "one opening is said once");
-	Level(40); taintedSun = 0x0004; Tick(); // Lut Gholein: a game joined while the quest runs
-	Check(speech.empty(), "quest flags arriving in a town are not the eclipse");
-	taintedSun = 0; Tick(); Level(44); taintedSun = 0x0004; const auto before = GetTickCount64(); Tick(); // the Lost City
-	Check(speech.size() == 1 && speech.back() == Strings::Current().questEclipse, "the Tainted Sun beginning in the Lost City is said");
+	Level(40); act = 1; Tick(); dark = true; Tick(); // Lut Gholein: a game joined while the quest runs
+	Check(speech.empty(), "the darkness arriving with the act is not the eclipse falling");
+	Check(QuestService::Eclipsed(41) && !QuestService::Eclipsed(75), "while it is dark Act II's area descriptions say the eclipse");
+	Check(QuestService::Eclipsed(40) && QuestService::Eclipsed(74) && !QuestService::Eclipsed(39),
+		"the eclipse lies over Act II, from Lut Gholein to the Arcane Sanctuary");
+	dark = false; Tick(); Check(!QuestService::Eclipsed(44), "no eclipse before the quest or once its altar falls");
+	Level(44); Sleep(static_cast<DWORD>(EclipseWatch::ActSettleMs)); Tick(); // the Lost City
+	dark = true; const auto before = GetTickCount64(); Tick();
+	Check(speech.size() == 1 && speech.back() == Strings::Current().questEclipse, "the land going dark is said");
 	Check(interrupted && heldUntil >= before + SpeechPriority::SpokenMs(Strings::Current().questEclipse),
 		"the eclipse cuts in and nothing cuts it off while it is said (a tester, 2026-10-28)");
-	speech.clear(); taintedSun = 0x0008; Tick(); Check(speech.empty(), "the eclipse is said once");
-	Check(QuestService::Eclipsed(41) && !QuestService::Eclipsed(75), "while the quest runs Act II's area descriptions say the eclipse");
-	Check(QuestService::Eclipsed(40, 0x0004) && QuestService::Eclipsed(74, 0x0004) && !QuestService::Eclipsed(39, 0x0004),
-		"the eclipse lies over Act II, from Lut Gholein to the Arcane Sanctuary");
-	Check(!QuestService::Eclipsed(44, 0) && !QuestService::Eclipsed(44, 0x0006) && !QuestService::Eclipsed(44, 0x0005),
-		"no eclipse before the quest, once its altar falls or when it is done");
+	speech.clear(); Tick(); Check(speech.empty(), "the eclipse is said once");
+	act = 0; Check(!QuestService::Eclipsed(44), "outside a game there is no eclipse to tell"); act = 1;
+	EclipseWatch::Watch watch;
+	constexpr uint64_t Settled = EclipseWatch::ActSettleMs;
+	Check(!watch.Update(0, 1, false) && !watch.Update(Settled - 1, 1, true), "a rise just after the act loads is not a fall");
+	Check(!watch.Update(Settled, 1, false) && watch.Update(Settled + 1, 1, true), "a rise later on is");
+	Check(!watch.Update(Settled + 2, 1, true), "and it falls once");
+	Check(!watch.Update(Settled + 3, 2, false) && !watch.Update(Settled + 4, 2, true), "another act's load starts the wait again");
 	QuestService::Note("QuestUpdate"); Event(K::GameLeft); Wait(); Check(speech.empty(), "leaving the game discards pending announcements");
 	QuestService::Unregister(); Check(removed == 5, "all lifecycle subscriptions are released");
 	listeners.clear(); failRegistration = 2;

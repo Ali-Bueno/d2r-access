@@ -340,4 +340,41 @@ the Arcane Sanctuary) ends the description, or "No description for ...", with `q
 row 11 runs (`QuestService::Eclipsed`: `EntityRadar::QuestRunning` and bit 1, the goal met, clear).
 Bit 1 as "altar destroyed, sun back, Drognan not told yet" is read from the other quests' words, not
 measured. Log: `[descriptions] BACK+up in "<area>" (level N), eclipse`, and `[quest] flags row=11
-word=XXXX` on the first read. Why the moment it falls was missed is not known: no log of it yet.
+word=XXXX` on the first read.
+
+**The client's own flag (2026-11-03).** bfbeast again: no line in Act II with the quest active,
+while the user heard it fall. The quest word was the wrong source: the client's copy is not
+refreshed when the quest starts, so it stayed 0 until a reload, and likely until the quest log
+opened (see below), which would be why the line fired only for a player who opened the log in the
+Lost City. `NativeEclipse` now reads what the game itself tests, so the mod knows what a
+sighted player sees, and `EclipseWatch` tells a fall from a repeat of the flag. Static RE on
+3.3.93787 and 3.3.94995 (same RVAs); the fingerprints passed on the live game, nothing else was
+measured live.
+
+- Storage: `act = *(base+0x2A233B0)` (null with no act), `env = *(act+8)`, dark when
+  `*(int32*)(env+0x34) != 0`. Getter `0x351FD0`; setter `0x3525C0`, reached from the handler
+  `0x12CB50` of S2C 0x53 `{u32 cycle, u32 angle, u8 on}` (the opcode inferred from the fields):
+  `{5,0,1}` on, `{2,0,0}` off, sent only to clients in Act II. The env is per act, and the client
+  holds one act, so `Eclipsed` keeps the Levels.txt 40-74 test.
+- On: `0x5A3DC0` arms a timer on reaching level 44 or 45 (the Lost City, the Valley of Snakes;
+  not the Far Oasis) with the quest at state 0; 15-16 quest ticks later (12-12.8 s, wherever the
+  player then is) `0x5A7370` turns it on. Joining a game with bit 2 set turns it on too, and the
+  server repeats the flag on join and act change (`0x48A0B0`, `0x4880A8`): those are the rises
+  `EclipseWatch::ActSettleMs` (10 s after the act pointer changes) ignores. A real fall cannot come
+  sooner, since the timer starts inside the act.
+- Off: only the altar (`0x5A0C90`, inferred from its `vip ` checks). Drognan does not bring the sun
+  back; the reward branch never touches the env.
+- Row 11 confirmed: `0x59F70C` sets `q+0x2F0 = 0xB`. The word by stage: timer fires, set bit 2
+  (`0x5A4247`); Drognan, set bit 3; altar, set 1 and 13, clear 14 (`0x5A0FCA`); reward, set 0,
+  clear 1. The save of a finished quest reads `100D` (yarkey, normal).
+- The word's refresh (packet 0x28 type 6): the snapshot on joining (`0x513C29`), C2S 0x3E from
+  `0x14DDB70` (inferred to be opening the quest log, classic 0x40), and quest events (`0x518620`,
+  `0x517DB0`); no route from the quest's start. **Any other quest read through `NativeQuestFlags`
+  lags the same way**: the Tower's ways and the NPC rules (`npc_spawn_rules.cpp`) were not reviewed.
+  The altar's refresh also goes out before bit 1 is set, so the word alone said dark after the sun
+  returned.
+
+Log: `[quest] eclipse flag=N` on each change, `[quest] the eclipse fell at level N`, `[quest]
+eclipse said`. Not determined: the re-sync interval and what `0x16FA00` is for. Live check, on a
+character before the quest: enter the Lost City and wait 13 s (flag 1 and the line, whether or not
+the log is opened), BACK+up (the line), reload in Act II (flag 1, no fall line), altar (flag 0).

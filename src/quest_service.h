@@ -17,10 +17,8 @@ void Reset();
 // and the same change the console command makes.
 bool Enabled();
 void SetEnabled(bool enabled);
-// The Tainted Sun's eclipse lies over Act II while the quest runs and its altar stands; an area's
-// description there ends with it, so a player who missed the moment it fell still hears it (a
-// tester, 2026-11-02). `level` is a Levels.txt Id, `flags` the quest's word (row 11). docs/quests.md
-bool Eclipsed(int level, uint16_t flags);
-// The same by the player's quest record now; false when it cannot be read.
+// The Tainted Sun's eclipse lies over Act II until its altar falls; an area's description there
+// ends with it, so a player who missed the moment it fell still hears it (a tester, 2026-11-02).
+// `level` is a Levels.txt Id; false when the client's flag cannot be read. docs/quests.md
 bool Eclipsed(int level);
 }

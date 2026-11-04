@@ -1,11 +1,11 @@
 #include "quest_service.h"
 #include "async_log.h"
 #include "cairn_scroll_service.h"
-#include "entity_radar.h"
+#include "eclipse_watch.h"
 #include "localization.h"
 #include "layout_check.h"
 #include "native_memory.h"
-#include "native_quest_flags.h"
+#include "native_eclipse.h"
 #include "native_ui.h"
 #include "native_widgets.h"
 #include "panel_state.h"
@@ -61,21 +61,14 @@ const D2RL::LifecycleService* g_lifecycle = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_ready = false, g_enabled = true, g_seen = false;
-// The Tainted Sun's eclipse falls as the quest begins, on reaching the Lost City; a sighted
-// player sees the land go dark (a tester, 2026-10-20). Quest record rows: Act II's intro is 8,
-// then Radament 9, the Horadric Staff 10, the Tainted Sun 11 (docs/quests.md).
-constexpr int TaintedSunRow = 11;
-// Levels.txt Id of the Lost City. A game joined while the quest runs starts in a town, so the
-// flags arriving there are not the eclipse falling.
-constexpr int LostCityLevel = 44;
 // Act II's areas by Levels.txt Id: Lut Gholein is 40, the Arcane Sanctuary 74; Act III begins with
 // the Kurast Docks, 75.
 constexpr int ActTwoFirstLevel = 40, ActThreeFirstLevel = 75;
-// Bit 1 of a quest's word, its goal met: here the altar destroyed and the sun back while Drognan has
-// not heard yet. Read from the other quests' words, not measured on this one.
-constexpr uint16_t QuestGoalMetBit = 0x0002;
+constexpr bool InActTwo(int level) { return level >= ActTwoFirstLevel && level < ActThreeFirstLevel; }
 std::atomic<int> g_level{0};
-std::optional<bool> g_eclipse; // whether the quest ran at the last read; empty until this game's first
+// The Tainted Sun's eclipse falls soon after the player reaches the quest's levels; a sighted
+// player sees the land go dark (a tester, 2026-10-20).
+EclipseWatch::Watch g_eclipse;
 // The eclipse waits for the area's name and the quest's own news to be said: they cut it off
 // (a tester, 2026-10-21). Then nothing may cut it off: in a fight the enemies' names did (2026-10-28).
 bool g_eclipsePending = false;
@@ -231,15 +224,11 @@ void Note(const char* command) {
 	g_nextWatch = now + QuestProgress::SettleMs;
 }
 
-// The eclipse is said once, as the Tainted Sun begins in the Lost City, after a pause in speech.
+// The eclipse is said once, as the land goes dark, after a pause in speech.
 void TickEclipse(const D2RL::PluginContext* context, bool canSpeak) {
-	if (const auto flags = NativeQuestFlags::Read(TaintedSunRow)) {
-		const bool running = EntityRadar::QuestRunning(*flags);
-		if (g_eclipse && !*g_eclipse && running && g_level.load() == LostCityLevel) {
-			AsyncLog::InfoF(context, "[quest] Tainted Sun began: flags=%04X", *flags);
-			g_eclipsePending = true;
-		}
-		g_eclipse = running;
+	if (const auto sky = NativeEclipse::Read(); sky && g_eclipse.Update(GetTickCount64(), sky->act, sky->dark) && InActTwo(g_level.load())) {
+		AsyncLog::InfoF(context, "[quest] the eclipse fell at level %d", g_level.load());
+		g_eclipsePending = true;
 	}
 	uint64_t waited = 0;
 	if (!g_eclipsePending || !canSpeak || !g_eclipsePause.Due(GetTickCount64(), ScreenReader::LastSpoken(), &waited)) return;
@@ -321,7 +310,7 @@ void Reset() {
 	g_last = {};
 	g_sample = {};
 	g_seen = false;
-	g_eclipse.reset();
+	g_eclipse = {};
 	g_eclipsePending = false;
 	g_eclipsePause = {};
 	g_nextWatch = 0;
@@ -332,14 +321,10 @@ void Reset() {
 
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.
-bool Eclipsed(int level, uint16_t flags) {
-	return level >= ActTwoFirstLevel && level < ActThreeFirstLevel && EntityRadar::QuestRunning(flags) && !(flags & QuestGoalMetBit);
-}
-
 bool Eclipsed(int level) {
-	if (level < ActTwoFirstLevel || level >= ActThreeFirstLevel) return false;
-	const auto flags = NativeQuestFlags::Read(TaintedSunRow);
-	return flags && Eclipsed(level, *flags);
+	if (!InActTwo(level)) return false;
+	const auto sky = NativeEclipse::Read();
+	return sky && sky->dark;
 }
 
 bool Enabled() { return g_enabled; }
