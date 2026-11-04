@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The keyboard in every menu, life and mana, the two hands — 2026-11-04 (not released)
+## The keyboard in every menu, life and mana, the two hands — 2026-11-04 (release 1.0.6)
 
 The user: the keyboard leaves the window, the options cannot be walked; players: a character cannot be
 deleted, BACK+X silent until the options were opened. Driven live, fullscreen and in a window. 140/140.
