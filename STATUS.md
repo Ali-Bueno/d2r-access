@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## The pad walks to its target as the mouse does; guidance follows the scanner — 2026-11-04 (not released, not committed)
+## The pad walks to its target as the mouse does; guidance follows the scanner — 2026-11-04 (release 1.0.7)
 
 The user: an attack should walk to the enemy, as in a modern ARPG, and so should A on an NPC, for
 those who want it. `pad-approach` (Ctrl+S, Controller, **off**; the user's own settings have it on)
