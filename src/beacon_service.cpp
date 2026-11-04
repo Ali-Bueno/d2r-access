@@ -53,7 +53,7 @@
 namespace D2RAccess::BeaconService {
 namespace {
 using Kind = D2RL::Lifecycle::GameplayEventKind;
-enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance, SoundsOn, SoundsOff, Route };
+enum class Command { None, Toggle, Clear, Status, Exploration, FullAssistance, SoundsOn, SoundsOff, Route, FollowScan };
 // The locked target is re-read on this cadence: fast enough to follow a
 // walking monster, far cheaper than the 50 ms UI poll.
 constexpr uint64_t UpdateMs = 150;
@@ -79,6 +79,8 @@ Beacon::Settings g_settings;
 Beacon::Tracker g_tracker;
 struct Target { EntityRadar::Entity entity; int level = 0; uint64_t offeredMs = 0, seenMs = 0, missingMs = 0; };
 Target g_offer, g_target, g_parked;
+std::atomic<bool> g_followScan{false};
+uint64_t g_offers = 0, g_followedOffers = 0; // how many were made, and looked at by FollowScanned
 Lifecycle g_seen;
 bool g_supported = false, g_sounds = true;
 int g_revision = 0;
@@ -373,24 +375,8 @@ bool Lockable(const Target& offer, const Lifecycle& state, uint64_t now) {
 bool SameOfferedTarget() {
 	return EntityRadar::SameTarget(g_offer.entity, g_target.entity);
 }
-// A press on what is already followed releases it; on a newly scanned target it
-// moves the beacon there in one press. docs/beacon.md
-void Toggle(const Lifecycle& state, uint64_t now) {
-	const auto& strings = Strings::Current();
-	const bool offered = Lockable(g_offer, state, now);
-	const bool retarget = g_tracker.Locked() && offered && !SameOfferedTarget();
-	if ((g_tracker.Locked() && !retarget) || (Parked() && !offered)) {
-		g_parked = {};
-		Release("cancelled");
-		Cue(BeaconAudio::Sound::Cleared);
-		ScreenReader::Speak(strings.beaconCleared, true);
-		return;
-	}
-	if (!BeaconAudio::Available()) { ScreenReader::Speak(strings.beaconUnavailable, true); return; }
-	if (!offered) {
-		ScreenReader::Speak(strings.beaconNothing, true);
-		return;
-	}
+// Exploration follows only what a known way reaches. Silent: the caller knows who may speak.
+bool Refused(const Lifecycle& state, uint64_t now) {
 	if (!Unrestricted(g_offer.entity)) {
 		// Its own way: a refused offer must not cost the locked target its plan.
 		BeaconNavigation::RememberedWay probe;
@@ -411,22 +397,62 @@ void Toggle(const Lifecycle& state, uint64_t now) {
 				guidance && guidance->hasWaypoint ? 1u : 0u, guidance && guidance->guess ? 1u : 0u,
 				guidance ? guidance->wayCells : 0u, guidance ? guidance->roomCount : 0u,
 				destination.x, destination.y, g_offer.entity.name.c_str());
-			Announce(strings.beaconKnownRouteOnly, g_offer.entity.name);
-			return;
+			return true;
 		}
 	}
-	// A refused retarget above keeps the old lock; an accepted one replaces it silently.
-	if (retarget) Release("retargeted");
+	return false;
+}
+// The offer becomes what is followed, in place of any lock.
+void Follow(uint64_t now) {
+	if (g_tracker.Locked()) Release("retargeted");
 	g_parked = {};
 	g_target = g_offer;
 	g_target.seenMs = now;
 	g_tracker.Lock(now);
 	g_nextUpdate = now;
 	Cue(BeaconAudio::Sound::Locked);
-	Announce(strings.beaconFollowing, g_target.entity.name);
 	AsyncLog::InfoF(g_context, "[beacon] locked id=%u kind=%u at=%.0f,%.0f level=%d name=%s", g_target.entity.id,
 		static_cast<unsigned>(g_target.entity.kind), g_target.entity.position.x, g_target.entity.position.y,
 		g_target.level, g_target.entity.name.c_str());
+}
+// A press on what is already followed releases it; on a newly scanned target it
+// moves the beacon there in one press. docs/beacon.md
+void Toggle(const Lifecycle& state, uint64_t now) {
+	const auto& strings = Strings::Current();
+	const bool offered = Lockable(g_offer, state, now);
+	const bool retarget = g_tracker.Locked() && offered && !SameOfferedTarget();
+	if ((g_tracker.Locked() && !retarget) || (Parked() && !offered)) {
+		g_parked = {};
+		Release("cancelled");
+		Cue(BeaconAudio::Sound::Cleared);
+		ScreenReader::Speak(strings.beaconCleared, true);
+		return;
+	}
+	if (!BeaconAudio::Available()) { ScreenReader::Speak(strings.beaconUnavailable, true); return; }
+	if (!offered) {
+		ScreenReader::Speak(strings.beaconNothing, true);
+		return;
+	}
+	// A refused retarget keeps the old lock.
+	if (Refused(state, now)) {
+		Announce(strings.beaconKnownRouteOnly, g_offer.entity.name);
+		return;
+	}
+	Follow(now);
+	Announce(strings.beaconFollowing, g_target.entity.name);
+}
+// With the switch on, what the scanner names is followed as it is named, and what was followed
+// goes. No words: the scanner is speaking, and the cue says which it was. docs/beacon.md
+void FollowScanned(const Lifecycle& state, uint64_t now) {
+	const bool fresh = g_offers != g_followedOffers;
+	g_followedOffers = g_offers;
+	if (!fresh || !g_followScan.load() || !Lockable(g_offer, state, now)) return;
+	const bool locked = g_tracker.Locked();
+	if (locked && SameOfferedTarget()) return;
+	if (BeaconAudio::Available() && !Refused(state, now)) { Follow(now); return; }
+	if (!locked) return;
+	Release("scanner moved on");
+	Cue(BeaconAudio::Sound::Cleared);
 }
 // The target was read for and not found: since when, for Gone().
 bool Missing(Target& target, uint64_t now) {
@@ -795,7 +821,11 @@ void FollowRoute(const Lifecycle& state, uint64_t now) {
 
 void Offer(const EntityRadar::Entity& entity, int level, uint64_t now) {
 	g_offer = Identified(entity) ? Target{entity, level, now, now} : Target{};
+	++g_offers;
 }
+
+bool FollowsScan() { return g_followScan.load(); }
+void SetFollowsScan(bool enabled) { g_followScan = enabled; }
 
 bool Offered(EntityRadar::Entity& entity, int level) {
 	if (!Identified(g_offer.entity) || g_offer.level != level) return false;
@@ -831,6 +861,13 @@ bool Register(const D2RL::PluginContext* context) {
 			.userData = reinterpret_cast<void*>(Command::Route)};
 		handle = D2RL::Input::InvalidHandle;
 		if (g_input->registerAction(context, &route, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		// Keyboard equivalent of BACK+A.
+		const D2RL::Input::ActionRegistration follow{.structSize = D2RL::Input::ActionRegistrationSize,
+			.logicalId = "beacon-follow-scan", .displayName = "Guidance follows the scanner, or stops following it", .category = "Accessibility",
+			.defaultPrimary = {D2RL::Input::Key::B, D2RL::Input::Modifier::Alt}, .callback = Action,
+			.userData = reinterpret_cast<void*>(Command::FollowScan)};
+		handle = D2RL::Input::InvalidHandle;
+		if (g_input->registerAction(context, &follow, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-beacon", Console,
 		"Target beacon: lock|clear|status|exploration|full|sounds-on|sounds-off|route. BACK+LB or Ctrl+B requests a route; exploration uses visited areas only.");
@@ -869,6 +906,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	const auto command = g_command.exchange(Command::None);
 	const bool clicked = InputDirection::TakeBackWithLb();
+	const bool followPress = InputDirection::TakeBackWith(InputDirection::FaceButton::A);
 	const auto chord = InputDirection::TakeBackWithRightStick();
 	const uint64_t now = GetTickCount64();
 	Lifecycle state;
@@ -914,6 +952,14 @@ void Tick(const D2RL::PluginContext* context) {
 	} else if (command == Command::Toggle || clicked) {
 		Toggle(state, now);
 	}
+	if (inPlay && (followPress || command == Command::FollowScan)) {
+		const bool on = !g_followScan.load();
+		g_followScan = on;
+		const auto& strings = Strings::Current();
+		ScreenReader::Speak(on ? strings.beaconFollowScanOn : strings.beaconFollowScanOff, true);
+		AsyncLog::InfoF(context, "[beacon] follow_scan=%u", on ? 1u : 0u);
+	}
+	if (inPlay) FollowScanned(state, now);
 	if (command == Command::Route || chord == InputDirection::StickPush::Down) {
 		if (!inPlay) AsyncLog::InfoF(context, "[route] %s ignored: not in play", chord != InputDirection::StickPush::None ? "BACK+down" : "command");
 		else DescribeRoute(state, now);

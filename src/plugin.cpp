@@ -29,6 +29,7 @@
 #include "native_widgets.h"
 #include "native_cairn.h"
 #include "native_memory.h"
+#include "native_pad_approach.h"
 #include "audio_description.h"
 #include "descriptions.h"
 #include "movie_probe.h"
@@ -210,6 +211,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::TutorialOffer::Tick(context); lap("TutorialOffer");
 	// Before every reader: a key posts the gesture a reader takes this same update.
 	D2RAccess::KeyboardService::Tick(context); lap("KeyboardService");
+	D2RAccess::NativePadApproach::Tick(context); lap("NativePadApproach");
 	D2RAccess::KeyboardMenu::Tick(context); lap("KeyboardMenu");
 	if (!D2RAccess::MenuNavigation::Tick(context)) D2RAccess::SkillNavigation::Tick(context);
 	lap("MenuNavigation/SkillNavigation");

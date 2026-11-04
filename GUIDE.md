@@ -58,6 +58,7 @@ of the package's `README.html`.
 | Area descriptions | Mod+RS up | Mod+RS up | Shift+Y | Reads a short description of the current area |
 | Scanner | Right stick | Right stick | Ctrl+Page Up/Page Down, Page Up/Page Down | RS up/down (Ctrl+Page Up/Page Down) cycles categories (doors, items, enemies), RS left/right (Page Up/Page Down) cycles entries in each category. The scanner is updated with things you encounter. On the keyboard, Home repeats the entry |
 | Set beacon | Mod+LB | Mod+L1 | Ctrl+B | Places an audio beacon on the currently selected scanner target |
+| Beacon follows the scanner | Mod+A | Mod+Cross | Alt+B | Turns on or off: each thing the scanner names gets the beacon at once, and scanning something else moves it. Also in the settings, Navigation group. With "Route on BACK+A" turned on, this is Mod+RS down |
 | Route finder | Mod+RS down | Mod+RS down | Ctrl+E | Speaks the route to the current scanner target. With "Route on BACK+A" turned on (mod settings/Controller), it moves to Mod+A (Mod+Cross) |
 | Toggle audio loot filter | LB when not in a menu | L1 when not in a menu | Ctrl+S, then "Loot filter" in the Loot filter group | Engages/disengages the audio loot filter. It does not "hide" items, it just keeps them from repeating their drop sounds. See "The audio loot filter" below for a more detailed explanation and how to set it. |
 
@@ -101,6 +102,7 @@ running out of potions and can replenish your stock from the world.
 | Attack/use skills on skill bar 1 | A, B, X, Y, RB and RT | Cross, Circle, Square, Triangle, R1 and R2 | A, held (left skill), W, held (right skill) | Can be freely rebound through the player menu/skills page, see below. On the keyboard, Shift+A, held, attacks in place |
 | Use skills on skill bar 2 | Hold LT+A, B, X, Y, RB and RT | Hold L2+Cross, Circle, Square, Triangle, R1 and R2 | F1 to F8 choose the skill | Can be freely rebound through the player menu/skills page, see below |
 | Interact | A button | Cross button | D | Use this outside of combat to talk to NPCs, pick up items, open chests or perform other interactions with the world |
+| Walk to your target, like the mouse | Mod+RB, Controller group | Mod+R1, Controller group | Ctrl+S, Controller group | Off at first. A melee attack walks to its target, around walls too, and A walks up to an NPC anywhere on screen, the one you aim at first. Anything else at hand keeps its usual priority |
 | Use belt slot 1 | Directional pad left | Left button | 1 | |
 | Use belt slot 2 | Directional pad up | Up button | 2 | |
 | Use belt slot 3 | Directional pad down | Down button | 3 | |

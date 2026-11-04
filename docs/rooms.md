@@ -100,7 +100,8 @@ asked-for line (BACK+Y) and the running passage announcements already say the pa
 was a third system, and its toggle was a pad combination better spent elsewhere. The user agreed.
 Removed with it: `ExitReview`'s list, sides and cycle (what the room line still needs is
 `RoomSides`), the stick read turned 45 degrees, and the strings `finder*` and `roomOpening`. The
-combination it used (BACK+A, or BACK + right stick down with `pad-route-on-a`) is free.
+combination it used (BACK+A, or BACK + right stick down with `pad-route-on-a`) went to guidance
+following the scanner on 2026-11-04 ([beacon](beacon.md)).
 
 ## Timing and silence
 

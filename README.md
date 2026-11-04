@@ -83,6 +83,7 @@ package). The full lists are in the package's `README.html`, and in
 | Right stick up / down | Ctrl+Page Up / Down | Scanner: previous / next category |
 | Right stick left / right | Page Up / Down | Scanner: previous / next thing, nearest first |
 | BACK + LB | Ctrl+B | Beacon: follow or release what the scanner named |
+| BACK + A | Alt+B | Beacon follows the scanner: each thing named is followed at once (off by default) |
 | BACK + right stick down | Ctrl+E | The route to the beacon's or scanner's target |
 | BACK + right stick up | Shift+Y | Description of the area you are in |
 | BACK + Y | Ctrl+Y | The ways out of the room you are in |

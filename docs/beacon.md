@@ -26,6 +26,14 @@ releases it on its own.
   Moved from R3 on 2026-09-25 (R3 opens the emote wheel), then from L3 on
   2026-10-11: L3 is the game's walk/run toggle, so each beacon press also toggled
   running. `pad_filter.h` keeps LB from the game while BACK is held in play.
+- **BACK+A** or **Alt+B**, or `beacon-follow-scan` in Ctrl+S, Navigation (off): guidance follows the
+  scanner. What it names is locked as it is named, with the lock's cue and no words, as the scanner
+  is speaking; naming something else moves the lock there. If exploration refuses the new target, the
+  old lock goes with the release cue, as a ping toward what was just left behind would mislead; BACK+LB
+  still says why. Turning it on follows from the next scan. The user, 2026-11-04. With
+  `pad-route-on-a`, BACK + right stick down takes the place of BACK+A. Live the same day with the
+  user's pad: BACK+A, then eleven scans in 10 s, each `retargeted` and `locked`. Something within
+  arrival reach is locked and `arrived` at once, as with Kashya at 53:02.
 - Arrival: within 3 subtiles of the exact player position (the keyboard's use
   reach), plus half a large object's footprint. A target that vanishes as it is
   reached (a chest opened, an item picked up, read within the last 2 s) is

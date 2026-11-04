@@ -2,6 +2,25 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The pad walks to its target as the mouse does; guidance follows the scanner — 2026-11-04 (not released, not committed)
+
+The user: an attack should walk to the enemy, as in a modern ARPG, and so should A on an NPC, for
+those who want it. `pad-approach` (Ctrl+S, Controller, **off**; the user's own settings have it on)
+hooks the docking test and Interaction's reach test, and while A has nothing else to take raises
+the NPC's reach and lets aim count ([input commands](docs/input-commands.md#pad-approach)). Nexus
+mod 1345 turned out unrelated: the stick skips its 280 ms gate.
+
+Also: `beacon-follow-scan` (Ctrl+S, Navigation, off; BACK+A, Alt+B) locks guidance on what the
+scanner names and moves it with the scanner ([beacon](docs/beacon.md)).
+
+Seen live with the user's pad on 3.3.94995, 141/141: the NPC's values 4.0 and 1.00 replaced, the stash
+keeping A beside it, A on Kashya from 14.5 subtiles walking and talking, BACK+A then eleven scans
+each moving the lock.
+
+**Not run:** aim choosing between two NPCs; an attack around a wall; a fight near an NPC.
+
+**Next step:** the pad check in [input commands](docs/input-commands.md#pad-approach).
+
 ## The keyboard in every menu, life and mana, the two hands — 2026-11-04 (release 1.0.6)
 
 The user: the keyboard leaves the window, the options cannot be walked; players: a character cannot be

@@ -54,6 +54,7 @@
 #include "native_skill_hand.h"
 #include "native_skill_icons.h"
 #include "native_skill_navigation.h"
+#include "native_pad_approach.h"
 #include "native_sort.h"
 #include "native_swap.h"
 #include "native_value_controls.h"
@@ -1949,6 +1950,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 	groups.push_back({GroupName(G::Navigation), {
 		{[] { return RadarService::Enabled(); }, [](bool on) { RadarService::SetEnabled(on); }, phrase(&T::radarEnabled, &T::radarDisabled), true, "radar"},
 		DirectionStyle(),
+		{BeaconService::FollowsScan, BeaconService::SetFollowsScan, phrase(&T::beaconFollowScanOn, &T::beaconFollowScanOff), false, "beacon-follow-scan"},
 		{GroundItemService::DistanceSteps, GroundItemService::SetDistanceSteps, phrase(&T::distanceStepsOn, &T::distanceStepsOff), false, "distance-steps"},
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::RaysPhrase(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
@@ -2049,6 +2051,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{InputDirection::RouteOnA, InputDirection::SetRouteOnA, phrase(&T::routeOnAOn, &T::routeOnAOff), false, "pad-route-on-a"},
 		{PadTyping::Enabled, PadTyping::SetEnabled, phrase(&T::padTypingOn, &T::padTypingOff), false, "pad-typing"},
 		{PadTyping::Qwerty, PadTyping::SetQwerty, phrase(&T::padQwertyOn, &T::padQwertyOff), false, "pad-typing-qwerty"},
+		{NativePadApproach::Enabled, NativePadApproach::SetEnabled, phrase(&T::padApproachOn, &T::padApproachOff), false, "pad-approach"},
 	}});
 	// The list's own behaviour, in a group of its own (a tester, 2026-10-14).
 	groups.push_back({GroupName(G::SettingsMenu), {
@@ -2412,6 +2415,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	(void)NativeActions::Initialize(context, nativeHooks);
 	if (nativeHooks) (void)NativeSort::Initialize(context);
 	if (nativeHooks) (void)NativeSwap::Initialize(context);
+	if (nativeHooks) (void)NativePadApproach::Initialize(context);
 	if (nativeHooks) (void)NativeBeltRows::Initialize(context);
 	if (nativeHooks) (void)NativeBeltFill::Initialize(context);
 	if (nativeHooks) (void)NativeSkillHand::Initialize(context);

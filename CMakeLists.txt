@@ -224,6 +224,7 @@ add_library(d2r-access SHARED
 	src/native_list_rows.cpp
 	src/native_skill_hand.cpp
 	src/native_skill_icons.cpp
+	src/native_pad_approach.cpp
 	src/native_swap.cpp
 	src/native_hover.cpp
 	src/native_hit_chance.cpp
@@ -670,6 +671,8 @@ if(BUILD_TESTING)
 	add_test(NAME auto-walk COMMAND auto-walk-tests)
 	d2r_test(route-legs-tests tests/route_legs_tests.cpp src/route_legs.cpp src/spoken_direction.cpp src/entity_radar.cpp src/radar_grid.cpp src/speech_strings.cpp)
 	add_test(NAME route-legs COMMAND route-legs-tests)
+	d2r_test(pad-approach-tests tests/pad_approach_tests.cpp)
+	add_test(NAME pad-approach COMMAND pad-approach-tests)
 	d2r_test(step-counter-tests tests/step_counter_tests.cpp src/step_counter.cpp)
 	add_test(NAME step-counter COMMAND step-counter-tests)
 	d2r_test(route-follow-tests tests/route_follow_tests.cpp src/route_follow.cpp)

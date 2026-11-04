@@ -18,6 +18,7 @@ automap; enemies are the one live category.
   (`StaleSelectionMs`; a tester heard far ones first, 2026-10-12).
 - In a menu, dialogue or pause the stick belongs to the menu (`RadarUi::InPlay`).
   While the settings list is open (BACK+RB) it steps the list instead.
+- **BACK+A**, or **Alt+B**, makes guidance follow each thing as it is named ([beacon](beacon.md)).
 - **BACK+LB**, or **Ctrl+B**, follows what the scanner last named
   (`docs/beacon.md`); on a newly named target it switches in one press.
   L3, R3 and the L3+R3 chord are the game's.

@@ -3,6 +3,32 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-11-04 — Guidance can follow the scanner
+
+The user: a shortcut or a setting so that what is scanned becomes the beacon's target, as BACK+LB does,
+and scanning something else moves it. Both are built: `beacon-follow-scan`, off, and BACK+A or Alt+B
+to flip it, the combination the passage finder left free. Said as the cue alone: words would cut off
+the scanner naming the thing. Turned down: a pause before the lock, as a beacon only pings and a
+walk was not what was asked; keeping the old lock when the new target is refused, as it would lead
+to what the player has just moved on from.
+
+## 2026-11-04 — The pad can walk to its target as the mouse does
+
+The user wanted an attack to walk to the enemy, as in a modern ARPG, and asked whether Nexus mod
+1345 could be adapted. It could not: its 280 ms gate is not on the stick's path. The cause was the
+game's own rule, a stand-still attack unless the target is within reach plus the docking distance
+([input commands](input-commands.md#why-a-pad-attack-stands-still)). The user then asked for the
+same with NPCs, "more or less according to the mouse", as something a player turns on.
+
+Chosen: `pad-approach`, **off**. Hooks on the docking test and on Interaction's reach test, and an
+NPC reach raised only while A has nothing else to take. Turned down: raising the docking distance to
+48, the first version, as a click has no line test and it reached every category's Interaction
+target; editing `controllersettings.json`, which could not be switched off in play; raising the NPC
+reach for good, as A would then leave a stash at hand or a fight for a far NPC; limiting it to
+town, as quest NPCs stand outside it and the empty slots already say what town would. While raised,
+aim counts as for monsters: the game's NPC score is distance alone, and the user wants "the nearest
+one I am looking at".
+
 ## 2026-11-03 — Arcane Sanctuary pads: where each leads, not which were used
 
 The user, caught in a loop of pads, asked to know which were used and how near the closest

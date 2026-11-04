@@ -122,7 +122,7 @@ const char* PushName(StickPush push);
 
 // BACK (Select/View) held as a modifier: a face button pressed while it is
 // down (the user, 2026-09-21): BACK+X life and mana, BACK+Y the room layout,
-// BACK+A the exit finder, BACK+B the terrain overview. BACK alone does nothing
+// BACK+A guidance following the scanner, BACK+B the terrain overview. BACK alone does nothing
 // for the mod and still reaches the game, which does nothing with it in play.
 // The face button's press is kept from the game during play by pad_filter.h,
 // so no attack or skill fires with it. Take() returns whether one happened

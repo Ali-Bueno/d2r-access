@@ -93,8 +93,14 @@ bool Available() { return true; }
 void Play(Sound, Placement) { ++plays; }
 void Silence(const char*) { ++silences; }
 }
+bool backWithA = false;
 namespace D2RAccess::InputDirection {
 bool TakeBackWithLb() { return false; }
+bool TakeBackWith(FaceButton button) {
+	const bool pressed = button == FaceButton::A && backWithA;
+	if (pressed) backWithA = false;
+	return pressed;
+}
 StickPush TakeBackWithRightStick() { return StickPush::None; }
 const char* PushName(StickPush) { return ""; }
 }
@@ -286,6 +292,52 @@ int main() {
 	Command("lock");
 	BeaconService::Tick(&context);
 	Check(plays == before + 1, "what the scanner lists is led to, in a room never entered (the user, 2026-10-14)");
+
+	// Guidance following the scanner (the user, 2026-11-04).
+	const auto following = [](const char* name) {
+		Command("status");
+		BeaconService::Tick(&context);
+		return speech.back().find(Format(Strings::Current().beaconFollowing, name)) != std::string::npos;
+	};
+	EntityRadar::Entity well{.id = 30, .kind = EntityRadar::Kind::Exit, .position = {20, 10}, .name = "well"};
+	EntityRadar::Entity cart{.id = 31, .kind = EntityRadar::Kind::Exit, .position = {30, 10}, .name = "cart"};
+	BeaconService::Offer(well, 0, GetTickCount64());
+	BeaconService::Tick(&context);
+	Check(following("gate"), "off, naming something else moves nothing");
+	backWithA = true;
+	BeaconService::Tick(&context);
+	Check(BeaconService::FollowsScan() && speech.back() == strings.beaconFollowScanOn, "BACK+A turns it on and says so");
+	Check(following("gate"), "what was named before stays a plain offer");
+	auto said = speech.size();
+	BeaconService::Offer(cart, 0, GetTickCount64());
+	BeaconService::Tick(&context);
+	Check(speech.size() == said, "the lock adds no words to the scanner's");
+	Check(following("cart"), "what is named next is followed, in place of the old lock");
+	BeaconService::Offer(cart, 0, GetTickCount64());
+	BeaconService::Tick(&context);
+	Check(following("cart"), "the same thing named again stays followed");
+	BeaconService::Offer(well, 0, GetTickCount64());
+	BeaconService::Offer(cart, 0, GetTickCount64());
+	BeaconService::Offer(well, 0, GetTickCount64());
+	BeaconService::Tick(&context);
+	Check(following("well"), "the last of quick names is the one followed");
+	blocked = border;
+	visitedRooms = {levelRooms[0]};
+	said = speech.size();
+	BeaconService::Offer(gate, 0, GetTickCount64());
+	BeaconService::Tick(&context);
+	Check(speech.size() == said, "a refused target says nothing over the scanner");
+	Command("status");
+	BeaconService::Tick(&context);
+	Check(speech.back().find(strings.beaconNothing) != std::string::npos, "and what was followed goes: it was moved on from");
+	blocked = {};
+	visitedRooms = {};
+	backWithA = true;
+	BeaconService::Tick(&context);
+	Check(!BeaconService::FollowsScan() && speech.back() == strings.beaconFollowScanOff, "BACK+A turns it off");
+	BeaconService::Offer(gate, 0, GetTickCount64());
+	Command("lock");
+	BeaconService::Tick(&context);
 
 	worldReadable = false;
 	const int silenced = silences;
