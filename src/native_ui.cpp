@@ -356,6 +356,13 @@ int TabCount(uintptr_t widget) {
 	int count = 0;
 	// A bar names its tabs Text0 onward; one it does not show has no caption.
 	while (count < 8 && !NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "Text" + std::to_string(count))).empty()) ++count;
+	// One the game does not offer keeps its caption: the options' Controls on the main menu, only drawn in a game.
+	int32_t offered = 0;
+	std::array<uint8_t, MaxTabs> enabled{};
+	if (!Peek(widget + TabCountOffset, offered) || offered < 1 || offered > MaxTabs
+		|| !NativeMemory::Copy(widget + TabEnabledOffset, enabled.data(), offered)) return count;
+	count = std::min<int>(count, offered);
+	while (count > 1 && !enabled[count - 1]) --count;
 	return count;
 }
 

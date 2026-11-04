@@ -14,6 +14,7 @@
 #include "native_memory.h"
 #include "native_ui.h"
 #include "native_value_controls.h"
+#include "native_value_controls.h"
 #include "native_widgets.h"
 #include "native_focus.h"
 #include "native_skill_navigation.h"
@@ -548,10 +549,19 @@ std::optional<int> SliderPercent(const Generated::PanelWidgets& catalog, const G
 	return static_cast<int>(percent + 0.5);
 }
 
+// The handle's place on the track is a percentage only on a slider from 0 to 100; on any other the
+// number the game shows is the value (the resolution scale at 100 had its handle a third of the way).
+std::string SliderText(int percent, uintptr_t widget);
+
 std::string PercentText(int percent) {
 	char text[16] {};
 	std::snprintf(text, sizeof(text), "%d%%", percent);
 	return text;
+}
+
+std::string SliderText(int percent, uintptr_t widget) {
+	const std::string shown = NativeValueControls::Shown(widget);
+	return shown.empty() || shown == std::to_string(percent) ? PercentText(percent) : shown;
 }
 
 // Every options screen the catalog carries: Gameplay, Video, Sound, Online
@@ -999,7 +1009,7 @@ void Announce(const D2RL::PluginContext* context, const Match& match, const Widg
 	}
 	if (const auto percent = SliderPercent(*match.panel, *match.widget); percent) {
 		phrase += ", ";
-		phrase += PercentText(*percent);
+		phrase += SliderText(*percent, nativeWidget != 0 ? nativeWidget : NativeUi::CurrentFocus().widget);
 	}
 	// The widget's own state first; Settings.json only when it cannot be read.
 	const uintptr_t live = LiveWidget(nativeWidget);
@@ -1093,7 +1103,7 @@ void Tick(const D2RL::PluginContext* context) {
 		if (std::strcmp(pending.widget->type, SliderWidgetType) == 0) {
 			if (const auto percent = SliderPercent(*pending.panel, *pending.widget); percent) {
 				D2RAccess::AsyncLog::InfoF(context, "[value] %s -> %d%%", id.c_str(), *percent);
-				ScreenReader::Speak(PercentText(*percent), true);
+				ScreenReader::Speak(SliderText(*percent, NativeUi::CurrentFocus().widget), true);
 			}
 		} else {
 			// A dropdown takes the row picked in its popup; toggles and
@@ -1338,6 +1348,11 @@ void InvalidateRects() {
 
 void PanelsChanged() {
 	g_rectCache.clear();
+	g_forceResolve = true;
+}
+
+void Reannounce() {
+	g_lastAnnounced.clear();
 	g_forceResolve = true;
 }
 

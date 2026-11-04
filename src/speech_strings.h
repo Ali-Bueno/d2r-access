@@ -602,6 +602,8 @@ struct Table {
 	const char* radiantObject; // %s = the game's name of a glowing quest or reward chest
 	const char* rogueFountain; // the Outer Cloister's fountain of three Rogue statues, a landmark
 	const char* characterDeleted; // the delete modal closed after the game deleted the character
+	const char* deleteHold;       // %s = the character the delete modal is for, on the keyboard
+	const char* keyBindPrompt;    // the options' key list waits for the key to assign
 	const char* distanceStep;  // a distance said in steps: one step, a walked click's units (EntityRadar::UnitsPerStep)
 	const char* distanceSteps; // %d = steps
 	const char* distanceStepsOn;
@@ -699,7 +701,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.undiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.chargesGained, t.chargesLost, t.chargesHeld, t.chargeAlertsOn, t.chargeAlertsOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.chargesGained, t.chargesLost, t.chargesHeld, t.chargeAlertsOn, t.chargeAlertsOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.deleteHold, t.keyBindPrompt, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
 		t.padQwertyOn, t.padQwertyOff, t.typingStartedQwerty, t.capsLockKey, t.backspaceKey, t.upperCase, t.lowerCase,
 		t.launcherMissingFiles, t.launcherValidating, t.launcherNeedsSteam, t.launcherNeedsBattleNet, t.launcherStarted, t.launcherOpeningSteam, t.launcherOpeningBattleNet, t.launcherStartingGame, t.launcherValidated, t.launcherFailedStartsAnyway, t.launcherFailedExpired, t.launcherBattleNetNoGame, t.launcherUpdateTitle, t.launcherUpdateAsk, t.launcherUpdated, t.launcherUpdateFailed}) visit(s);
 	each(t.lootEquipment);

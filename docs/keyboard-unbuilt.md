@@ -186,7 +186,7 @@ game.
 | question | state |
 |---|---|
 | ~~A key for a click where a box of text takes every letter~~ | **not needed.** The fourth test showed A typing into the name; the user asked that typing reach the box only with the cursor on it, built `dcc8e0e` (keyboard-keys.md) |
-| Should the scroll bar and its two arrows be places of the cursor? | not asked yet (item 3) |
+| Should the scroll bar and its two arrows be places of the cursor? | no, where the list has rows: the cursor scrolls (2026-11-04) |
 | Is "Row 1, column 2" after "Empty" wanted on an empty belt slot? | built unasked; told to the user 2026-09-27, no answer yet |
 | The hand of the list of skills is said in the game's words, "Left Mouse-Button Skill". Are other words wanted? | built; told to the user 2026-09-27 |
 | Should it be said that the line of chat has opened? | not asked. MEASURED in the second test: Enter opened the chat twice, for nine seconds each, and nothing said so |
@@ -246,7 +246,9 @@ the same as an option with toggles, the same as the controller would."*
 **To measure:** `[values] Verified.`; `[cursor] value of X: 50 -> 55 by ...,
 shown "55"`; whether the value is heard once.
 
-## 3. Rows out of view: scrolling. NOT BUILT, not investigated
+## 3. Rows out of view: scrolling. BUILT 2026-11-04
+
+Built and walked: [keyboard play](keyboard-play.md#every-menu-walked--2026-11-04). The questions below are answered there.
 
 READ in the layouts: the options panels, the key binding menu, the dropdown
 list, the character list and others put their rows in a `ScrollViewWidget`

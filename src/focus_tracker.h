@@ -30,6 +30,9 @@ void InvalidateRects();
 // The panel set changed: rects and widget handles are stale.
 void PanelsChanged();
 
+// The place in focus is said again as if it were new: the keyboard's cursor came back to it.
+void Reannounce();
+
 // The game reported a scroll input (ScrollController:ManualScrollInput):
 // the press count, not the sampled positions, drives popup scroll tracking.
 void NoteScrollInput();

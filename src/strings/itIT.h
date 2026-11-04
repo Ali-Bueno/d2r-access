@@ -544,6 +544,8 @@ inline constexpr Table itIT {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fontana delle guerriere",
 	.characterDeleted = "Personaggio eliminato",
+	.deleteHold = "Eliminare %s. Tieni premuto A su Sì fino alla fine del conto alla rovescia",
+	.keyBindPrompt = "Premi il nuovo tasto, o Esc per annullare",
 	.distanceStep = "1 passo",
 	.distanceSteps = "%d passi",
 	.distanceStepsOn = "Distanze in passi, uno per clic",

@@ -50,7 +50,7 @@ coordinates back to the original dimensions before clicking. Inspect the actual
 UI; menu positions are not built into this tool.
 
 Supported keys: ASCII letters/digits, F1–F24, arrows, PageUp, PageDown, Home,
-End, Ctrl, Shift, Alt, Enter, Escape, Space, Tab and Backspace. Separate up to three keys with `+`.
+End, Delete, Ctrl, Shift, Alt, Enter, Escape, Space, Tab and Backspace. Separate up to three keys with `+`.
 Global application shortcuts still apply. In particular, F12 triggered Steam
 screenshots during setup and was replaced. The numeric keypad can be consumed
 by NVDA's review commands and is not used.

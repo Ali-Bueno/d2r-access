@@ -544,6 +544,8 @@ inline constexpr Table koKR {
 	.radiantObject = "빛나는 %s",
 	.rogueFountain = "궁수 석상 분수",
 	.characterDeleted = "캐릭터 삭제됨",
+	.deleteHold = "%s 삭제. 카운트가 끝날 때까지 예에서 A를 누르고 계세요",
+	.keyBindPrompt = "새 키를 누르세요. Esc를 누르면 취소됩니다",
 	.distanceStep = "1걸음",
 	.distanceSteps = "%d걸음",
 	.distanceStepsOn = "거리를 걸음으로, 클릭 한 번에 한 걸음",

@@ -27,9 +27,16 @@
 //   Home, End                the menu before and after: character, inventory,
 //                            skill tree, quest log, game menu.
 //   backslash                say it again (Home says it again in play).
+//   Delete                   on a character of the list, the game's own delete button: the arrows
+//                            would reach it only by choosing every row on the way.
 //   Shift+S                  the list of skills for the left hand, in play as
 //                            well (the user, 2026-09-27). The game's own S opens
 //                            the right hand's. The hand is said as the list opens.
+//
+// A and D hold the mouse button as long as they are held, for the game's press-and-hold buttons.
+// A list that scrolls is walked row by row: the wheel brings a row out of view in before the
+// pointer goes to it, and the pointer never leaves the game's window. A panel that takes every
+// click (the options, the pause menu) is the whole menu, and closing it brings the cursor back.
 //
 // With an item in hand the cursor goes cell by cell: where the item would be
 // put down matters cell by cell. A connected pad is not touched; with one
@@ -39,7 +46,7 @@
 namespace D2RAccess::KeyboardMenu {
 // The last four are the shared stash's pages: Alt+PageUp/PageDown by one, Ctrl+Shift by ten (docs/stash-pages.md).
 enum class Act { ClickLeft, ClickRight, TabPrevious, TabNext, MenuPrevious, MenuNext, SayAgain, Detail,
-	PagePrevious, PageNext, PageBack, PageForward };
+	PagePrevious, PageNext, PageBack, PageForward, DeleteRow };
 
 // After KeyboardService::Tick and before the readers, so what is read is
 // where the cursor ends up.

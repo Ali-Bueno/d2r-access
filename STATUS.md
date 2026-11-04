@@ -2,6 +2,22 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The keyboard in every menu, life and mana, the two hands — 2026-11-04 (not released)
+
+The user: the keyboard leaves the window, the options cannot be walked; players: a character cannot be
+deleted, BACK+X silent until the options were opened. Driven live, fullscreen and in a window. 140/140.
+- **Menus:** lists scroll by the wheel, the pointer stays in the window, a covering panel is the whole
+  menu and gives the cursor back, tabs say their name then the first row
+  ([keyboard play](docs/keyboard-play.md#every-menu-walked--2026-11-04)).
+- **Delete:** Delete on a character, A held on Yes; it says whose ([delete](docs/delete-character-modal.md)).
+- **Orbs:** life and mana fall back to the player's stats; verified with both options off
+  ([vitals](docs/vitals.md)). Why that player's game hid the text is still unknown: no log.
+- **Two weapons:** the right hand is first, measured and named ([panel](docs/character-panel.md)).
+
+**Not run:** anything with a pad (none here); durability alerts and the eclipse's dark state, as in 1.0.5.
+
+**Next step:** a pad player's check of the options and the delete modal; the player's `[vitals] orbs:` line.
+
 ## bfbeast's 1.0.2 notes and the launcher's update — 2026-11-03 (release 1.0.5)
 
 bfbeast's notes (dual-claw Assassin log) and a player stuck below 1.0.4. Built, 140/140 CTest.

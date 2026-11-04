@@ -31,6 +31,10 @@ void Reset();
 inline constexpr int DeleteHoldSeconds = 5;
 // The number to say after A has been held `heldMs` on that modal, 0 once the count is over.
 int HoldCountdown(uint64_t heldMs);
+// The keyboard's menu says when its A is held on Confirm, as a pad's A held counts. UI thread.
+void SetKeyHold(bool held);
+// The keyboard's menu says when its cursor has the menu: a panel of rows is then read a row at a time.
+void SetKeyMenu(bool engaged);
 
 // Text said once, queued behind the title screen's own announcement.
 void SetTitleAnnouncement(std::string text);

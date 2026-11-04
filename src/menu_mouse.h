@@ -16,7 +16,14 @@
 namespace D2RAccess::MenuMouse {
 enum class Button { Left, Right };
 
-// The pointer on the middle of the rectangle, now. False when it could not be put there.
+// True when a point of the game's client pixels lies in the game's window and the window is in
+// front: the pointer goes nowhere else, so a click never lands on another window.
+bool Within(NativeUi::Cell point);
+// True when the pointer stands on a point of the game's client pixels.
+bool At(NativeUi::Cell point);
+// The pointer on the middle of the rectangle, now, or on the part of it nearest the middle that a
+// screen shows: a window can hang off the screen (2026-11-03, a game at 307,133 and 2560 wide).
+// False when none of it can be pointed at.
 bool Place(const NativeUi::Rect& rect);
 // A move of two pixels and back, as a hand on the mouse makes: Place moves the
 // pointer without an input event, and the game kept its hover where it was.
@@ -25,11 +32,14 @@ bool Place(const NativeUi::Rect& rect);
 // button's tooltip. A relative move of one count changed nothing (03:25).
 // Given after every landing of the cursor.
 void Nudge();
-// A click where the pointer is.
-void Click(Button button);
+// A click where the pointer is. With a key, the button stays down until that key is let go:
+// the game's press-and-hold buttons see the hold (deleting a character).
+void Click(Button button, int heldBy = 0);
 // The pointer on the rectangle, a click there, and the pointer back on
 // `after` when that has any size: a key that presses a button for the player.
-void ClickAt(const NativeUi::Rect& rect, Button button, const NativeUi::Rect& after = {});
+void ClickAt(const NativeUi::Rect& rect, Button button, const NativeUi::Rect& after = {}, int heldBy = 0);
+// The pointer on the rectangle and the wheel turned there, up for a positive number of notches.
+void WheelAt(const NativeUi::Rect& rect, int notches);
 // The pointer on the rectangle once every step that waits is done.
 void PlaceAfter(const NativeUi::Rect& rect);
 // True while steps wait: what the pointer is on is about to change.

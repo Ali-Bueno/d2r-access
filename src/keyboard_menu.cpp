@@ -2,6 +2,7 @@
 
 #include "async_log.h"
 #include "click_words.h"
+#include "focus_tracker.h"
 #include "game_text_reader.h"
 #include "hire_stats.h"
 #include "input_direction.h"
@@ -9,6 +10,7 @@
 #include "keyboard_service.h"
 #include "menu_cursor.h"
 #include "menu_mouse.h"
+#include "modal_reader.h"
 #include "native_belt_fill.h"
 #include "native_belt_rows.h"
 #include "native_class_choice.h"
@@ -37,8 +39,10 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <optional>
 #include <string>
 #include <vector>
@@ -64,13 +68,27 @@ constexpr uint64_t FillGapMs = 500;     // a plan sent again before the server a
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
 constexpr uint64_t TitleMs = 1200;      // what a menu is called is heard before the cursor names its first place
 constexpr uint64_t OwnStepMs = 120;     // by then the game has stepped a value on the arrow key itself, if it does
-constexpr uint64_t ChoiceMs = 3000;     // a class clicked that is not chosen by then was not chosen
+constexpr uint64_t ChoiceMs = 8000;     // a class clicked that is not chosen by then was not chosen: its figure walks forward first
 constexpr uint64_t RowPairMs = 400;     // a click on a row this soon after another is the second of the two that act on it
-constexpr size_t MaxEntries = 256;
+constexpr int ScrollStuck = 3;          // wheels that move nothing before a row is given up on
+constexpr int MaxNotches = 12;          // the most the wheel is turned at once
+constexpr uint64_t RefreshShare = 6;    // a long menu is looked at again less often: never more than a sixth of the time
+constexpr size_t MaxEntries = 1024;     // the options' key list runs to some 700 widgets, its bar after them
 constexpr int MaxDepth = 32;
 
 constexpr std::string_view Hud = "HUDPanel";
 constexpr std::string_view LoaderPluginIcon = "PluginIconTooltip"; // D2RLoader's, drawn on each row of the character list
+constexpr std::string_view LoaderPrefix = "D2RLoader";              // its buttons, drawn on the game's menus
+constexpr std::string_view SwapPrefix = "weaponswap";               // the inventory's weapon tabs: one A from swapping
+constexpr const char* WaysOut[] = {"Close", "CloseButton", "Cancel", "CancelButton"}; // in any case: the inventory's is "close"
+constexpr std::string_view ConfirmButton = "Confirm";
+constexpr std::string_view DeleteButton = "DeleteCharacter", DeletePanel = "DeleteCharacterModal";
+// A list that scrolls, its bar, and a panel's mark that it takes every click: a catcher on a
+// rectangle that shades the screen (SettingsPanelHD.json, PauseLayoutHD.json).
+constexpr std::string_view ScrollView = "ScrollViewWidget", ListView = "ListWidget", ScrollBar = "ScrollControllerWidget";
+constexpr std::string_view NotLists[] = {"DropdownListWidget", "ChatListWidget"}; // a control and a log, whatever they are called
+constexpr std::string_view Recycling = "Recycling"; // a list that keeps only the rows in view
+constexpr std::string_view Shade = "RectangleWidget", Catcher = "ClickCatcherWidget";
 // The HUD's two skill buttons. Between them the HUD has nothing of its own.
 constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSkillButton";
 // The list of skills, one panel for both hands, and the game's own words for
@@ -95,6 +113,7 @@ constexpr std::string_view ReturnToGame = "ReturnToGame";
 struct Entry {
 	uintptr_t widget = 0, panel = 0;
 	uintptr_t tab = 0;  // the tab it is drawn inside, when it is inside one
+	uintptr_t view = 0; // the list that scrolls it, when it is in one
 	Kind kind = Kind::Other;
 	bool cells = false; // several places: a grid of items, the belt, a bar of tabs
 	bool belt = false;  // the belt, which counts its places from the bottom row up
@@ -115,6 +134,18 @@ Adjusting g_adjusting;
 // A class that was clicked, until it is seen to be chosen or the wait is over.
 struct Choosing { uintptr_t widget = 0; uint64_t since = 0; };
 Choosing g_choosing;
+// A row on its way into view. The wheel goes on until the row is in, and the cursor lands on it then.
+struct Scrolling { Place place; int beyond = 0, notches = 0, stuck = 0; };
+Scrolling g_scrolling;
+// A step past the edge of a list that keeps only the rows in view: the wheel turned one notch,
+// to see whether more comes. `beyond` is where the step goes if nothing does.
+struct Edge { bool on = false; Direction direction = Direction::Down; Place beyond; uintptr_t group = 0; std::string rows; };
+Edge g_edge;
+// Where the cursor stood when a panel covered it, to go back to when that panel closes.
+struct Covered { std::string by; Place place; };
+std::vector<Covered> g_covered;
+std::string g_cover;        // the panel that took the menu over at the last look, if one did
+std::string g_deleting;     // the character the delete button was pressed for, until its modal opens
 
 // The open menu: what each thing is, and beside it where it is for the cursor.
 std::vector<Entry> g_entries;
@@ -134,7 +165,6 @@ std::atomic<bool> g_leaveBox{false}; // Enter or Escape pressed in it, for the n
 bool g_engaged = false;     // the cursor is the keyboard's; false while a pad has the menu
 bool g_holding = false;     // an item was in hand when the pointer was last placed
 bool g_landed = false;      // the pointer went to where the cursor is
-NativeUi::Cell g_pointerAt; // the point the pointer was last put on, and went to
 uint64_t g_refreshAt = 0;
 size_t g_things = 0;        // how many things the menu had when they were last listed in the log
 uint64_t g_thingsLogged = 0;
@@ -144,6 +174,8 @@ std::string g_said;         // what the cursor said of where it is, when no read
 bool g_beltShown = false;   // the game's "show belt" was turned on from here, and is to be turned off
 bool g_parkOwed = false;    // the cursor put the pointer somewhere, and play has not parked it yet
 bool g_parkTold = false;    // a park that could not be done yet is logged once
+bool g_entered = false;     // the cursor is where the menu was entered, and no key has moved it
+bool g_lists = false;       // the menu has a list that scrolls, whose rows the arrows are the cursor's to walk
 int g_beltRows = 0;         // the rows of the belt when the menu was last read, 0 with no belt in it
 uint64_t g_lastClick = 0;
 uint64_t g_lastFill = 0;
@@ -164,7 +196,8 @@ bool g_logBuild = false;           // the next build is a key's, and is logged w
 uint64_t g_buildLogged = 0;        // when a build was last logged for being slow
 constexpr double SlowBuildMs = 10; // a build this slow is logged, at most once a second
 
-struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false; uint64_t next = 0; };
+// `owed`: a step asked for while the wheel was turning, made as soon as it stops.
+struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false, owed = false; uint64_t next = 0; };
 Arrow g_arrows[] = {
 	{VK_LEFT, Direction::Left, InputDirection::StickPush::Left}, {VK_RIGHT, Direction::Right, InputDirection::StickPush::Right},
 	{VK_UP, Direction::Up, InputDirection::StickPush::Up}, {VK_DOWN, Direction::Down, InputDirection::StickPush::Down},
@@ -176,11 +209,11 @@ struct Watched { int key; Act act; With with; bool down = false, waiting = false
 Watched g_watched[] = {
 	{'A', Act::ClickLeft, With::ClickModifiers}, {'D', Act::ClickRight, With::ClickModifiers}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
 	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
-	{VK_OEM_5, Act::SayAgain, With::Nothing}, {'J', Act::Detail, With::Nothing},
+	{VK_OEM_5, Act::SayAgain, With::Nothing}, {'J', Act::Detail, With::Nothing}, {VK_DELETE, Act::DeleteRow, With::Nothing},
 };
-constexpr size_t Acts = 12;
+constexpr size_t Acts = 13;
 constexpr const char* ActNames[Acts] = {"left click", "right click", "previous tab", "next tab", "previous menu", "next menu",
-	"say again", "description", "previous page", "next page", "ten pages back", "ten pages forward"};
+	"say again", "description", "previous page", "next page", "ten pages back", "ten pages forward", "delete row"};
 std::atomic<uint64_t> g_delivered[Acts]{};
 std::atomic<uint32_t> g_pending{0};
 
@@ -193,11 +226,20 @@ std::atomic<bool> g_keepLetters{false};
 // Character select moves its own selection with up and down too, so the cursor
 // walking the buttons beside the list changed the character (a tester, 2026-10-17).
 std::atomic<bool> g_keepArrows{false};
+// Arrows the game's window was told of, by their bit in g_arrows: a press that comes and goes
+// inside one update is seen here, as polling does not (the key list takes 50 ms to read).
+std::atomic<uint32_t> g_arrowTaps{0};
 HHOOK g_letterHook = nullptr;
 bool g_letterTried = false;
 const D2RL::PluginContext* g_letterContext = nullptr;
 
 LRESULT CALLBACK KeepLetters(int code, WPARAM wParam, LPARAM lParam) {
+	if (code == HC_ACTION && wParam == PM_REMOVE) {
+		const auto* message = reinterpret_cast<const MSG*>(lParam);
+		if (message->message == WM_KEYDOWN && !(message->lParam & (1 << 30)))
+			for (size_t i = 0; i < std::size(g_arrows); ++i)
+				if (static_cast<WPARAM>(g_arrows[i].key) == message->wParam) g_arrowTaps |= 1u << i;
+	}
 	// Enter and Escape leave a box being typed in, and only that: the game would create the
 	// character or go back a screen.
 	if (code == HC_ACTION && wParam == PM_REMOVE && g_typing.load()) {
@@ -258,11 +300,18 @@ bool Contains(const MenuCursor::Rect& outer, const MenuCursor::Rect& inner) {
 	return x >= outer.x && y >= outer.y && x < outer.x + outer.width && y < outer.y + outer.height;
 }
 
+bool WayOut(const std::string& name) {
+	return std::any_of(std::begin(WaysOut), std::end(WaysOut), [&name](const char* way) { return _stricmp(name.c_str(), way) == 0; });
+}
+bool ListType(std::string_view type) {
+	return type == ScrollView || (type.ends_with(ListView) && std::find(std::begin(NotLists), std::end(NotLists), type) == std::end(NotLists));
+}
+
 // A place drawn off the screen cannot be pointed at. MEASURED 2026-09-27: the
 // main menu's bar of tabs is drawn at y = -130 when there is one tab to show,
 // the pointer stayed where it was, and the click went to what was under it.
 bool OnScreen(const NativeUi::Rect& rect) {
-	return rect.x + rect.width / 2 >= 0 && rect.y + rect.height / 2 >= 0;
+	return MenuMouse::Within({rect.x + rect.width / 2, rect.y + rect.height / 2});
 }
 
 GridJump::Grid ReadGrid(uintptr_t widget) {
@@ -313,12 +362,13 @@ bool AddCells(Entry entry, GridJump::Grid grid) {
 	return true;
 }
 
-void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
+void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, uintptr_t view, int depth) {
 	if (!widget || depth > MaxDepth || g_entries.size() >= MaxEntries || !NativeUi::Visible(widget)) return;
 	Entry entry;
 	entry.widget = widget;
 	entry.panel = panel;
 	entry.tab = tab;
+	entry.view = view;
 	entry.name = NativeWidgets::ReadName(widget);
 	// A template container of the layouts, not a part of the menu.
 	if (entry.name == "Templates") return;
@@ -346,7 +396,8 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 		|| type.kind == Kind::Tabs || type.kind == Kind::StatButton || type.kind == Kind::TabButton
 		|| type.kind == Kind::ValueControl || type.kind == Kind::QuestButton || type.kind == Kind::TextInput;
 	if (!whole && control && type.name != "BeltWidget") {
-		if (auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget)); rect && OnScreen(*rect)) {
+		// A row of a list that scrolls is a place wherever the scroll has drawn it; FrameLists sorts them out.
+		if (auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget)); rect && (view || OnScreen(*rect))) {
 			// A row of the hire list is a place, and so is each skill icon and the
 			// price drawn inside it (the user, 2026-10-01: "the player should be able
 			// to highlight the individual skill icons"). The row's place is its name
@@ -365,13 +416,26 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, int depth) {
 			// The skills of a skill tree, and of the list of skills, stand together:
 			// a step from one lands on another before it lands on a tab beside them.
 			const bool skill = NativeSkillIcons::InTree(widget) || NativeSkillIcons::InList(widget);
-			g_targets.push_back({widget, ToRect(*rect), {}, skill ? NativeUi::Parent(widget) : 0});
+			g_targets.push_back({widget, ToRect(*rect), {}, skill ? NativeUi::Parent(widget) : view});
+			g_targets.back().aside = WayOut(entry.name) || entry.name.starts_with(LoaderPrefix) || entry.name.starts_with(SwapPrefix);
 			g_entries.push_back(entry);
 		}
 	}
 	if (whole || steps) return;
 	const uintptr_t inside = type.kind == Kind::TabButton ? widget : tab;
-	for (const uintptr_t child : NativeUi::Children(widget)) Collect(child, panel, inside, depth + 1);
+	const uintptr_t scrolls = ListType(type.name) ? widget : view;
+	for (const uintptr_t child : NativeUi::Children(widget)) Collect(child, panel, inside, scrolls, depth + 1);
+}
+
+void Drop(const std::vector<bool>& drop) {
+	size_t kept = 0;
+	for (size_t i = 0; i < g_targets.size(); ++i) {
+		if (drop[i]) continue;
+		if (kept != i) { g_targets[kept] = std::move(g_targets[i]); g_entries[kept] = std::move(g_entries[i]); }
+		++kept;
+	}
+	g_targets.resize(kept);
+	g_entries.resize(kept);
 }
 
 // A control drawn around others is where they stand, not one of them, and a
@@ -389,14 +453,7 @@ void Thin() {
 		}
 		if (holds >= 2) drop[i] = true;
 	}
-	size_t kept = 0;
-	for (size_t i = 0; i < g_targets.size(); ++i) {
-		if (drop[i]) continue;
-		if (kept != i) { g_targets[kept] = std::move(g_targets[i]); g_entries[kept] = std::move(g_entries[i]); }
-		++kept;
-	}
-	g_targets.resize(kept);
-	g_entries.resize(kept);
+	Drop(drop);
 }
 
 bool Same(const std::vector<Target>& first, const std::vector<Target>& second) {
@@ -415,6 +472,57 @@ uintptr_t FindNamed(uintptr_t widget, std::string_view name, bool byType, int de
 	for (const uintptr_t child : NativeUi::Children(widget))
 		if (const uintptr_t found = FindNamed(child, name, byType, depth + 1)) return found;
 	return 0;
+}
+
+// The bar of a list that scrolls: of the panel's, the one drawn nearest the list's right edge, for
+// the Chronicle has a list and a bar on each side. Only a list too long for its frame shows one.
+uintptr_t BarOf(uintptr_t view, uintptr_t panel) {
+	int right = 0;
+	for (size_t i = 0; i < g_entries.size(); ++i)
+		if (g_entries[i].view == view) right = std::max(right, g_targets[i].rect.x + g_targets[i].rect.width);
+	uintptr_t bar = 0;
+	int least = 0;
+	for (size_t i = 0; i < g_entries.size(); ++i) {
+		if (g_entries[i].panel != panel || g_entries[i].type != ScrollBar) continue;
+		const int apart = std::abs(g_targets[i].rect.x - right);
+		if (!bar || apart < least) { bar = g_entries[i].widget; least = apart; }
+	}
+	return bar;
+}
+
+// The rows of each list are seen through the span of its bar and the bar's two arrows, which
+// runs as tall as the list. The rows' rectangles have the scroll in them (MEASURED 2026-11-04:
+// three notches moved a row 200 pixels up). The cursor scrolls, so a bar with rows is no place of
+// its own; without any, as in Advanced Stats, it is the one thing there is to stand on.
+void FrameLists() {
+	std::vector<bool> drop(g_targets.size(), false);
+	std::vector<uintptr_t> framed;
+	g_lists = false;
+	for (size_t i = 0; i < g_entries.size(); ++i) {
+		const uintptr_t view = g_entries[i].view;
+		if (!view || std::find(framed.begin(), framed.end(), view) != framed.end()) continue;
+		framed.push_back(view);
+		const uintptr_t bar = BarOf(view, g_entries[i].panel);
+		const auto ofBar = [bar](const Entry& entry) { return bar && (entry.widget == bar || NativeUi::Parent(entry.widget) == bar); };
+		MenuCursor::Rect span{};
+		bool rows = false;
+		for (size_t j = 0; j < g_entries.size(); ++j) {
+			if (!ofBar(g_entries[j])) { rows = rows || g_entries[j].view == view; continue; }
+			const auto& rect = g_targets[j].rect;
+			const int top = span.height ? std::min(span.y, rect.y) : rect.y;
+			const int bottom = std::max(span.y + span.height, rect.y + rect.height);
+			span = {rect.x, top, rect.width, bottom - top};
+		}
+		for (size_t j = 0; j < g_entries.size(); ++j) {
+			auto& target = g_targets[j];
+			if (ofBar(g_entries[j])) drop[j] = rows;
+			else if (g_entries[j].view != view) continue;
+			else if (span.height) { target.frame = {target.rect.x, span.y, target.rect.width, span.height}; g_lists = true; }
+			// With no bar nothing can bring it in, so what is off the screen stays off.
+			else drop[j] = !OnScreen({target.rect.x, target.rect.y, target.rect.width, target.rect.height});
+		}
+	}
+	Drop(drop);
 }
 
 // The game's "show belt" is turned off again if it was turned on from here.
@@ -452,6 +560,16 @@ void LinkClasses() {
 		if (NativeClassChoice::Is(entry.widget)) g_links.push_back({{entry.widget, {}, {}}, {below->widget, {}, {}}, Direction::Down});
 }
 
+// True for a panel that takes every click, whatever is drawn under it.
+bool Covers(uintptr_t panel) {
+	for (const uintptr_t shade : NativeUi::Children(panel)) {
+		if (!NativeUi::Visible(shade) || NativeUi::Classify(shade).name != Shade) continue;
+		for (const uintptr_t child : NativeUi::Children(shade))
+			if (NativeUi::Visible(child) && NativeUi::Classify(child).name == Catcher) return true;
+	}
+	return false;
+}
+
 std::string Build(const D2RL::PluginContext* context) {
 	g_cost = {};
 	const auto start = Clock::now();
@@ -468,9 +586,14 @@ std::string Build(const D2RL::PluginContext* context) {
 			break;
 		}
 	}
+	g_cover.clear();
 	for (size_t i = shown.size(); i-- > 0;) {
-		if (!shown[i].name.ends_with("Modal") && shown[i].name != DropdownList) continue;
-		shown = {shown[i]};
+		const bool alone = shown[i].name.ends_with("Modal") || shown[i].name == DropdownList;
+		if (!alone && !Covers(shown[i].panel)) continue;
+		g_cover = shown[i].name;
+		// What it covers is out of reach; a tab of the options opened after it is part of it.
+		if (alone) shown = {shown[i]};
+		else shown.erase(shown.begin(), shown.begin() + static_cast<std::ptrdiff_t>(i));
 		break;
 	}
 	std::string menu;
@@ -490,16 +613,17 @@ std::string Build(const D2RL::PluginContext* context) {
 		menu += ' ';
 		items = items || open.name.find("Inventory") != std::string::npos;
 		const size_t before = g_entries.size();
-		Collect(open.panel, open.panel, 0, 0);
+		Collect(open.panel, open.panel, 0, 0, 0);
 		if (open.name == NpcDialog) asked = g_entries.size() - before;
 	}
 	// The belt is the HUD's, and is where potions are put from the inventory.
 	const uintptr_t hud = items ? NativeWidgets::FindPanel(Hud) : 0;
 	if (const uintptr_t belt = hud && NativeUi::Visible(hud) ? FindNamed(hud, "BeltWidget", true, 0) : 0) {
 		ShowBelt(context, belt);
-		Collect(belt, hud, 0, 0);
+		Collect(belt, hud, 0, 0, 0);
 	} else HideBelt(context);
 	const auto walked = Clock::now();
+	FrameLists();
 	Thin();
 	const auto thinned = Clock::now();
 	if (!Same(g_targets, g_mended)) {
@@ -562,6 +686,10 @@ std::string Name(const Entry& entry, const Place& place) {
 		return phrase;
 	}
 	if (entry.kind == Kind::Tabs && entry.cells) return TabText(entry.widget, place.anchor.x);
+	if (entry.kind == Kind::InventorySlot) {
+		const uintptr_t item = NativeUi::EquipmentItem(entry.widget);
+		return item ? NativeGroundItems::ItemBaseName(item) : std::string(Strings::Current().slotEmpty);
+	}
 	if (entry.belt) {
 		// The slot the cursor is on, which the belt is read at while the cursor stands in for the focus.
 		const auto slot = NativeUi::BeltItem(entry.widget);
@@ -605,6 +733,12 @@ const Entry* RowAround(const Entry& entry) {
 bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) {
 	const auto* entry = EntryOf(place.widget);
 	if (!entry) return false;
+	// A row out of view is scrolled in first; the pointer goes to it once it is there.
+	if (const auto* row = MenuCursor::Find(g_targets, place.widget); row && MenuCursor::Beyond(*row) != 0) {
+		if (g_scrolling.place != place) g_scrolling = {place};
+		return true;
+	}
+	g_scrolling = {};
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
 	const auto rect = PointerRect(*entry, place, holding);
 	if (!rect) {
@@ -625,12 +759,10 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	NativeUi::SetCursor({owner ? owner : entry->panel, entry->widget}, selection);
 	POINT pointer{};
 	(void)GetCursorPos(&pointer);
-	// The pointer is where it is put at once (MEASURED 2026-09-27). One that was
-	// put somewhere new and has not moved did not go there.
+	// The pointer is where it is put at once (MEASURED 2026-09-27). One that has not moved and is
+	// not on the point did not go there; one already on it did (2026-11-03: refused after a menu came back).
 	const NativeUi::Cell point{rect->x + rect->width / 2, rect->y + rect->height / 2};
-	const bool same = point.x == g_pointerAt.x && point.y == g_pointerAt.y;
-	g_landed = placed && (same || pointer.x != before.x || pointer.y != before.y);
-	if (g_landed) g_pointerAt = point;
+	g_landed = placed && (pointer.x != before.x || pointer.y != before.y || MenuMouse::At(point));
 	if (g_landed) g_parkOwed = true; // the pointer is the cursor's until play takes it off the world
 	else AsyncLog::WarnF(context, "[cursor] the pointer did not go to %s: it is at %ld,%ld and was put on %d,%d; a click is refused",
 		entry->name.c_str(), pointer.x, pointer.y, point.x, point.y);
@@ -684,12 +816,12 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 }
 
 void Census(const D2RL::PluginContext* context) {
-	AsyncLog::InfoF(context, "[cursor] menu: %s-- %zu things", g_menu.c_str(), g_targets.size());
+	AsyncLog::InfoF(context, "[cursor] menu: %s-- %zu things%s%s", g_menu.c_str(), g_targets.size(), g_cover.empty() ? "" : ", all of it ", g_cover.c_str());
 	for (size_t i = 0; i < g_targets.size(); ++i) {
 		const auto& target = g_targets[i];
-		AsyncLog::InfoF(context, "[cursor] thing %s (%s) rect %d,%d %dx%d cells %dx%d items %zu", g_entries[i].name.c_str(),
+		AsyncLog::InfoF(context, "[cursor] thing %s (%s) rect %d,%d %dx%d cells %dx%d items %zu frame %d+%d", g_entries[i].name.c_str(),
 			g_entries[i].type.c_str(), target.rect.x, target.rect.y, target.rect.width, target.rect.height,
-			target.grid.width, target.grid.height, target.grid.items.size());
+			target.grid.width, target.grid.height, target.grid.items.size(), target.frame.y, target.frame.height);
 	}
 	constexpr const char* Ways[] = {"left", "right", "up", "down"};
 	for (const auto& link : g_links) {
@@ -716,9 +848,13 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	if (g_engaged && context) AsyncLog::InfoF(context, "[cursor] released: %s", reason);
 	g_engaged = false;
 	ClickWords::SetKeyboard(false);
+	ModalReader::SetKeyMenu(false);
 	g_landed = false;
-	g_pointerAt = {};
 	g_place = {};
+	g_scrolling = {};
+	g_edge = {};
+	g_covered.clear();
+	g_entered = false;
 	g_menu.clear();
 	g_landedAt = 0;
 	g_toSay.clear();
@@ -772,8 +908,6 @@ void SayHand(const D2RL::PluginContext* context, uint64_t now, const std::string
 	g_titleUntil = now + TitleMs;
 }
 
-// The menu as it is now, and the cursor on it: where it was if that still
-// stands, at the menu's first thing otherwise.
 // The place that holds the game's own focus: the character the list has chosen, not D2RLoader's
 // notification button drawn above the list, the topmost place (2026-11-03). Empty when none does.
 Place Focused() {
@@ -784,12 +918,55 @@ Place Focused() {
 	return {};
 }
 
+// Where a menu is entered: the game's own focus, or else the first thing of the panel opened
+// last that has one; its way out and the loader's buttons only if nothing else is there.
+Place Entrance() {
+	if (const auto focused = Focused(); focused.widget) return focused;
+	uintptr_t tried = 0;
+	for (size_t i = g_entries.size(); i-- > 0;) {
+		const uintptr_t panel = g_entries[i].panel;
+		if (panel == tried || g_entries[i].belt) continue;
+		tried = panel;
+		std::vector<Target> own;
+		for (size_t j = 0; j < g_entries.size(); ++j)
+			if (g_entries[j].panel == panel && !g_targets[j].aside) own.push_back(g_targets[j]);
+		if (const auto place = MenuCursor::First(own); place.widget) return place;
+	}
+	return MenuCursor::First(g_targets);
+}
+
+// A panel that took the menu over is noted with where the cursor stood, and when it is gone
+// that place is given back.
+Place Uncovered() {
+	const auto& open = PanelState::OpenPanels();
+	if (!g_cover.empty() && std::none_of(g_covered.begin(), g_covered.end(), [](const Covered& covered) { return covered.by == g_cover; }))
+		g_covered.push_back({g_cover, g_place});
+	Place place;
+	while (!g_covered.empty() && std::find(open.begin(), open.end(), g_covered.back().by) == open.end()) {
+		place = g_covered.back().place;
+		g_covered.pop_back();
+	}
+	return place;
+}
+
+// With its modal, what the modal does not say: whose deletion it is, and that A is held on Yes.
+void SayDeletion(const D2RL::PluginContext* context) {
+	if (g_deleting.empty() || !g_menu.starts_with(DeletePanel)) return;
+	char phrase[192]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().deleteHold, g_deleting.c_str());
+	AsyncLog::InfoF(context, "[cursor] the delete button was pressed for \"%s\"", g_deleting.c_str());
+	ScreenReader::Speak(phrase, false);
+	g_deleting.clear();
+}
+
+// The menu as it is now, and the cursor on it: where it was if that still stands, at the menu's
+// entrance otherwise. One left where the menu was entered follows the menu until a key moves it.
 void Refresh(const D2RL::PluginContext* context, uint64_t now) {
-	g_refreshAt = now + RefreshMs;
 	const auto checks = NativeMemory::Checks();
 	const auto start = Clock::now();
 	const std::string menu = Build(context);
 	const double took = Ms(start, Clock::now());
+	g_refreshAt = now + std::max(RefreshMs, static_cast<uint64_t>(took) * RefreshShare);
 	if (g_logBuild || (took >= SlowBuildMs && now - g_buildLogged >= 1000)) {
 		if (!g_logBuild) g_buildLogged = now;
 		const auto after = NativeMemory::Checks();
@@ -802,6 +979,8 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	const bool changed = menu != g_menu;
 	g_menu = menu;
 	SayHand(context, now, menu);
+	const Place back = Uncovered();
+	if (changed) SayDeletion(context);
 	if (g_targets.empty()) {
 		if (g_place.widget) { g_place = {}; NativeUi::ClearCursor(); }
 		return;
@@ -829,14 +1008,51 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 		g_thingsLogged = now;
 	}
 	g_beltRows = rows;
-	auto place = MenuCursor::Settle(g_targets, g_place);
-	if (!place.widget) place = Focused();
-	if (!place.widget) place = MenuCursor::First(g_targets);
+	auto place = MenuCursor::Settle(g_targets, back);
+	if (!place.widget && !(changed && g_entered)) place = MenuCursor::Settle(g_targets, g_place);
+	const bool entering = !place.widget;
+	if (entering) {
+		if (!MenuCursor::Find(g_targets, g_place.widget)) { g_place = {}; NativeUi::ClearCursor(); }
+		place = Entrance();
+	}
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
 	if (place == g_place && holding == g_holding && !redrawn) return;
 	// What the menu is called is heard out first, unless an arrow asks sooner.
 	if (now < g_titleUntil) { g_refreshAt = g_titleUntil; return; }
+	g_entered = entering;
+	const bool again = place == g_place || (back.widget && place.widget == back.widget);
+	// The readers say a place once. One come back to, or where an item was taken or put, is said
+	// again, with the value a dropdown left or the slot as it stands now.
+	if (again) FocusTracker::Reannounce();
 	(void)Land(context, now, place);
+}
+
+// The wheel, turned over the list until the row is in view: one notch to see how far a notch
+// goes, then as many as the rest takes. Not every list goes as far as its rows are apart.
+void Scrolled(const D2RL::PluginContext* context, uint64_t now) {
+	if (g_edge.on) return;
+	auto& scroll = g_scrolling;
+	if (!scroll.place.widget || MenuMouse::Busy()) return;
+	Refresh(context, now);
+	if (!scroll.place.widget) return; // the look brought it in and landed
+	const auto* row = MenuCursor::Find(g_targets, scroll.place.widget);
+	if (!row) { scroll = {}; return; }
+	const int beyond = MenuCursor::Beyond(*row);
+	if (!beyond) { const Place place = scroll.place; (void)Land(context, now, place); return; }
+	const int moved = std::abs(scroll.beyond - beyond);
+	if (scroll.notches && !moved && ++scroll.stuck >= ScrollStuck) {
+		AsyncLog::WarnF(context, "[cursor] scroll: %s stays %d pixels out of view", EntryOf(row->widget)->name.c_str(), beyond);
+		ScreenReader::Speak(Strings::Current().unavailable, true);
+		scroll = {};
+		return;
+	}
+	const int perNotch = scroll.notches && moved ? std::max(1, moved / std::abs(scroll.notches)) : 0;
+	const int notches = perNotch ? std::clamp((std::abs(beyond) + perNotch - 1) / perNotch, 1, MaxNotches) : 1;
+	scroll.beyond = beyond;
+	scroll.notches = beyond > 0 ? -notches : notches;
+	const auto& frame = row->frame;
+	AsyncLog::InfoF(context, "[cursor] scroll: %s lies %d pixels out of view; %d notches", EntryOf(row->widget)->name.c_str(), beyond, scroll.notches);
+	MenuMouse::WheelAt({frame.x, frame.y, frame.width, frame.height}, scroll.notches);
 }
 
 // The left and right arrows on a slider or an option that steps change its
@@ -906,6 +1122,45 @@ void Chosen(const D2RL::PluginContext* context, uint64_t now) {
 	choice = {};
 }
 
+void SayAgain(const D2RL::PluginContext* context, uint64_t now);
+
+// What a list's rows say now, to tell a list the wheel moved from one that is at its end.
+std::string RowWords(uintptr_t group) {
+	std::string words;
+	for (size_t i = 0; i < g_targets.size(); ++i)
+		if (g_targets[i].group == group) words += Name(g_entries[i], {}) + '\n';
+	return words;
+}
+
+// True for a place in a list that keeps only the rows in view, whose next row exists only once
+// the wheel has brought it in. The dropdown's list is one (13 slots, focus_tracker.cpp).
+bool Recycles(const Target& row) {
+	const auto* entry = EntryOf(row.widget);
+	return entry && entry->view && row.frame.width > 0
+		&& (NativeUi::Classify(entry->view).name.find(Recycling) != std::string::npos || g_menu.starts_with(DropdownList));
+}
+
+// The notch at the edge of such a list has turned. Rows that changed are stepped on, by the same
+// step made again; rows that did not mean the list ended, and the step goes where it was going.
+void EdgeTurned(const D2RL::PluginContext* context, uint64_t now) {
+	if (!g_edge.on || MenuMouse::Busy()) return;
+	const Edge edge = g_edge;
+	g_edge = {};
+	Refresh(context, now);
+	if (RowWords(edge.group) == edge.rows) {
+		if (edge.beyond == g_place) SayAgain(context, now);
+		else (void)Land(context, now, edge.beyond);
+		return;
+	}
+	const auto next = MenuCursor::Move(g_targets, g_place, edge.direction, false, g_links);
+	const auto* to = MenuCursor::Find(g_targets, next.widget);
+	if (to && to->group == edge.group && next != g_place) (void)Land(context, now, next);
+	else {
+		// The rows stood still and their words moved: the same place says the next one.
+		if (const auto* entry = EntryOf(g_place.widget)) { ScreenReader::Speak(Name(*entry, g_place), true); g_said = Name(*entry, g_place); }
+	}
+}
+
 void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction) {
 	if (!g_engaged) {
 		g_engaged = true;
@@ -913,6 +1168,7 @@ void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction)
 		Refresh(context, now);
 		return; // the first press says where the cursor is
 	}
+	g_entered = false;
 	const bool waited = now < g_titleUntil && !g_place.widget;
 	g_titleUntil = 0;
 	g_logBuild = true;
@@ -922,13 +1178,34 @@ void Step(const D2RL::PluginContext* context, uint64_t now, Direction direction)
 	if (direction == Direction::Left || direction == Direction::Right)
 		if (const auto* entry = EntryOf(g_place.widget); entry && Adjust(context, now, *entry, direction == Direction::Right)) return;
 	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
-	const auto next = MenuCursor::Move(g_targets, g_place, direction, holding, g_links);
+	auto next = MenuCursor::Move(g_targets, g_place, direction, holding, g_links);
+	// A bar of tabs is come to on the open tab, wherever the step came from.
+	if (const auto* bar = next.widget != g_place.widget ? EntryOf(next.widget) : nullptr; bar && bar->kind == Kind::Tabs && bar->cells)
+		if (const int open = NativeUi::SelectedTab(bar->widget); open >= 0) next = {bar->widget, {open, 0}, {open, 0}};
+	// Past the edge of a list that keeps only the rows in view, more may come.
+	const auto* row = MenuCursor::Find(g_targets, g_place.widget);
+	const auto* to = MenuCursor::Find(g_targets, next.widget);
+	const bool upright = direction == Direction::Up || direction == Direction::Down;
+	if (row && upright && row->group && (next == g_place || !to || to->group != row->group) && Recycles(*row)) {
+		g_edge = {true, direction, next, row->group, RowWords(row->group)};
+		const auto& frame = row->frame;
+		AsyncLog::InfoF(context, "[cursor] scroll: past the edge of the list, one notch %s", direction == Direction::Up ? "up" : "down");
+		MenuMouse::WheelAt({frame.x, frame.y, frame.width, frame.height}, direction == Direction::Up ? 1 : -1);
+		return;
+	}
 	if (next == g_place) {
 		// Nothing that way: where the cursor is, again.
-		if (const auto* entry = EntryOf(g_place.widget)) ScreenReader::Speak(Name(*entry, g_place), true);
+		SayAgain(context, now);
 		return;
 	}
 	(void)Land(context, now, next);
+}
+
+// The character the delete button acts on: the row the list has chosen, the row the cursor last
+// walked over when it came to the button by the arrows.
+void NoteDeletion() {
+	for (const auto& entry : g_entries)
+		if (const auto places = NativeListRows::Of(entry.widget); places && places->chosen == places->row) { g_deleting = Name(entry, {}); return; }
 }
 
 void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button button) {
@@ -985,8 +1262,10 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	const bool twice = row && !(g_rowClicked.widget == entry->widget && now - g_rowClicked.at < RowPairMs);
 	AsyncLog::InfoF(context, "[cursor] %s click%s%s%s%s on %s", button == MenuMouse::Button::Left ? "left" : "right",
 		shift ? " with Shift" : "", control ? " with Ctrl" : "", alt ? " with Alt" : "", twice ? ", twice" : "", entry ? entry->name.c_str() : "where the pointer is");
-	if (rect) MenuMouse::ClickAt(*rect, button);
-	else MenuMouse::Click(button);
+	if (entry && entry->name == DeleteButton) NoteDeletion();
+	const int heldBy = twice ? 0 : button == MenuMouse::Button::Left ? 'A' : 'D';
+	if (rect) MenuMouse::ClickAt(*rect, button, {}, heldBy);
+	else MenuMouse::Click(button, heldBy);
 	if (twice) MenuMouse::ClickAt(*rect, button);
 	g_rowClicked = row ? RowClick{entry->widget, now} : RowClick{};
 	g_refreshAt = now + AfterClickMs;
@@ -1007,6 +1286,15 @@ void ClickWidget(const D2RL::PluginContext* context, uint64_t now, uintptr_t wid
 	g_refreshAt = now + AfterClickMs;
 }
 
+// A tab is named as it opens, and heard out before the cursor names the first place of its page.
+void SayTab(uint64_t now, const std::string& name, bool onTab) {
+	ScreenReader::Speak(name, true);
+	g_said = onTab ? name : std::string{};
+	g_landedAt = 0;
+	g_toSay.clear();
+	g_titleUntil = now + TitleMs;
+}
+
 void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
 	Refresh(context, now);
 	// A bar of tabs first: the stash, the shop, the quest log, the waypoints, the options.
@@ -1017,8 +1305,16 @@ void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
 		int next = NativeUi::AdjacentTab(entry.widget, delta);
 		if (next < 0) next = std::clamp((open < 0 ? 0 : open) + delta, 0, NativeUi::TabCount(entry.widget) - 1);
 		if (next == open) { ScreenReader::Speak(TabText(entry.widget, next), true); return; }
+		// A cursor on the bar goes along with the tab. One on a control of the panel the bar is in,
+		// that stands whichever tab is open (the options' Apply), goes to the new page; in a grid
+		// or in another panel, the stash's or the inventory beside it, it stays where it was.
+		const auto* on = EntryOf(g_place.widget);
+		const bool bar = g_place.widget == entry.widget;
+		const bool page = on && !bar && !on->cells && on->panel == entry.panel;
+		if (bar) g_place = {entry.widget, {next, 0}, {next, 0}};
 		ClickWidget(context, now, entry.widget, Pack({next, 0}), "tab");
-		Expect(now + AfterClickMs, TabText(entry.widget, next));
+		SayTab(now, TabText(entry.widget, next), bar);
+		if (page) { g_place = {}; NativeUi::ClearCursor(); }
 		return;
 	}
 	// Tabs that are controls of their own: the skill tree's. The open one is
@@ -1038,8 +1334,9 @@ void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
 	const auto* tab = tabs[static_cast<size_t>(next)];
 	AsyncLog::InfoF(context, "[cursor] tabs: %zu, open %d, to %d", tabs.size(), open, next);
 	if (next == open) { ScreenReader::Speak(Name(*tab, {}), true); return; }
+	const std::string name = Name(*tab, {});
 	ClickWidget(context, now, tab->widget, NativeUi::FocusSelection(tab->widget), "tab");
-	Expect(now + AfterClickMs, Name(*tab, {}));
+	SayTab(now, name, g_place.widget == tab->widget);
 }
 
 // The shared stash's pages, by the native command. The game shows the page that
@@ -1089,6 +1386,21 @@ void SayAgain(const D2RL::PluginContext* context, uint64_t now) {
 	if (const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr) Expect(now, Name(*entry, g_place));
 }
 
+// Delete on a character of the list. The arrows would reach the game's button only by choosing
+// every row on the way, and the button acts on the row chosen last (a player could not delete
+// a character, 2026-11-03).
+void DeleteRow(const D2RL::PluginContext* context, uint64_t now) {
+	const auto* entry = g_engaged ? EntryOf(g_place.widget) : nullptr;
+	if (!entry || !NativeListRows::TwoClicks(entry->widget)) return;
+	for (const auto& button : g_entries) {
+		if (button.name != DeleteButton) continue;
+		NoteDeletion();
+		ClickWidget(context, now, button.widget, NativeUi::FocusSelection(button.widget), "delete");
+		return;
+	}
+	ScreenReader::Speak(Strings::Current().unavailable, true);
+}
+
 // On the character screen the pad's right stick up steps through the lines
 // of stats, so J reads instead what the game's tooltip says of the line the
 // cursor is on: a pad player cannot reach that at all (the user, 2026-09-28).
@@ -1125,6 +1437,7 @@ void Do(const D2RL::PluginContext* context, uint64_t now, Act act) {
 	case Act::MenuPrevious: StepMenu(context, now, -1); break;
 	case Act::MenuNext:     StepMenu(context, now, 1); break;
 	case Act::SayAgain:     SayAgain(context, now); break;
+	case Act::DeleteRow:    DeleteRow(context, now); break;
 	// The pad's right stick up: the description of what the cursor is on, for
 	// a player with autodetail off (the user, 2026-09-28).
 	case Act::Detail:
@@ -1259,13 +1572,14 @@ void Reset() {
 	g_active = false;
 	g_beltShown = false;
 	g_beltRows = 0;
+	g_deleting.clear();
 	g_keepLetters = false;
 	g_keepArrows = false;
 	if (g_letterHook) UnhookWindowsHookEx(g_letterHook);
 	g_letterHook = nullptr;
 	g_letterTried = false;
 	g_pending = 0;
-	for (auto& arrow : g_arrows) { arrow.down = false; arrow.next = 0; }
+	for (auto& arrow : g_arrows) { arrow.down = arrow.owed = false; arrow.next = 0; }
 	for (auto& key : g_watched) { key.down = key.waiting = false; }
 }
 
@@ -1292,7 +1606,8 @@ void Tick(const D2RL::PluginContext* context) {
 		// left it, over the world, and the game names whatever passes under it (2026-11-03: Cain, every second).
 		if (g_parkOwed && Foreground() && KeyboardService::Playing() && Park(context)) g_parkOwed = false;
 		g_pending = 0;
-		for (auto& arrow : g_arrows) arrow.down = Down(arrow.key);
+		for (auto& arrow : g_arrows) { arrow.down = Down(arrow.key); arrow.owed = false; }
+		g_arrowTaps = 0;
 		for (auto& key : g_watched) { key.down = Down(key.key); key.waiting = false; }
 		return;
 	}
@@ -1306,6 +1621,7 @@ void Tick(const D2RL::PluginContext* context) {
 	const bool editing = NativeSkillNavigation::TextEditing().value_or(false);
 	const auto* on = g_engaged ? EntryOf(g_place.widget) : nullptr;
 	const bool field = on && on->kind == Kind::TextInput;
+	ModalReader::SetKeyHold(on && on->name == ConfirmButton && Down('A'));
 	// The box typed in: the one the cursor is on, or with the pad's focus on one, that one, whose
 	// keys a watched A clicked as a name was typed (the user, 2026-11-02).
 	const uintptr_t box = g_engaged ? (field ? g_place.widget : 0) : TextField::EditedWidget();
@@ -1326,7 +1642,8 @@ void Tick(const D2RL::PluginContext* context) {
 	// Letters are kept from the name box, which takes them wherever the cursor is, and from a box left.
 	g_keepLetters = (g_engaged && !inBox && g_menu.find("CharacterCreatePanel") != std::string::npos) || (box && g_boxLeft);
 	const bool typing = editing || inBox;
-	g_keepArrows = g_engaged && !typing && g_menu.find("CharacterSelectPanel") != std::string::npos;
+	// The game scrolls some lists by the arrow keys as well, under the cursor's own step (the key list, 2026-11-04).
+	g_keepArrows = g_engaged && !typing && (g_lists || g_menu.find("CharacterSelectPanel") != std::string::npos);
 	// With no pad the menu is the keyboard's from the moment it opens; with one
 	// connected it is the pad's until an arrow key is pressed, and again once it is used.
 	if (!g_engaged && !InputDirection::LeftStick().connected) {
@@ -1335,16 +1652,23 @@ void Tick(const D2RL::PluginContext* context) {
 		g_refreshAt = 0;
 	}
 	ClickWords::SetKeyboard(g_engaged);
+	ModalReader::SetKeyMenu(g_engaged);
 	if (g_engaged && now >= g_refreshAt && !MenuMouse::Busy()) Refresh(context, now);
 
 	const bool control = Down(VK_CONTROL), shift = Down(VK_SHIFT), alt = Down(VK_MENU);
-	for (auto& arrow : g_arrows) {
+	const uint32_t taps = g_arrowTaps.exchange(0);
+	for (size_t i = 0; i < std::size(g_arrows); ++i) {
+		auto& arrow = g_arrows[i];
 		const bool down = Down(arrow.key);
 		bool step = false;
-		if (down && !arrow.down) { step = true; arrow.next = now + RepeatDelayMs; }
+		if (!arrow.down && (down || (taps & (1u << i)))) { step = true; arrow.next = now + RepeatDelayMs; }
 		else if (down && now >= arrow.next) { step = true; arrow.next = now + RepeatMs; }
 		arrow.down = down;
-		if (!step || editing || alt || MenuMouse::Busy()) continue;
+		const bool turning = MenuMouse::Busy() || g_scrolling.place.widget || g_edge.on;
+		if (turning) { arrow.owed = arrow.owed || step; continue; }
+		step = step || arrow.owed;
+		arrow.owed = false;
+		if (!step || editing || alt) continue;
 		// Up and down leave a box of text; left and right move in what is typed.
 		if (inBox && (arrow.direction == Direction::Left || arrow.direction == Direction::Right)) continue;
 		if (control) InputDirection::PostLineStep(arrow.push);
@@ -1358,6 +1682,8 @@ void Tick(const D2RL::PluginContext* context) {
 		if (pending & (1u << act)) Do(context, now, static_cast<Act>(act));
 	Adjusted(context, now);
 	Chosen(context, now);
+	Scrolled(context, now);
+	EdgeTurned(context, now);
 
 	// A place no reader named is named here, so no move passes in silence.
 	if (g_landedAt && now >= g_landedAt && now - g_landedAt >= SilenceMs) {

@@ -70,6 +70,7 @@ With no stick to aim, the keyboard has these commands of its own:
 | Action | Keyboard |
 |---|---|
 | Walk to the nearest usable thing and use it | D |
+| Delete the character you are on, in the character list (then hold A on Yes until the count ends) | Delete |
 | Next/previous monster on screen | Tab/Shift+Tab |
 | Next/previous object on screen (then D uses it) | Period/Comma |
 | Next/previous NPC on screen (then D talks to it) | Right bracket/Left bracket |

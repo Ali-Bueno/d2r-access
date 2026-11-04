@@ -544,6 +544,8 @@ inline constexpr Table esES {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fuente de las Arpías",
 	.characterDeleted = "Personaje eliminado",
+	.deleteHold = "Borrar a %s. Mantén A pulsada en Sí hasta que acabe la cuenta",
+	.keyBindPrompt = "Pulsa la tecla nueva, o Escape para cancelar",
 	.distanceStep = "1 paso",
 	.distanceSteps = "%d pasos",
 	.distanceStepsOn = "Distancias en pasos, uno por clic",

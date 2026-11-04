@@ -83,6 +83,7 @@ user on 2026-09-27; on 2026-09-28 the user gave them to choosing an item on the 
 | Shift+Left, Shift+Right | the first line, the last line, the same way |
 | PageUp, PageDown | the tab before, the tab after; in a shop a category with no stock is disabled and skipped (bladestorm360, 97cb7c4; [skill targeting](battle-skill-targeting.md)) |
 | Home, End | the menu before, the menu after |
+| Delete | on a character of the list, the game's delete button: then A held on Yes ([delete](delete-character-modal.md)) |
 | Ctrl+PageUp | a skill's lines, opened and closed |
 | Ctrl+PageDown | an item's size; a skill's points left |
 | Shift+PageUp, Shift+PageDown | compare: the item in full, the one equipped |
@@ -182,5 +183,5 @@ Every switch that has no key of its own is in the Ctrl+S list.
 |---|---|---|
 | move, where an item has two places to go | it is Ctrl+Shift+left click, and the loader takes one modifier | INFERRED to work already through the key watch: Ctrl+Shift+A. Not measured |
 
-Keys no one uses: U, Insert, Delete, and most
+Keys no one uses: U, Insert, and most
 keys with Alt.

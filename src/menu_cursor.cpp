@@ -29,33 +29,43 @@ int64_t Space(int64_t firstStart, int64_t firstLength, int64_t secondStart, int6
 
 // How far `to` lies from `from` one way: `ahead` is how far its middle is
 // that way, in half units and below 1 for what lies behind; `along` is the
-// space between the two that way, and `across` the space between them to the side.
-struct Distance { int64_t ahead = 0, along = 0, across = 0; };
+// space between the two that way, `across` the space between them to the side, and
+// `off` how far their near edges are apart to the side: a column, whatever a heading across it.
+struct Distance { int64_t ahead = 0, along = 0, across = 0, off = 0; };
 Distance Between(const Rect& from, const Rect& to, Direction direction) {
 	const int64_t x = (2LL * to.x + to.width) - (2LL * from.x + from.width);
 	const int64_t y = (2LL * to.y + to.height) - (2LL * from.y + from.height);
 	const int64_t wide = Space(from.x, from.width, to.x, to.width), high = Space(from.y, from.height, to.y, to.height);
 	switch (direction) {
-	case Direction::Left:  return {-x, wide, high};
-	case Direction::Right: return {x, wide, high};
-	case Direction::Up:    return {-y, high, wide};
-	default:               return {y, high, wide};
+	case Direction::Left:  return {-x, wide, high, std::llabs(static_cast<int64_t>(to.y) - from.y)};
+	case Direction::Right: return {x, wide, high, std::llabs(static_cast<int64_t>(to.y) - from.y)};
+	case Direction::Up:    return {-y, high, wide, std::llabs(static_cast<int64_t>(to.x) - from.x)};
+	default:               return {y, high, wide, std::llabs(static_cast<int64_t>(to.x) - from.x)};
 	}
 }
 
+bool Framed(const Target& target) { return target.frame.width > 0 && target.frame.height > 0; }
+
 // The nearest thing one way from `origin`, or null. What lies more to one side
 // than that way comes after everything that does not, and of those a thing of
-// another group after the things of the group the step is made from.
+// another group after the things of the group the step is made from. A row out
+// of view is reached along its own list only; a step out of a list is made from
+// the row in view, or from the frame for one that is not, and only straight out.
 const Target* Nearest(std::span<const Target> targets, const Target* current, const Rect& origin, Direction direction) {
 	const Target* best = nullptr;
-	std::tuple<bool, bool, int64_t, int64_t, int64_t, int, int> least;
+	std::tuple<bool, bool, int64_t, int64_t, int64_t, int64_t, int, int> least;
 	for (const auto& target : targets) {
 		if (&target == current || !Drawn(target)) continue;
-		const auto distance = Between(origin, target.rect, direction);
+		const bool kin = current->group != 0 && target.group == current->group;
+		if (!kin && Beyond(target) != 0) continue;
+		const auto distance = Between(!kin && Beyond(*current) != 0 ? current->frame : origin, target.rect, direction);
 		if (distance.ahead <= 0) continue;
+		if (!kin && Framed(*current) && distance.across > distance.along) continue;
+		// A list is entered at its nearest row, however far to one side the step came from.
+		const bool aside = distance.across > distance.along && (kin || !Framed(target));
 		// Only a step from a thing of a group keeps to its group: from a tab the skill below comes first.
-		const std::tuple score{distance.across > distance.along, current->group != 0 && target.group != current->group,
-			distance.along * distance.along + distance.across * distance.across, distance.across, distance.ahead,
+		const std::tuple score{aside, current->group != 0 && target.group != current->group,
+			distance.along * distance.along + distance.across * distance.across, distance.across, distance.off, distance.ahead,
 			target.rect.y, target.rect.x};
 		if (!best || score < least) { best = &target; least = score; }
 	}
@@ -137,11 +147,20 @@ Place Settle(std::span<const Target> targets, const Place& place) {
 	return OnCell(*target, cell);
 }
 
+int Beyond(const Target& target) {
+	if (!Framed(target)) return 0;
+	const int middle = target.rect.y + target.rect.height / 2;
+	if (middle < target.frame.y) return middle - target.frame.y;
+	const int end = target.frame.y + target.frame.height;
+	return middle >= end ? middle - end + 1 : 0;
+}
+
 Place First(std::span<const Target> targets) {
 	const Target* first = nullptr;
 	for (const auto& target : targets) {
-		if (!target.widget || target.rect.width <= 0 || target.rect.height <= 0) continue;
-		if (!first || target.rect.y < first->rect.y || (target.rect.y == first->rect.y && target.rect.x < first->rect.x)) first = &target;
+		if (!Drawn(target) || Beyond(target) != 0) continue;
+		const bool before = !first || std::tuple(target.aside, target.rect.y, target.rect.x) < std::tuple(first->aside, first->rect.y, first->rect.x);
+		if (before) first = &target;
 	}
 	if (!first) return {};
 	return IsGrid(*first) ? OnCell(*first, {0, 0}) : Place{first->widget, {}, {}};

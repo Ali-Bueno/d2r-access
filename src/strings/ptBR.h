@@ -544,6 +544,8 @@ inline constexpr Table ptBR {
 	.radiantObject = "%s radiante",
 	.rogueFountain = "Fonte das arqueiras",
 	.characterDeleted = "Personagem excluído",
+	.deleteHold = "Excluir %s. Segure A em Sim até a contagem terminar",
+	.keyBindPrompt = "Pressione a nova tecla, ou Esc para cancelar",
 	.distanceStep = "1 passo",
 	.distanceSteps = "%d passos",
 	.distanceStepsOn = "Distâncias em passos, um por clique",

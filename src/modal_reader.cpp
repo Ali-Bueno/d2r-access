@@ -74,7 +74,8 @@ void PassTitle(const D2RL::PluginContext* context, uint64_t now) {
 
 // The skill tree says its branch and the choices left through the interaction reader; read from
 // here it was each assigned skill's level and hotkey, "1, X, 1, B", ahead of them (a tester, 2026-11-02).
-constexpr std::string_view OwnReaders[] = {"SkillsTreePanel"};
+// HelpButtonPanel is the "Help (H)" label that comes back whenever a menu closes in mouse mode.
+constexpr std::string_view OwnReaders[] = {"SkillsTreePanel", "HelpButtonPanel"};
 
 // The game's news and links over the main menu; a tester who owns the expansion asked to silence it (2026-10-20).
 constexpr std::string_view MenuLinksPanel = "MainMenuLinks";
@@ -142,12 +143,14 @@ void PollSelfRead(const D2RL::PluginContext* context, const SelfReadScreen& scre
 constexpr std::string_view DeletePanel = "DeleteCharacterModal";
 constexpr std::string_view DeleteConfirm = "Confirm";
 uint64_t g_deleteHeldSince = 0;
+bool g_keyHolds = false; // the keyboard's A is held on Confirm
+bool g_keyMenu = false;  // the keyboard's cursor has the menu, and reads its controls as it comes to them
 int g_deleteSaid = 0;
 std::string g_deleteFace;
 
 void PollDeleteHold(const D2RL::PluginContext* context) {
 	const uint64_t now = GetTickCount64();
-	if (!InputDirection::FaceButtonHeld(InputDirection::FaceButton::A)) {
+	if (!InputDirection::FaceButtonHeld(InputDirection::FaceButton::A) && !g_keyHolds) {
 		if (g_deleteHeldSince) AsyncLog::InfoF(context, "[modal] delete: A let go after %llu ms",
 			static_cast<unsigned long long>(now - g_deleteHeldSince));
 		g_deleteHeldSince = 0;
@@ -183,6 +186,13 @@ bool Speakable(const UiText::Node& node) {
 	default:
 		return false;
 	}
+}
+
+// Rows of options, or of anything else to step through: more than a message to be read out.
+bool HasRows(const UiText::Snapshot& snapshot) {
+	return std::any_of(snapshot.nodes.begin(), snapshot.nodes.end(), [](const auto& node) {
+		return node.kind == UiText::Kind::ValueControl || node.kind == UiText::Kind::Toggle || node.kind == UiText::Kind::ListItem;
+	});
 }
 
 bool HasInventory(const UiText::Snapshot& snapshot) {
@@ -264,6 +274,9 @@ void PollTitlePrompt(const D2RL::PluginContext* context, const std::string& acti
 	ScreenReader::Speak(text, false);
 }
 
+void SetKeyHold(bool held) { g_keyHolds = held; }
+void SetKeyMenu(bool engaged) { g_keyMenu = engaged; }
+
 int HoldCountdown(uint64_t heldMs) {
 	const uint64_t whole = heldMs / 1000;
 	return whole >= static_cast<uint64_t>(DeleteHoldSeconds) ? 0 : DeleteHoldSeconds - static_cast<int>(whole);
@@ -335,6 +348,12 @@ void Tick(const D2RL::PluginContext* context) {
 	// Inventory panels briefly lose focus when tabs change; their labels are
 	// not a modal message. The shared item reader will announce the next focus.
 	if (HasInventory(snapshot)) return;
+	// In keyboard mode nothing has the game's focus, and the options came out in one breath,
+	// a thousand characters, before the cursor could name their first row (2026-11-04).
+	if (g_keyMenu && HasRows(snapshot)) {
+		AsyncLog::InfoF(context, "[modal] %s is read by the keyboard's cursor", active.c_str());
+		return;
+	}
 	std::string            phrase, legends;
 	for (size_t index = 0; index < snapshot.nodes.size(); ++index) {
 		const UiText::Node& node = snapshot.nodes[index];

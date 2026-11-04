@@ -544,6 +544,8 @@ inline constexpr Table ruRU {
 	.radiantObject = "Сияющий %s",
 	.rogueFountain = "Фонтан разбойниц",
 	.characterDeleted = "Персонаж удалён",
+	.deleteHold = "Удаление: %s. Удерживайте A на кнопке Да до конца отсчёта",
+	.keyBindPrompt = "Нажмите новую клавишу или Escape для отмены",
 	.distanceStep = "1 шаг",
 	.distanceSteps = "шагов: %d",
 	.distanceStepsOn = "Расстояния в шагах, один шаг на щелчок",

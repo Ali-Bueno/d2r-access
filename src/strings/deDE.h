@@ -544,6 +544,8 @@ inline constexpr Table deDE {
 	.radiantObject = "Strahlende %s",
 	.rogueFountain = "Brunnen der Jägerinnen",
 	.characterDeleted = "Charakter gelöscht",
+	.deleteHold = "%s löschen. Halte A auf Ja gedrückt, bis der Countdown endet",
+	.keyBindPrompt = "Drücke die neue Taste oder Escape zum Abbrechen",
 	.distanceStep = "1 Schritt",
 	.distanceSteps = "%d Schritte",
 	.distanceStepsOn = "Entfernungen in Schritten, einer pro Klick",

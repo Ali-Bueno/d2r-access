@@ -544,6 +544,8 @@ inline constexpr Table enUS {
 	.radiantObject = "Radiant %s",
 	.rogueFountain = "Rogue fountain",
 	.characterDeleted = "Character deleted",
+	.deleteHold = "Deleting %s. Hold A on Yes until the count ends",
+	.keyBindPrompt = "Press the new key, or Escape to cancel",
 	.distanceStep = "1 step",
 	.distanceSteps = "%d steps",
 	.distanceStepsOn = "Distances in steps, one per click",

@@ -155,6 +155,8 @@ Mod keyboard commands (bladestorm360's scheme).
 | A | left click (choose, pick up, place). On a stepped option: its next state. On character select: enter the game. |
 | Enter | the game's own. On character select it starts with the character under the cursor. |
 | D | right click (use, read, open, buy, drink). |
+| A held | holds the mouse button, for the game's press-and-hold buttons. |
+| Delete | on the character list: deletes that character, after holding A on Yes until the count ends. |
 | Shift+A | Shift+left click (equip, unequip, potion to the belt). |
 | Ctrl+A | Ctrl+left click (sell, drop, move to the stash or the cube). |
 | Alt+A | Alt+left click (the stat and skill reset, where the game allows it). |

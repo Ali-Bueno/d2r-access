@@ -142,3 +142,21 @@ Character Modal closed". That close is now "Character deleted" (`characterDelete
 so the focused row's name queues behind it); a close without the command (B, or letting go)
 still says the modal closed. The log never showed `[modal] delete: Confirm reads`: the button's
 text did not change from what the modal reader first read, though the tester sees the count on it.
+
+## The keyboard could not delete (2026-11-04)
+
+A player: a character cannot be deleted. Two faults, both measured with a throwaway character:
+
+- **The click was 40 ms long.** The game counts the hold on the mouse button, so a tap and A held for two
+  seconds did the same, nothing. `MenuMouse` now keeps the button down until the key is let go, for
+  A and D anywhere (`heldBy`); the game's buttons act on the release, so a normal press acts as before.
+- **The arrows chose the wrong row.** The cursor chooses every row it crosses, and the button is below
+  the list, so walking to it left the last character chosen. **Delete** on a character's row presses the
+  game's button for that row. The arrows still reach the button, and `NoteDeletion` says the row that
+  is chosen either way.
+
+The modal says neither whose deletion it is nor which key to hold, so the cursor adds it, queued after
+the game's prompt: "Deleting borrame. Hechicera de niv. 1. Hold A on Yes until the count ends"
+(`deleteHold`). The count runs from the hold (`ModalReader::SetKeyHold`), only on Confirm. MEASURED: the
+game deleted 5.1 s after the press; let go at 2.2 s nothing happened; No closes it and the cursor is back
+on the row. Only the throwaway's files went, the other six characters compared equal byte for byte.

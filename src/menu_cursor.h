@@ -23,6 +23,11 @@
 // preference: down from a tab lands on the skill under it, not the footer. With nothing like that, it is the nearest
 // thing that lies that way at all. What the arrows would still miss is put
 // within their reach by Mend.
+//
+// The rows of a list that scrolls are drawn where the scroll puts them, far off
+// the screen for the ones out of view, so they are a group seen through a frame:
+// a row out of view is reached only along its own list, and the keyboard's menu
+// scrolls it in before the pointer goes there.
 // Pure logic, unit-tested without the game. docs/keyboard-play.md
 namespace D2RAccess::MenuCursor {
 using GridJump::Cell;
@@ -38,6 +43,8 @@ struct Target {
 	Rect rect;           // where it is drawn; a grid's holds all of its cells
 	GridJump::Grid grid; // width 0 for a control, which is one place
 	uintptr_t group = 0; // things of one kind that stand together, as the skills of a skill tree
+	Rect frame;          // a row of a list that scrolls: what it is seen through; no size otherwise
+	bool aside = false;  // not where a menu is entered: its way out, a button of the loader's
 };
 struct Place {
 	uintptr_t widget = 0;
@@ -57,7 +64,11 @@ Rect RectOf(const Target& target, const Place& place);
 // The same place after the menu changed under it: an item moved or gone, a
 // grid resized. A place whose control is gone has widget 0.
 Place Settle(std::span<const Target> targets, const Place& place);
-// Where a menu is entered: the top-most thing, the left-most of those.
+// How far the middle of a row lies past its frame, in pixels: above it negative,
+// below it positive, 0 in view, as anything with no frame is.
+int Beyond(const Target& target);
+// Where a menu is entered: the top-most thing in view, the left-most of those,
+// and of the things set aside only when there is nothing else.
 Place First(std::span<const Target> targets);
 // `byCell` steps a grid one cell at a time, as putting an item down needs.
 // The place itself is returned when nothing lies that way. A link from the

@@ -97,6 +97,8 @@ constexpr std::string_view RebindPanel       = "ButtonBindingModal";
 constexpr std::string_view DeleteModalPanel       = "DeleteCharacterModal";
 constexpr const char*      CharacterSelectTarget  = "CharacterSelect";
 constexpr const char*      DeleteCharacterCommand = "DeleteCharacter";
+constexpr const char*      KeyBindingTarget       = "KeyBindingPanelMessage";
+constexpr const char*      StartBindingCommand    = "StartBinding";
 bool g_characterDeleted = false;
 // A confirmed gold window closes as the gold moves; the move is the news, not the close (a tester, 2026-10-23).
 constexpr std::string_view GoldModalPanel     = "DropGoldModal";
@@ -370,6 +372,8 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		if (std::strcmp(event->command, VideosPlayCommand) == 0) AudioDescription::MenuChoice(context, event->text ? event->text : "");
 	} else if (std::strcmp(event->target, CharacterSelectTarget) == 0 && std::strcmp(event->command, DeleteCharacterCommand) == 0) {
 		g_characterDeleted = true;
+	} else if (std::strcmp(event->target, KeyBindingTarget) == 0 && std::strcmp(event->command, StartBindingCommand) == 0) {
+		ScreenReader::Speak(Strings::Current().keyBindPrompt, true);
 	} else if (std::strcmp(event->target, GoldPanelTarget) == 0 && std::strcmp(event->command, GoldConfirmCommand) == 0) {
 		g_goldConfirmed = true;
 	} else if (std::strcmp(event->target, ScrollControllerTarget) == 0) {

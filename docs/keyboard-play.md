@@ -815,3 +815,70 @@ explored, 0 given up, 16 cut off`), as designed.
 
 Seen, not changed: the list's scroll arrows and bar are spoken as "DownArrow", "ScrollBar"; a step
 down from the notification button skips two characters; the inventory starts on Close.
+
+## Every menu, walked — 2026-11-04
+
+The user: the keyboard left the game's window and the options could hardly be walked; a player could
+not delete a character. Driven live with the harness, fullscreen 2560x1440 and in a 1920x1080 window,
+from the title screen through every menu listed below. Saves were copied first and put back after.
+
+**What was wrong, from the 2026-11-03 log and the first run:**
+
+- The rows of a list that scrolls are drawn where the scroll puts them: `y=2343` on a 1440 screen. The
+  cursor went there, so the pointer left the window (`[cursor] the pointer did not go to ...`), and the
+  rows were mixed with the footer by position, so Down from a row landed on Default, then Play.
+- The panels behind the options were places too: 60 places, 22 of them out of reach, and the cursor
+  stayed on the main menu's button when the options opened.
+- A tab change threw the cursor to the topmost place, D2RLoader's notification button.
+- The reader dumped a whole options panel, 1094 characters, before the first row: nothing has the
+  game's focus in keyboard mode, so it took it for a panel with nothing to walk.
+
+**As built** (`src/keyboard_menu.cpp`, `src/menu_cursor.cpp`, `src/menu_mouse.cpp`):
+
+- **A panel that takes every click is the whole menu** (`Covers`): the game's own mark, a
+  `ClickCatcherWidget` on a `RectangleWidget` that shades the screen (`SettingsPanelHD.json`,
+  `PauseLayoutHD.json`). The inventory has a catcher too, but not on a shade, and shares the screen.
+- **Closing it gives the cursor back** (`Uncovered`): a stack of where it stood, for modals and dropdowns
+  as well, and the place is said again with what changed (`FocusTracker::Reannounce`).
+- **A list is a group seen through a frame** (`Target::frame`, `FrameLists`): any `ScrollViewWidget` or
+  `*ListWidget` but `DropdownListWidget` and `ChatListWidget`. The frame is the span of its bar and the
+  bar's arrows, of the panel's bars the one nearest the list's right edge (the Chronicle has two). A
+  row out of view is reached only along its list. A bar with rows is no place of its own; Advanced Stats
+  keeps its bar, the one thing there is to stand on.
+- **The wheel brings a row in** (`Scrolled`, `MenuMouse::WheelAt`). MEASURED: the rows' rectangles have the
+  scroll in them, three notches moved a row 200 pixels, about 130 ms a step. The bars' layouts name a
+  `wheelScrollSound`: it is the game's own way. A list that keeps only the rows in view
+  (`*RecyclingListWidget`, a dropdown's slots) gets one notch at its edge (`EdgeTurned`).
+- **The pointer never leaves the window** (`MenuMouse::Within`), and a step that cannot be placed drops
+  the click after it. On a window hanging off the screen it goes to the part of the control a screen
+  shows (`Shown`); what is wholly off is refused, not clicked elsewhere. A game at 307,133 and 2560 wide,
+  as in the user's log of 2026-11-03, was simulated with `SetWindowPos`: the character rows take the
+  pointer at `x=2559`. How that window got there was not reproduced: Alt+Enter goes to 0,0.
+- **Where a menu is entered** (`Entrance`): the game's focus, else the first thing of the panel opened
+  last, its way out, the loader's buttons and the weapon tabs only if nothing else (`Target::aside`). The
+  way out is called Close, close, CloseButton, Cancel or CancelButton, depending on the panel.
+- **Tabs:** PageUp and PageDown say the tab, then the first row of the new page after `TitleMs`. A
+  cursor on the bar goes along, one in a grid or in another panel stays (the stash, the inventory
+  beside it), and a bar is come to on the open tab. `TabCount` leaves out a trailing tab the game does
+  not offer: the options' Controls exists only in a game, and the main menu's bar kept its caption.
+- **Keys:** the arrows are kept from the game on any menu with a list, which scrolled the key list under
+  the cursor's own step. A press is taken from the window's messages as well (`g_arrowTaps`), since
+  polling lost a short one inside the 50 ms the key list takes to read, and one made while the wheel
+  turns is made after it (`Arrow::owed`). 30 of 30 quick presses landed, none twice.
+- `MaxEntries` went from 256 to 1024: the key list's 138 rows filled it before its bar was seen. A long
+  menu is looked at again less often (`RefreshShare`). Up and down keep to a column of rows that touch,
+  by the near edge (`Distance::off`), a heading across them included.
+
+**Walked, each place read:** title, character list, Options (Video, Audio, Game), dropdowns, the character
+creation with typing, Videos, Multiplayer and its tabs, in a game the inventory, the two weapon sets, the
+character panel, the left hand's skill list, the skill tree and its tabs, the quest log, the pause menu,
+Options with Controls (415 places, a rebind, Escape to cancel), the loot filter, the Chronicle, the
+stash and its tabs, Fara's dialogue and shop, a waypoint.
+
+Seen, not changed: Right on the last tab of a bar steps out of it, into the page. A key's button says
+only the key, the row's first column the action. The Chronicle's recycling lists were reached but the
+edge notch was not walked to the end; a list of more than 13 dropdown rows was not met.
+
+**No pad was connected, and none can be simulated here**: nothing of this was run with one. What a pad
+player gets new is read from the code: the cursor's code runs only while it has the menu (`g_engaged`),
+as before, and only the shared readers changed, the sliders' number, the tab count, the two hands.

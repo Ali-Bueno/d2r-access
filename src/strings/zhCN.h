@@ -544,6 +544,8 @@ inline constexpr Table zhCN {
 	.radiantObject = "发光的%s",
 	.rogueFountain = "罗格喷泉",
 	.characterDeleted = "角色已删除",
+	.deleteHold = "删除 %s。在“是”上按住 A 直到倒计时结束",
+	.keyBindPrompt = "请按新的按键，按 Esc 取消",
 	.distanceStep = "1步",
 	.distanceSteps = "%d步",
 	.distanceStepsOn = "距离以步计，每次咔嗒一步",

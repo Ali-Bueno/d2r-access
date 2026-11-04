@@ -544,6 +544,8 @@ inline constexpr Table plPL {
 	.radiantObject = "Promienna %s",
 	.rogueFountain = "Fontanna Łotrzyc",
 	.characterDeleted = "Postać usunięta",
+	.deleteHold = "Usuwanie: %s. Przytrzymaj A na Tak do końca odliczania",
+	.keyBindPrompt = "Naciśnij nowy klawisz lub Escape, aby anulować",
 	.distanceStep = "1 krok",
 	.distanceSteps = "kroków: %d",
 	.distanceStepsOn = "Odległości w krokach, jeden na kliknięcie",

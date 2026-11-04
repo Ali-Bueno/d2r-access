@@ -249,6 +249,86 @@ int main() {
 		const std::vector<Target> targets{{Top, {0, 0, 100, 100}, {}}, {Low, {0, 200, 100, 100}, {}}, {Hidden, {0, 0, 0, 0}, {}}};
 		Check(MenuCursor::Mend(targets).empty(), "a thing that is not drawn is no place, and is not missed");
 	}
+	{
+		// The options as the game draws them: rows run far below the screen, past the footer, behind a frame.
+		enum : uintptr_t { Close = 1, Tabs, Accept, Default, Cancel, List = 50, Row = 100 };
+		constexpr int Rows = 30, Pitch = 66, Scrolled = 10 * Pitch;
+		const auto page = [&](int scroll) {
+			std::vector<Target> targets{{Close, {1875, 90, 55, 56}, {}}, {Tabs, {1013, 188, 625, 80}, {3, 1, {}}},
+				{Accept, {790, 1201, 313, 78}, {}}, {Default, {1123, 1201, 313, 78}, {}}, {Cancel, {1457, 1201, 313, 78}, {}}};
+			targets[0].aside = true;
+			for (int row = 0; row < Rows; ++row) {
+				Target target{Row + static_cast<uintptr_t>(row), {1395, 348 + row * Pitch - scroll, 416, 48}, {}, List};
+				target.frame = {1395, 270, 416, 837};
+				targets.push_back(target);
+			}
+			return targets;
+		};
+		const auto top = page(0);
+		const auto* first = MenuCursor::Find(top, Row);
+		const auto* last = MenuCursor::Find(top, Row + Rows - 1);
+		Check(first && MenuCursor::Beyond(*first) == 0, "a row inside its frame is in view");
+		Check(last && MenuCursor::Beyond(*last) > 0, "a row under its frame lies beyond it, as a positive distance");
+		const auto scrolled = page(Scrolled);
+		const auto* gone = MenuCursor::Find(scrolled, Row);
+		Check(gone && MenuCursor::Beyond(*gone) < 0, "a row over its frame lies beyond it, as a negative distance");
+		Check(MenuCursor::First(top).widget == Tabs, "a menu is not entered on its way out");
+		Check(MenuCursor::First(std::span(top).subspan(5)).widget == Row, "a list is entered on its first row");
+		Check(MenuCursor::First(std::span(scrolled).subspan(5)).widget == Row + 9, "a scrolled list on its first row in view");
+		std::vector<Target> onlyAside{top[0]};
+		Check(MenuCursor::First(onlyAside).widget == Close, "a way out is entered when nothing else is there");
+		// The row in view at the frame's foot, and the first one past it.
+		uintptr_t foot = Row;
+		for (const auto& target : top) if (target.group == List && MenuCursor::Beyond(target) == 0) foot = target.widget;
+		Check(MenuCursor::Move(top, {foot, {}, {}}, Direction::Down, false).widget == foot + 1, "down from the last row in view goes on along the list");
+		Check(MenuCursor::Move(top, {Tabs, {0, 0}, {0, 0}}, Direction::Down, false).widget == Row, "down from the tabs lands on the first row");
+		Check(MenuCursor::Move(top, {Row, {}, {}}, Direction::Up, false).widget == Tabs, "up from the first row lands on the tabs");
+		Check(MenuCursor::Move(top, {Default, {}, {}}, Direction::Up, false).widget == foot, "up from the footer lands on the last row in view, not on one under it");
+		Check(MenuCursor::Move(top, {Row + 3, {}, {}}, Direction::Right, false).widget == Row + 3, "a row does not step aside to what lies more up or down than that way");
+		// The end of the list, scrolled in: the footer is under it.
+		const auto end = page((Rows - 12) * Pitch);
+		Check(MenuCursor::Move(end, {Row + Rows - 1, {}, {}}, Direction::Down, false).widget < List,
+			"down from the end of the list leaves it");
+		Check(MenuCursor::Move(top, {Row + Rows - 1, {}, {}}, Direction::Down, false).widget == Cancel, "and from the end out of view, from the frame, to what lies under it");
+		for (const auto& targets : {top, scrolled, end}) {
+			const auto links = MenuCursor::Mend(targets);
+			Check(links.empty(), "the arrows reach every row by themselves");
+			Check(AllReached(targets, links), "and every place of the page from every other");
+		}
+	}
+	{
+		// The options' key list: three columns, rows drawn taller than they are apart, so each touches the next.
+		enum : uintptr_t { List = 50, Name = 100, First = 200, Second = 300 };
+		constexpr int Rows = 20, Pitch = 33;
+		std::vector<Target> targets;
+		const auto column = [&](uintptr_t id, int x, int width) {
+			for (int row = 0; row < Rows; ++row) {
+				Target target{id + static_cast<uintptr_t>(row), {x, 327 + row * Pitch, width, 38}, {}, List};
+				target.frame = {x, 270, width, 800};
+				targets.push_back(target);
+			}
+		};
+		column(Name, 750, 340);
+		column(First, 1090, 333);
+		column(Second, 1431, 300);
+		for (const uintptr_t start : {uintptr_t{Name}, uintptr_t{First}, uintptr_t{Second}})
+			Check(MenuCursor::Move(targets, {start + 3, {}, {}}, Direction::Down, false).widget == start + 4
+				&& MenuCursor::Move(targets, {start + 3, {}, {}}, Direction::Up, false).widget == start + 2, "up and down keep to a column of rows that touch");
+		Check(MenuCursor::Move(targets, {Name + 3, {}, {}}, Direction::Right, false).widget == First + 3, "right keeps to the row");
+		Check(MenuCursor::Move(targets, {Second + 3, {}, {}}, Direction::Left, false).widget == First + 3, "and left");
+		// A heading across the three columns, as "Accessibility" among the keys: past it the walk stays in the first.
+		constexpr uintptr_t Heading = 400;
+		const int below = 327 + Rows * Pitch;
+		Target heading{Heading, {737, below, 996, 33}, {}, List};
+		heading.frame = {737, 270, 996, 800};
+		targets.push_back(heading);
+		Target under{Name + Rows, {750, below + Pitch, 340, 38}, {}, List}, key{First + Rows, {1090, below + Pitch, 333, 38}, {}, List};
+		under.frame = {750, 270, 340, 800};
+		key.frame = {1090, 270, 333, 800};
+		targets.push_back(under);
+		targets.push_back(key);
+		Check(MenuCursor::Move(targets, {Heading, {}, {}}, Direction::Down, false).widget == Name + Rows, "down from a heading lands on the first column");
+	}
 	Passed();
 	return 0;
 }

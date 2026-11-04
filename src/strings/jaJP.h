@@ -544,6 +544,8 @@ inline constexpr Table jaJP {
 	.radiantObject = "輝く%s",
 	.rogueFountain = "ローグの噴水",
 	.characterDeleted = "キャラクターを削除しました",
+	.deleteHold = "%s を削除します。カウントが終わるまで「はい」の上で A を押し続けてください",
+	.keyBindPrompt = "新しいキーを押してください。Esc でキャンセルします",
 	.distanceStep = "1歩",
 	.distanceSteps = "%d歩",
 	.distanceStepsOn = "距離を歩数で、クリック1回で1歩",
