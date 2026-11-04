@@ -32,6 +32,7 @@ inline constexpr uint32_t Walk = 2, Run = 3, TownWalk = 6;
 // The swings (A1 A2, TH KK, S1-S4, SQ): attacks, kicks, throws and the skill sequences.
 inline constexpr uint32_t Attack1 = 7, Attack2 = 8, Throw = 11, Kick = 12, Special1 = 13, Special4 = 16, Sequence = 18;
 inline constexpr int StaminaStat = 10, MaxStaminaStat = 11; // ItemStatCost.txt 'stamina', 'maxstamina'
+inline constexpr int LifeStat = 6, MaxLifeStat = 7, ManaStat = 8, MaxManaStat = 9; // 'hitpoints', 'maxhp', 'mana', 'maxmana'
 inline constexpr size_t MaxRooms = 64, MaxUnits = 4096, MaxTableRows = 65536, MaxTypeDepth = 16;
 inline constexpr double PositionScale = 65536; // native unsigned 16.16 position
 // `mayBeDetoured` marks a function the reader only ever calls, never reads for

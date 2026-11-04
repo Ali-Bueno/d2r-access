@@ -109,6 +109,7 @@ Vitals::GaitTracker g_gait;
 Vitals::StaminaMeter g_stamina;
 Vitals::AmmoMeter g_ammo;
 bool g_runToggled = false; // L3 pressed in play since the last orb sample
+bool g_orbSourcesLogged = false;
 uint64_t g_refusedSeen = 0; // the wall-slide hook's refused pushes, at the last orb sample
 // The last census of what the character is wearing. See LogWorn.
 std::string g_worn;
@@ -116,6 +117,32 @@ std::string g_worn;
 int ReadPercent(std::span<const std::string> path) {
 	const auto orb = Vitals::ParseOrb(NativeWidgets::TextAt(HudPanel, path));
 	return orb ? Vitals::Percent(orb->current, orb->maximum) : -1;
+}
+
+// The player's stats, for an orb whose text the game is not showing (a player, 2026-11-03).
+std::optional<NativeStatus::Orbs> OrbStats() {
+	return g_statusSupported ? NativeStatus::PlayerOrbs() : std::nullopt;
+}
+
+int LifePercent() {
+	if (const int shown = ReadPercent(LifePath); shown >= 0) return shown;
+	const auto orbs = OrbStats();
+	return orbs ? Vitals::Percent(orbs->life, orbs->maxLife) : -1;
+}
+
+int ManaPercent() {
+	if (const int shown = ReadPercent(ManaPath); shown >= 0) return shown;
+	const auto orbs = OrbStats();
+	return orbs ? Vitals::Percent(orbs->mana, orbs->maxMana) : -1;
+}
+
+// Once a game: what each source says, so a log shows a game hiding the text or the two disagreeing.
+void LogOrbSources(const D2RL::PluginContext* context) {
+	const auto orbs = OrbStats();
+	if (g_orbSourcesLogged || !orbs || orbs->maxLife <= 0) return;
+	g_orbSourcesLogged = true;
+	AsyncLog::InfoF(context, "[vitals] orbs: text life=%d mana=%d, stats life=%d mana=%d", ReadPercent(LifePath), ReadPercent(ManaPath),
+		Vitals::Percent(orbs->life, orbs->maxLife), Vitals::Percent(orbs->mana, orbs->maxMana));
 }
 
 std::string FormattedPercent(const char* format, int percent) {
@@ -369,7 +396,7 @@ void Announce(const Vitals::Alert& alert, const Vitals::MercenaryMeter::Alert& m
 	if (!text.empty()) SpeechPriority::Say(SpeechPriority::Kind::LifeAlerts, text, alert.interrupt || mercenary.interrupt);
 }
 
-// Says which displayed orb value is unavailable, after persistent absence or
+// Says which orb value is unavailable, in text and stats alike, after persistent absence or
 // an explicit report request. The labels come from the game's current locale.
 void HintOrbText(unsigned missing, bool force = false) {
 	if (!missing || (!force && missing == g_hintedMask)) return;
@@ -520,7 +547,7 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 		ScreenReader::Speak(strings.unavailable, true);
 		return;
 	}
-	const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
+	const int life = LifePercent(), mana = ManaPercent();
 	AsyncLog::InfoF(context, "[vitals] report life=%d mana=%d", life, mana);
 	if (what == Command::Life || what == Command::Mana) {
 		const bool wantsLife = what == Command::Life;
@@ -808,10 +835,12 @@ void Tick(const D2RL::PluginContext* context) {
 			g_gait.Reset();
 			g_stamina.Reset();
 			g_hintedMask = 0;
+			g_orbSourcesLogged = false;
 			g_lastMercSource = {};
 			g_lastMercId = 0;
 		} else {
-			const int life = ReadPercent(LifePath), mana = ReadPercent(ManaPath);
+			LogOrbSources(context);
+			const int life = LifePercent(), mana = ManaPercent();
 			const auto playerAlert = g_alerts.Update(life, mana, g_manaAlerts);
 			Vitals::MercenaryMeter::Alert mercenaryAlert;
 			HintOrbText(g_orbAvailability.Update(life >= 0, mana >= 0));

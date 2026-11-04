@@ -166,6 +166,12 @@ void Breaking() {
 	Check(breakage.Sweep(replaced).empty(), "leaving the game forgets what was worn");
 }
 
+void FixedPoint() {
+	constexpr int Scale = 256; // the game keeps life and mana in 1/256ths
+	Check(Vitals::Percent(75 * Scale, 100 * Scale) == 75 && Vitals::Percent(0, 120 * Scale) == 0, "a stat's percent is the orb's");
+	Check(Vitals::Percent(9999 * Scale, 9999 * Scale) == 100, "the largest life fits");
+}
+
 void Wearing() {
 	using Item = Vitals::Breakage::Item;
 	using Vitals::Wear;
@@ -306,7 +312,7 @@ void LowLife() {
 int main() {
 	Experience();
 	LowLife();
-	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); MercenaryCondition(); Breaking(); Wearing(); Equipping();
+	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); MercenaryCondition(); Breaking(); FixedPoint(); Wearing(); Equipping();
 	Gaits(); Stamina(); Ammo();
 	Passed();
 }

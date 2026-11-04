@@ -174,6 +174,18 @@ std::optional<Stats> PlayerStats(std::span<const int> stats) {
 	return read;
 }
 
+std::optional<Orbs> PlayerOrbs() noexcept {
+	if (!g_base || !g_movementSupported) return std::nullopt;
+	uintptr_t player = 0, tables = 0;
+	uint32_t type = 0;
+	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player
+		|| !NativeMemory::Peek(player + GroundItemLayout::UnitType, type) || type != GroundItemLayout::PlayerType) return std::nullopt;
+	constexpr int stats[] = {GroundItemLayout::LifeStat, GroundItemLayout::MaxLifeStat, GroundItemLayout::ManaStat, GroundItemLayout::MaxManaStat};
+	int values[std::size(stats)]{};
+	if (!ReadStats(player, stats, values)) return std::nullopt;
+	return Orbs{values[0], values[1], values[2], values[3]};
+}
+
 std::optional<Experience> PlayerExperience() noexcept {
 	if (!g_base || !g_experienceSupported) return std::nullopt;
 	uintptr_t player = 0, tables = 0;

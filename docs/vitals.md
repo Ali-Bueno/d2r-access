@@ -22,6 +22,19 @@ game option. A single unreadable sample does not imply that the option is off.
 An explicit `report` reads whichever value is available and identifies any
 unavailable display immediately.
 
+**When the game hides that text: the stats (2026-11-03).** A player of the public release: BACK+X
+silent at every start, the options checked, and speech back only after opening them, without
+changing anything. The text was the mod's only source, so the alerts and the low-life sound were
+silent too. Why the game hid it was not found (no log); `Settings.json` keeps the options as `Show
+HP Text` and `Show MP Text`, and the launcher can write a file without them (a suspect, not tested).
+An orb whose text cannot be read now falls back to `NativeStatus::PlayerOrbs`: `GetStat` 6 over 7
+and 8 over 9, in 1/256ths, whose ratio is the percentage, as with stamina. The hint above now means
+both sources failed. The text stays first, so nothing changes where it works. Log, once a game:
+`[vitals] orbs: text life=N mana=N, stats life=N mana=N` (-1 for text the game is not showing).
+MEASURED 2026-11-04 with both options off in `Settings.json`: no text on the orbs in the capture, Z and X
+said 100 per cent. The stats agreed with the screen, 203 of 337 life said as 59 and rising. The log's
+first sample of any game has `text life=-1`: the orbs' text is not drawn yet then, options on or off.
+
 **Durability: the loader's inventory service.** `getLocalPlayer` +
 `forEachInventoryItem` filtered to `ItemContainer::Equipment` return an
 `ItemInfo` per worn item carrying `durability`, `maximumDurability` and

@@ -31,6 +31,10 @@ struct Stats {
 };
 std::optional<Stats> PlayerStats(std::span<const int> stats);
 
+// The local player's life and mana in the game's own fixed-point units, a dead player's too.
+struct Orbs { int life = 0, maxLife = 0, mana = 0, maxMana = 0; };
+std::optional<Orbs> PlayerOrbs() noexcept;
+
 // The local player's experience within its level, as the HUD's bar fills.
 struct Experience {
 	int level = 0, percent = -1;

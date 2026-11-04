@@ -236,7 +236,7 @@ language ([audio language audit](docs/audio-language-audit.md)).
 
 - **Life and mana** are announced as they cross their steps, more often as they fall, interrupting
   at 10 % and below; a heartbeat loops while life is low ([vitals](docs/vitals.md)). The game's
-  *Show life orb text* and *Show mana orb text* options must be on; the mod says which is missing.
+  *Show life orb text* and *Show mana orb text* options are read when on; without them the mod reads the values directly.
 - **States:** poison, freezing, chill, stun, slowing and curses are named as they begin and end,
   and a shrine's blessing as it wears off ([status effects](docs/status-effects.md)).
 - **Boss life** is said as it falls, for act bosses, quest bosses and superuniques
