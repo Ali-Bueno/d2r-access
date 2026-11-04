@@ -5,6 +5,7 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <format>
 #include <utility>
 #include <vector>
@@ -20,7 +21,7 @@ constexpr const wchar_t* OldSuffix = L".old";
 struct Journal {
 	std::vector<fs::path>                      created;  // targets that did not exist
 	std::vector<std::pair<fs::path, fs::path>> replaced; // target, backup
-	fs::path                                   movedFrom, movedTo; // the running exe and where it went
+	std::vector<std::pair<fs::path, fs::path>> moved;    // a file in use and where it went
 };
 
 bool Copy(const fs::path& from, const fs::path& to) {
@@ -35,17 +36,17 @@ void Rollback(const Journal& journal) {
 	std::error_code ec;
 	for (const auto& target : journal.created) fs::remove(target, ec);
 	for (const auto& [target, backup] : journal.replaced) Copy(backup, target);
-	if (!journal.movedFrom.empty()) {
-		fs::remove(journal.movedFrom, ec);
-		fs::rename(journal.movedTo, journal.movedFrom, ec);
-		if (ec) Log::Line(std::format("install: cannot move the launcher back: {}", ec.message()));
+	for (const auto& [target, old] : journal.moved) {
+		fs::remove(target, ec);
+		fs::rename(old, target, ec);
+		if (ec) Log::Line(std::format("install: cannot move {} back: {}", Log::Narrow(target.wstring()), ec.message()));
 	}
 	Log::Line("install: rolled back");
 }
 
 }
 
-bool Replace(const fs::path& extracted, const fs::path& gameFolder, const fs::path& backup, std::wstring_view runningExe) {
+bool Replace(const fs::path& extracted, const fs::path& gameFolder, const fs::path& backup, std::span<const std::wstring_view> inUse) {
 	Journal         journal;
 	std::error_code ec;
 	for (const auto& entry : fs::recursive_directory_iterator(extracted, ec)) {
@@ -55,15 +56,16 @@ bool Replace(const fs::path& extracted, const fs::path& gameFolder, const fs::pa
 		const bool     exists   = fs::exists(target);
 		if (exists && Update::IsProtectedPath(relative.wstring())) continue;
 		bool ok = true;
-		if (_wcsicmp(relative.c_str(), std::wstring(runningExe).c_str()) == 0) {
-			// Windows lets a running exe be renamed, not overwritten.
+		const bool held = std::ranges::any_of(inUse, [&](std::wstring_view path) { return _wcsicmp(relative.c_str(), std::wstring(path).c_str()) == 0; });
+		if (held) {
+			// Windows lets a file in use be renamed, not overwritten.
 			const fs::path old = fs::path(target).concat(OldSuffix);
 			std::error_code rename;
 			fs::remove(old, rename);
 			if (exists) fs::rename(target, old, rename);
 			ok = !rename;
-			if (ok && exists) { journal.movedFrom = target; journal.movedTo = old; }
-			if (!ok) Log::Line(std::format("install: cannot rename the launcher: {}", rename.message()));
+			if (ok && exists) journal.moved.emplace_back(target, old);
+			if (!ok) Log::Line(std::format("install: cannot rename {}: {}", Log::Narrow(target.wstring()), rename.message()));
 		} else if (exists) {
 			const fs::path saved = backup / relative;
 			ok = Copy(target, saved);
@@ -81,16 +83,16 @@ bool Replace(const fs::path& extracted, const fs::path& gameFolder, const fs::pa
 		Rollback(journal);
 		return false;
 	}
-	Log::Line(std::format("install: {} replaced, {} created", journal.replaced.size() + (journal.movedFrom.empty() ? 0 : 1), journal.created.size()));
+	Log::Line(std::format("install: {} replaced, {} created", journal.replaced.size() + journal.moved.size(), journal.created.size()));
 	return true;
 }
 
-void DeleteLeftover(const fs::path& exe) {
-	const fs::path old = fs::path(exe).concat(OldSuffix);
+void DeleteLeftover(const fs::path& file) {
+	const fs::path old = fs::path(file).concat(OldSuffix);
 	for (int attempt = 0; attempt < Update::LeftoverTries && fs::exists(old); ++attempt) {
 		std::error_code ec;
 		if (fs::remove(old, ec)) {
-			Log::Line("deleted the previous launcher");
+			Log::Line(std::format("deleted {}", Log::Narrow(old.filename().wstring())));
 			return;
 		}
 		Sleep(static_cast<DWORD>(Update::LeftoverWaitMs));

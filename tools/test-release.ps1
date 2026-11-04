@@ -16,6 +16,8 @@ $out = Join-Path $root "build\test-release"
 $buildDir = Join-Path $out "cmake"
 $stage = Join-Path $out "package"
 $zip = Join-Path $out "D2RAccess.zip"
+$updateZip = Join-Path $out "D2RUpdate.zip" # a name the installer's "D2RAccess*.zip" does not match
+$shippedPrism = "CB9712E11AF9EBE96457DBF8F5DAAD4A6C359AE1F59CDF2663282B3A9CC9759C" # every release since 1.0
 $installer = Join-Path $out "D2RAccessInstaller.exe"
 $pluginDll = "d2rl-d2r-access.dll"  # OUTPUT_NAME in CMakeLists.txt
 $vcRedist = "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC"
@@ -127,7 +129,15 @@ try {
 		$entryCount = $archive.Entries.Count
 	} finally { $archive.Dispose() }
 	$zipHash = (Get-FileHash $zip).Hash.ToLower()
-	Write-Host "$zip`n$entryCount entries, $((Get-Item $zip).Length) bytes, SHA-256 $zipHash`n$installer"
+	# Launchers 1.0.1 to 1.0.4 keep prism.dll open and give up on overwriting it, so the zip they update from
+	# leaves it out (docs/launcher.md, "Self-update"). A new PRISM cannot reach those players this way.
+	$prismEntry = "d2rloader/plugins/d2r-access/prism.dll"
+	if ((Get-FileHash (Join-Path $stage $prismEntry)).Hash -ne $shippedPrism) { throw "prism.dll changed: decide how it reaches launchers before 1.0.5." }
+	Copy-Item $zip $updateZip -Force
+	$archive = [IO.Compression.ZipFile]::Open($updateZip, [IO.Compression.ZipArchiveMode]::Update)
+	try { $archive.GetEntry($prismEntry).Delete() } finally { $archive.Dispose() }
+	$updateHash = (Get-FileHash $updateZip).Hash.ToLower()
+	Write-Host "$zip`n$entryCount entries, $((Get-Item $zip).Length) bytes, SHA-256 $zipHash`n$updateZip`n$((Get-Item $updateZip).Length) bytes, SHA-256 $updateHash`n$installer"
 	if ($NoPublish) { return }
 
 	$notes = @(
@@ -144,10 +154,10 @@ try {
 	# The launcher reads this manifest to offer the update (docs/launcher.md, "Self-update"). Its notes are
 	# only the news: the release notes also tell web readers how to download the zip.
 	$releaseJson = Join-Path $out "release.json"
-	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $zip -Leaf); sha256 = $zipHash; notes = $news } | ConvertTo-Json
+	$manifest = [ordered]@{ tag = $tag; asset = (Split-Path $updateZip -Leaf); sha256 = $updateHash; notes = $news } | ConvertTo-Json
 	[IO.File]::WriteAllText($releaseJson, $manifest, [Text.UTF8Encoding]::new($false))
 	# The pages on their own too: the installer's guide and README buttons open them before the mod is installed.
-	gh release create $tag $zip $installer $releaseJson (Join-Path $stage "README.html") (Join-Path $stage "GUIDE.html") --target $commit --title $title --notes-file $releaseNotes --latest
+	gh release create $tag $zip $updateZip $installer $releaseJson (Join-Path $stage "README.html") (Join-Path $stage "GUIDE.html") --target $commit --title $title --notes-file $releaseNotes --latest
 	if ($LASTEXITCODE) { throw "Publishing failed." }
 	Write-Host "Published $tag. Always-latest link: $latestUrl"
 } finally {

@@ -542,6 +542,10 @@ if(BUILD_TESTING)
 	target_include_directories(launcher-update-tests PRIVATE launcher)
 	add_test(NAME launcher-update COMMAND launcher-update-tests)
 
+	d2r_test(launcher-install-tests tests/launcher_install_tests.cpp launcher/launcher_install.cpp launcher/launcher_log.cpp launcher/update_logic.cpp)
+	target_include_directories(launcher-install-tests PRIVATE launcher)
+	add_test(NAME launcher-install COMMAND launcher-install-tests)
+
 	d2r_test(lootables-tests tests/lootables_tests.cpp)
 	add_test(NAME lootables COMMAND lootables-tests)
 	d2r_test(item-sizes-tests tests/item_sizes_tests.cpp)

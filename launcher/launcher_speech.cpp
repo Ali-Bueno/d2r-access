@@ -11,8 +11,6 @@ namespace D2RAccess::Launcher::Speech {
 
 namespace {
 
-// Same place as the plugin's own copy (src/screen_reader.cpp).
-constexpr const wchar_t* PrismRelativePath = L"d2rloader\\plugins\\d2r-access\\prism.dll";
 constexpr DWORD MsPerCharacter   = 70; // a screen reader reads roughly 14 characters a second
 constexpr DWORD MaxSpeechWaitMs  = 15'000;
 // A screen reader announces a new foreground window within this; speaking after it wins over it.
@@ -94,7 +92,7 @@ DWORD SpeakingTimeMs(std::string_view text) {
 }
 
 void Configure(const std::wstring& gameFolder) {
-	g_path = gameFolder + L"\\" + PrismRelativePath;
+	g_path = gameFolder + L"\\" + std::wstring(PrismRelativePath);
 }
 
 void Speak(std::string_view text, bool interrupt) {

@@ -3,6 +3,7 @@
 #include "launcher_download.h"
 #include "launcher_install.h"
 #include "launcher_log.h"
+#include "launcher_speech.h"
 #include "launcher_system.h"
 #include "speech_strings.h"
 #include "update_logic.h"
@@ -25,7 +26,9 @@ namespace Sys = D2RAccess::Launcher::System;
 
 constexpr std::string_view InstalledTag = D2R_ACCESS_RELEASE; // empty in a development build
 
-constexpr const wchar_t* LauncherExe      = L"D2RAccess.exe";
+constexpr std::wstring_view LauncherExe   = L"D2RAccess.exe";
+// What this process holds open while it installs: itself, and the library it speaks with.
+constexpr std::wstring_view FilesInUse[]  = {LauncherExe, Speech::PrismRelativePath};
 constexpr const wchar_t* GameExe          = L"D2R.exe";
 constexpr const wchar_t* SettingsRelative = L"\\d2rloader\\plugins\\d2r-access\\settings.txt";
 constexpr const wchar_t* WorkFolder       = L"D2RAccessUpdate";
@@ -91,13 +94,13 @@ bool Install(const Manifest& manifest, const std::wstring& gameFolder, const fs:
 	}
 	Log::Line("update: checksum verified");
 	if (!Extract(zip, work / ExtractedFolder)) return false;
-	return Install::Replace(work / ExtractedFolder, gameFolder, work / BackupFolder, LauncherExe);
+	return Install::Replace(work / ExtractedFolder, gameFolder, work / BackupFolder, FilesInUse);
 }
 
 }
 
 void CleanLeftover(const std::wstring& gameFolder) {
-	Install::DeleteLeftover(fs::path(gameFolder) / LauncherExe);
+	for (const auto file : FilesInUse) Install::DeleteLeftover(fs::path(gameFolder) / file);
 }
 
 bool Offer(const std::wstring& gameFolder, const std::wstring& arguments) {
@@ -132,7 +135,7 @@ bool Offer(const std::wstring& gameFolder, const std::wstring& arguments) {
 	}
 	Log::Line(std::format("updated to {}", manifest->tag));
 	Sys::ShowBox(text.launcherUpdateTitle, Format(text.launcherUpdated, manifest->tag.c_str()), Sys::BoxKind::Info);
-	auto started = Sys::Start(gameFolder + L"\\" + LauncherExe, arguments, gameFolder);
+	auto started = Sys::Start(gameFolder + L"\\" + std::wstring(LauncherExe), arguments, gameFolder);
 	if (!started) { Log::Line(std::format("the new launcher failed to start, error {}", GetLastError())); return false; }
 	Log::Line("the new launcher started");
 	Sys::CloseHandleOf(*started);

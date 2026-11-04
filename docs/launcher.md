@@ -145,22 +145,39 @@ Flow, at each start before the license step:
    a numbered tag, so testers on a `test-` build get 1.0 from the installer or the zip, not offered. Any failure (offline, 404, bad JSON) is logged and the launcher goes on.
 3. A Yes/No `MessageBox` (topmost) in the game's language: new and installed tag, the first 1500
    characters of the notes (only the release's news since 2026-11-02, none without a news file), and that it takes about a minute without speech. No: go on to the game.
-4. Download `releases/download/<tag>/<asset>` (pinned to the tag; 10 min) to `%TEMP%\D2RAccessUpdate\<tag>\`,
+4. Download `releases/download/<tag>/<asset>` (pinned to the tag; 10 min; the asset is `D2RUpdate.zip`, below) to `%TEMP%\D2RAccessUpdate\<tag>\`,
    check the SHA-256, extract with `System32	ar.exe -xf` (exit code checked).
 5. Copy every file over the game folder. Never overwritten when they exist: any `*.toml`, and the plugin's
-   `settings.txt`, `tutorial.txt` and `explored\`. Each replaced file is backed up first; the running
-   `D2RAccess.exe` is renamed to `D2RAccess.exe.old`. Any failure restores the backups, deletes created
-   files, moves the exe back, shows a failure box and goes on to the game with the old version.
+   `settings.txt`, `tutorial.txt` and `explored\`. Each replaced file is backed up first; the two files
+   the launcher holds open, `D2RAccess.exe` and `prism.dll`, are renamed to `<name>.old`. Any failure
+   restores the backups, deletes created files, moves those two back, shows a failure box and goes on
+   to the game with the old version.
 6. Success: an "updated" box, the new `D2RAccess.exe` starts with the same arguments, this one exits.
-   At start a leftover `.old` is deleted (10 tries, 300 ms apart).
+   At start each leftover `.old` is deleted (10 tries, 300 ms apart).
 
 Constants: `launcher/update_logic.h`. Log lines: `update check ...` (skipped and why, installed and
 latest tag), `update declined`/`accepted`, `download:`, `update: checksum`, `tar.exe exit`, `install:`,
 `updated to <tag>`. Release side: `tools/test-release.ps1` writes `release.json` and uploads it with the zip.
 
-Not verified live: the download and install on a real release (the repo is private until the first
-public release, so the manifest answers 404 until then); the boxes read by a screen reader; the
-rollback paths (only the pure parts are unit tested).
+**No launcher from 1.0.1 to 1.0.4 could install an update (found 2026-11-03).** From 1.0.1 the launcher
+says "started" before `Update::Offer`, so `prism.dll` is loaded while it installs, and Windows refuses to
+overwrite a loaded library: `install: cannot copy to ...prism.dll: ... being used by another process`,
+then the rollback and the failure box, on every try. 1.0 said nothing before the offer. Reproduced with
+the published 1.0.3 launcher in a throwaway folder; with `prism.dll` removed from it, the same launcher
+installed 1.0.4 whole. A launcher built from the fix with the tag 1.0.3 installed the real 1.0.4, with
+`prism.dll` in the zip (`install: 24 replaced, 0 created`, `prism.dll.old` left for the next start).
+`tests/launcher_install_tests.cpp` loads a library and covers the install and the rollback.
+
+**`D2RUpdate.zip`.** The fix cannot reach an installed launcher through itself, so `release.json` names
+`D2RUpdate.zip`: the release's zip without `prism.dll`, which those launchers then never touch.
+`D2RAccess.zip` stays whole for the installer and the always-latest link. The name is outside the
+installer's `D2RAccess*.zip`, whose first match would otherwise be a package without PRISM. PRISM has
+not changed since 1.0, and `tools/test-release.ps1` stops if it does: a new `prism.dll` must be shipped
+knowingly, and reaches 1.0.1 to 1.0.4 only through the installer or the zip. Those players still go
+through this zip once; from then on their launcher could install a whole one.
+
+Not verified live: `D2RUpdate.zip` on a published release (repeat the throwaway run after the next one);
+the boxes read by a screen reader.
 
 ## Forcing a validation
 

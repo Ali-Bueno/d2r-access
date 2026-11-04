@@ -2,6 +2,29 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## bfbeast's 1.0.2 notes and the launcher's update — 2026-11-03 (not released, not committed)
+
+bfbeast's notes (dual-claw Assassin log) and a player stuck below 1.0.4. Built, 140/140 CTest.
+- **Launcher update fixed.** 1.0.1 to 1.0.4 could never install an update: `prism.dll`, loaded to speak,
+  cannot be overwritten. It is now moved aside like the exe; `release.json` will name `D2RUpdate.zip`
+  (no `prism.dll`) so installed launchers get through too ([launcher](docs/launcher.md#self-update)).
+  **Verified live:** failure reproduced on the published 1.0.3; a fixed launcher tagged 1.0.3 installed
+  the real 1.0.4. Unverified: `D2RUpdate.zip` on a published release.
+- **Two weapons:** damage and attack rating read one number per weapon (`...StatTop`/`...StatBottom`,
+  [character panel](docs/character-panel.md#two-weapons-in-hand-2026-11-03)). Which hand is first is
+  not settled, so none is named. **Unverified live.**
+- **Durability:** the game's doll rule (a fifth left, zero) spoken at once, cannot be cut off, and in
+  BACK+X; `durability-alerts` and `priority-durability`, 13 languages ([vitals](docs/vitals.md)).
+  **Unverified live.**
+- **Eclipse:** the quest word was stale, not refreshed as the quest starts: `NativeEclipse` reads the
+  client's own flag ([quests](docs/quests.md#the-tainted-suns-eclipse-2026-10-20)). Fingerprints pass on
+  the live game; the pointers in a game and the dark state **unverified** (no save has the quest running).
+- Known issues: `NativeQuestFlags` lags the same way for its other users, not reviewed; the keyboard has
+  no full report, so durability is only its spoken alert there.
+
+**Next step:** the user decides on a release; then repeat the 1.0.3 throwaway update run, and bfbeast
+checks the three notes (news: `../tester-news-draft-2026-11-03e.txt`).
+
 ## Keyboard only, tested end to end — 2026-11-03 (release 1.0.4, with the launcher fixes below)
 
 Players: the keyboard "does not work"; H says no unexplored areas. Tested live, no pad, rorgan

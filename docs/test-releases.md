@@ -54,6 +54,9 @@ loader writes `<plugin-id>.toml` from the DLL's embedded `radar.toml` only when 
 new key; a missing key falls back to the compiled default (`radar_config.cpp`). Not yet seen live:
 a fresh install starting without `d2rloader.toml`.
 
+Next to the zip, `D2RUpdate.zip` is the same package without `prism.dll`, the one `release.json` names
+for the launcher's self-update ([why](launcher.md#self-update)).
+
 The package text is English since 2026-10-11, for testers who do not read Spanish. The asset
 keeps a fixed name, `D2RAccess.zip` (`d2r-access-completo.zip` until 2026-11-02), so the
 always-latest link stays valid.
