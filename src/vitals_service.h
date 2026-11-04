@@ -20,6 +20,8 @@ bool MovementAlerts();
 void SetMovementAlerts(bool enabled);
 bool AmmoAlerts();
 void SetAmmoAlerts(bool enabled);
+bool DurabilityAlerts();
+void SetDurabilityAlerts(bool enabled);
 // Experience within the level, said by the life report (BACK+X, Mod+X).
 bool ExperienceReport();
 void SetExperienceReport(bool enabled);

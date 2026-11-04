@@ -163,9 +163,12 @@ private:
 	int level_ = -1;
 };
 
-// Equipment durability. An item that reaches zero from a positive value has
-// just broken; indestructible items (no maximum) never do. Items that stop
-// being worn are forgotten, so re-equipping a broken item stays silent.
+// How worn an item is, by the rule of the game's own warning doll (docs/vitals.md).
+enum class Wear { Fine, Low, Broken };
+
+// Equipment durability. An item getting worse while worn is news; indestructible
+// items (no maximum) and stacks never wear. Items that stop being worn are
+// forgotten, so re-equipping a worn item stays silent.
 class Breakage {
 public:
 	struct Item {
@@ -174,15 +177,21 @@ public:
 		uint32_t classId = 0, quality = 0; // for naming it
 		int quantity = 1; // one for an item that does not stack
 	};
-	// The body locations of the items that broke since the previous sweep, in
-	// the order they were reported.
-	std::vector<int> Sweep(const std::vector<Item>& worn);
+	struct Warning {
+		int bodyLocation = 0;
+		Wear wear = Wear::Fine;
+	};
+	static Wear WearOf(const Item& item);
+	// What the doll shows now: the worn items that are low or broken, the swap set left out.
+	static std::vector<Warning> Warnings(const std::vector<Item>& worn);
+	// The items that got worse since the previous sweep, in the order they were reported.
+	std::vector<Warning> Sweep(const std::vector<Item>& worn);
 	void Reset();
 
 private:
 	struct Known {
 		uint32_t id = 0;
-		bool broken = false;
+		Wear wear = Wear::Fine;
 	};
 	std::vector<Known> known_;
 };

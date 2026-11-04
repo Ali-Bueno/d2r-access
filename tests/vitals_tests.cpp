@@ -151,7 +151,8 @@ void Breaking() {
 	std::vector<Vitals::Breakage::Item> damaged = worn;
 	damaged[1].durability = 0;
 	const auto broke = breakage.Sweep(damaged);
-	Check(broke.size() == 1 && broke[0] == 4, "an item reaching zero durability reports its body location");
+	Check(broke.size() == 1 && broke[0].bodyLocation == 4 && broke[0].wear == Vitals::Wear::Broken,
+		"an item reaching zero durability reports its body location");
 	Check(breakage.Sweep(damaged).empty(), "an item that stays broken is announced once");
 	damaged[1].durability = 40;
 	Check(breakage.Sweep(damaged).empty(), "repairing is not a break");
@@ -163,6 +164,40 @@ void Breaking() {
 	Check(breakage.Sweep(replaced).empty(), "equipping an already broken item is not a break");
 	breakage.Reset();
 	Check(breakage.Sweep(replaced).empty(), "leaving the game forgets what was worn");
+}
+
+void Wearing() {
+	using Item = Vitals::Breakage::Item;
+	using Vitals::Wear;
+	const auto wear = [](int durability, int maximum) { return Vitals::Breakage::WearOf(Item{1, durability, maximum, 1}); };
+	Check(wear(5, 20) == Wear::Fine, "above a fifth of the maximum the doll stays away");
+	Check(wear(4, 20) == Wear::Low, "a fifth of the maximum left is low");
+	Check(wear(8, 40) == Wear::Low && wear(1, 40) == Wear::Low, "low follows the maximum, not a fixed number");
+	Check(wear(0, 40) == Wear::Broken, "nothing left is broken");
+	Check(wear(0, 0) == Wear::Fine, "an indestructible item never wears");
+	Check(Vitals::Breakage::WearOf(Item{1, 1, 40, 4, 0, 0, 20}) == Wear::Fine, "a stack has no durability warning");
+
+	Vitals::Breakage breakage;
+	std::vector<Item> worn{{1, 20, 20, 1}, {2, 3, 40, 4}, {3, 1, 40, 11}};
+	Check(breakage.Sweep(worn).empty(), "entering a game with a worn item says nothing");
+	const auto now = Vitals::Breakage::Warnings(worn);
+	Check(now.size() == 1 && now[0].bodyLocation == 4 && now[0].wear == Wear::Low, "the report names it, and not the swap set");
+	worn[0].durability = 4;
+	const auto low = breakage.Sweep(worn);
+	Check(low.size() == 1 && low[0].bodyLocation == 1 && low[0].wear == Wear::Low, "reaching low is news");
+	worn[0].durability = 3;
+	Check(breakage.Sweep(worn).empty(), "wearing further while low is not");
+	worn[0].durability = 0;
+	const auto broke = breakage.Sweep(worn);
+	Check(broke.size() == 1 && broke[0].wear == Wear::Broken, "going from low to broken is news");
+	worn[0].durability = 1;
+	Check(breakage.Sweep(worn).empty(), "a self-repairing item recovering a point is not");
+	worn[0].durability = 20;
+	breakage.Sweep(worn);
+	worn[0].durability = 4;
+	Check(breakage.Sweep(worn).size() == 1, "repaired and worn down again is news again");
+	worn[2].durability = 0;
+	Check(breakage.Sweep(worn).empty(), "the weapon set not in hand is not watched");
 }
 
 void Equipping() {
@@ -271,7 +306,7 @@ void LowLife() {
 int main() {
 	Experience();
 	LowLife();
-	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); MercenaryCondition(); Breaking(); Equipping();
+	Steps(); Percentages(); OrbText(); Announcements(); SimultaneousAlerts(); ManaVerbosity(); MissingOrbs(); MercenaryCondition(); Breaking(); Wearing(); Equipping();
 	Gaits(); Stamina(); Ammo();
 	Passed();
 }

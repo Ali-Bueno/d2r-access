@@ -1,7 +1,7 @@
-# Life, mana and broken equipment
+# Life, mana and worn equipment
 
 What the mod says about the player's own condition: life and mana as they cross
-announcement steps, mercenary life, poison state changes, and a worn item that breaks. Console command
+announcement steps, mercenary life, poison state changes, and a worn item running low or breaking. Console command
 `access-vitals on|off|status|report`; enabled by default.
 
 ## Where the numbers come from
@@ -111,11 +111,23 @@ persists between sessions. An unloaded unit is unknown, not a death. The report 
 includes current mercenary life and level when available. Native evidence is
 in `docs/combat-status-evidence.md`.
 
-**Breaking**: an item whose durability reaches zero from a positive value is
-announced with its equipment slot. An item with no maximum durability never
-breaks, an item worn already broken is not a break, and an item that stays
-broken is announced once. Repairing and breaking again is announced again.
-Breakage speech queues so it cannot erase a critical life alert from the same tick.
+**Durability** (a tester, 2026-11-03: the game's paper doll at the top right is seen only). The
+mod follows the doll's own rule, read in `DurabilityWidget`'s update (`0x14E1A90`, slot rule at
+`0x14E1BC4`): `damage = 1 - durability / maximum`, the doll appearing at `mediumDamageFraction`
+0.8 (`requiredDamageLevel` "medium" in `HUDWarningsHD.json`), so a fifth of the maximum left or
+less is low (`Vitals::Wear::Low`), and zero is broken. Skipped as the game skips them: no maximum
+(indestructible), stacks (ammunition has its own warning; a stack down to one reads as one item,
+since `ItemInfo` has no stackable flag), and the weapon set not in hand (body locations 11, 12).
+Which of the two levels the doll paints yellow or red was not found in the draw code.
+
+An item getting worse while worn is spoken with its slot, "Low durability: Head", "Broken
+equipment: Head", once per level; an item that stays low is silent, a repair re-arms it, an item
+put on already worn says nothing. `durability-alerts` in Ctrl+S switches it; the speech priority
+entry **Durability alerts** defaults to "cannot be cut off" (the tester's request; breaking used
+to queue). The sweep runs before the orbs in the tick, so a critical life alert of the same tick
+queues behind it instead of being erased. BACK+X always adds what the doll shows now, right after
+the experience, with the alerts off too; the keyboard's Z and X read life and mana alone, so it has
+no such line. Log: `[vitals] worn item low|broken at body location N`.
 
 ## Experience (2026-10-13)
 

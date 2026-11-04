@@ -76,7 +76,7 @@ std::vector<D2RL::Input::ActionHandle> g_actions;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::atomic<Command> g_command{Command::None};
 bool g_enabled = true;
-bool g_movementAlerts = true, g_ammoAlerts = true, g_experienceReport = true, g_statusAlerts = true, g_minionReport = false;
+bool g_movementAlerts = true, g_ammoAlerts = true, g_durabilityAlerts = true, g_experienceReport = true, g_statusAlerts = true, g_minionReport = false;
 // The mercenary in BACK+X, off since BACK+RT says it (a tester, 2026-10-14).
 bool g_mercenaryReport = false;
 // BACK+RT's party members before the mercenary and the summons (a tester, 2026-10-30).
@@ -287,6 +287,25 @@ std::string AmmoReport(const D2RL::PluginContext* context) {
 	for (const auto& stack : g_ammo.Known(stacks))
 		for (const auto& [held, item] : hands)
 			if (held.id == stack.id) Append(text, AmmoPhrase(*item, stack.quantity));
+	return text;
+}
+
+std::string WearPhrase(const Vitals::Breakage::Warning& warning) {
+	const auto& strings = Strings::Current();
+	const auto& labels = strings.equipmentSlots;
+	const int location = warning.bodyLocation;
+	const char* slot = location > 0 && static_cast<size_t>(location) < labels.size() ? labels[location] : strings.equipment;
+	char phrase[200]{};
+	std::snprintf(phrase, sizeof(phrase), warning.wear == Vitals::Wear::Broken ? strings.equipmentBroken : strings.equipmentLow, slot);
+	return phrase;
+}
+
+// The worn items the game's doll warns of right now, for the on-demand report.
+std::string DurabilityReport(const D2RL::PluginContext* context) {
+	std::vector<Vitals::Breakage::Item> worn;
+	if (EquipmentCensus::Read(context, worn) != EquipmentCensus::Result::Read) return {};
+	std::string text;
+	for (const auto& warning : Vitals::Breakage::Warnings(worn)) Append(text, WearPhrase(warning));
 	return text;
 }
 
@@ -537,6 +556,7 @@ void Report(const D2RL::PluginContext* context, Command what = Command::Report) 
 			Append(text, phrase);
 		}
 	}
+	Append(text, DurabilityReport(context));
 	if (g_statusSupported && g_mercenaryReport) {
 		const auto mercenary = NativeStatus::MercenaryLife();
 		if (mercenary) {
@@ -598,14 +618,10 @@ void SweepDurability(const D2RL::PluginContext* context) {
 				AsyncLog::InfoF(context, "[vitals] stack in hand low: id=%u quantity=%d", low->id, low->quantity);
 				ScreenReader::Speak(AmmoPhrase(*item, low->quantity), false);
 			}
-	const auto& labels = Strings::Current().equipmentSlots;
-	for (const int location : g_breakage.Sweep(worn)) {
-		const char* slot = location > 0 && static_cast<size_t>(location) < labels.size()
-			? labels[location] : Strings::Current().equipment;
-		char phrase[200]{};
-		std::snprintf(phrase, sizeof(phrase), Strings::Current().equipmentBroken, slot);
-		AsyncLog::InfoF(context, "[vitals] worn item broken at body location %d", location);
-		ScreenReader::Speak(phrase, false);
+	for (const auto& warning : g_breakage.Sweep(worn)) {
+		AsyncLog::InfoF(context, "[vitals] worn item %s at body location %d",
+			warning.wear == Vitals::Wear::Broken ? "broken" : "low", warning.bodyLocation);
+		if (g_durabilityAlerts) SpeechPriority::Say(SpeechPriority::Kind::Durability, WearPhrase(warning), true);
 	}
 }
 
@@ -764,6 +780,12 @@ void Tick(const D2RL::PluginContext* context) {
 		return;
 	}
 	const uint64_t now = GetTickCount64();
+	// Before the orbs: a held durability alert queues a critical life alert of this tick, not the reverse.
+	if (now >= g_nextDurability) {
+		g_nextDurability = now + DurabilitySampleMs;
+		const NativeMemory::ReadScope scope;
+		SweepDurability(context);
+	}
 	if (now >= g_nextOrb) {
 		g_nextOrb = now + OrbSampleMs;
 		const NativeMemory::ReadScope scope;
@@ -877,11 +899,6 @@ void Tick(const D2RL::PluginContext* context) {
 			}
 		}
 	}
-	if (now >= g_nextDurability) {
-		g_nextDurability = now + DurabilitySampleMs;
-		const NativeMemory::ReadScope scope;
-		SweepDurability(context);
-	}
 }
 
 
@@ -897,6 +914,8 @@ void SetMovementAlerts(bool enabled) {
 }
 bool AmmoAlerts() { return g_ammoAlerts; }
 void SetAmmoAlerts(bool enabled) { g_ammoAlerts = enabled; }
+bool DurabilityAlerts() { return g_durabilityAlerts; }
+void SetDurabilityAlerts(bool enabled) { g_durabilityAlerts = enabled; }
 bool ExperienceReport() { return g_experienceReport; }
 void SetExperienceReport(bool enabled) { g_experienceReport = enabled; }
 bool StatusAlerts() { return g_statusAlerts; }

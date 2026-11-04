@@ -40,6 +40,7 @@ cursor came onto it, cut "Arrived at Cathedral" off; held, the name follows it.
 | Items on the ground | `ground_item_service.cpp` nearby items | when urgent (queued) |
 | Tutorial | `tutorial_service.cpp`, a message whole (`SayWhole`, `first`: it cuts in even on a phrase another holds) | cannot be cut off (the user, 2026-11-02: it was "waits its turn"); the hold ends as the reader goes silent |
 | Arrivals at a target ("Arrived at X": the beacon's and the route's) | `beacon_service.cpp` `AnnounceArrival` | cannot be cut off |
+| Durability alerts (low or broken equipment) | `vitals_service.cpp` `SweepDurability` | cannot be cut off |
 
 Menus, focus and window changes are not in the list: they interrupt because they are context
 changes (§9 of the playbook). "You are fortified" stays queued so it follows the status ending.

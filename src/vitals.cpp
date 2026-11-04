@@ -207,21 +207,44 @@ MercenaryMeter::Alert MercenaryMeter::Update(std::optional<uint32_t> id, int per
 
 void MercenaryMeter::Reset() { id_.reset(); life_.Reset(); level_ = -1; }
 
-std::vector<int> Breakage::Sweep(const std::vector<Item>& worn) {
-	std::vector<int> broke;
+namespace {
+// The doll's "mediumDamageFraction" in HUDWarningsHD.json, the level its "requiredDamageLevel" shows it at.
+constexpr float LowWearDamage = 0.8f;
+// Body locations of the weapon set not in hand, which the doll does not cover.
+constexpr int FirstSwapLocation = 11;
+bool InSwapSet(const Breakage::Item& item) { return item.bodyLocation >= FirstSwapLocation; }
+}
+
+Wear Breakage::WearOf(const Item& item) {
+	if (item.maximumDurability <= 0 || item.quantity > 1) return Wear::Fine;
+	if (item.durability <= 0) return Wear::Broken;
+	const float damage = 1.0f - static_cast<float>(item.durability) / static_cast<float>(item.maximumDurability);
+	return damage >= LowWearDamage ? Wear::Low : Wear::Fine;
+}
+
+std::vector<Breakage::Warning> Breakage::Warnings(const std::vector<Item>& worn) {
+	std::vector<Warning> warnings;
+	for (const auto& item : worn)
+		if (const Wear wear = WearOf(item); wear != Wear::Fine && !InSwapSet(item))
+			warnings.push_back({item.bodyLocation, wear});
+	return warnings;
+}
+
+std::vector<Breakage::Warning> Breakage::Sweep(const std::vector<Item>& worn) {
+	std::vector<Warning> worse;
 	std::vector<Known> current;
 	current.reserve(worn.size());
 	for (const auto& item : worn) {
-		if (item.maximumDurability <= 0) continue; // indestructible: it never breaks
-		const bool broken = item.durability <= 0;
+		if (InSwapSet(item)) continue;
+		const Wear wear = WearOf(item);
 		const auto previous = std::find_if(known_.begin(), known_.end(),
 			[&item](const Known& known) { return known.id == item.id; });
-		// An item worn already broken was not broken by the player just now.
-		if (broken && previous != known_.end() && !previous->broken) broke.push_back(item.bodyLocation);
-		current.push_back({item.id, broken});
+		// An item put on already worn was not worn down by the player just now.
+		if (previous != known_.end() && wear > previous->wear) worse.push_back({item.bodyLocation, wear});
+		current.push_back({item.id, wear});
 	}
 	known_ = std::move(current);
-	return broke;
+	return worse;
 }
 
 void Breakage::Reset() { known_.clear(); }

@@ -2015,6 +2015,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		ChargeChordMode(),
 		{VitalsService::MovementAlerts, VitalsService::SetMovementAlerts, phrase(&T::movementAlertsOn, &T::movementAlertsOff), false, "movement-alerts"},
 		{VitalsService::AmmoAlerts, VitalsService::SetAmmoAlerts, phrase(&T::ammoAlertsOn, &T::ammoAlertsOff), false, "ammo-alerts"},
+		{VitalsService::DurabilityAlerts, VitalsService::SetDurabilityAlerts, phrase(&T::durabilityAlertsOn, &T::durabilityAlertsOff), false, "durability-alerts"},
 		{[] { return QuestService::Enabled(); }, [](bool on) { QuestService::SetEnabled(on); }, phrase(&T::questAlertsEnabled, &T::questAlertsDisabled), true, "quest-alerts"},
 		{GameTextReader::MercenaryBark, GameTextReader::SetMercenaryBark, phrase(&T::mercenaryBarkOn, &T::mercenaryBarkOff), false, "mercenary-bark"},
 		{[] { return TradeService::Enabled(); }, [](bool on) { TradeService::SetEnabled(on); }, phrase(&T::tradeAlertsOn, &T::tradeAlertsOff), false, "trade-alerts"},
@@ -2041,6 +2042,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		Priority("priority-ground-items", K::NearbyItems),
 		Priority("priority-tutorial", K::Tutorial),
 		Priority("priority-arrivals", K::Arrivals),
+		Priority("priority-durability", K::Durability),
 	}});
 	groups.push_back({GroupName(G::Controller), {
 		{PadFilter::KeepBack, PadFilter::SetKeepBack, phrase(&T::backToModOn, &T::backToModOff), false, "pad-back-to-mod"},

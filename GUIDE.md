@@ -49,7 +49,7 @@ of the package's `README.html`.
 
 | Action | Xbox | PlayStation | Keyboard | What it does |
 |---|---|---|---|---|
-| Vitals readout | Mod+X | Mod+Square | Z (life), X (mana) | Reads life, mana, experience to next level, active skills, ammo counts and usable corpses in range |
+| Vitals readout | Mod+X | Mod+Square | Z (life), X (mana) | Reads life, mana, experience to next level, active skills, ammo counts, worn-out equipment and usable corpses in range |
 | Party vitals | Mod+RT | Mod+R2 | Shift+Z | Each press cycles through your current party, announcing their life percentage or head count (for summons). Party in this context refers to mercenaries, summons and human players (in multiplayer) |
 | Read skill bar 1 | Mod+LT | Mod+L2 | — | Lists your currently equipped skills on your first skill bar by button |
 | Read skill bar 2 | Hold LT | Hold L2 | — | Lists your currently equipped skills on your second skill bar by button |
