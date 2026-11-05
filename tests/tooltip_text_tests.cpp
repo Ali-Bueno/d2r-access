@@ -27,6 +27,10 @@ std::string Inverted() {
 }
 
 int main() {
+	Check(TooltipText::Prose("Increases attack damage and allows\nyou to equip more weapons and armor.")
+		== "Increases attack damage and allows you to equip more weapons and armor.", "a stat's wrapped text is read top line first, as one passage");
+	Check(TooltipText::Prose("\nOne line.\n") == "One line.", "empty lines add nothing");
+	Check(TooltipText::Prose("").empty(), "no text, nothing to say");
 	for (const auto& [name, text] : std::vector<std::pair<const char*, std::string>>{
 			 {"stored bottom up", Stored()}, {"stored the other way up", Inverted()}}) {
 		const auto body = TooltipText::Read(text);

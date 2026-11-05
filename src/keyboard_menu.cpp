@@ -85,6 +85,7 @@ constexpr std::string_view ConfirmButton = "Confirm";
 constexpr std::string_view DeleteButton = "DeleteCharacter", DeletePanel = "DeleteCharacterModal";
 // A list that scrolls, its bar, and a panel's mark that it takes every click: a catcher on a
 // rectangle that shades the screen (SettingsPanelHD.json, PauseLayoutHD.json).
+constexpr std::string_view SpeechPanels[] = {"ScrollSpeechPanel", "QuestLogSpeechPanel"};
 constexpr std::string_view ScrollView = "ScrollViewWidget", ListView = "ListWidget", ScrollBar = "ScrollControllerWidget";
 constexpr std::string_view NotLists[] = {"DropdownListWidget", "ChatListWidget"}; // a control and a log, whatever they are called
 constexpr std::string_view Recycling = "Recycling"; // a list that keeps only the rows in view
@@ -120,10 +121,10 @@ struct Entry {
 	std::string name, type;
 	NativeUi::Rect point{}; // where the pointer rests when that is not the middle of the control; no size when it is
 };
-// A step of a value that is under way. The game itself steps a slider or an
-// option the pointer is over when the left or right arrow key goes down (READ,
-// not measured), so the value is looked at first, and the arrow of the control
-// is clicked only when the key has not changed it.
+// A step of a value that is under way. The game itself steps a slider the pointer
+// is over as the arrow key goes down, before the key comes here (MEASURED), so
+// `before` is the value last seen, and the arrow of the control is clicked only
+// when the key has not changed it. docs/keyboard-play.md
 struct Adjusting {
 	uintptr_t widget = 0;
 	int before = 0;
@@ -131,6 +132,9 @@ struct Adjusting {
 	uint64_t since = 0, look = 0;
 };
 Adjusting g_adjusting;
+struct SeenValue { uintptr_t widget = 0; int value = 0; };
+SeenValue g_seenValue; // the control the cursor is on, as the last tick left it
+std::optional<MenuCursor::Rect> g_statButton; // where the "+" of an attribute the cursor is on stands
 // A class that was clicked, until it is seen to be chosen or the wait is over.
 struct Choosing { uintptr_t widget = 0; uint64_t since = 0; };
 Choosing g_choosing;
@@ -173,7 +177,6 @@ std::string g_toSay;        // what to say if no reader does
 std::string g_said;         // what the cursor said of where it is, when no reader did
 bool g_beltShown = false;   // the game's "show belt" was turned on from here, and is to be turned off
 bool g_parkOwed = false;    // the cursor put the pointer somewhere, and play has not parked it yet
-bool g_parkTold = false;    // a park that could not be done yet is logged once
 bool g_entered = false;     // the cursor is where the menu was entered, and no key has moved it
 bool g_lists = false;       // the menu has a list that scrolls, whose rows the arrows are the cursor's to walk
 int g_beltRows = 0;         // the rows of the belt when the menu was last read, 0 with no belt in it
@@ -416,7 +419,9 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, uintptr_t view, i
 			// The skills of a skill tree, and of the list of skills, stand together:
 			// a step from one lands on another before it lands on a tab beside them.
 			const bool skill = NativeSkillIcons::InTree(widget) || NativeSkillIcons::InList(widget);
-			g_targets.push_back({widget, ToRect(*rect), {}, skill ? NativeUi::Parent(widget) : view});
+			// So do the "+" of the attributes, or a step passes from one to the column beside them.
+			const uintptr_t group = skill ? NativeUi::Parent(widget) : type.kind == Kind::StatButton ? entry.panel : view;
+			g_targets.push_back({widget, ToRect(*rect), {}, group});
 			g_targets.back().aside = WayOut(entry.name) || entry.name.starts_with(LoaderPrefix) || entry.name.starts_with(SwapPrefix);
 			g_entries.push_back(entry);
 		}
@@ -611,6 +616,8 @@ std::string Build(const D2RL::PluginContext* context) {
 		if (open.name == HirePanel && asked) continue;
 		menu += open.name;
 		menu += ' ';
+		// A speech scrolls by itself while it is heard: its bar is nothing to stand on, and has no words.
+		if (std::find(std::begin(SpeechPanels), std::end(SpeechPanels), open.name) != std::end(SpeechPanels)) continue;
 		items = items || open.name.find("Inventory") != std::string::npos;
 		const size_t before = g_entries.size();
 		Collect(open.panel, open.panel, 0, 0, 0);
@@ -746,6 +753,7 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 		return false;
 	}
 	const auto* target = MenuCursor::Find(g_targets, entry->widget);
+	g_statButton = target && NativeUi::Classify(entry->widget).kind == Kind::StatButton ? std::optional(target->rect) : std::nullopt;
 	const uint64_t selection = entry->cells ? Selection(*entry, place.anchor, target ? target->grid.height : 1)
 		: NativeUi::FocusSelection(entry->widget);
 	const uintptr_t owner = NativeSkillNavigation::Owner(entry->widget);
@@ -867,28 +875,14 @@ void Release(const D2RL::PluginContext* context, const char* reason) {
 	NativeUi::ClearCursor();
 }
 
-// When play goes on the pointer is put on the HUD, between its two skill
-// buttons. Left where the menu had it, it would be over the world, where the
-// game takes what is under it for what the player means and names it.
-// False while the HUD is not drawn yet: a game just joined draws it a moment
-// after play starts, and until then the pointer is left over the world.
+// When play goes on the pointer rests in the window's bottom corner. Over the world the game
+// names what is under it; over the HUD a skill key's press never reaches a quick cast; at the
+// bottom edge the game drops its target (docs/keyboard-play.md#the-pointer-at-rest).
 bool Park(const D2RL::PluginContext* context) {
-	const uintptr_t hud = NativeWidgets::FindPanel(Hud);
-	const uintptr_t left = FindNamed(hud, LeftSkill, false, 0), right = FindNamed(hud, RightSkill, false, 0);
-	const auto from = left ? NativeSkillNavigation::RectAt(left, NativeUi::FocusSelection(left)) : std::nullopt;
-	const auto to = right ? NativeSkillNavigation::RectAt(right, NativeUi::FocusSelection(right)) : std::nullopt;
-	const int gap = from && to ? to->x - (from->x + from->width) : 0;
-	if (gap < 2) {
-		if (!g_parkTold) AsyncLog::InfoF(context, "[cursor] the pointer waits over the world: left skill button %s, right %s, %d between them",
-			!left ? "not shown" : from ? "found" : "has no rectangle", !right ? "not shown" : to ? "found" : "has no rectangle", gap);
-		g_parkTold = true;
-		return false;
-	}
-	const NativeUi::Rect rest{from->x + from->width, from->y, gap, from->height};
-	AsyncLog::InfoF(context, "[cursor] play goes on: the pointer to %d,%d, between the skill buttons",
-		rest.x + rest.width / 2, rest.y + rest.height / 2);
+	const auto rest = MenuMouse::BottomCorner();
+	if (!rest.width) return false;
+	AsyncLog::InfoF(context, "[cursor] play goes on: the pointer to the corner %d,%d", rest.x, rest.y);
 	MenuMouse::PlaceAfter(rest);
-	g_parkTold = false;
 	return true;
 }
 
@@ -1010,6 +1004,8 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 	g_beltRows = rows;
 	auto place = MenuCursor::Settle(g_targets, back);
 	if (!place.widget && !(changed && g_entered)) place = MenuCursor::Settle(g_targets, g_place);
+	// The last point spent takes every "+" with it: the cursor stays on that attribute's row.
+	if (!place.widget && !changed && g_statButton) place = MenuCursor::OnRow(g_targets, *g_statButton);
 	const bool entering = !place.widget;
 	if (entering) {
 		if (!MenuCursor::Find(g_targets, g_place.widget)) { g_place = {}; NativeUi::ClearCursor(); }
@@ -1067,13 +1063,19 @@ bool Adjust(const D2RL::PluginContext* context, uint64_t now, const Entry& entry
 		ScreenReader::Speak(Strings::Current().unavailable, true);
 		return true;
 	}
-	g_adjusting = {entry.widget, *value, up, false, now, now + OwnStepMs};
+	const int before = g_seenValue.widget == entry.widget ? g_seenValue.value : *value;
+	g_adjusting = {entry.widget, before, up, false, now, now + OwnStepMs};
 	return true;
 }
 
 void Adjusted(const D2RL::PluginContext* context, uint64_t now) {
 	auto& step = g_adjusting;
-	if (!step.widget || now < step.look || MenuMouse::Busy()) return;
+	if (!step.widget) {
+		const auto seen = NativeValueControls::Value(g_place.widget);
+		g_seenValue = seen ? SeenValue{g_place.widget, *seen} : SeenValue{};
+		return;
+	}
+	if (now < step.look || MenuMouse::Busy()) return;
 	const auto* entry = EntryOf(step.widget);
 	const auto value = entry ? NativeValueControls::Value(step.widget) : std::nullopt;
 	if (!value) { step = {}; return; }
@@ -1096,6 +1098,7 @@ void Adjusted(const D2RL::PluginContext* context, uint64_t now) {
 		*value == step.before ? "unchanged" : step.clicked ? "by a click on its arrow" : "by the game on the key", shown.c_str());
 	// A reader that heard the game say the value changed has said it already.
 	if (ScreenReader::LastSpoken() < step.since && !shown.empty()) ScreenReader::Speak(shown, true);
+	g_seenValue = {step.widget, *value};
 	step = {};
 }
 
@@ -1408,8 +1411,7 @@ bool SayStatTooltip(const D2RL::PluginContext* context, uint64_t now) {
 	if (g_menu.find("CharacterStatsPanel") == std::string::npos) return false;
 	const auto tooltip = NativeTooltips::Latest(now);
 	std::string text;
-	if (g_place.widget && tooltip.widget == g_place.widget)
-		for (const auto& line : TooltipText::Read(tooltip.body).lines) text += (text.empty() ? "" : ". ") + line;
+	if (g_place.widget && tooltip.widget == g_place.widget) text = TooltipText::Prose(tooltip.body);
 	AsyncLog::InfoF(context, "[cursor] stat tooltip of %s: \"%s\"%s", EntryOf(g_place.widget) ? EntryOf(g_place.widget)->name.c_str() : "nothing",
 		text.c_str(), tooltip.widget && tooltip.widget != g_place.widget ? " (the tooltip drawn is another's)" : "");
 	ScreenReader::Speak(text.empty() ? std::string(Strings::Current().detailNone) : text, true);

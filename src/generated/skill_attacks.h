@@ -87,6 +87,15 @@ constexpr bool SkillRequiresEnemy(int skill) {
 		&& EnemyTargets[static_cast<size_t>(skill)];
 }
 
+// Native TargetCorpse: a skill that acts on a dead monster and does nothing at
+// a bare cell, sorted. Whether a given corpse suits it is the game's to decide.
+inline constexpr std::array<int, 20> CorpseTargets{{
+	70, 74, 80, 83, 95, 131, 142, 150, 158, 175, 181, 214, 307, 312, 314, 325, 327, 351, 379, 403,
+}};
+constexpr bool SkillTargetsCorpse(int skill) {
+	return std::binary_search(CorpseTargets.begin(), CorpseTargets.end(), skill);
+}
+
 // The weapons that shoot: the bows and crossbows of weapons.txt, by item code
 // as the game stores it (little-endian, space-padded), sorted. With one in
 // hand a Weapon skill is ranged.

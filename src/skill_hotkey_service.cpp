@@ -54,7 +54,8 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		if (name.empty()) continue;
 		AsyncLog::InfoF(context, "[skill-hotkey] slot=%d skill=%d quick-cast=%d -> \"%s\"",
 			event.slot, event.skill, event.quickCast ? 1 : 0, name.c_str());
-		ScreenReader::Speak(name, true);
+		// Behind what a quick cast said of itself, "no corpses" for one.
+		ScreenReader::Speak(name, !event.quickCast);
 	}
 }
 

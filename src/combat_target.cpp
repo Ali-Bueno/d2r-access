@@ -93,6 +93,17 @@ bool OnScreen(Position player, Position at, const Screen& screen) {
 	return std::abs(dx - dy) <= screen.halfWidth && std::abs(dx + dy) <= screen.halfHeight;
 }
 
+std::optional<size_t> NearestOnScreen(Position player, const std::vector<Position>& corpses, const Screen& screen) {
+	std::optional<size_t> nearest;
+	double best = 0;
+	for (size_t i = 0; i < corpses.size(); ++i) {
+		if (!OnScreen(player, corpses[i], screen)) continue;
+		const double distance = std::hypot(corpses[i].x - player.x, corpses[i].y - player.y);
+		if (!nearest || distance < best) { nearest = i; best = distance; }
+	}
+	return nearest;
+}
+
 bool Closing(Position player, const std::vector<Position>& threats, const Spacing& spacing) {
 	return Clearance(player, threats) < spacing.tooClose;
 }

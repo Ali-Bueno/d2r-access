@@ -63,6 +63,8 @@ of the package's `README.html`.
 | Toggle audio loot filter | LB when not in a menu | L1 when not in a menu | Ctrl+S, then "Loot filter" in the Loot filter group | Engages/disengages the audio loot filter. It does not "hide" items, it just keeps them from repeating their drop sounds. See "The audio loot filter" below for a more detailed explanation and how to set it. |
 
 The keyboard has no skill bars: F1 to F8 choose the skill, and the mod says it when it changes.
+With the game's option Quick Cast Skills on, those keys cast the skill at once instead, aimed at the
+monster or corpse the skill would take, and the skill you had stays selected.
 
 ### Keyboard-only commands
 
@@ -143,6 +145,9 @@ Skills on Bar 2 are used by holding LT and pressing the A, B, X, Y, RB and RT bu
 On the keyboard there are no skill bars: A on a skill in the tree learns it, and in a skill list
 (S for the right hand, Shift+S for the left) F1 to F8 bind the skill under the cursor to that key.
 In play those keys choose the skill, and A (left) or W (right) uses it.
+
+Skills that need a corpse (Raise Skeleton, Corpse Explosion, Revive, the Barbarian's Find Potion and
+Find Item and others) go on the nearest usable corpse on screen. If there is none the mod says so.
 
 Besides each character's three skill trees, D2R also has a fourth page where you can find so-called
 "general" skills like Basic Attack and Open Town Portal. These general skills can be rebound at any

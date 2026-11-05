@@ -143,3 +143,21 @@ break it.
 
 The working files of the two static passes are kept in the workspace, outside
 this repository, under `re/actions/`.
+
+## Skills aimed at a corpse
+
+The nine a player can have (`TargetCorpse` in skills.txt; `Generated::SkillTargetsCorpse`): Raise
+Skeleton, Raise Skeletal Mage, Revive, Corpse Explosion, Poison Explosion, Find Potion, Find Item,
+Grim Ward, Engorge. At a bare cell the game casts nothing, which is what 0x0C at the player's own cell
+did until 2026-11-05: a tester's log shows three usable corpses at 3.0 and no skeleton, and a pad
+worked because the game's own aim picks the corpse.
+
+W and A now send 0x0D / 0x06 with type 1 and the id of the nearest usable corpse on screen, which is
+what a click on it sends. READ: the client walks up first for `h2h` skills and queues the cast; for
+the rest there is no walk and no client range test, and the server's cap is 50 subtiles on either
+axis. With none on screen the mod says "Usable corpses nearby: 0". The corpses are read for every
+class now; the rattle and the count stay the Necromancer's.
+
+"Usable" is the core rule ([corpses](summons-and-corpses-re.md#4-usable-corpses)). Raise Skeleton also
+wants a monster that walks and Revive more; on a corpse that fails those the server refuses, and the
+next press goes to the same nearest one. `0x9E950` would answer that per skill, if it comes up.

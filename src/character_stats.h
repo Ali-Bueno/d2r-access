@@ -20,6 +20,8 @@ bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type& type);
 // identity as the body so both are spoken once on entering the panel. Empty
 // when the focus is not a readable row.
 UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type);
+// What a row of the panel leads with, the same on each: panel name and who the character is.
+std::string Identity(uintptr_t panel);
 
 // Every statistic the panel is showing, label and value, in the order the
 // layout declares them -- which is the order they appear down the screen --

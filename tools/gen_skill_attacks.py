@@ -100,6 +100,7 @@ def main():
 
     kinds = {}
     targets = {}
+    corpses = set()
     names = {}
     for row in rows[1:]:
         number = cell(row, "*Id")
@@ -138,6 +139,8 @@ def main():
         targets[skill] = (cell(row, "TargetableOnly") == "1"
                           and cell(row, "srvstfunc") not in ("31", "38", "41")
                           and not any(is_set(row, name) for name in OTHER_TARGETS))
+        if is_set(row, "TargetCorpse"):
+            corpses.add(skill)
 
     with io.open(args.excel / "weapons.txt", encoding="utf-8-sig", errors="replace", newline="") as source:
         weapons = list(csv.reader(source, delimiter="	"))
@@ -202,6 +205,15 @@ def main():
     out.append("constexpr bool SkillRequiresEnemy(int skill) {")
     out.append("\treturn skill >= 0 && static_cast<size_t>(skill) < EnemyTargets.size()")
     out.append("\t\t&& EnemyTargets[static_cast<size_t>(skill)];")
+    out.append("}")
+    out.append("")
+    out.append("// Native TargetCorpse: a skill that acts on a dead monster and does nothing at")
+    out.append("// a bare cell, sorted. Whether a given corpse suits it is the game's to decide.")
+    out.append("inline constexpr std::array<int, %d> CorpseTargets{{" % len(corpses))
+    out.append("	" + ", ".join(str(skill) for skill in sorted(corpses)) + ",")
+    out.append("}};")
+    out.append("constexpr bool SkillTargetsCorpse(int skill) {")
+    out.append("	return std::binary_search(CorpseTargets.begin(), CorpseTargets.end(), skill);")
     out.append("}")
     out.append("")
     out.append("// The weapons that shoot: the bows and crossbows of weapons.txt, by item code")

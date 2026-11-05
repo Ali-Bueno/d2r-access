@@ -203,6 +203,10 @@ int main() {
 		Check(CombatTarget::OnScreen(player, {78, 78}), "a monster 36 down the screen is on it");
 		Check(!CombatTarget::OnScreen(player, {80, 80}), "a monster 40 down the screen is off it");
 		Check(!CombatTarget::OnScreen(player, {20, 20}), "a monster far up the screen is off it");
+		Check(CombatTarget::NearestOnScreen(player, {{70, 60}, {62, 60}, {64, 60}}) == 1u, "the nearest corpse is taken, wherever it is listed");
+		Check(CombatTarget::NearestOnScreen(player, {{20, 20}, {70, 60}}) == 1u, "a corpse off the screen is passed over");
+		Check(!CombatTarget::NearestOnScreen(player, {{20, 20}}), "with every corpse off the screen there is none to take");
+		Check(!CombatTarget::NearestOnScreen(player, {}), "no corpses, none to take");
 	}
 	Passed();
 	return 0;

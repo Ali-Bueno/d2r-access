@@ -299,6 +299,7 @@ namespace D2RAccess::CharacterStats {
 bool HandlesFocus(NativeUi::Focus, const NativeUi::Type&) { return false; }
 bool HasPoints(std::string_view points) { return points.find_first_of("123456789") != std::string_view::npos; }
 UiText::Readout Read(NativeUi::Focus, const NativeUi::Type&) { return {}; }
+std::string Identity(uintptr_t) { return {}; }
 void Reset() {}
 }
 std::string statPointsFor; // what the stats reader hands the Strength button's announcement

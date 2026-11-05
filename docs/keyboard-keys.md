@@ -160,7 +160,7 @@ Every switch that has no key of its own is in the Ctrl+S list.
 | Esc | game menu; shuts what is open | yes |
 | Space | shuts every panel | yes, but not while the Ctrl+S list is open |
 | S | the list of skills for the RIGHT hand (READ in the image); the mod says the hand as the list opens | yes |
-| F1 to F8 | skills 1 to 8; with a list of skills open, binds the skill under the pointer. The mod says the skill when it changes ([skill hotkeys](skill-hotkeys.md)) | yes |
+| F1 to F8 | skills 1 to 8; with a list of skills open, binds the skill under the pointer. The mod says the skill when it changes ([skill hotkeys](skill-hotkeys.md)); with the game's Quick Cast Skills on they cast it, aimed ([quick cast](skill-hotkeys.md#quick-cast)) | yes |
 | 1 to 4 | the belt's potions | yes |
 | grave accent | show the belt | yes |
 | R | run or walk | yes |

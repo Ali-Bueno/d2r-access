@@ -2,6 +2,7 @@
 #include "async_log.h"
 #include "ground_item_layout.h"
 #include "layout_check.h"
+#include "native_hover.h"
 #include "native_skill_bar.h"
 
 #include <windows.h>
@@ -33,6 +34,10 @@ using QuickFn = bool(*)(uintptr_t, uint32_t, int, bool);
 SelectFn g_select = nullptr;
 QuickFn g_quick = nullptr;
 uintptr_t g_base = 0;
+const D2RL::PluginContext* g_context = nullptr;
+bool (*g_aim)(int) = nullptr;
+void (*g_cast)(int) = nullptr;
+int g_aimedSlot = -1; // the quick cast key whose target the game is holding
 std::mutex g_mutex;
 std::array<Event, QueueSize> g_events;
 size_t g_count = 0;
@@ -53,7 +58,18 @@ bool ObserveSelect(int slot, bool defaultAttack) {
 
 bool ObserveQuick(uintptr_t manager, uint32_t player, int slot, bool pressed) {
 	const uintptr_t caller = reinterpret_cast<uintptr_t>(_ReturnAddress());
+	const auto skill = pressed && g_aim ? NativeSkillBar::KeyboardSkill(slot) : std::nullopt;
+	const bool aimed = skill && g_aim(*skill);
+	if (aimed) g_aimedSlot = slot;
 	const bool accepted = g_quick(manager, player, slot, pressed);
+	if (accepted && skill && g_cast) g_cast(*skill);
+	// The cast goes out on a later frame: the target stays until the key comes up.
+	if (!pressed && slot == g_aimedSlot) {
+		g_aimedSlot = -1;
+		NativeHover::Release();
+	}
+	if (pressed) AsyncLog::InfoF(g_context, "[skill-hotkey] quick cast slot=%d skill=%d accepted=%d aimed=%d", slot, skill.value_or(-1),
+		accepted ? 1 : 0, aimed ? 1 : 0);
 	if (accepted && pressed && caller == g_base + QuickReturn) Capture(slot, true);
 	return accepted;
 }
@@ -69,10 +85,16 @@ bool Initialize(const D2RL::PluginContext* context) {
 	}
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "skill-hotkey", "keyboard skill announcements are off")) return false;
 	g_base = context->exeBase;
+	g_context = context;
 	const bool select = context->InstallInlineHook(Select, SelectPrefix, sizeof(SelectPrefix), &ObserveSelect, &g_select) && g_select;
 	const bool quick = context->InstallInlineHook(QuickCast, QuickPrefix, sizeof(QuickPrefix), &ObserveQuick, &g_quick) && g_quick;
 	AsyncLog::InfoF(context, "[skill-hotkey] Observers installed: selection=%d quick-cast=%d.", select ? 1 : 0, quick ? 1 : 0);
 	return select || quick;
+}
+
+void SetQuickAim(bool (*aim)(int skill), void (*cast)(int skill)) {
+	g_aim = aim;
+	g_cast = cast;
 }
 
 std::vector<Event> Take() {

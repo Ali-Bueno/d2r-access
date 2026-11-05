@@ -7,6 +7,8 @@
 #include "native_widgets.h"
 #include "ui_text.h"
 
+#include <algorithm>
+#include <cctype>
 #include <string_view>
 
 namespace D2RAccess::NativeValueControls {
@@ -89,7 +91,9 @@ std::string Shown(uintptr_t widget) {
 	case Kind::Slider: {
 		const uintptr_t shown = Inside(widget, SliderShown, "ValueText");
 		auto text = shown ? UiText::Clean(NativeWidgets::ReadText(shown)) : std::string{};
-		if (const auto value = Value(widget); text.empty() && value) text = std::to_string(*value);
+		// The text is written an update after the value, so a number just stepped is the value.
+		const bool number = std::all_of(text.begin(), text.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
+		if (const auto value = Value(widget); number && value) text = std::to_string(*value);
 		return text;
 	}
 	case Kind::Carousel: return UiText::Clean(NativeWidgets::ReadText(NativeWidgets::FindChild(widget, "CarouselText")));

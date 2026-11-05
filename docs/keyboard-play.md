@@ -204,7 +204,7 @@ The user's decisions, 2026-09-27:
 | the belt's rows | `src/native_belt_rows.*` | the slots of the belt worn, whether it is drawn in full, the game's "show belt" turned on while the belt is in the menu, the belt's own hit test for the point to click |
 | the belt's fill | `src/native_belt_fill.*` | Alt+F makes the calls the belt's handler makes when the controller's hold completes |
 | the keys in the hints | `src/click_words.*` | pure, tested. "Ctrl + Left Click to Sell" is said as "Ctrl + A to Sell" while the keyboard has the menu, in the game's thirteen languages |
-| the pointer at rest | `Park` in `src/keyboard_menu.cpp` | when a menu closes and play goes on, the pointer is put between the HUD's two skill buttons |
+| the pointer at rest | `Park` in `src/keyboard_menu.cpp` | when a menu closes and play goes on, the pointer goes to the window's bottom-left corner ([why](#the-pointer-at-rest)) |
 | a click refused | `Land`, `Click` in `src/keyboard_menu.cpp` | a place drawn off the screen is not a place; a click is refused, and said to be unavailable, when the pointer did not go to where the cursor is |
 | lines | `InputDirection::PostLineStep`, `ReadLines` in `src/interaction_reader.cpp` | Ctrl with an arrow walks an item's or a skill's tooltip a line at a time, with the game's Ctrl view (an item's ranges) on; Shift with an arrow walks it as the game draws it with Shift held, the regular tooltip; on the character panel and Advanced Stats it is the right stick, which walks their lines already |
 
@@ -882,3 +882,73 @@ edge notch was not walked to the end; a list of more than 13 dropdown rows was n
 **No pad was connected, and none can be simulated here**: nothing of this was run with one. What a pad
 player gets new is read from the code: the cursor's code runs only while it has the menu (`g_engaged`),
 as before, and only the shared readers changed, the sliders' number, the tab count, the two hands.
+
+## Corpses, sliders, the attributes, quick cast -- 2026-11-05
+
+Players' reports, every one reproduced live before it was changed, with a throwaway Necromancer on
+3.3.94995. Saves, `Settings.json` and the language were put back afterwards.
+
+### Sliders: one step, and the number said is the value
+
+MEASURED on Sound and on Offline Difficulty Scaling (the players slider). The game steps a slider
+under the pointer as the arrow key goes down, **before** the key reaches the mod. `Adjust` then read
+the value already stepped as `before`, saw no change 120 ms later, and clicked the arrow: a second step.
+
+```
+28.215 SetMasterVolume              the game's step, 100 -> 95
+28.227 speech: 100                  the reader, from ValueText
+28.336 the key left it at 95        `before` was already 95
+28.469 click: 95 -> 90              the second step
+28.471 speech: 95                   one behind again; the value is 90
+```
+
+- `before` is now the value the last tick saw (`g_seenValue`). `Adjusted` runs after the keys in a tick.
+- ValueText is written an update after the value (READ: `+0x6C4` at once by `SetValue`, the text by
+  `0x884E00`). `NativeValueControls::Shown` gives the value when the text is a plain number. That is the
+  reader the pad uses too, which had the same lag.
+- Seen after: `8 -> 7 -> 6 -> 7 -> 8` on the players slider, one step a press, each number right. At
+  the end of the track the click is tried and the value is said again; nothing moves.
+
+### The attributes
+
+- **The tooltip read backwards.** J said "equip more weapons and armor.. Increases attack damage and
+  allows". `TooltipText::Read` turns a body over because a drawn tooltip is stored bottom-up; a stat's
+  text is plain and stored top-down. `TooltipText::Prose` reads it in order as one passage. Ten rows
+  walked, each a whole sentence.
+- **The "+" are a group.** Down from Strength's "+" took the column beside it, nearer than the next
+  "+", and Up took another. Now the same rule as the skills of a tree (`Target::group`).
+- **The last point.** It takes all four "+" with it, and the cursor went to the panel's entrance.
+  `MenuCursor::OnRow` keeps it on that attribute's row.
+- **The heading** ("Character. Name. Level 2 Necromancer") came again on every step from a "+" to a
+  row, as the "+" had none. A "+" now carries the rows' heading (`CharacterStats::Identity`).
+- Left: after the last point the heading is said once more, as the reader resets when the "+" goes.
+
+### The pointer at rest
+
+Between the skill buttons was over the HUD, and there a skill key's press is lost **when Quick Cast
+is on**: the message goes to the UI first and `PanelManager+0xB8` says it was taken (`0x8460D0`, read
+by the dispatcher at `0x120327`), so the handler is not called. Its release still is. MEASURED, the
+same keys and the option on: `quick pressed=0` alone with the pointer at 1282,1389, `pressed=1
+accepted=1` at 4,1436 and over the world. With the option off the key selected from anywhere.
+
+It cannot go back over the world: the game names what is under it. The bottom-left corner holds no
+widget, and the game drops its target at the bottom edge (READ, `0xF2697`). MEASURED: no `World
+target` line in a session in town and the Blood Moor, fighting. Not seen at other resolutions.
+
+### Not run
+
+- A skill that flies as a quick cast; Attack at a Zombie was run ([skill hotkeys](skill-hotkeys.md#quick-cast)).
+- Corpse skills other than Raise Skeleton, on the keyboard or as quick casts.
+- Anything with a pad. The pad shares only `Shown`.
+
+An NPC's scrolling speech is no place of the cursor's: an arrow took it to the panel's
+`ScrollController` and `DownArrow`, said by those names (Akara's first talk). The arrows do nothing
+while it plays, and Escape skips it as before.
+
+Run end to end on a new Necromancer in Spanish, the option on: Warriv and Akara by scanner and D, the
+Den of Evil in the quest log, Blood Moor, two kills, a skeleton from the bound key and one from W
+(usable corpses 2 to 1), "Cadáveres usables cerca: 0" from both with none near.
+- **Not reproduced:** a player's Fire Bolt reading no tooltip until it had a point. Read in order on
+  a level 3 Sorceress with a point to spend, Spanish and English, autodetail on and off, from the
+  tab, from below and from beside. If it comes again, look for `[interaction] held back a skill
+  tooltip` in that player's log.

@@ -19,6 +19,8 @@ enum class Button { Left, Right };
 // True when a point of the game's client pixels lies in the game's window and the window is in
 // front: the pointer goes nowhere else, so a click never lands on another window.
 bool Within(NativeUi::Cell point);
+// A small rectangle in the client's bottom-left corner; no size while the game is not in front.
+NativeUi::Rect BottomCorner();
 // True when the pointer stands on a point of the game's client pixels.
 bool At(NativeUi::Cell point);
 // The pointer on the middle of the rectangle, now, or on the part of it nearest the middle that a

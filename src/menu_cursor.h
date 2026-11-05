@@ -70,6 +70,8 @@ int Beyond(const Target& target);
 // Where a menu is entered: the top-most thing in view, the left-most of those,
 // and of the things set aside only when there is nothing else.
 Place First(std::span<const Target> targets);
+// What stands on the row of `rect`: the middles nearest in height, then along the row.
+Place OnRow(std::span<const Target> targets, const Rect& rect);
 // `byCell` steps a grid one cell at a time, as putting an item down needs.
 // The place itself is returned when nothing lies that way. A link from the
 // place that way is the step, the last one made first.

@@ -17,4 +17,8 @@ struct Target {
 bool Initialize(const D2RL::PluginContext* context);
 // Nothing when the game targets nothing, or the image is not the one read. UI thread.
 std::optional<Target> Read() noexcept;
+// The game takes this unit for what the pointer is on, as its own input code does, until
+// Release. False when it cannot, or the game's filter refuses it. UI thread.
+bool Hold(uint32_t type, uint32_t id) noexcept;
+void Release() noexcept;
 }

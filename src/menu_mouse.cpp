@@ -13,6 +13,7 @@ namespace {
 // Policy, not game constants. The game reads the mouse once a frame.
 constexpr uint64_t SettleMs = 60; // from a move of the pointer to a press on what it is on
 constexpr uint64_t HoldMs = 40;   // from a press to its release
+constexpr int CornerSide = 8;     // the corner the pointer rests in during play, its middle 4 pixels from the edges
 constexpr int PointerSlack = 2;   // pixels a pointer may stand off a point and still be on it
 
 enum class Act { Place, Down, Up, Wheel };
@@ -80,6 +81,12 @@ bool Within(NativeUi::Cell point) {
 	RECT client{};
 	if (!Foreground() || !GetClientRect(window, &client)) return false;
 	return point.x >= client.left && point.y >= client.top && point.x < client.right && point.y < client.bottom;
+}
+
+NativeUi::Rect BottomCorner() {
+	RECT client{};
+	if (!Foreground() || !GetClientRect(GetForegroundWindow(), &client)) return {};
+	return {client.left, client.bottom - CornerSide, CornerSide, CornerSide};
 }
 
 bool At(NativeUi::Cell point) {

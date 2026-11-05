@@ -2,6 +2,29 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Corpses, sliders, the attributes and quick cast by keyboard — 2026-11-05 (unreleased)
+
+Players' keyboard reports, each reproduced live on 3.3.94995 first. 141/141. **Not committed.**
+- **Corpse skills** did nothing by keyboard: cast at the player's cell, not on a corpse. All nine now
+  go on the nearest usable corpse, any class; none near says so ([actions](docs/keyboard-actions.md#skills-aimed-at-a-corpse)).
+  Seen: `Skeleton: 1`.
+- **Sliders** stepped twice and said the number before: the game had already stepped when the mod
+  looked. Seen `8 -> 7 -> 6 -> 7 -> 8` ([keyboard play](docs/keyboard-play.md#sliders-one-step-and-the-number-said-is-the-value)).
+  The stale number was the pad's too; that half is shared, not run with a pad.
+- **Attributes:** J read tooltips with their lines turned over; the "+" jumped columns; the last point
+  threw the cursor to the top; the heading repeated ([same](docs/keyboard-play.md#the-attributes)).
+- **Quick Cast** on: skill keys did nothing, as the parked pointer sat on the HUD, which took the press.
+  The pointer rests in the bottom corner now, and a quick cast is aimed ([skill hotkeys](docs/skill-hotkeys.md#quick-cast)).
+  Seen on a corpse, and with Attack at a Zombie: the game walks up and strikes that unit, as a click.
+
+**Not run:** a skill that flies as a quick cast (the player's Miasma); other corpse skills; a pad.
+
+**Not reproduced:** Fire Bolt reading no tooltip without a point. Needs that player's log.
+
+Known: the heading is said once more after the last point; a quick cast of Teleport goes to the corner.
+
+**Next step:** a tester's word on the keyboard after the release.
+
 ## The pad walks to its target as the mouse does; guidance follows the scanner — 2026-11-04 (release 1.0.7)
 
 The user: an attack should walk to the enemy, as in a modern ARPG, and so should A on an NPC, for

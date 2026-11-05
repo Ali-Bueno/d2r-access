@@ -166,6 +166,18 @@ Place First(std::span<const Target> targets) {
 	return IsGrid(*first) ? OnCell(*first, {0, 0}) : Place{first->widget, {}, {}};
 }
 
+Place OnRow(std::span<const Target> targets, const Rect& rect) {
+	const Target* best = nullptr;
+	std::pair<int, int> least;
+	for (const auto& target : targets) {
+		if (!Drawn(target) || target.aside) continue;
+		const std::pair score{std::abs(target.rect.y + target.rect.height / 2 - (rect.y + rect.height / 2)),
+			std::abs(target.rect.x + target.rect.width / 2 - (rect.x + rect.width / 2))};
+		if (!best || score < least) { best = &target; least = score; }
+	}
+	return best ? Settle(targets, Place{best->widget, {}, {}}) : Place{};
+}
+
 Place Move(std::span<const Target> targets, const Place& from, Direction direction, bool byCell, std::span<const Link> links) {
 	const auto* current = Find(targets, from.widget);
 	if (!current) return First(targets);

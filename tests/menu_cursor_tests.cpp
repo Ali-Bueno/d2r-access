@@ -82,6 +82,26 @@ uintptr_t Step(const std::vector<Target>& targets, uintptr_t from, Direction dir
 
 int main() {
 	{
+		// The attributes: a row, its "+" gone, and the next column a little higher and a little lower.
+		constexpr uintptr_t Strength = 41, Damage = 42, Rating = 43, Close = 44;
+		std::vector<Target> sheet{{Strength, {222, 403, 158, 33}}, {Damage, {509, 358, 205, 57}}, {Rating, {509, 420, 205, 57}}, {Close, {874, 410, 55, 56}}};
+		sheet.back().aside = true;
+		const Rect plus{448, 392, 55, 56};
+		Check(MenuCursor::OnRow(sheet, plus).widget == Strength, "a \"+\" that went leaves the cursor on its own row");
+		Check(!MenuCursor::OnRow(std::span<const Target>{}, plus).widget, "with nothing left there is no row to stay on");
+		sheet[0].aside = sheet[1].aside = sheet[2].aside = true;
+		Check(!MenuCursor::OnRow(sheet, plus).widget, "a way out is not a row");
+	}
+	{
+		// Four "+" in a column; the column beside it is nearer than the next "+".
+		constexpr uintptr_t Plus = 50, Beside = 60;
+		std::vector<Target> sheet;
+		for (int i = 0; i < 4; ++i) { sheet.push_back({Plus + i, {448, 392 + 171 * i, 55, 56}}); sheet.back().group = 1; }
+		sheet.push_back({Beside, {509, 494, 205, 57}});
+		Check(MenuCursor::Move(sheet, {Plus, {}, {}}, Direction::Down, false).widget == Plus + 1, "a step from a \"+\" goes to the next \"+\", not the column beside it");
+		Check(MenuCursor::Move(sheet, {Plus + 3, {}, {}}, Direction::Up, false).widget == Plus + 2, "and back up the same way");
+	}
+	{
 		// Columns 0..9, rows 0..3: an armour at columns 1-2, rows 0-1, a spear at column 3, rows 0-2.
 		const auto targets = Inventory({10, 4, {{1, 0, 2, 2}, {3, 0, 1, 3}}});
 		Check(MenuCursor::First(targets) == Place{Head, {}, {}}, "a menu is entered at its top-most control");

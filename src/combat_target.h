@@ -4,7 +4,9 @@
 #include "navigation_grid.h"
 #include "radar.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 // Which monster the fighting keys mean. A sighted player points at one with the
@@ -44,6 +46,8 @@ struct Screen {
 // Whether `at` is on the screen around `player`. Only what is on screen can be
 // clicked, so only that is fought or used.
 bool OnScreen(Position player, Position at, const Screen& screen = {});
+// The place in `corpses` of the nearest one on screen; none when there is none.
+std::optional<size_t> NearestOnScreen(Position player, const std::vector<Position>& corpses, const Screen& screen = {});
 
 class Lock {
 public:

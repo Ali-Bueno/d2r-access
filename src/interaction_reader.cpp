@@ -1123,6 +1123,8 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		readout.focusKey = std::to_string(focus.widget);
 		if (!progression.readout.Empty() || progression.skill) {
 			readout = progression.readout;
+			// The rows' own lead, so going between a row and its "+" does not say it again.
+			if (type.kind == UiText::Kind::StatButton) readout.body = CharacterStats::Identity(focus.panel);
 			if (type.kind == UiText::Kind::StatButton && AutoDetail::Enabled()) Append(readout.option, progression.description);
 			if (!progression.skill && !snapshot.nodes.empty() && !snapshot.nodes.front().enabled)
 				Append(readout.option, Strings::Current().unavailable);

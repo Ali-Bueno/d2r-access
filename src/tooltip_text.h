@@ -33,6 +33,8 @@ struct Body {
 };
 
 Body Read(std::string_view body);
+// A text the game keeps top line first, as a stat's explanation: one passage, however it was wrapped.
+std::string Prose(std::string_view body);
 
 struct Description {
 	std::string headline; // the name, and in a shop the price

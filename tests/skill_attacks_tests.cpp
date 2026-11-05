@@ -62,6 +62,11 @@ int main() {
 		Check(SkillCast::OnUnit(true, true, skill) == 10, "stationary movement skill uses native extended left command");
 		Check(SkillCast::OnUnit(false, true, skill) == 17, "stationary movement skill uses native extended right command");
 	}
+	// Raise Skeleton, Corpse Explosion, Raise Skeletal Mage, Poison Explosion, Revive, Find Potion, Find Item, Grim Ward, Engorge.
+	for (const int skill : {70, 74, 80, 83, 95, 131, 142, 150, 379})
+		Check(Generated::SkillTargetsCorpse(skill), "a corpse skill is known from the game's table");
+	for (const int skill : {-1, 0, 36, 69, 75, 100000})
+		Check(!Generated::SkillTargetsCorpse(skill), "any other skill is not aimed at a corpse");
 	Check(Generated::SkillAttackFor(-1) == SkillAttack::None, "no skill is not an attack");
 	Check(Generated::SkillAttackFor(100000) == SkillAttack::None, "a skill the table does not know is not an attack");
 	// 'sbw ' Short Bow, 'lxb ' Light Crossbow; 'ssd ' Short Sword, 'jav ' Javelin.

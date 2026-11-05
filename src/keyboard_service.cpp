@@ -47,10 +47,12 @@
 #include "native_stash_pages.h"
 #include "native_belt_rows.h"
 #include "native_entities.h"
+#include "native_hover.h"
 #include "spoken_direction.h"
 #include "native_ground_items.h"
 #include "native_level_exits.h"
 #include "native_rooms.h"
+#include "native_skill_hotkeys.h"
 #include "native_skill_hand.h"
 #include "native_skill_icons.h"
 #include "native_skill_navigation.h"
@@ -1352,9 +1354,55 @@ void StepTarget(const Lifecycle& state, int delta) {
 	ScreenReader::Speak(Describe(scene.world, target->entity, target->steps), true);
 }
 
+// The id of the nearest usable corpse on screen, read afresh.
+std::optional<uint32_t> NearestCorpse(const Lifecycle& state) {
+	Scene scene;
+	if (!Look(state, scene, false)) return std::nullopt;
+	const auto usable = NativeEntities::LastUsableCorpses();
+	const auto nearest = CombatTarget::NearestOnScreen(usable.player, usable.corpses);
+	if (!nearest || usable.playerId != state.player) return std::nullopt;
+	return usable.ids[*nearest];
+}
+
+// Aimed at the nearest usable corpse, as the pointer or the pad's aim would: the game casts nothing at a bare cell.
+void CastOnCorpse(const Lifecycle& state, Hand hand, int skill) {
+	if (const auto corpse = NearestCorpse(state)) {
+		AsyncLog::InfoF(g_context, "[keyboard] skill %d on the corpse id=%u", skill, *corpse);
+		(void)NativeActions::SkillOn(hand, Unit::Monster, *corpse);
+		return;
+	}
+	AsyncLog::InfoF(g_context, "[keyboard] skill %d: no usable corpse on screen", skill);
+	ScreenReader::Speak(Format(Strings::Current().usableCorpses, 0), true);
+}
+
+// A quick cast goes where the pointer is, and the pointer is parked: the game is given what
+// the pointer would be on, the same corpse or monster the skill's key would take.
+bool AimQuickCast(int skill) {
+	if (!KeyboardService::Playing() || Generated::SkillTargetsCorpse(skill)) return false;
+	if (Generated::SkillAttackFor(skill) == Generated::SkillAttack::None && !Generated::SkillRequiresEnemy(skill)) return false;
+	Scene scene;
+	if (!Look(g_state, scene, false)) return false;
+	bool moved = false;
+	const auto ranked = Monsters(scene);
+	const auto* target = g_lock.Keep(ranked, moved);
+	return target && NativeHover::Hold(target->entity.unit, target->entity.id);
+}
+
+// The game's hover filter refuses a corpse, so that cast is sent as the skill's key sends it,
+// the skill being in hand by now.
+void QuickCastOnCorpse(int skill) {
+	if (!KeyboardService::Playing() || !Generated::SkillTargetsCorpse(skill)) return;
+	CastOnCorpse(g_state, NativeActions::SelectedSkill(Hand::Left) == skill ? Hand::Left : Hand::Right, skill);
+}
+
 void BeginFight(const D2RL::PluginContext* context, const Lifecycle& state, Hand hand, uint64_t now) {
 	if (!Ready()) return;
 	const int skill = NativeActions::SelectedSkill(hand);
+	if (Generated::SkillTargetsCorpse(skill)) {
+		End("corpse skill", true);
+		CastOnCorpse(state, hand, skill);
+		return;
+	}
 	if (KindOf(hand) == Generated::SkillAttack::None) {
 		// Not an attack: a cry, an armour, a summons. Used once. A self buff needs
 		// neither terrain nor an enemy; the game owns town, mana and form rules.
@@ -2424,6 +2472,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 	if (nativeHooks) (void)NativeClassChoice::Initialize(context);
 	if (nativeHooks) (void)NativeListRows::Initialize(context);
 	if (nativeHooks) (void)NativeStashPages::Initialize(context);
+	NativeSkillHotkeys::SetQuickAim(AimQuickCast, QuickCastOnCorpse);
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) { Unregister(); return false; }
 	for (auto kind : {Kind::GameJoined, Kind::GameLeft, Kind::LocalPlayerReady, Kind::ActChanged, Kind::LevelChanged}) {

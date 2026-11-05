@@ -229,11 +229,12 @@ the same as an option with toggles, the same as the controller would."*
 - On a slider (`SettingsSliderWidget`) or an option that steps
   (`CarouselWidget`) the left and right arrows change the value and the
   cursor stays. Up and down move the cursor.
-- **The mod looks before it clicks.** READ: with the pointer over one the
-  game itself steps it when the arrow key goes down. So the value is read,
-  120 ms are waited, and the control's own arrow is clicked only if the value
-  has not changed. The log says which: `by the game on the key` or `by a
-  click on its arrow`. A value cannot be stepped twice either way.
+- **The mod looks before it clicks.** MEASURED: with the pointer over one the
+  game itself steps it as the arrow key goes down, before the key reaches the
+  mod. So the value of the tick before is kept, 120 ms are waited, and the
+  control's own arrow is clicked only if the value has not changed. The log
+  says which: `by the game on the key` or `by a click on its arrow`. Reading
+  the value at the key stepped it twice ([2026-11-05](keyboard-play.md#sliders-one-step-and-the-number-said-is-the-value)).
 - A on a slider says its value and clicks nothing: a click on the track sets
   the value to where the click was. A on an option that steps goes to its
   next state.

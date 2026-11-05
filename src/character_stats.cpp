@@ -129,6 +129,14 @@ std::string LevelAndClass(uintptr_t panel) {
 	return result;
 }
 
+bool SupportedPanel(std::string_view name) { return name == CharacterPanel || name == HirelingPanel; }
+}
+
+bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type&) {
+	if (!focus.panel || !focus.widget || !SupportedPanel(NativeWidgets::ReadName(focus.panel))) return false;
+	return TitleOf(focus) != 0;
+}
+
 // Panel name plus who the character is, so entering the panel says both once.
 std::string Identity(uintptr_t panel) {
 	const auto panelName = NativeWidgets::ReadName(panel);
@@ -136,14 +144,6 @@ std::string Identity(uintptr_t panel) {
 	Append(result, ChildText(panel, "CharacterName"));
 	Append(result, panelName == HirelingPanel ? ChildText(panel, "HireTypeText") : LevelAndClass(panel));
 	return result;
-}
-
-bool SupportedPanel(std::string_view name) { return name == CharacterPanel || name == HirelingPanel; }
-}
-
-bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type&) {
-	if (!focus.panel || !focus.widget || !SupportedPanel(NativeWidgets::ReadName(focus.panel))) return false;
-	return TitleOf(focus) != 0;
 }
 
 UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {

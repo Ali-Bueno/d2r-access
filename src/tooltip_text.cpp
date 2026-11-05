@@ -132,6 +132,18 @@ Body Read(std::string_view body) {
 	return result;
 }
 
+std::string Prose(std::string_view body) {
+	std::string result;
+	while (!body.empty()) {
+		const auto newline = body.find('\n');
+		const auto line = UiText::Clean(StripFont(std::string(body.substr(0, newline))));
+		if (!line.empty()) result += (result.empty() ? "" : " ") + line;
+		if (newline == std::string_view::npos) break;
+		body.remove_prefix(newline + 1);
+	}
+	return result;
+}
+
 std::string Comparison(std::span<const std::string> extras) {
 	std::string result;
 	for (const auto& extra : extras)

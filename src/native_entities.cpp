@@ -911,8 +911,8 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 	uint32_t playerClass = 0;
 	const bool classRead = Peek(player + UnitClass, playerClass);
 	if (classRead) g_playerClass = playerClass;
-	usable.necromancer = g_usableCorpsesSupported && classRead && playerClass == NecromancerClass
-		&& DynamicPosition(player, room, usable.player);
+	const bool readCorpses = g_usableCorpsesSupported && classRead && DynamicPosition(player, room, usable.player);
+	usable.necromancer = readCorpses && playerClass == NecromancerClass;
 	usable.playerId = playerId;
 	usable.readMs = GetTickCount64();
 	for (size_t r = 0; r < rooms.size(); ++r) {
@@ -927,9 +927,12 @@ bool ReadPlayer(uintptr_t player, uintptr_t tablesAddress, uint32_t playerId, ui
 			if (uint32_t unitId = 0; unitType == GroundItemLayout::PlayerType && Peek(unit + UnitId, unitId)) loadedPlayers.push_back(unitId);
 			EntityRadar::Entity entity;
 			if (unitType == MonsterType) NoteDead(unit);
-			if (Radar::Position at; usable.necromancer && !past && unitType == MonsterType
+			if (Radar::Position at; readCorpses && !past && unitType == MonsterType
 				&& UsableCorpse(unit, tablesAddress, tables.monsterCount, tables.monsters) && DynamicPosition(unit, candidateRoom, at))
-				usable.corpses.push_back(at);
+				if (uint32_t corpseId = 0; Peek(unit + UnitId, corpseId)) {
+					usable.corpses.push_back(at);
+					usable.ids.push_back(corpseId);
+				}
 			if ((includeCorpse && unitType == GroundItemLayout::PlayerType && ReadPlayerCorpse(unit, candidateRoom, playerId, includePlayers, entity))
 				|| (includePlayers && unitType == GroundItemLayout::PlayerType && ReadOtherPlayer(unit, candidateRoom, playerId, entity))
 				|| (unitType == MonsterType && ReadMonster(unit, candidateRoom, tables, pierce, pets, entity))
