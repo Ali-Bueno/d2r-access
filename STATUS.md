@@ -2,9 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Corpses, sliders, the attributes and quick cast by keyboard — 2026-11-05 (unreleased)
+## Corpses, sliders, the attributes and quick cast by keyboard — 2026-11-05 (release 1.0.8)
 
-Players' keyboard reports, each reproduced live on 3.3.94995 first. 141/141. **Not committed.**
+Players' keyboard reports, each reproduced live on 3.3.94995 first. 141/141.
 - **Corpse skills** did nothing by keyboard: cast at the player's cell, not on a corpse. All nine now
   go on the nearest usable corpse, any class; none near says so ([actions](docs/keyboard-actions.md#skills-aimed-at-a-corpse)).
   Seen: `Skeleton: 1`.
