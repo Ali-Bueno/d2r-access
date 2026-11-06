@@ -62,6 +62,13 @@ inline constexpr Evidence Checks[] = {
 inline constexpr size_t ItemFileIndex = 0x34;
 inline constexpr size_t LowQualityRows = 0x1688, LowQualityCount = 0x1690, LowQualityStride = 0x22, LowQualityText = 0x20;
 inline constexpr uint32_t LowQuality = 1; // D2RL::Items::Quality::Low
+// The item level: the int32 at [ItemData + 0x38], read and floored at 1 at 0x37A85F. Only that
+// read is hashed: the loader patches further on in the same function. docs/ground-items.md
+inline constexpr size_t ItemLevel = 0x38;
+inline constexpr Evidence ItemLevelChecks[] = {
+	{0x37A83A, 57, 0xBA77792377A357D1ULL},
+};
+inline constexpr int SocketsStat = 194; // ItemStatCost.txt 'item_numsockets'
 inline constexpr Evidence LowQualityChecks[] = {
 	{0x36CE70, 119, 0x1968B631994368E0ULL},
 	{0x3141C0, 102, 0xD8A8CC2087C546B6ULL},

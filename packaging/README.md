@@ -274,6 +274,7 @@ The in-game switches are in the Ctrl+S list (BACK+RB on the controller), in grou
 - **Town NPCs listed from anywhere in town** (on): every town NPC can be scanned and followed from anywhere in town, even before you have seen them.
 - **Inventory edge bump** (on): a knock when the inventory cursor hits the edge, or leaves the backpack or its equipment slots for the vendor or stash.
 - **Silver items** (on): items whose name the game draws in silver (socketed or ethereal) say "silver" after the name, as magic items say "magic".
+- **Sockets and item level on the ground** are D2RLoader's own options, not this list's: with Show Ground Sockets and Display Item Levels on in its settings (the gear below Play, the Game tab), a ground item says them after its name, as "Gnarled Staff, silver, 52, Sockets: 2".
 - **Focus on stat points** (on): the character screen starts on Strength's plus button when you have points to spend.
 - **Screen hints** (on): short hints on character select and the name box.
 - **Wall bump sound** (on): a thud when you push into a wall and stop moving; your footsteps also go quiet while you push (the footstep filter, Ctrl+F).

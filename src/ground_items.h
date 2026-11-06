@@ -108,6 +108,7 @@ inline constexpr size_t MaxDoorwayVoices = MaxDoorVoices;
 inline constexpr size_t MaxPadVoices = 2;
 // Spacing for the rest of a pile; an item that has just come within reach speaks at once.
 inline constexpr uint64_t SpeechGapMs = 900, PollMs = 50, SnapshotExpiryMs = 300;
+inline constexpr uint64_t LoaderConfigCheckMs = 2000; // the loader's options can change while the game runs
 // Exits never move, so their list is refreshed slowly; only the listener position is polled fast.
 inline constexpr uint64_t ExitRefreshMs = 500;
 // Near-source gain for peak-normalized recordings; center panning halves each channel.

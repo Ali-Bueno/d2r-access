@@ -211,6 +211,40 @@ both functions are fingerprinted in `LowQualityChecks`, matched against the live
 mismatch only keeps the old "low quality" word. Inventory headlines already read the game's own
 tooltip name; the fallback names of arrivals and held items still use the word. Unheard live.
 
+## The loader's sockets and item level (2026-11-06)
+
+A tester: D2RLoader's "Show Ground Sockets" adds a number to the ground label and it is not read;
+"Display Item Levels" is read in the inventory only. The mod builds a ground name itself and never
+sees the label, so it follows the same two options and says the numbers after the colour:
+"Gnarled Staff, silver, 52, Sockets: 2". Both off, the speech is what it was. The loader's menu is
+the switch, so there is no Ctrl+S entry. The name is one string, so the scanner gets it too.
+
+- **Options:** `show_ground_sockets` and `display_item_levels` of `[d2rcore.items]` in
+  `d2rloader.toml`, beside the plugin's own config. The SDK has no call for them. The file's date is
+  checked every 2 s and the file read only when it changed; the log says `[items] loader labels:`.
+  MEASURED: the loader writes the file on Apply, and the log followed within a second.
+- **The label:** `Bastón nudoso superior (99) [+3]`, the level in brackets and the sockets as `[+N]`.
+- **Which items:** level on weapons, armor, rings, amulets, charms and jewels (`weap`, `armo`, `ring`,
+  `amul`, `char`, `jewl` through the ItemTypes ancestry); sockets on normal and superior items.
+  MEASURED against the screen on staffs, leather armor, ring, amulet, small charm and jewel at 52,
+  magic and rare staffs at 99, and rune, chipped gem, potion, key and scroll with no number. Not seen:
+  a socketed low-quality item, left out by the option's comment, nor a socketed magic or rare one.
+- **Sockets:** stat 194, `item_numsockets` in `ItemStatCost.txt`, through the getter `0x2F5020`: the
+  item's total, filled or not. An item with none says nothing. The words are the existing
+  `socketsCount`, translated already; the level is the bare number the tester asked for.
+- **Item level:** the int32 at ItemData+0x38, the field after ITEMS_GetFileIndex's +0x34. Read at
+  `0x37A85F` right after the ItemData getter `0x34A500`, floored at 1 and written back; a scan of the
+  getter's 345 callers found no other read of that offset right after it. `ItemLevelChecks` hashes 57
+  bytes at `0x37A83A` only: the 3.3.94995 live dump first differs from the reference image at
+  `0x37AB2B`, past the read, and the slice matches both. A mismatch only leaves the level out.
+
+Seen live on 3.3.94995 with both options switched in the loader's menu, every staff and item above
+matching its label: `Bastón nudoso, plateado, 52, Con huecos: 2`. Read from the log, not heard.
+
+Test items, from the loader's console (Ctrl+`, game started with `-debug_mode`): `cheat itemspawnlevel 52`
+then `cheat spawn cst,num=10`. The spawn's own `lvl=` was ignored (they came at 99). About one staff in
+four had sockets. They are not saved.
+
 ## Gold amounts (2026-10-12)
 
 A pile is named without its amount on the way past; the amount is said once it is picked up
@@ -470,6 +504,8 @@ on the UI thread. It retains no native item/room pointers between polls.
 | Items rows | `0x314110`: pointer/count at bank `+0x15A0/+0x15A8`, stride `0x1C0` |
 | Item code / localized name / primary type | `0x1807D0`, `0x9A1B0`, `0x293CC0`: row `+0x80/+0xFC/+0x12E` |
 | Item quality | `0x36CF60`: DWORD at `Unit+0x10 -> +0`; enum from PluginSDK `Items::Quality` |
+| Item level | `0x37A85F`: DWORD at `Unit+0x10 -> +0x38`, floored at 1 |
+| Sockets | Stat 194, `ItemStatCost.txt` `item_numsockets`, through `0x2F5020` |
 | Item type table | `0x293CC0`: bank `+0x1348/+0x1350`, stride `0xE8` |
 | Type ancestry layout | Installed CASC `ItemTypes.bin`: four-byte Code then two uint16 Equiv indices; cross-checked against `itemtypes.txt` |
 | Gold amount | `0x370C90` reads stat 14, matching `ItemStatCost.txt` `gold`; guarded read-only getter `0x2F5020(unit, stat, layer=0)` |

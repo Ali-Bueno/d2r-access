@@ -3,6 +3,7 @@
 #include <D2RLPlugin/item.h>
 #include <algorithm>
 #include <atomic>
+#include <cstdio>
 
 namespace D2RAccess::GroundItemText {
 namespace {
@@ -11,6 +12,7 @@ constexpr std::string_view GenderTags[]{"[fs]", "[ms]", "[fp]", "[mp]", "[ns]", 
 // A name format may open with the grammar header "a<adjective arg>n<noun arg>:".
 constexpr size_t HeaderSize = 5, NounDigit = 3;
 std::atomic<bool> g_silver{true};
+std::atomic<LoaderLabels> g_loaderLabels{};
 constexpr std::string_view BaseArg = "%0", SuffixArg = "%1";
 
 size_t FirstTag(std::string_view text) {
@@ -58,7 +60,13 @@ bool IsSilver(uint32_t quality, uint32_t flags) {
 }
 bool SilverEnabled() { return g_silver.load(std::memory_order_relaxed); }
 void SetSilverEnabled(bool enabled) { g_silver.store(enabled, std::memory_order_relaxed); }
-std::string Describe(std::string_view name, uint32_t quality, int goldAmount, uint32_t itemFlags) {
+LoaderLabels CurrentLoaderLabels() { return g_loaderLabels.load(std::memory_order_relaxed); }
+void SetLoaderLabels(LoaderLabels labels) { g_loaderLabels.store(labels, std::memory_order_relaxed); }
+bool LabelsSockets(uint32_t quality) {
+	using D2RL::Items::Quality;
+	return quality == static_cast<uint32_t>(Quality::Normal) || quality == static_cast<uint32_t>(Quality::Superior);
+}
+std::string Describe(std::string_view name, uint32_t quality, int goldAmount, uint32_t itemFlags, LabelNumbers numbers) {
 	if (name.empty()) return {};
 	// A pile's amount is said when it is picked up (GroundItems::Purse), not on every pass.
 	if (goldAmount > 0) return std::string(name);
@@ -66,6 +74,12 @@ std::string Describe(std::string_view name, uint32_t quality, int goldAmount, ui
 	const auto& labels = Strings::Current().itemQualities;
 	if (quality < labels.size() && *labels[quality]) { result += ", "; result += labels[quality]; }
 	if (SilverEnabled() && IsSilver(quality, itemFlags)) { result += ", "; result += Strings::Current().silverItem; }
+	if (numbers.level) { result += ", "; result += std::to_string(numbers.level); }
+	if (numbers.sockets) {
+		char text[80]{};
+		std::snprintf(text, sizeof(text), Strings::Current().socketsCount, static_cast<int>(numbers.sockets));
+		result += ", "; result += text;
+	}
 	return result;
 }
 const char* Enabled(bool enabled) {

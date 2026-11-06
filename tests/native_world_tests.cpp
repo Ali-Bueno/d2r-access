@@ -153,6 +153,15 @@ int main() {
 	PlayerPresenceTests();
 	DisplacedPresenceTests();
 	{
+		using RadarConfig::ParseLoaderLabels;
+		const auto both = ParseLoaderLabels("[d2rcore.items]\r\n# comment\r\nshow_ground_sockets = true\r\ndisplay_item_levels = true\r\nmaximum_sockets = true\r\n");
+		Check(both.sockets && both.levels, "both loader options are read, with CRLF and other keys around them");
+		const auto one = ParseLoaderLabels("[d2rcore.items]\nshow_ground_sockets = false\ndisplay_item_levels = true\n");
+		Check(!one.sockets && one.levels, "each option is its own");
+		const auto other = ParseLoaderLabels("[d2rcore.player]\nshow_ground_sockets = true\n");
+		Check(!other.sockets && !other.levels, "only the items section counts");
+		const auto bad = ParseLoaderLabels("[d2rcore.items]\ndisplay_item_levels = true\nshow_ground_sockets = maybe\n");
+		Check(!bad.sockets && !bad.levels, "a malformed option adds nothing");
 		using RadarConfig::ParseNavigation;
 		Check(ParseNavigation("").valid && !ParseNavigation("").fullAssistance,
 			"navigation defaults to exploration-first when omitted");

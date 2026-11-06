@@ -380,6 +380,14 @@ int main() {
 		SetSilverEnabled(false);
 		Check(Describe("Leather Armor", 2, 0, FlagEthereal) == "Leather Armor", "the switch silences it");
 		SetSilverEnabled(true);
+		Check(Describe("Gnarled Staff", 2, 0, FlagSocketed, {52, 2}) == "Gnarled Staff, silver, 52, Sockets: 2", "the level, then the sockets, follow the colour");
+		Check(Describe("Ring", 4, 0, 0, {30, 0}) == "Ring, magic, 30", "the level alone");
+		Check(Describe("Staff", 2, 0, FlagSocketed, {0, 3}) == "Staff, silver, Sockets: 3", "the sockets alone");
+		Check(Describe("Staff", 2, 0, 0, {}) == "Staff", "no numbers, nothing added");
+		Check(Describe("Gold", 2, 37, 0, {52, 2}) == "Gold", "a gold pile stays its name");
+		Check(LabelsSockets(2) && LabelsSockets(3), "the loader counts sockets on normal and superior items");
+		Check(!LabelsSockets(1) && !LabelsSockets(4) && !LabelsSockets(7), "low quality, magic and better are not counted");
+		Check(!CurrentLoaderLabels().sockets && !CurrentLoaderLabels().levels, "the labels stay off until the loader's file says so");
 	}
 	Check(MatchesLabel("Hacha\nDaño: 1-5", {"Hacha"}), "nearby tooltip duplicates are recognized");
 	Check(!MatchesLabel("Hachazo", {"Hacha"}) && !MatchesLabel("Charsi", {"Hacha"}), "different names and NPCs keep their speech");

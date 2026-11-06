@@ -2,6 +2,19 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
+
+A tester: the number "Show Ground Sockets" adds to a ground label is not read, and "Display Item
+Levels" only in the inventory. Both options on: "Gnarled Staff, silver, 52, Sockets: 2"; off, as
+before. The loader's own options are the switch ([ground items](docs/ground-items.md#the-loaders-sockets-and-item-level-2026-11-06)).
+
+Seen live on 3.3.94995, 141/141: both options switched in the loader's menu, staffs, armor, ring,
+amulet, charm and jewel matching their labels on screen. From the log and the screen, not heard.
+
+**Not run:** a socketed low-quality, magic or rare item; the scanner saying the numbers.
+
+**Next step:** bfbeast's word.
+
 ## The launcher starts the loader for a copy of neither store — 2026-11-06 (release 1.0.9)
 
 Outside a Steam library and not in Battle.net's `product.db`: the loader starts instead of the

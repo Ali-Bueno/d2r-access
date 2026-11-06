@@ -21,7 +21,15 @@ bool IsSilver(uint32_t quality, uint32_t flags);
 // The `silver-items` switch of the Ctrl+S list.
 bool SilverEnabled();
 void SetSilverEnabled(bool enabled);
-std::string Describe(std::string_view name, uint32_t quality, int goldAmount, uint32_t itemFlags = 0);
+// D2RLoader's "Show Ground Item Sockets" and "Show Item Levels": the speech says what its labels show.
+struct LoaderLabels { bool sockets = false, levels = false; };
+LoaderLabels CurrentLoaderLabels();
+void SetLoaderLabels(LoaderLabels labels);
+// The loader counts sockets on normal and superior items only.
+bool LabelsSockets(uint32_t quality);
+// The numbers said after the name; a zero is not said.
+struct LabelNumbers { uint32_t level = 0, sockets = 0; };
+std::string Describe(std::string_view name, uint32_t quality, int goldAmount, uint32_t itemFlags = 0, LabelNumbers numbers = {});
 const char* Enabled(bool enabled);
 const char* SoundEnabled(bool enabled);
 const char* ExitSoundEnabled(bool enabled);

@@ -2,6 +2,7 @@
 
 #include "attack_reach.h"
 #include "entity_cues.h"
+#include "ground_item_text.h"
 #include "wall_tones.h"
 #include <D2RLPlugin/api.h>
 #include <optional>
@@ -23,6 +24,9 @@ Result Read(const D2RL::PluginContext* context);
 struct Navigation { bool fullAssistance = false; bool valid = true; };
 Navigation ParseNavigation(std::string_view config);
 Navigation ReadNavigation(const D2RL::PluginContext* context);
+
+// The [d2rcore.items] options of the loader's own d2rloader.toml; malformed, nothing is added.
+GroundItemText::LoaderLabels ParseLoaderLabels(std::string_view config);
 
 // The documented [npc] keys of the friendly NPC announcer. Absent keys keep
 // the feature's compiled defaults (NpcProximity::Settings), so nothing here

@@ -22,6 +22,7 @@ using namespace GroundItemLayout;
 using NativeMemory::Peek;
 uintptr_t g_base = 0;
 bool g_lowQualityNames = false; // LowQualityChecks verified
+bool g_itemLevels = false; // ItemLevelChecks verified
 struct Tables { uintptr_t items = 0, types = 0; uint64_t itemCount = 0, typeCount = 0; uintptr_t bank = 0; };
 }
 bool RuntimeRoots(uintptr_t& player, uintptr_t& tables) noexcept {
@@ -111,8 +112,14 @@ bool ReadItem(uintptr_t unit, uintptr_t room, const Tables& tables, GroundItems:
 	item.silver = GroundItemText::IsSilver(item.quality, flags);
 	// The prefix says the quality, so the quality word is left out: described as a normal item.
 	const auto lowQuality = item.quality == LowQuality ? LowQualityName(data, tables, nameId) : std::string{};
-	item.name = lowQuality.empty() ? GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0, flags)
-		: GroundItemText::Describe(lowQuality, static_cast<uint32_t>(D2RL::Items::Quality::Normal), 0, flags);
+	GroundItemText::LabelNumbers numbers;
+	const auto labels = GroundItemText::CurrentLoaderLabels();
+	if (labels.sockets && GroundItemText::LabelsSockets(item.quality))
+		numbers.sockets = static_cast<uint32_t>(std::max(StatAmount(unit, SocketsStat), 0));
+	if (labels.levels && g_itemLevels && (is(MakeItemCode("weap")) || is(MakeItemCode("armo")) || is(MakeItemCode("ring"))
+		|| is(MakeItemCode("amul")) || is(MakeItemCode("char")) || is(MakeItemCode("jewl")))) (void)Peek(data + ItemLevel, numbers.level);
+	item.name = lowQuality.empty() ? GroundItemText::Describe(item.baseName, item.quality, gold ? GoldAmount(unit) : 0, flags, numbers)
+		: GroundItemText::Describe(lowQuality, static_cast<uint32_t>(D2RL::Items::Quality::Normal), 0, flags, numbers);
 	return true;
 }
 }
@@ -210,6 +217,8 @@ bool Initialize(const D2RL::PluginContext* context) {
 	if (!LayoutCheck::Verify(context, context->exeBase, Checks, "items", "ground items disabled")) return false;
 	g_lowQualityNames = LayoutCheck::Verify(context, context->exeBase, LowQualityChecks, "low-quality names",
 		"low-quality items keep the plain quality word");
+	g_itemLevels = LayoutCheck::Verify(context, context->exeBase, ItemLevelChecks, "item levels",
+		"ground items say no item level");
 	g_base = context->exeBase;
 	AsyncLog::Info(context, "[items] Verified native ground item reader.");
 	return true;

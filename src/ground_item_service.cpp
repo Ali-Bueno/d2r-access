@@ -26,6 +26,9 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <limits>
 #include <mutex>
 #include <optional>
@@ -67,6 +70,23 @@ std::vector<std::string> g_itemLabels;
 std::string g_pickupLabel;
 GroundItems::Purse g_purse;
 bool g_pickupClick = false; // out of the list until the user's clicks per item type (decisions, 2026-10-13)
+uint64_t g_loaderConfigChecked = 0;
+std::filesystem::file_time_type g_loaderConfigStamp{};
+// d2rloader.toml sits beside the plugin's own config; it is read only when it was saved again.
+void RefreshLoaderLabels(const D2RL::PluginContext* context, uint64_t now) {
+	if (now - g_loaderConfigChecked < GroundItems::LoaderConfigCheckMs || !context->pluginConfigPath) return;
+	g_loaderConfigChecked = now;
+	const auto file = std::filesystem::path(context->pluginConfigPath).replace_filename("d2rloader.toml");
+	std::error_code error;
+	const auto stamp = std::filesystem::last_write_time(file, error);
+	if (error || stamp == g_loaderConfigStamp) return;
+	g_loaderConfigStamp = stamp;
+	std::ifstream in(file, std::ios::binary);
+	const std::string config{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+	const auto labels = RadarConfig::ParseLoaderLabels(config);
+	GroundItemText::SetLoaderLabels(labels);
+	AsyncLog::InfoF(context, "[items] loader labels: sockets=%d levels=%d", labels.sockets ? 1 : 0, labels.levels ? 1 : 0);
+}
 void __cdecl OnGameplay(const D2RL::PluginContext*, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	std::lock_guard lock(g_mutex);
@@ -382,6 +402,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	const uint64_t now = GetTickCount64();
 	if (command == Command::None && now - g_lastPoll < GroundItems::PollMs) return;
 	g_lastPoll = now;
+	RefreshLoaderLabels(context, now);
 	DWORD process = 0;
 	GetWindowThreadProcessId(GetForegroundWindow(), &process);
 	const bool playing = RadarUi::Inspect(process == GetCurrentProcessId()) == RadarUi::State::Playing;
@@ -492,6 +513,7 @@ void Unregister() {
 	g_speech = g_sound = g_exits = g_chests = g_quests = g_stash = true; g_suspended = true; g_stashOpen = false;
 	g_revision = g_lastPoll = g_entitiesRead = 0; g_command = Command::None; g_landmarks.clear(); g_containers.clear(); g_questObjects.clear(); g_shutDoors.clear(); g_shrines.clear();
 	g_nearbyLabels.clear(); g_labelsUpdated = 0; g_itemLabels.clear(); g_pickupLabel.clear();
+	g_loaderConfigChecked = 0; g_loaderConfigStamp = {}; GroundItemText::SetLoaderLabels({});
 }
 void NoteWorldTarget(std::string_view label) {
 	const bool item = g_pickupClick && !g_suspended && !label.empty()

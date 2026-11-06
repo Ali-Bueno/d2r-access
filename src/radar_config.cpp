@@ -65,6 +65,15 @@ Section ReadSection(const D2RL::PluginContext* context, Parser parse, const char
 	return result.valid ? result : Section{};
 }
 }
+GroundItemText::LoaderLabels ParseLoaderLabels(std::string_view config) {
+	GroundItemText::LoaderLabels labels;
+	const bool valid = ForEachKey(config, "[d2rcore.items]", [&](std::string_view key, std::optional<std::string_view> value) {
+		bool* option = key == "show_ground_sockets" ? &labels.sockets : key == "display_item_levels" ? &labels.levels : nullptr;
+		if (!option) return Line::Ignored;
+		return value && ParseBool(*value, *option) ? Line::Accepted : Line::Invalid;
+	});
+	return valid ? labels : GroundItemText::LoaderLabels{};
+}
 Result Parse(std::string_view config) {
 	Result result;
 	bool foundEnabled = false, foundVolume = false, foundDiagonals = false;
