@@ -22,6 +22,22 @@ void SettingsDate() {
 	Check(!ParseLastOnline(FirstRunSettings), "the first-run file has no date, so the license is still validated");
 }
 
+void NoStore() {
+	Check(NoStoreToValidate(false, BattleNetListing::NotListed), "outside a Steam library and not listed: nothing can validate");
+	Check(!NoStoreToValidate(true, BattleNetListing::NotListed), "a copy in a Steam library is a Steam copy");
+	Check(!NoStoreToValidate(false, BattleNetListing::Listed), "a listed copy is a Battle.net copy");
+	Check(!NoStoreToValidate(false, BattleNetListing::Unknown), "when the list cannot be read the normal flow runs");
+
+	using namespace std::string_view_literals;
+	constexpr auto db = "\x0a\x06" "agent\x12\x1e" "C:/ProgramData/Battle.net/Agent\x00\x1a" "D:/Games/Blizzard/Diablo II Resurrected\x22"sv;
+	Check(ListingIn(db, "D:\\Games\\Blizzard\\Diablo II Resurrected") == BattleNetListing::Listed, "a folder in the list is found, backslashes against its forward slashes");
+	Check(ListingIn(db, "d:\\games\\blizzard\\diablo ii resurrected\\") == BattleNetListing::Listed, "case and a trailing slash do not matter");
+	Check(ListingIn(db, "E:\\Elsewhere\\Diablo II Resurrected") == BattleNetListing::NotListed, "another folder is not listed");
+	Check(ListingIn("\x01\x02garbled", "D:\\Games\\D2R") == BattleNetListing::Unknown, "a list without the agent's folder is an unknown format");
+	Check(ListingIn("", "D:\\Games\\D2R") == BattleNetListing::Unknown, "an empty list is unknown");
+	Check(ListingIn(db, "") == BattleNetListing::Unknown, "no folder to look for is unknown");
+}
+
 void Decision() {
 	Check(Classify(DaysAgo(0), Now) == Verdict::Fresh, "today is fresh");
 	Check(Classify(DaysAgo(ValidateAfterDays - 1), Now) == Verdict::Fresh, "just under the threshold is fresh");
@@ -105,6 +121,7 @@ void KeySchedule() {
 
 int main() {
 	SettingsDate();
+	NoStore();
 	Decision();
 	DateChange();
 	Locale();

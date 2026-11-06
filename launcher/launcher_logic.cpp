@@ -12,6 +12,7 @@ constexpr std::string_view LastOnlineKey = "\"User Last Online\"";
 constexpr std::string_view FirstTimeKey  = "\"First Time\"";
 constexpr std::string_view Utf8Bom       = "\xEF\xBB\xBF";
 constexpr std::wstring_view SteamCommonFolder = L"\\steamapps\\common";
+constexpr std::string_view BattleNetAgentFolder = "battle.net/agent"; // every product.db names its own agent
 constexpr std::string_view LocaleKey     = "text_locale";
 constexpr std::string_view LocaleSection = "d2rloader";
 
@@ -88,6 +89,20 @@ bool InSteamLibrary(std::wstring_view gameFolder) {
 	while (!folder.empty() && folder.back() == L'\\') folder.pop_back();
 	const std::size_t game = folder.find_last_of(L'\\');
 	return game != std::wstring::npos && game + 1 < folder.size() && folder.substr(0, game).ends_with(SteamCommonFolder);
+}
+
+BattleNetListing ListingIn(std::string_view productDb, std::string_view gameFolder) {
+	const auto pathKey = [](std::string_view path) {
+		std::string key;
+		key.reserve(path.size());
+		for (const char c : path) key += c == '\\' ? '/' : static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+		return key;
+	};
+	const std::string db = pathKey(productDb);
+	std::string folder   = pathKey(gameFolder);
+	while (!folder.empty() && folder.back() == '/') folder.pop_back();
+	if (folder.empty() || db.find(BattleNetAgentFolder) == std::string::npos) return BattleNetListing::Unknown;
+	return db.find(folder) != std::string::npos ? BattleNetListing::Listed : BattleNetListing::NotListed;
 }
 
 std::optional<std::string> ManifestAppIdFor(std::string_view manifest, std::string_view installDir) {

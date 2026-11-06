@@ -18,7 +18,13 @@ Shipped in the game folder next to `D2R.exe` and `D2RLoader.exe`. Sources: `laun
    it, the original kept once as `Settings.json.before-d2raccess` ("First run" below). `User Last
    Online` younger than 20 days: fresh. Otherwise speak that the license is validated online (about
    half a minute).
-3. The store app is opened if closed, on both paths (the user, 2026-11-03). A copy in a Steam
+3. A copy of neither store: outside a Steam library and not in Battle.net's list of installs,
+   `%ProgramData%\Battle.net\Agent\product.db`, which names each game's folder (a Battle.net game can
+   sit in any folder, so the path alone cannot tell). Nothing can validate it, so the loader starts
+   at once, whatever the date's age, logged `copy of neither store`. The game's own offline limit is
+   not touched. With Battle.net installed and the list unreadable, or in a format that does not name
+   its own `Battle.net/Agent` folder, the normal flow runs, so a real copy keeps its validation.
+   Otherwise the store app is opened if closed, on both paths (the user, 2026-11-03). A copy in a Steam
    library (`<library>\steamapps\common\<folder>`) or with `steam_appid.txt` is a Steam copy (the
    file is not installed by Steam: D2RLoader writes it at its first run, so a new player's copy
    was taken for Battle.net, reported by drg 2026-11-03): `steam.exe -silent` if not running, then up to 60 s for
@@ -120,6 +126,10 @@ fresh path and with `--validate`.
   <https://lutris.net/games/install/37245/view>), whether its `Settings.json` gets the same date,
   whether D2RLoader needs Battle.net open. A closed Battle.net app opened with `--exec`.
 - The "app not open" boxes on both stores; the progress sentences heard in order.
+- A real Battle.net copy of D2R in `product.db`: the list was read with Diablo, Diablo IV and
+  Hearthstone only. Its log must not say `copy of neither store`. The path itself ran on 2026-11-06 in
+  a throwaway folder with stand-in exes, Steam and Battle.net both installed: loader started, neither
+  app touched, `Settings.json` unchanged.
 - Rejected: `D2R.exe -uid OSI` needs a `WEB_TOKEN` that Battle.net writes under
   `HKCU\SOFTWARE\Blizzard Entertainment\Battle.net\Launch Options\OSI` and an elevated start
   (<https://github.com/shupershuff/d2r-multiboxing-without-a-script>); `-username -password` needs the

@@ -69,6 +69,12 @@ Client ClientOf(const std::wstring& gameFolder) {
 	return InSteamLibrary(gameFolder) || Sys::FileExists(gameFolder + L"\\" + SteamAppId) ? Client::Steam : Client::BattleNet;
 }
 
+BattleNetListing ListingOf(const std::wstring& gameFolder) {
+	if (const auto db = Sys::BattleNetProductDb()) return ListingIn(*db, Log::Narrow(gameFolder));
+	const bool installed = Sys::IsProcessRunning(BattleNetProcess) || Sys::BattleNetInstalledExe().has_value();
+	return installed ? BattleNetListing::Unknown : BattleNetListing::NotListed;
+}
+
 // Without steam_appid.txt a D2R.exe started outside Steam quits and asks Steam to start it again, so
 // the validation watched a closed game; D2RLoader writes the same file the first time it runs.
 void EnsureSteamAppId(const std::wstring& gameFolder) {
@@ -287,6 +293,11 @@ int Run() {
 	const Verdict verdict           = unforced && classified == Verdict::Fresh ? Verdict::Stale : classified;
 	Log::Line(before ? std::format("User Last Online is {} days old", AgeDays(*before, now)) : "User Last Online missing");
 	if (unforced) Log::Line("validation forced by --validate");
+	if (NoStoreToValidate(InSteamLibrary(gameFolder), ListingOf(gameFolder))) {
+		Log::Line("copy of neither store: nothing can validate the license, starting the loader");
+		Speech::Say(text.launcherStartingGame);
+		return StartLoader(gameFolder, arguments);
+	}
 	const bool validate = NeedsValidation(verdict);
 	Log::Line(validate ? "validating the license online" : "license is fresh");
 	if (!EnsureClient(client, validate)) {

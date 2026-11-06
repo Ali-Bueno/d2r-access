@@ -35,6 +35,15 @@ std::optional<std::string> WithFirstTimeMarked(std::string_view settingsJson);
 // Steam installs every game in <library>\steamapps\common\<game>; steam_appid.txt only appears there
 // once D2RLoader has run (docs/launcher.md, Flow).
 bool InSteamLibrary(std::wstring_view gameFolder);
+enum class BattleNetListing { Listed, NotListed, Unknown };
+// Whether Battle.net's product.db names `gameFolder` (UTF-8); Unknown when the text is not the format
+// this reads, so a real copy is never taken for an unlisted one.
+BattleNetListing ListingIn(std::string_view productDb, std::string_view gameFolder);
+// A copy of neither store: nothing can validate the license, so the loader starts without it
+// (docs/launcher.md, Flow).
+inline bool NoStoreToValidate(bool inSteamLibrary, BattleNetListing listing) {
+	return !inSteamLibrary && listing == BattleNetListing::NotListed;
+}
 // The "appid" of a Steam appmanifest_*.acf whose "installdir" is `installDir` (any case).
 std::optional<std::string> ManifestAppIdFor(std::string_view manifest, std::string_view installDir);
 

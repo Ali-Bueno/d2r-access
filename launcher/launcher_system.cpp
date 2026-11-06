@@ -18,9 +18,18 @@ constexpr const wchar_t* SteamActiveKey   = L"Software\\Valve\\Steam\\ActiveProc
 constexpr const wchar_t* BattleNetUninstallKey = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Battle.net";
 constexpr const wchar_t* InstallLocationValue  = L"InstallLocation";
 constexpr const wchar_t* BattleNetExeName      = L"Battle.net.exe";
+constexpr const wchar_t* BattleNetProductDbRelative = L"\\Battle.net\\Agent\\product.db";
 constexpr const wchar_t* SteamUserValue   = L"ActiveUser";
 constexpr const wchar_t* SettingsRelative = L"Diablo II Resurrected\\Settings.json";
 constexpr DWORD          LongPathChars    = 32'768; // Windows' longest path, in UTF-16 units
+
+std::wstring KnownFolder(REFKNOWNFOLDERID id) {
+	PWSTR known = nullptr;
+	std::wstring path;
+	if (SUCCEEDED(SHGetKnownFolderPath(id, 0, nullptr, &known))) path = known;
+	CoTaskMemFree(known);
+	return path;
+}
 
 std::optional<DWORD> FindProcessId(const wchar_t* exeName) {
 	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -122,14 +131,8 @@ std::vector<std::wstring> FilesMatching(const std::wstring& pattern) {
 }
 
 std::wstring SettingsJsonPath() {
-	PWSTR known = nullptr;
-	if (FAILED(SHGetKnownFolderPath(FOLDERID_SavedGames, 0, nullptr, &known))) {
-		CoTaskMemFree(known);
-		return {};
-	}
-	std::wstring path = std::wstring(known) + L"\\" + SettingsRelative;
-	CoTaskMemFree(known);
-	return path;
+	const std::wstring savedGames = KnownFolder(FOLDERID_SavedGames);
+	return savedGames.empty() ? savedGames : savedGames + L"\\" + SettingsRelative;
 }
 
 std::uint64_t NowUnixNanos() {
@@ -206,6 +209,12 @@ std::optional<std::wstring> BattleNetInstalledExe() {
 	std::wstring exe = std::wstring(buffer) + L"\\" + BattleNetExeName;
 	if (!FileExists(exe)) return std::nullopt;
 	return exe;
+}
+
+std::optional<std::string> BattleNetProductDb() {
+	const std::wstring programData = KnownFolder(FOLDERID_ProgramData);
+	if (programData.empty()) return std::nullopt;
+	return ReadTextFile(programData + BattleNetProductDbRelative);
 }
 
 bool SteamUserActive() {

@@ -46,6 +46,8 @@ std::optional<std::wstring> SteamExePath();
 bool SteamUserActive();
 // Battle.net.exe in the folder of the app's Uninstall entry, if it is there.
 std::optional<std::wstring> BattleNetInstalledExe();
+// Battle.net's list of installed games, which names each game's folder; nothing when unreadable.
+std::optional<std::string>  BattleNetProductDb();
 
 // The process' top-level visible window, if it has one yet.
 HWND FindMainWindow(DWORD processId);
