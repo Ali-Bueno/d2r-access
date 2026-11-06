@@ -38,6 +38,12 @@ The `TerrorZone` child is shown (visible byte +0x51) only for a level in the act
 list with the feature on; hidden subtrees never reach the snapshot, so its presence under the
 focused row is the test (`ui_text.cpp`). Its frame at +0x90 is 0 open, 1 current, 2 locked.
 
+Entering one needs no code of its own: the area banner (`HUDLevelNamesHD.json`) has a `DesecratedText`
+under `NameText`, with `desecratedDisplaySeconds` 4 against 2.5, and the string
+`EnteringDesecratedLevelNotification` ("Terrorized") is its likely text. The Area surface reads every
+text of the banner, so the player should hear "<area>. Terrorized", in the game's language.
+Unit-tested with that banner; not heard live, and no log or tester note shows it yet.
+
 ## Live check
 
 `[waypoint] row Act1 Button3 -> open (tab=0 rows=9 level=5 open=1 player=1)`, once per row focused.

@@ -2,6 +2,14 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The launcher starts the loader for a copy of neither store — 2026-11-06 (release 1.0.9)
+
+Outside a Steam library and not in Battle.net's `product.db`: the loader starts instead of the
+validation ([launcher](docs/launcher.md#flow)). The list's format seen with Diablo IV; no D2R on Battle.net here.
+
+Terror zones: entering one should be said by the area banner, with no new code ([waypoints](docs/waypoints.md#terror-zones)).
+Unit-tested; **not heard live**.
+
 ## Corpses, sliders, the attributes and quick cast by keyboard — 2026-11-05 (release 1.0.8)
 
 Players' keyboard reports, each reproduced live on 3.3.94995 first. 141/141.

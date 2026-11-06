@@ -183,6 +183,12 @@ int main() {
 	panels.push_back({30, 0, "HUDLevelNames", UiText::Surface::Area, {{31, -1, UiText::Kind::Text, "NameText", "TextBoxWidget", "Páramo Sangriento"}}});
 	Settle();
 	Check(speech.size() == 1 && !speech.back().interrupt, "area name never interrupts an active conversation");
+	panels.pop_back(); Settle(); speech.clear();
+	panels.push_back({30, 0, "HUDLevelNames", UiText::Surface::Area, {
+		{31, -1, UiText::Kind::Text, "NameText", "TextBoxWidget", "Páramo Sangriento"},
+		{32, -1, UiText::Kind::Text, "DesecratedText", "TextBoxWidget", "Aterrorizado"}}});
+	Settle();
+	Check(speech.size() == 1 && speech.back().text == "Páramo Sangriento. Aterrorizado", "a terror zone's banner says the game's word after the area's name");
 	speech.clear(); GameTextReader::SetEnabled(false);
 	Check(!Settle() && speech.size() == 1 && speech.back().text == Strings::Current().gameTextDisabled, "feature can be disabled");
 	speech.clear(); GameTextReader::SetEnabled(true); Settle();
