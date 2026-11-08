@@ -36,7 +36,9 @@
   distribute them**. The Wine bridges are the exception: see the next bullet.
 - **Wine / Proton (Linux players) — PRISM ≥ v0.18.3 plus the bridge payload.** In a Proton prefix there
   is no NVDA/JAWS, OneCore is not implemented and SAPI usually has no voices, so without bridges
-  `acquire_best` returns nothing. Windows builds before v0.18.3 left the bridged backends (Orca, Speech
+  `acquire_best` returns nothing. An NVDA stand-in (Cthulhu's Wine Access) does not help since v0.16.2:
+  the NVDA backend also calls `RpcMgmtInqIfIds`, a stub that always fails in Wine (PRISM ≤ v0.12.2 still
+  speaks through it). Windows builds before v0.18.3 left the bridged backends (Orca, Speech
   Dispatcher, Spiel) out of the registry entirely (prism#126 fixed it). The payload is in
   **`prism-linux-x64.zip`**, not the Windows zip: `dynamic/release/wine/placeholders/prism_{orca,speech_dispatcher,spiel}_bridge.dll`
   (2 KB PE placeholders) and `dynamic/release/wine/*.dll.so` (the ELF halves). Same release as `prism.dll`,

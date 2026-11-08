@@ -12,6 +12,13 @@ before 0.18.3 left the bridged backends out of the registry (they were UNIX-only
 0.18.3 builds them on Windows, ethindp/prism#126). The reporter saw the same with Grimdark, the Grim
 Dawn mod, which spoke through Orca after the same upgrade.
 
+Wine Access's NVDA stand-in does not help either: since PRISM 0.16.2 the NVDA backend also requires
+`RpcMgmtInqIfIds` (`source/backends/nvda.cpp`, `server_supports_interface`), which Wine's `rpcrt4`
+leaves as a stub that always fails (found by the d4-assist session, 2026-11-08). d4-assist speaks
+under Proton only because its Prismatoid 0.3.0 carries PRISM 0.12.2, from before that check. Under
+Wine, speech therefore comes from the bridges alone, until PRISM accepts an unimplemented
+`RpcMgmtInqIfIds` once `testIfRunning` has succeeded.
+
 ## What ships
 
 `d2rloader/plugins/d2r-access/prism/`, the same as `third_party/prism/bin/`:
