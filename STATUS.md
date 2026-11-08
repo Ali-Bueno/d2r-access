@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Speech under Linux with Proton: PRISM 0.18.3 and its Wine bridges — 2026-11-08 (issue #5)
+## Speech under Linux with Proton: PRISM 0.18.3 and its Wine bridges — 2026-11-08 (issue #5, release 1.0.11)
 
 A Linux player (Proton, Cthulhu): the mod ran but never spoke, `no screen reader backend available`.
 PRISM 0.18.2's Windows build has no bridged backends. Now PRISM 0.18.3 with the Orca, Speech
@@ -12,9 +12,9 @@ failure logs the folder's Unix path. `release.json` names `D2RAccess.zip` again 
 
 Seen on Windows, 141/141: the new `prism.dll` loads from the new folder and picks NVDA.
 
-**Not run:** anything under Proton; an old launcher installing the new layout. Not released.
+**Not run:** anything under Proton; an old launcher installing the new layout.
 
-**Next step:** a release, then the reporter's log with `PRISM ready, backend: ...` under Proton.
+**Next step:** the reporter's log with `PRISM ready, backend: ...` under Proton.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
