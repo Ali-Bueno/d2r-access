@@ -13,6 +13,7 @@ An accessibility mod for Diablo II: Resurrected. It reads the game through your 
 - Diablo II: Resurrected 3.3.x from Steam or Battle.net, on 64-bit Windows 10 or 11.
 - On Steam, your Battle.net account linked to Steam (https://account.battle.net/connections): the game needs that link to run and to renew its license online.
 - NVDA or JAWS running before you start the game. Without either, the mod speaks with the Windows voice.
+- On Linux, Steam with Proton works too, started a different way: see [Linux with Proton](#linux-with-proton).
 
 ## Installation
 
@@ -55,6 +56,16 @@ Start the game with `D2RAccess.exe`, in the game folder (the installer offers to
 When the mod starts it says "Diablo 2 accessibility loaded".
 
 If the loader warns that there was no sign-in for 30 days and starts without mods, that is a Blizzard check the loader keeps on purpose. `D2RAccess.exe` avoids it by validating online in time; if it says it could not validate, check the internet connection and start it again. The launcher writes `d2rloader\logs\d2r-access-launcher.log`. `D2RLoader.exe` still works on its own.
+
+### Linux with Proton
+
+Not yet confirmed by a player. `D2RAccess.exe` does not work under Proton yet, so start `D2RLoader.exe` directly. The mod speaks through Speech Dispatcher, Orca or Spiel, which must be running, and only when the game starts with the mod's `wine` folder in `WINEDLLPATH`. From the game folder:
+
+```
+WINEDLLPATH="$PWD/d2rloader/plugins/d2r-access/prism/wine" protontricks-launch --appid 2536520 ./D2RLoader.exe
+```
+
+If it stays silent, `d2rloader/logs/d2r-access.log` names the folder it expected in `WINEDLLPATH`.
 
 ## Language
 

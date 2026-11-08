@@ -38,7 +38,7 @@ prereleases. The asset name never changes, so the link above stays valid.
 |---|---|
 | `D2RLoader.exe`, `D2RCore.dll`, `d2rloader.mpq` | `-LoaderDir`, default `../loader-backups/1.3.1-beta` (kept out of the repo) |
 | `msvcp140.dll`, `msvcp140_atomic_wait.dll`, `vcruntime140.dll`, `vcruntime140_1.dll` | newest `VC/Redist/MSVC/<version>/x64/Microsoft.VC*.CRT` of Build Tools 2022 |
-| `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/prism.dll` | the build, `third_party/prism/bin` |
+| `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/prism/` (`prism.dll` and its [Wine bridges](proton.md)) | the build, `third_party/prism/bin` |
 | `README.html`, `GUIDE.html` | `packaging/README.md` and `GUIDE.md`, rendered by PowerShell's `ConvertFrom-Markdown` (English; `-NewsFile` becomes the README's "What's new" section and the release notes) |
 | `licenses/` | `LICENSE`, `third_party/prism/LICENSES` |
 | empty `mods/`, `d2rloader/{crashes,data,logs}` | the loader's own layout |
@@ -54,8 +54,8 @@ loader writes `<plugin-id>.toml` from the DLL's embedded `radar.toml` only when 
 new key; a missing key falls back to the compiled default (`radar_config.cpp`). Not yet seen live:
 a fresh install starting without `d2rloader.toml`.
 
-Next to the zip, `D2RUpdate.zip` is the same package without `prism.dll`, the one `release.json` names
-for the launcher's self-update ([why](launcher.md#self-update)).
+`release.json` names this same zip for the launcher's self-update. From 1.0.5 to 1.0.10 it named
+`D2RUpdate.zip`, the package without `prism.dll`; PRISM's own folder ended that ([why](launcher.md#self-update)).
 
 The package text is English since 2026-10-11, for testers who do not read Spanish. The asset
 keeps a fixed name, `D2RAccess.zip` (`d2r-access-completo.zip` until 2026-11-02), so the

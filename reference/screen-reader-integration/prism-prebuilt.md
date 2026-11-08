@@ -7,7 +7,9 @@
 >
 > Checked against **PRISM v0.16.7** by downloading the asset and reading the binary/headers;
 > release layout re-verified against **v0.17.3** (2026-07-20) and **v0.18.2** (2026-09-14; the zip's
-> `include/` now also ships `prism_version.h`, which `prism.h` includes — copy both).
+> `include/` now also ships `prism_version.h`, which `prism.h` includes — copy both) and **v0.18.3**
+> (2026-11-08, D2R mod: Wine bridges, below; `PrismConfig` grew a field, `PRISM_CONFIG_VERSION` 4, so
+> rebuild against the headers of the `prism.dll` you ship and take the config from its `prism_config_init`).
 > **No need to compile the PRISM repo or use CMake/vcpkg** to consume it: the release is enough.
 
 - **Per-platform releases** on GitHub (`ethindp/prism`, assets of the latest release). For Windows:
@@ -30,8 +32,19 @@
 - **`prism.dll` runtime dependencies**: only system DLLs + UCRT (`KERNEL32`, `USER32`, `ole32`,
   `OLEAUT32`, `RPCRT4`, `UIAutomationCore`, `api-ms-win-core-*`). **Does NOT depend on
   `vcruntime140`/`msvcp140`** → **no VC++ Redistributable required**. Asian-reader backends
-  (`PCTKUSR.dll`, `ZDSRAPI_x64.dll`, Orca/SpeechDispatcher bridges) load **on demand**; for NVDA/JAWS/SAPI
-  **you don't have to distribute them**.
+  (`PCTKUSR.dll`, `ZDSRAPI_x64.dll`) load **on demand**; for NVDA/JAWS/SAPI **you don't have to
+  distribute them**. The Wine bridges are the exception: see the next bullet.
+- **Wine / Proton (Linux players) — PRISM ≥ v0.18.3 plus the bridge payload.** In a Proton prefix there
+  is no NVDA/JAWS, OneCore is not implemented and SAPI usually has no voices, so without bridges
+  `acquire_best` returns nothing. Windows builds before v0.18.3 left the bridged backends (Orca, Speech
+  Dispatcher, Spiel) out of the registry entirely (prism#126 fixed it). The payload is in
+  **`prism-linux-x64.zip`**, not the Windows zip: `dynamic/release/wine/placeholders/prism_{orca,speech_dispatcher,spiel}_bridge.dll`
+  (2 KB PE placeholders) and `dynamic/release/wine/*.dll.so` (the ELF halves). Same release as `prism.dll`,
+  never renamed. A placeholder is looked for on the DLL search path, then in **`prism.dll`'s own folder**
+  (`source/optional_library.cpp`), so ship the three placeholders beside `prism.dll`; the `.dll.so` files go in a
+  `wine/` folder that must be in **`WINEDLLPATH` when the game process starts** (Wine reads it at start; a mod
+  cannot set it from inside). Bridges load only under Wine (`wine_get_version` check), so they are inert on
+  Windows. Upstream manual: `doc/src/wine-bridges.md`. Worked example: the D2R mod's `docs/proton.md`.
 - **Minimal sequence**: `prism_config_init` → `prism_init(&cfg)` → `prism_registry_acquire_best(ctx)` →
   `prism_backend_initialize(be)` → `prism_backend_speak(be, txt, interrupt)` → … → `prism_backend_free` +
   `prism_shutdown`. **v0.18.x (verified 2026-09-14 on v0.18.2, D2R mod):** `acquire_best` returns a *shared,
@@ -54,5 +67,5 @@
   inside BepInEx (net472/net6) or other injected .NET hosts, which keep the P/Invoke dynamic-load path
   above; **Python** — `Prismatoid` on PyPI (tooling/prototyping); **Godot** — in-tree in the prism
   repo. The C API above remains the universal path for injected mods.
-- **Deploy**: copy `prism.dll` next to the mod DLL — nothing else (`tolk.dll` from the zip is NOT
-  needed). That's all.
+- **Deploy**: copy `prism.dll` next to the mod DLL (`tolk.dll` from the zip is NOT needed), plus the
+  Wine bridge payload above if Linux players should hear it.

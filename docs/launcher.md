@@ -49,7 +49,7 @@ Shipped in the game folder next to `D2R.exe` and `D2RLoader.exe`. Sources: `laun
    speak to check the internet and try again; no loader.
 
 Language: `text_locale` under `[d2rloader]` in `d2rloader\config\d2rloader.toml`, else English.
-Speech: PRISM from `d2rloader\plugins\d2r-access\prism.dll`; silent if it cannot load. The first
+Speech: PRISM from `d2rloader\plugins\d2r-access\prism\prism.dll`; silent if it cannot load. The first
 sentence interrupts the screen reader, the later ones queue; the launcher waits about 70 ms per
 character of what is still queued before exiting. Progress is said as it goes (the user, 2026-11-03:
 silence felt like a long wait): launcher started, opening Steam / Battle.net (only when the launcher
@@ -155,7 +155,7 @@ Flow, at each start before the license step:
    a numbered tag, so testers on a `test-` build get 1.0 from the installer or the zip, not offered. Any failure (offline, 404, bad JSON) is logged and the launcher goes on.
 3. A Yes/No `MessageBox` (topmost) in the game's language: new and installed tag, the first 1500
    characters of the notes (only the release's news since 2026-11-02, none without a news file), and that it takes about a minute without speech. No: go on to the game.
-4. Download `releases/download/<tag>/<asset>` (pinned to the tag; 10 min; the asset is `D2RUpdate.zip`, below) to `%TEMP%\D2RAccessUpdate\<tag>\`,
+4. Download `releases/download/<tag>/<asset>` (pinned to the tag; 10 min; the asset is `D2RAccess.zip` again, below) to `%TEMP%\D2RAccessUpdate\<tag>\`,
    check the SHA-256, extract with `System32	ar.exe -xf` (exit code checked).
 5. Copy every file over the game folder. Never overwritten when they exist: any `*.toml`, and the plugin's
    `settings.txt`, `tutorial.txt` and `explored\`. Each replaced file is backed up first; the two files
@@ -188,6 +188,13 @@ through this zip once; from then on their launcher could install a whole one.
 
 Verified on the published 1.0.5: the 1.0.1 and 1.0.4 launchers installed it through `D2RUpdate.zip`
 (`install: 23 replaced, 0 created`). Not verified live: the boxes read by a screen reader.
+
+**PRISM in its own folder (2026-11-08).** PRISM 0.18.3 had to ship for [Proton](proton.md). It now
+lives in `d2rloader\plugins\d2r-access\prism\`, a folder no launcher up to 1.0.10 holds anything in,
+so every launcher installs it as new files, and `release.json` names the whole `D2RAccess.zip` again
+(`D2RUpdate.zip` is no longer made). Launchers from this change hold `prism\prism.dll` and rename it
+as above. The old `d2r-access\prism.dll` stays in installed games, unused; `tools/test-release.ps1`
+refuses a package with a file at that path. Not yet run: an old launcher installing this layout.
 
 ## Forcing a validation
 

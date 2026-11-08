@@ -25,7 +25,10 @@ namespace {
 
 // prism.dll lives in a subfolder of the plugins directory: D2RLoader treats
 // every DLL directly inside d2rloader/plugins as a plugin and rejects it.
-constexpr const wchar_t* PrismRelativePath = L"d2r-access\\prism.dll";
+// Its own folder, not d2r-access\, which launchers up to 1.0.10 hold open (docs/launcher.md).
+constexpr const wchar_t* PrismRelativePath = L"d2r-access\\prism\\prism.dll";
+// Beside prism.dll: the Unix half of PRISM's Wine bridges, found through WINEDLLPATH (docs/proton.md).
+constexpr const wchar_t* WineBridgeFolder = L"wine";
 
 // Function-pointer types taken from prism.h so a signature change in a new
 // PRISM release is a compile error here instead of a silent ABI mismatch.
@@ -121,6 +124,21 @@ std::wstring BuildPrismPath(const wchar_t* pluginDirectory) {
 	return path + PrismRelativePath;
 }
 
+// Empty on Windows. Under Wine, what the host needs for speech, with the bridge folder's Unix path.
+std::string WineHint(const std::wstring& prismPath) {
+	const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+	if (ntdll == nullptr || GetProcAddress(ntdll, "wine_get_version") == nullptr) return {};
+	const std::wstring folder = prismPath.substr(0, prismPath.find_last_of(L'\\') + 1) + WineBridgeFolder;
+	std::string where = Narrow(folder);
+	using UnixName = char*(__cdecl*)(const wchar_t*);
+	const auto toUnix = reinterpret_cast<UnixName>(GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "wine_get_unix_file_name"));
+	if (char* unixPath = toUnix != nullptr ? toUnix(folder.c_str()) : nullptr) {
+		where = unixPath;
+		HeapFree(GetProcessHeap(), 0, unixPath);
+	}
+	return " under Wine (start the game with WINEDLLPATH=" + where + "; is Speech Dispatcher or Orca running?)";
+}
+
 // Speech thread only.
 void ReleasePrism() {
 	if (g_state.backend != nullptr) {
@@ -161,7 +179,8 @@ bool AcquirePrism(const std::wstring& path) {
 	}
 	g_state.backend = g_state.api.registryAcquireBest(g_state.context);
 	if (g_state.backend == nullptr) {
-		g_state.lastError = "no screen reader backend available (is NVDA/JAWS running?)";
+		const std::string wine = WineHint(path);
+		g_state.lastError = "no screen reader backend available" + (wine.empty() ? std::string(" (is NVDA/JAWS running?)") : wine);
 		ReleasePrism();
 		return false;
 	}

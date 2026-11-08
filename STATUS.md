@@ -2,6 +2,20 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Speech under Linux with Proton: PRISM 0.18.3 and its Wine bridges — 2026-11-08 (issue #5)
+
+A Linux player (Proton, Cthulhu): the mod ran but never spoke, `no screen reader backend available`.
+PRISM 0.18.2's Windows build has no bridged backends. Now PRISM 0.18.3 with the Orca, Speech
+Dispatcher and Spiel bridges, in its own folder `plugins/d2r-access/prism/` so every launcher can
+install it; the game must start with `WINEDLLPATH` set ([Proton](docs/proton.md)). Under Wine a
+failure logs the folder's Unix path. `release.json` names `D2RAccess.zip` again ([launcher](docs/launcher.md#self-update)).
+
+Seen on Windows, 141/141: the new `prism.dll` loads from the new folder and picks NVDA.
+
+**Not run:** anything under Proton; an old launcher installing the new layout. Not released.
+
+**Next step:** a release, then the reporter's log with `PRISM ready, backend: ...` under Proton.
+
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
 A tester: the number "Show Ground Sockets" adds to a ground label is not read, and "Display Item
@@ -3192,8 +3206,8 @@ Controller Options intentionally has three tabs; keyboard bindings are the fourt
 `docs/controller-navigation.md`.
 
 - **Engine / framework:** native C++ x64 (D2R.exe, patch 3.3) / **D2RLoader** (closed-source loader, **v1.3.1-beta 2026-09-24**, https://d2rloader.net) + its open **PluginSDK** (C++20 header-only, MIT, cloned at `../external/PluginSDK`, pinned at `6fbabfc8` / SDK 0.2.0, plugin ABI v4).
-- **Screen-reader transport:** plugin DLL → `LoadLibraryW(<pluginDirectory>\prism.dll)` + `GetProcAddress` (load in `D2RLoaderLoadPlugin`, never in `DllMain`).
-- **Build command:** `.\build.ps1` (CMake 4.2 + Ninja + MSVC Build Tools 2022 14.44; vcvars64 from `C:\Program Files (x86)\Microsoft Visual Studio2\BuildTools`). POST_BUILD copies `d2rl-d2r-access.dll` + `prism.dll` into the game. PRISM v0.18.2 vendored in `third_party/prism/`.
+- **Screen-reader transport:** plugin DLL → `LoadLibraryW(<pluginDirectory>\d2r-access\prism\prism.dll)` + `GetProcAddress` (load in `D2RLoaderLoadPlugin`, never in `DllMain`).
+- **Build command:** `.\build.ps1` (CMake 4.2 + Ninja + MSVC Build Tools 2022 14.44; vcvars64 from `C:\Program Files (x86)\Microsoft Visual Studio2\BuildTools`). POST_BUILD copies `d2rl-d2r-access.dll` + `third_party/prism/bin/` (prism.dll and its Wine bridges) into the game. PRISM v0.18.3 vendored in `third_party/prism/`.
 - **Mod install path:** `D:\games\steam\steamapps\common\Diablo II Resurrected\d2rloader\plugins\` (global) — D2RLoader zip extracted into the game folder, launch `D2RLoader.exe`.
   The loader is **three** files in the game root, all dated 2026-09-14: `D2RLoader.exe` (23,590,248), **`D2RCore.dll`** (18,345,304 — resolves the game pointers the widget and world readers depend on) and `d2rloader.mpq` (10,816,549). Both builds we have are kept outside the repo in `../loader-backups/` with their hashes and restore notes; **1.2.1-beta can no longer be downloaded**, that copy is the only one. Everything else in the root is the game's. Packaging the mod for someone else needs all three, plus `d2rloader/plugins/d2rl-d2r-access.dll`, `d2rloader/plugins/d2r-access/{prism.dll, sounds/item loop sounds/*.wav}` and a `d2rloader/config/d2rloader.toml` with the console enabled. Never ship `D2R.text.bin` (dumped game code, regenerated on first run).
 - **Run / test:** Steam D2R 3.3.93787 (app 2536520, Spanish) installed. D2RLoader 1.3.1-beta installed into the game folder 2026-09-26 (SHA-256 verified; 1.3.0-beta from 2026-09-17 kept in `../loader-backups/`). Start NVDA, launch `D2RLoader.exe` (Steam's Play button also does it: launch options `"<game>\D2RLoader.exe" %command%`, set 2026-09-25; see README). Loader config (`d2rloader/config/d2rloader.toml`): `enable_console = true` (Ctrl+` in-game), developer logs on with `widget_panels` + `extension_details`. Logs: `d2rloader/logs/d2rloader.log`. Offline/single-player only (online ban risk undocumented).
@@ -3489,7 +3503,7 @@ controller movement. Read
 - Widget rect resolution is expensive (name walk per call); rects are cached per widget until a panel opens/closes or a list scrolls.
 
 - ~~Does `UiMessageListener` fire pre-game?~~ **Yes** (run 1, 2026-09-14): title/logo screens emit `PanelManager` `OpenPanel`/`OpenExclusivePanel`/`ClosePanel` with names `LogoMenuPanel`, `TitleScreenPanel`, `TooltipsPanel`, `GammaCalibrationPanel`. Keyboard navigation inside a menu does NOT produce messages (only raw `InputMessage:KeyDown/KeyUp`), so focus tracking still needs phase 2.
-- `MonsterHealth:ClearInfo` fires every frame (filtered from the trace). A DLL placed directly in `d2rloader/plugins` is treated as a plugin and rejected → `prism.dll` lives in `plugins/d2r-access/`.
-- PRISM v0.18.2: `acquire_best` returns an already-initialized backend (`ALREADY_INITIALIZED` on `initialize` = OK). Fixed in `screen_reader.cpp`.
+- `MonsterHealth:ClearInfo` fires every frame (filtered from the trace). A DLL placed directly in `d2rloader/plugins` is treated as a plugin and rejected → PRISM lives in `plugins/d2r-access/prism/` (its own folder since 2026-11-08, [launcher](docs/launcher.md#self-update)).
+- PRISM v0.18.x: `acquire_best` returns an already-initialized backend (`ALREADY_INITIALIZED` on `initialize` = OK). Fixed in `screen_reader.cpp`.
 - ~~API version match?~~ **Yes**: loader 1.2.1-beta accepted API v4 (`d2rloader.log`).
 - Reported "built-in TTS" in D2R is unverified (likely a forum request, not a feature) — check in Options once installed.

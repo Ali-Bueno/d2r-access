@@ -15,7 +15,7 @@ using namespace D2RAccess::Launcher;
 namespace {
 
 constexpr std::wstring_view Exe = L"D2RAccess.exe";
-constexpr std::wstring_view Prism = L"d2rloader\\plugins\\d2r-access\\prism.dll";
+constexpr std::wstring_view Prism = L"d2rloader\\plugins\\d2r-access\\prism\\prism.dll";
 constexpr std::array<std::wstring_view, 2> InUse{Exe, Prism};
 
 void Write(const fs::path& file, std::string_view text) {

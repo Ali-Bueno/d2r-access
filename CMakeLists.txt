@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.28)
 project(D2RAccess VERSION 0.1.0 LANGUAGES CXX RC)
 
 # Where the game lives. The build copies the plugin into <D2R_GAME_DIR>/d2rloader/plugins
-# and prism.dll into the d2r-access/ subfolder there (a DLL directly in plugins/ is
-# treated as a plugin by D2RLoader and rejected), so a rebuild is immediately testable.
+# and PRISM into d2r-access/prism/ there (a DLL directly in plugins/ is treated as a
+# plugin by D2RLoader and rejected), so a rebuild is immediately testable.
 set(D2R_GAME_DIR "D:/games/steam/steamapps/common/Diablo II Resurrected" CACHE PATH "Diablo II: Resurrected install folder")
 set(D2R_PLUGINS_DIR "${D2R_GAME_DIR}/d2rloader/plugins")
 
@@ -723,8 +723,8 @@ endif()
 add_custom_command(TARGET d2r-access POST_BUILD
 	COMMAND "${CMAKE_COMMAND}" -E make_directory "${D2R_PLUGINS_DIR}"
 	COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:d2r-access>" "${D2R_PLUGINS_DIR}/"
-	COMMAND "${CMAKE_COMMAND}" -E make_directory "${D2R_PLUGINS_DIR}/d2r-access"
-	COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${PRISM_DIR}/bin/prism.dll" "${D2R_PLUGINS_DIR}/d2r-access/"
-	COMMENT "Deploying d2r-access plugin and prism.dll to ${D2R_PLUGINS_DIR}"
+	# prism.dll with its Wine bridges, as shipped (docs/proton.md).
+	COMMAND "${CMAKE_COMMAND}" -E copy_directory_if_different "${PRISM_DIR}/bin" "${D2R_PLUGINS_DIR}/d2r-access/prism"
+	COMMENT "Deploying d2r-access plugin and PRISM to ${D2R_PLUGINS_DIR}"
 	VERBATIM
 )

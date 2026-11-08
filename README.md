@@ -27,6 +27,8 @@ on anything that sounds wrong are welcome.
 - **D2RLoader 1.3.1-beta**, the build `d2rloader.net` distributes (1.3.0-beta also works). The
   complete package below includes it.
 - NVDA or JAWS running before the game starts; without either, PRISM uses the Windows voice (SAPI).
+- On Linux with Proton, speech goes to Speech Dispatcher, Orca or Spiel on the host, and the game
+  must start with `WINEDLLPATH` set ([Proton](docs/proton.md)). Not yet confirmed by a player.
 
 ### Install and update
 
@@ -331,7 +333,8 @@ what went wrong and what they needed, and kept going until the credits rolled.
   ([native UI](docs/native-ui.md)).
 - World labels and item descriptions come from native tooltip render hooks; a native ground-item
   reader and collision-grid snapshots feed the spatial sound services.
-- Speech goes through PRISM, loaded dynamically from `d2rloader/plugins/d2r-access/prism.dll`.
+- Speech goes through PRISM, loaded dynamically from `d2rloader/plugins/d2r-access/prism/prism.dll`,
+  next to its Wine bridges ([Proton](docs/proton.md)).
   Sounds are embedded in the plugin DLL.
 
 The full map of services and hooks is in the [architecture guide](docs/architecture.md); design
@@ -341,8 +344,8 @@ decisions and what was rejected are in [decisions](docs/decisions.md).
 
 Requirements: CMake 3.28+, Ninja, MSVC Build Tools 2022 (x64), and FFmpeg on `PATH` (it converts
 the OGG sources at build time; it is not needed to run the plugin). The D2RLoader PluginSDK is a git
-submodule (`external/PluginSDK`); PRISM's prebuilt DLL and header are vendored in
-`third_party/prism/`.
+submodule (`external/PluginSDK`); PRISM 0.18.3's prebuilt DLL, Wine bridges and header are
+vendored in `third_party/prism/`.
 
 Build with the game closed:
 
