@@ -101,14 +101,25 @@ build` only skips the update check and names the build; `TEST - localhost` is th
 loader-hosted game's BGS environment, not a server chosen by the plugin build. The preserved
 VM pair was restored after the A/B. Vanilla itself logged a game-server communication error
 (666) after account presence, so healthy Battle.net game-server auth is not proven either.
+A fresh Proton prefix reproduced it at 10:19: the launcher wrote its `First Time` stub,
+vanilla changed the date and the launcher said `License validated`, then the loader-hosted
+game hit the same modal. The fresh `Settings.json` remained a 68-byte `First Time` + date
+stub and only one Battle.net `.metr` cache file was created; the old prefix was restored
+afterward. The wrapper hardening in `0628111` (LF/CRLF packaging check; preserve Steam's
+`STEAM_COMPAT_*`, pick Steam's Proton) is exonerated by the fresh run's own logs: correct
+prefix, `SteamAPI_Init` OK, vanilla BGS `PROD`. What remains suspect is the validation
+stopping rule under Proton — closing vanilla as soon as the date changes can precede the
+account-presence/cache completion an interactive vanilla session reached. No log evidence
+of an account ban: interactive vanilla reached BGS presence and wrote cache files before
+its game-server error; account-side entitlement/session state still cannot be ruled out.
 
 **Not run:** Speech Dispatcher in game, for the reasons just above; a Windows game launch with
 this DLL; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
 layout.
 
-**Next step:** isolate the remaining license/auth state with a successful modded session's
-`blz-log.txt`/loader log for comparison (BGS `TEST` backend result and state artifact); more
-date-only `--validate` runs are not expected to change it.
+**Next step:** compare against a successful modded session's `blz-log.txt`/loader log
+(BGS `TEST` backend result and state artifact), and test a validation run that leaves
+vanilla up through presence/cache completion instead of closing on the date change.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 

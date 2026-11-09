@@ -99,6 +99,11 @@ with a release-tagged launcher; the remaining state the check wants is not isola
 STATUS). The date in `Settings.json` alone is not it. A plugin/launcher `development build`
 label only skips the update check and names the build; it does not choose a server — `TEST -
 localhost` in `blz-log.txt` is the loader-hosted game's BGS environment.
+A fresh Proton prefix reproduced the modal as well (2026-11-09): the launcher's validation
+changed the date, but `Settings.json` stayed a 68-byte `First Time` + date stub and almost
+no Battle.net cache was written. The old prefix was restored. Closing vanilla on the date
+change may simply be too early under Proton, before the account-presence/cache work an
+interactive vanilla session completes.
 
 Under Wine the launcher skips its Steam check (`EnsureSteam` in `launcher/launcher_main.cpp`):
 Steam is the host's Linux client, outside the prefix, so there is no `steam.exe` to open and no
