@@ -42,14 +42,17 @@ the modded start right after reached character select the same way. Which part o
 launch environment the check needs was not isolated. So the wrapper is a Steam launch option,
 not a shell command ([Proton](docs/proton.md#starting-the-game)).
 
-**Not run:** the rebuilt plugin DLL anywhere; speech confirmed by ear; the Speech Dispatcher
-bridge under Proton (needs `libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4
-lacks); a Windows launch after either change; the launcher's Battle.net path under Wine; an old
-launcher installing the 1.0.11 layout.
+Heard, 2026-11-09: the reporter played in the menus from that start and confirms Cthulhu speaks
+the mod under Proton (they also turned some graphics settings down in the options, by ear).
 
-**Next step:** build on Windows (`build.ps1` + ctest), then the reporter plays from Steam's Play
-button and says whether Cthulhu speaks; if silent, the `[speech]`/`[prism]` lines of the last
-session say why.
+**Not run:** the rebuilt plugin DLL anywhere; the Speech Dispatcher bridge under Proton (needs
+`libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4 lacks); a Windows launch after
+either change; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
+layout.
+
+**Next step:** build on Windows (`build.ps1` + ctest) and one Windows launch
+(`PRISM ready, backend: NVDA`); if a future Proton session is silent, the `[speech]`/`[prism]`
+lines of its last session say why.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
