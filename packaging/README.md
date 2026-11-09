@@ -59,10 +59,10 @@ If the loader warns that there was no sign-in for 30 days and starts without mod
 
 ### Linux with Proton
 
-Set the shipped script as the game's launch option in Steam (right-click the game, Properties, Launch Options), then start the game with Steam's Play button as usual. The mod speaks through Orca (Cthulhu included), Speech Dispatcher or Spiel, which must be running on the host. The launch option, with your game folder in place of `<game folder>`:
+Set the shipped script as the game's launch option in Steam (right-click the game, Properties, Launch Options), then start the game with Steam's Play button as usual. The mod speaks through Orca or Cthulhu, which must be running on the host; Speech Dispatcher and Spiel are not yet tried in game. The launch option, with your game folder in place of `<game folder>`:
 
 ```
-"<game folder>/d2r-access-proton.sh" %command%
+sh "<game folder>/d2r-access-proton.sh" %command%
 ```
 
 The script puts the mod's `wine` folder in `WINEDLLPATH` — without it the mod cannot reach the host's speech — and starts `D2RAccess.exe` through Proton, so the online license check runs as on Windows. It has to start from Steam's Play button: started from a plain terminal instead, the game claims you have not been online in 30 days and will not play, however fresh the license is. Do not start it through `protontricks-launch`, which drops the `WINEDLLPATH` setting. If it stays silent, `d2rloader/logs/d2r-access.log` says which backend was picked and why each other one did not take; the launcher's own steps are in `d2rloader/logs/d2r-access-launcher.log`.

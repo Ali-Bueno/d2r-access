@@ -27,8 +27,9 @@ on anything that sounds wrong are welcome.
 - **D2RLoader 1.3.1-beta**, the build `d2rloader.net` distributes (1.3.0-beta also works). The
   complete package below includes it.
 - NVDA or JAWS running before the game starts; without either, PRISM uses the Windows voice (SAPI).
-- On Linux with Proton, speech goes to Orca, Speech Dispatcher or Spiel on the host, with the
-  shipped `d2r-access-proton.sh` set as the game's Steam launch option ([Proton](docs/proton.md)).
+- On Linux with Proton, speech goes to Orca or Cthulhu on the host (Speech Dispatcher and Spiel
+  are not yet tried in game), with the shipped `d2r-access-proton.sh` set as the game's Steam
+  launch option, run through `sh` ([Proton](docs/proton.md)).
 
 ### Install and update
 

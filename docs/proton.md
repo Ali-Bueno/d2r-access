@@ -2,7 +2,7 @@
 
 Speech under Wine or Proton, from [issue #5](https://github.com/Ali-Bueno/d2r-access/issues/5)
 (2026-11-08). Run under Proton on 2026-11-09 (Arch, Proton Experimental, Cthulhu): the Orca
-bridge loads and PRISM picks Orca. Whether it is *heard* is the player's word to give.
+bridge loads, PRISM picks Orca and the reporter hears Cthulhu speak the mod in the menus.
 
 ## Why it was silent
 
@@ -58,15 +58,22 @@ Set the shipped wrapper as the game's Steam launch option, then start the game f
 button as usual. In Steam: right-click Diablo II: Resurrected → Properties → Launch Options:
 
 ```
-"<game folder>/d2r-access-proton.sh" %command%
+sh "<game folder>/d2r-access-proton.sh" %command%
 ```
+
+Through `sh`: the release zip is made on Windows and keeps no execute bit, so the script cannot
+be run by its path alone; `.gitattributes` keeps it LF and `tools/test-release.ps1` refuses a
+staged copy with a CR, since `sh` fails on one.
 
 `d2r-access-proton.sh` (in the zip's root, beside `D2RAccess.exe`; source `packaging/`) sets
 `WINEDLLPATH` to the `prism/wine` folder and runs Proton directly on `D2RAccess.exe`, the way the
-reporter's working Grimdark wrapper does, ignoring Steam's command. The launcher is the entry
-point, as on Windows: it validates the license online when due, then starts `D2RLoader.exe` —
-starting the loader directly never renews the 30-day offline license. Set `PROTON` to another
-Proton build's `proton` script if needed.
+reporter's working Grimdark wrapper does, in place of Steam's command. It keeps two things of
+Steam's: the `STEAM_COMPAT_*` variables Steam sets for the launch option, which name the prefix
+the game really has (Flatpak Steam, a second library), and the `proton` script named in Steam's
+command, so the prefix is never run by a Proton other than the game's. From a shell, without
+them, it falls back to the game's own library and Proton Experimental; `PROTON` overrides the
+choice. The launcher is the entry point, as on Windows: it validates the license online when due,
+then starts `D2RLoader.exe` — starting the loader directly never renews the 30-day offline license.
 
 It has to go through Steam's Play button. The same wrapper run from a bare shell reaches the
 title screen but the game then shows "You have not been online in the last 30 days", even with

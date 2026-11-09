@@ -101,6 +101,8 @@ try {
 	Copy-Into (Join-Path $buildDir "D2RAccess.exe") (Join-Path $stage "D2RAccess.exe")
 	# Linux/Proton start script: sets WINEDLLPATH for PRISM's Wine bridges (docs/proton.md).
 	Copy-Into "packaging\d2r-access-proton.sh" (Join-Path $stage "d2r-access-proton.sh")
+	# sh stops at the first CR, and a checkout from before .gitattributes may still have them.
+	if ([IO.File]::ReadAllBytes((Join-Path $stage "d2r-access-proton.sh")) -contains 13) { throw "d2r-access-proton.sh has CRLF line endings; check it out again (.gitattributes)." }
 	Copy-Into (Join-Path $buildDir $pluginDll) (Join-Path $stage "d2rloader\plugins\$pluginDll")
 	# prism.dll with its Wine bridges, laid out as the build deploys it (docs/proton.md).
 	New-Item -ItemType Directory (Join-Path $stage "d2rloader\plugins\d2r-access") -Force | Out-Null
