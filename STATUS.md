@@ -93,14 +93,22 @@ changed. Vanilla `D2R.exe` through the same Steam Play wrapper then went further
 at 09:55:57, account-presence traffic at 09:56:01, and new Battle.net cache files at
 09:56:02–03 (a game-server error and a shutdown crash followed, 09:56:17/09:57:24). So an
 interactive vanilla session refreshes auth/cache state that the launcher's date-only
-validation does not; whether that state clears the loader-hosted modal is the open question.
+validation does not, but it did not clear the modal: the modded retry at 10:00 and an A/B at
+10:07 with the pre-cleanup pair (launcher `installed 1.0.12, latest 1.0.12`; patched local
+plugin, Orca acquired and speaking) both reached the same modal seconds after `Connecting to
+Battle.net`. The VM/dev build and its release tag are therefore exonerated — `development
+build` only skips the update check and names the build; `TEST - localhost` is the
+loader-hosted game's BGS environment, not a server chosen by the plugin build. The preserved
+VM pair was restored after the A/B. Vanilla itself logged a game-server communication error
+(666) after account presence, so healthy Battle.net game-server auth is not proven either.
 
 **Not run:** Speech Dispatcher in game, for the reasons just above; a Windows game launch with
 this DLL; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
-layout; the modded retry after the vanilla auth refresh above.
+layout.
 
-**Next step:** the reporter's modded start from Steam's Play button with the wrapper restored
-to `D2RAccess.exe`: menu speech, or the same 30-days modal at `Connecting to Battle.net`.
+**Next step:** isolate the remaining license/auth state with a successful modded session's
+`blz-log.txt`/loader log for comparison (BGS `TEST` backend result and state artifact); more
+date-only `--validate` runs are not expected to change it.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 

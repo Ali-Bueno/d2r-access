@@ -92,9 +92,13 @@ It has to go through Steam's Play button. The same wrapper run from a bare shell
 title screen but the game then shows "You have not been online in the last 30 days", even with
 the license date minutes old (seen 2026-11-09, plugin log: `Connecting to Battle.net` →
 `DismissableModal`). Through Steam — the launch environment its reaper/pressure-vessel start
-gives the game — the same start goes on to the main menu and character select, no modal. Which
-part of that environment the check needs was not isolated; the date in `Settings.json` alone is
-not it.
+gives the game — that earlier start went on to the main menu and character select, no modal.
+Later the same day, Play-button starts hit the modal again despite a fresh date, a forced
+`--validate`, an interactive vanilla session that refreshed Battle.net cache files, and an A/B
+with a release-tagged launcher; the remaining state the check wants is not isolated yet (see
+STATUS). The date in `Settings.json` alone is not it. A plugin/launcher `development build`
+label only skips the update check and names the build; it does not choose a server — `TEST -
+localhost` in `blz-log.txt` is the loader-hosted game's BGS environment.
 
 Under Wine the launcher skips its Steam check (`EnsureSteam` in `launcher/launcher_main.cpp`):
 Steam is the host's Linux client, outside the prefix, so there is no `steam.exe` to open and no
