@@ -44,6 +44,8 @@ std::optional<Process>      OpenRunning(const wchar_t* exeName);
 std::optional<std::wstring> RunningExePath(const wchar_t* exeName);
 std::optional<std::wstring> SteamExePath();
 bool SteamUserActive();
+// Running under Wine or Proton, where the host's Steam is outside the prefix.
+bool UnderWine();
 // Battle.net.exe in the folder of the app's Uninstall entry, if it is there.
 std::optional<std::wstring> BattleNetInstalledExe();
 // Battle.net's list of installed games, which names each game's folder; nothing when unreadable.

@@ -223,6 +223,12 @@ bool SteamUserActive() {
 	return RegGetValueW(HKEY_CURRENT_USER, SteamActiveKey, SteamUserValue, RRF_RT_REG_DWORD, nullptr, &user, &size) == ERROR_SUCCESS && user != 0;
 }
 
+bool UnderWine() {
+	// Same test PRISM's bridged backends make: Wine's ntdll exports wine_get_version.
+	const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+	return ntdll != nullptr && GetProcAddress(ntdll, "wine_get_version") != nullptr;
+}
+
 HWND FindMainWindow(DWORD processId) {
 	WindowSearch search{processId, nullptr};
 	EnumWindows(FindVisibleTopLevel, reinterpret_cast<LPARAM>(&search));
