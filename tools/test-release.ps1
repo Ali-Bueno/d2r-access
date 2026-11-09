@@ -99,6 +99,8 @@ try {
 	foreach ($dir in $loaderDirs) { New-Item -ItemType Directory (Join-Path $stage $dir) -Force | Out-Null }
 	foreach ($dll in $runtimeDlls) { Copy-Into (Join-Path $crt.FullName $dll) (Join-Path $stage $dll) }
 	Copy-Into (Join-Path $buildDir "D2RAccess.exe") (Join-Path $stage "D2RAccess.exe")
+	# Linux/Proton start script: sets WINEDLLPATH for PRISM's Wine bridges (docs/proton.md).
+	Copy-Into "packaging\d2r-access-proton.sh" (Join-Path $stage "d2r-access-proton.sh")
 	Copy-Into (Join-Path $buildDir $pluginDll) (Join-Path $stage "d2rloader\plugins\$pluginDll")
 	# prism.dll with its Wine bridges, laid out as the build deploys it (docs/proton.md).
 	New-Item -ItemType Directory (Join-Path $stage "d2rloader\plugins\d2r-access") -Force | Out-Null

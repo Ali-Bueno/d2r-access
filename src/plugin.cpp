@@ -411,7 +411,9 @@ D2RL_PLUGIN_EXPORT auto D2RLoaderLoadPlugin(const D2RL::PluginContext* context) 
 	D2RAccess::AudioDescription::Load(context, D2RAccess::AudioDescription::OpenBundled(context),
 		[] { return D2RAccess::Strings::LocaleCode(D2RAccess::Strings::Selected()); });
 
-	// After Initialize, whose own Shutdown clears it: set before, no phrase was logged.
+	// Before Initialize so its [speech]/[prism] lines are logged (Initialize preserves the
+	// context across its own Shutdown), and again after: a failed attempt's Shutdown clears it.
+	D2RAccess::ScreenReader::LogTo(context);
 	const bool speaking = D2RAccess::ScreenReader::Initialize(context->pluginDirectory);
 	D2RAccess::ScreenReader::LogTo(context);
 	if (speaking) {

@@ -59,13 +59,13 @@ If the loader warns that there was no sign-in for 30 days and starts without mod
 
 ### Linux with Proton
 
-Not yet confirmed by a player. `D2RAccess.exe` does not work under Proton yet, so start `D2RLoader.exe` directly. The mod speaks through Speech Dispatcher, Orca or Spiel, which must be running, and only when the game starts with the mod's `wine` folder in `WINEDLLPATH`. From the game folder:
+`D2RAccess.exe` does not work under Proton yet, so start the loader with the shipped script instead. The mod speaks through Orca (Cthulhu included), Speech Dispatcher or Spiel, which must be running on the host. From the game folder:
 
 ```
-WINEDLLPATH="$PWD/d2rloader/plugins/d2r-access/prism/wine" protontricks-launch --appid 2536520 ./D2RLoader.exe
+sh ./d2r-access-proton.sh
 ```
 
-If it stays silent, `d2rloader/logs/d2r-access.log` names the folder it expected in `WINEDLLPATH`.
+The script puts the mod's `wine` folder in `WINEDLLPATH` — without it the mod cannot reach the host's speech — and starts `D2RLoader.exe` through Proton. Do not start it through `protontricks-launch`, which drops that setting. If it stays silent, `d2rloader/logs/d2r-access.log` says which backend was picked and why each other one did not take.
 
 ## Language
 

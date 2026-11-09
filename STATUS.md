@@ -2,19 +2,32 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Speech under Linux with Proton: PRISM 0.18.3 and its Wine bridges — 2026-11-08 (issue #5, release 1.0.11)
+## Speech under Linux with Proton: Orca chosen, SAPI refused under Wine — 2026-11-09 (issue #5)
 
-A Linux player (Proton, Cthulhu): the mod ran but never spoke, `no screen reader backend available`.
-PRISM 0.18.2's Windows build has no bridged backends. Now PRISM 0.18.3 with the Orca, Speech
-Dispatcher and Spiel bridges, in its own folder `plugins/d2r-access/prism/` so every launcher can
-install it; the game must start with `WINEDLLPATH` set ([Proton](docs/proton.md)). Under Wine a
-failure logs the folder's Unix path. `release.json` names `D2RAccess.zip` again ([launcher](docs/launcher.md#self-update)).
+1.0.11 (PRISM 0.18.3 + Wine bridges in `plugins/d2r-access/prism/`, 2026-11-08) still did not speak
+on its first Proton run: `PRISM ready, backend: SAPI`. The launch had no `WINEDLLPATH` — and
+`protontricks-launch` does not pass it through — so no bridge was findable and PRISM fell through
+to Wine's SAPI: Proton's `protontts` over eSpeak-NG, mute in the Steam runtime, which ships no
+eSpeak-NG data (the reporter's `/usr/share/espeak-ng-data/phontab` error, in the launch output
+right after `protontts.dll` loads). Now a shipped wrapper, `d2r-access-proton.sh`, starts the
+loader through Proton directly with `WINEDLLPATH` set, and under Wine the plugin accepts only the
+bridged backends (PRISM's priority among Speech Dispatcher/Orca/Spiel), logging a `[speech]`
+backend enumeration and PRISM's own lines as `[prism]` instead of silently taking SAPI
+([Proton](docs/proton.md)).
 
-Seen on Windows, 141/141: the new `prism.dll` loads from the new folder and picks NVDA.
+Seen on the reporter's box (Arch, Proton Experimental, Cthulhu) with the shipped 1.0.11 DLL:
+direct-Proton launch → `PRISM ready, backend: Orca`, `prism_orca_bridge.dll` loaded as a Wine
+builtin (`+loaddll`); the same launch through protontricks-launch → `backend: SAPI` again. The
+new selection/logging code is MinGW syntax-checked only; a Linux cross-build stops at the bcrypt
+host tool (`seal-descriptions`), so `build.ps1` on Windows is still owed.
 
-**Not run:** anything under Proton; an old launcher installing the new layout.
+**Not run:** the rebuilt DLL anywhere; speech heard by ear; the Speech Dispatcher bridge under
+Proton (needs `libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4 lacks); a Windows
+launch after the selection change; an old launcher installing the 1.0.11 layout.
 
-**Next step:** the reporter's log with `PRISM ready, backend: ...` under Proton.
+**Next step:** build on Windows (`build.ps1` + ctest), then the reporter starts it with
+`sh ./d2r-access-proton.sh` and says whether Cthulhu speaks; if silent, the `[speech]`/`[prism]`
+lines of the last session say why.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
