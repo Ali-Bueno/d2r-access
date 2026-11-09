@@ -45,10 +45,17 @@ not a shell command ([Proton](docs/proton.md#starting-the-game)).
 Heard, 2026-11-09: the reporter played in the menus from that start and confirms Cthulhu speaks
 the mod under Proton (they also turned some graphics settings down in the options, by ear).
 
-**Not run:** the rebuilt plugin DLL anywhere; the Speech Dispatcher bridge under Proton (needs
-`libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4 lacks); a Windows launch after
-either change; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
-layout.
+Speech Dispatcher alone (2026-11-09): the bridge binary works on this host (throwaway harness:
+available/create/speak all OK against the running speechd), but in game the shipped DLL never
+probes it — upstream ties Speech Dispatcher and SAPI at priority 97 and SAPI wins (Orca is 100);
+seen with the Orca bridge renamed away: `backend: SAPI`, no load attempt in `+loaddll`. Inside
+Steam's runtime `libspeechd.so.2` is also absent (SteamLinuxRuntime_4). Orca/Cthulhu is the
+supported path ([Proton](docs/proton.md)).
+
+**Not run:** the rebuilt plugin DLL anywhere — so its explicit bridged-only selection, which
+removes the tie, is itself unexercised; Speech Dispatcher in game, for the reasons just above; a
+Windows launch after either change; the launcher's Battle.net path under Wine; an old launcher
+installing the 1.0.11 layout.
 
 **Next step:** build on Windows (`build.ps1` + ctest) and one Windows launch
 (`PRISM ready, backend: NVDA`); if a future Proton session is silent, the `[speech]`/`[prism]`

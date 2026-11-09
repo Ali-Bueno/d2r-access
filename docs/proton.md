@@ -89,11 +89,19 @@ Do not use `protontricks-launch`: it does not pass `WINEDLLPATH` through to the 
 2026-11-09: same prefix, same files; protontricks-launch → `backend: SAPI`, direct Proton →
 `backend: Orca`, with `prism_orca_bridge.dll` loaded as a Wine builtin in the `+loaddll` trace).
 
-The host needs Orca or Cthulhu (which owns Orca's `org.gnome.Orca.Service` bus name), Speech
-Dispatcher or Spiel running; among the bridged backends PRISM's own priority picks. On the
-reporter's box that is Orca. The Speech Dispatcher bridge additionally needs `libspeechd.so.2`
-visible inside the Steam runtime (SteamLinuxRuntime_4 does not ship it), so a Speech-Dispatcher-only
-host under Proton is unverified; the `[prism]` log lines below say whether that bridge loaded.
+The host needs Orca or Cthulhu (which owns Orca's `org.gnome.Orca.Service` bus name) running;
+Speech Dispatcher alone is not a route today. Its bridge is sound — driven directly on the
+reporter's host (2026-11-09, a throwaway harness dlopening the shipped
+`prism_speech_dispatcher_bridge.dll.so`): ABI correct, `prism_speechd_available` OK against the
+running speechd, create and speak OK. But with the 1.0.11 plugin it is unreachable in game:
+upstream registers Speech Dispatcher and SAPI at the same priority (97; Orca is 100), SAPI wins
+the tie, and `acquire_best` never probes the bridge — seen the same day with the Orca bridge
+temporarily renamed away: `backend: SAPI`, and no bridge load attempt in a `+loaddll` trace.
+The shipped plugin's successor in this repo asks for the bridged backends explicitly, which
+removes the tie; and inside Steam's runtime the bridge additionally needs `libspeechd.so.2`,
+which SteamLinuxRuntime_4 does not ship. So a Speech-Dispatcher-only host stays unverified until
+both a rebuilt plugin and a runtime-visible libspeechd exist; the `[speech]`/`[prism]` log lines
+below will then say whether that bridge loaded.
 
 ## Checking
 
