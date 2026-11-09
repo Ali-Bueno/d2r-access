@@ -22,6 +22,18 @@ data — the launch output's `Error processing file '/usr/share/espeak-ng-data/p
 looked like success and stayed mute, hiding the fix. Under Wine the plugin now refuses every
 non-bridged backend and logs why each bridge failed (`src/screen_reader.cpp`).
 
+1.0.12 shipped that explicit selection and was silent again (2026-11-09): `[speech] wine=1
+backends=15`, every bridge `unavailable`, no `[prism]` lines — the bridges were never loaded,
+with `WINEDLLPATH` verified correct in the loader process. The selection probed each backend
+with `prism_registry_get`, which only returns a backend something has already acquired (PRISM
+0.18.3's `FrozenRegistry::get` reads a weak cache that only `acquire_entry` fills, by running
+the factory that loads the bridge DLL), so the probe could never succeed. The plugin now calls
+`prism_registry_acquire` directly — the acquire is the probe — and runs the
+`PRISM_BACKEND_IS_SUPPORTED_AT_RUNTIME` check on the acquired backend, freeing it on failure.
+Proven outside the game under Wine against the shipped `prism.dll` (throwaway harness,
+2026-11-09): `registry_get` null for Orca, Speech Dispatcher and Spiel; `registry_acquire`
+succeeds and Orca initializes. An in-game run of a rebuilt DLL is still outstanding.
+
 Wine Access's NVDA stand-in does not help either: since PRISM 0.16.2 the NVDA backend also requires
 `RpcMgmtInqIfIds` (`source/backends/nvda.cpp`, `server_supports_interface`), which Wine's `rpcrt4`
 leaves as a stub that always fails (found by the d4-assist session, 2026-11-08). d4-assist speaks
@@ -104,8 +116,7 @@ running speechd, create and speak OK. But with the 1.0.11 plugin it is unreachab
 upstream registers Speech Dispatcher and SAPI at the same priority (97; Orca is 100), SAPI wins
 the tie, and `acquire_best` never probes the bridge — seen the same day with the Orca bridge
 temporarily renamed away: `backend: SAPI`, and no bridge load attempt in a `+loaddll` trace.
-The shipped plugin's successor in this repo asks for the bridged backends explicitly, which
-removes the tie; and inside Steam's runtime the bridge additionally needs `libspeechd.so.2`,
+The plugin's explicit bridged-backend selection (above) removes the tie; and inside Steam's runtime the bridge additionally needs `libspeechd.so.2`,
 which SteamLinuxRuntime_4 does not ship. So a Speech-Dispatcher-only host stays unverified until
 both a rebuilt plugin and a runtime-visible libspeechd exist; the `[speech]`/`[prism]` log lines
 below will then say whether that bridge loaded.

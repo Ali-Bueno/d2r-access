@@ -48,7 +48,6 @@ struct PrismApi {
 	decltype(&prism_registry_id_at)        registryIdAt        = nullptr; // optional, as above
 	decltype(&prism_registry_name)         registryName        = nullptr; // optional, as above
 	decltype(&prism_registry_priority)     registryPriority    = nullptr; // optional, as above
-	decltype(&prism_registry_get)          registryGet         = nullptr; // optional, as above
 	decltype(&prism_registry_acquire)      registryAcquire     = nullptr; // optional, as above
 	decltype(&prism_backend_get_features)  backendGetFeatures  = nullptr; // optional, as above
 	decltype(&prism_set_log_handler)       setLogHandler       = nullptr; // optional, as above
@@ -120,7 +119,6 @@ bool ResolveApi(HMODULE library, PrismApi& api) {
 	Resolve(library, "prism_registry_id_at", api.registryIdAt);
 	Resolve(library, "prism_registry_name", api.registryName);
 	Resolve(library, "prism_registry_priority", api.registryPriority);
-	Resolve(library, "prism_registry_get", api.registryGet);
 	Resolve(library, "prism_registry_acquire", api.registryAcquire);
 	Resolve(library, "prism_backend_get_features", api.backendGetFeatures);
 	Resolve(library, "prism_set_log_handler", api.setLogHandler);
@@ -244,7 +242,7 @@ bool AcquirePrism(const std::wstring& path) {
 	}
 	// Since PRISM v0.18 acquire hands out a shared backend that is already
 	// initialized, so ALREADY_INITIALIZED is the normal outcome below, not a failure.
-	if (wine && canEnumerate && g_state.api.registryGet != nullptr && g_state.api.registryAcquire != nullptr) {
+	if (wine && canEnumerate && g_state.api.registryAcquire != nullptr) {
 		// Under Wine only the bridged backends can speak. Wine's SAPI reports a voice
 		// (Proton's protontts over eSpeak-NG) but the Steam runtime ships no eSpeak-NG
 		// data, so it stays mute while looking like success and hides the WINEDLLPATH
@@ -255,20 +253,20 @@ bool AcquirePrism(const std::wstring& path) {
 		for (const BackendInfo& candidate : backends) {
 			if (candidate.id != PRISM_BACKEND_SPEECH_DISPATCHER && candidate.id != PRISM_BACKEND_ORCA
 				&& candidate.id != PRISM_BACKEND_SPIEL) continue;
-			// registryGet hands out the shared backend: probe it, never free it.
-			PrismBackend* shared = g_state.api.registryGet(g_state.context, candidate.id);
-			if (shared == nullptr) {
+			// registryAcquire is the probe: it runs the backend's factory, which
+			// loads the Wine bridge, and hands out the shared backend (already
+			// initialized since PRISM v0.18). registryGet only returns a backend
+			// something already acquired, so probing with it first always fails
+			// ("Orca unavailable" on every run under Wine).
+			PrismBackend* backend = g_state.api.registryAcquire(g_state.context, candidate.id);
+			if (backend == nullptr) {
 				if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] %s unavailable", candidate.name.c_str());
 				continue;
 			}
 			if (g_state.api.backendGetFeatures != nullptr
-				&& (g_state.api.backendGetFeatures(shared) & PRISM_BACKEND_IS_SUPPORTED_AT_RUNTIME) == 0) {
+				&& (g_state.api.backendGetFeatures(backend) & PRISM_BACKEND_IS_SUPPORTED_AT_RUNTIME) == 0) {
 				if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] %s not supported at runtime", candidate.name.c_str());
-				continue;
-			}
-			PrismBackend* backend = g_state.api.registryAcquire(g_state.context, candidate.id);
-			if (backend == nullptr) {
-				if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] %s unavailable", candidate.name.c_str());
+				g_state.api.backendFree(backend);
 				continue;
 			}
 			const PrismError error = g_state.api.backendInitialize(backend);

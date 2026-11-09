@@ -63,12 +63,29 @@ info or debug while it starts. The wrapper was fixed for the release zip: kept L
 instead of fixed `~/.local/share/Steam` and Proton Experimental paths; checked with a dry run
 under `sh` (Steam-like arguments and a bare shell), not under Proton.
 
-**Not run:** the rebuilt plugin DLL under Proton — so its explicit bridged-only selection, which
-removes the tie, is itself unexercised; Speech Dispatcher in game, for the reasons just above; a
-Windows game launch with this DLL; the launcher's Battle.net path under Wine; an old launcher
+The reporter's run of shipped 1.0.12 (2026-11-09, 05:59/06:09) was silent: `[speech] wine=1
+backends=15`, then Orca/Speech Dispatcher/Spiel each `unavailable`, then no-backend, and no
+`[prism]` lines. The install was exonerated: `WINEDLLPATH` in the live loader's
+`/proc/<pid>/environ` was correct, and a PROTON_LOG trace shows `prism_orca_bridge.dll` loading
+as a builtin only in the launcher's process (which uses `acquire_best` and spoke), never in the
+loader's. Cause: the plugin's Wine branch probed each candidate with `prism_registry_get`,
+which returns only a backend something has already acquired (PRISM 0.18.3
+`FrozenRegistry::get` returns `Entry.cached.lock()`, a weak_ptr only `acquire_entry` fills by
+running the factory that loads the bridge) — the probe gated the only call that could fill it.
+1.0.11 spoke because `acquire_best` goes through acquire. Fixed on `prism-oversight-fix`
+(2026-11-09): acquire directly (the acquire is the probe), features check after acquire with
+`backendFree` on failure, `registryGet` resolution removed. Proven on the reporter's box
+without the game: MinGW syntax check, plus a throwaway harness under Wine against the shipped
+`prism.dll` — `registry_get` null for all three bridged backends, `registry_acquire` non-null,
+Orca and Speech Dispatcher initialize, Spiel reports unsupported (no `prism_spiel_bridge.dll.so`
+present); the harness never speaks.
+
+**Not run:** a Windows-built plugin DLL with the acquire fix, in game under Proton — the
+selection logic is proven only by the Wine harness above; Speech Dispatcher in game, for the reasons
+just above; a Windows game launch with this DLL; the launcher's Battle.net path under Wine; an old launcher
 installing the 1.0.11 layout.
 
-**Next step:** the reporter's run of the release with the `sh` launch option
+**Next step:** a Windows build of `prism-oversight-fix`, then the reporter's run of it with the `sh` launch option
 (`PRISM ready, backend: Orca` after the `[speech]` lines); if a Proton session is silent, the
 `[speech]`/`[prism]` lines of its last session say why.
 
