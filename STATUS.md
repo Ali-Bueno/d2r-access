@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Speech under Linux with Proton: Orca chosen, SAPI refused under Wine — 2026-11-09 (issue #5)
+## Speech under Linux with Proton: Orca chosen, SAPI refused under Wine — 2026-11-09 (issue #5, PR #6, release 1.0.12)
 
 1.0.11 (PRISM 0.18.3 + Wine bridges in `plugins/d2r-access/prism/`, 2026-11-08) still did not speak
 on its first Proton run: `PRISM ready, backend: SAPI`. The launch had no `WINEDLLPATH` — and
