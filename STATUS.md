@@ -46,7 +46,8 @@ Heard, 2026-11-09: the reporter played in the menus from that start and confirms
 the mod under Proton (they also turned some graphics settings down in the options, by ear).
 
 Speech Dispatcher alone (2026-11-09): the bridge binary works on this host (throwaway harness:
-available/create/speak all OK against the running speechd), but in game the shipped DLL never
+available/create/speak all OK against the running speechd, and the reporter heard its test
+sentence — direct to speechd, bypassing Cthulhu, in the same espeak-ng voice both use), but in game the shipped DLL never
 probes it — upstream ties Speech Dispatcher and SAPI at priority 97 and SAPI wins (Orca is 100);
 seen with the Orca bridge renamed away: `backend: SAPI`, no load attempt in `+loaddll`. Inside
 Steam's runtime `libspeechd.so.2` is also absent (SteamLinuxRuntime_4). Orca/Cthulhu is the
