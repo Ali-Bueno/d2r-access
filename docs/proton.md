@@ -54,20 +54,27 @@ change; why PRISM moved out of `d2r-access/` is in [the launcher](launcher.md#se
 
 ## Starting the game
 
-Start the game with the shipped wrapper, from the game folder:
+Set the shipped wrapper as the game's Steam launch option, then start the game from Steam's Play
+button as usual. In Steam: right-click Diablo II: Resurrected → Properties → Launch Options:
 
-```sh
-sh ./d2r-access-proton.sh
+```
+"<game folder>/d2r-access-proton.sh" %command%
 ```
 
 `d2r-access-proton.sh` (in the zip's root, beside `D2RAccess.exe`; source `packaging/`) sets
 `WINEDLLPATH` to the `prism/wine` folder and runs Proton directly on `D2RAccess.exe`, the way the
-reporter's working Grimdark wrapper does. The launcher is the entry point, as on Windows: it
-validates the license online when due, then starts `D2RLoader.exe` — starting the loader
-directly never renews the 30-day offline license. Set `PROTON` to another Proton build's
-`proton` script if needed. As a Steam launch option —
-`"<game folder>/d2r-access-proton.sh" %command%` — it ignores Steam's command and starts the
-launcher in the same prefix.
+reporter's working Grimdark wrapper does, ignoring Steam's command. The launcher is the entry
+point, as on Windows: it validates the license online when due, then starts `D2RLoader.exe` —
+starting the loader directly never renews the 30-day offline license. Set `PROTON` to another
+Proton build's `proton` script if needed.
+
+It has to go through Steam's Play button. The same wrapper run from a bare shell reaches the
+title screen but the game then shows "You have not been online in the last 30 days", even with
+the license date minutes old (seen 2026-11-09, plugin log: `Connecting to Battle.net` →
+`DismissableModal`). Through Steam — the launch environment its reaper/pressure-vessel start
+gives the game — the same start goes on to the main menu and character select, no modal. Which
+part of that environment the check needs was not isolated; the date in `Settings.json` alone is
+not it.
 
 Under Wine the launcher skips its Steam check (`EnsureSteam` in `launcher/launcher_main.cpp`):
 Steam is the host's Linux client, outside the prefix, so there is no `steam.exe` to open and no

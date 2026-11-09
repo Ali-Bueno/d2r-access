@@ -6,9 +6,13 @@
 # fell through to SAPI and stayed mute), so run Proton directly, the way the
 # Grimdark wrapper does. D2RAccess.exe is the entry point, as on Windows: it
 # checks the license online when it is due and then starts D2RLoader, which a
-# plain D2RLoader start never does. Any arguments are ignored: as a Steam
-# launch option ("<game folder>/d2r-access-proton.sh" %command%) Steam's own
-# command is replaced by the launcher in the same prefix (docs/proton.md).
+# plain D2RLoader start never does.
+# Use this script as Steam's launch option ("<game folder>/d2r-access-proton.sh"
+# %command%), so Steam's Play button starts it: the game needs Steam's own
+# launch environment, and started from a bare shell instead it shows "You have
+# not been online in the last 30 days" even with a fresh license date (seen
+# 2026-11-09). Any arguments are ignored; Steam's own command is replaced by
+# the launcher in the same prefix (docs/proton.md).
 cd "$(dirname "$0")" || exit 1
 STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata/2536520"
 STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"

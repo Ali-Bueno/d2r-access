@@ -31,14 +31,24 @@ started, `User Last Online` changed 12 s later (foreground window and Escape hol
 Wine), `License validated`, loader started, `exit 0`. That MinGW exe (a dev build, update check
 skipped) is the one installed on this box until a Windows build replaces it.
 
+Then the second half (same day, the reporter's screenshots): started from a bare shell, the
+modded game still showed "You have not been online in the last 30 days" after
+`Connecting to Battle.net`, with the license date minutes old — the date alone is not what the
+check reads. With the wrapper set as Steam's launch option for the game (written into this
+box's `localconfig.vdf`) and started from Steam's Play button, the same start reaches the main
+menu and character select, no modal (plugin log 01:42). Which part of Steam's launch
+environment the check needs was not isolated. So the wrapper is a Steam launch option, not a
+shell command ([Proton](docs/proton.md#starting-the-game)).
+
 **Not run:** the rebuilt plugin DLL anywhere; speech heard by ear; the Speech Dispatcher bridge
 under Proton (needs `libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4 lacks); a
-Windows launch after either change; the launcher's Battle.net path under Wine; an old launcher
-installing the 1.0.11 layout.
+Windows launch after either change; the launcher's Battle.net path under Wine; a stale-license
+validation with Steam as the parent (the 01:29 `--validate` ran standalone, where the date
+changed but play would still have been blocked); an old launcher installing the 1.0.11 layout.
 
-**Next step:** build on Windows (`build.ps1` + ctest), then the reporter plays through
-`sh ./d2r-access-proton.sh` and says whether Cthulhu speaks; if silent, the `[speech]`/`[prism]`
-lines of the last session say why.
+**Next step:** build on Windows (`build.ps1` + ctest), then the reporter plays from Steam's Play
+button and says whether Cthulhu speaks; if silent, the `[speech]`/`[prism]` lines of the last
+session say why.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
