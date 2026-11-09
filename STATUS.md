@@ -18,14 +18,25 @@ backend enumeration and PRISM's own lines as `[prism]` instead of silently takin
 Seen on the reporter's box (Arch, Proton Experimental, Cthulhu) with the shipped 1.0.11 DLL:
 direct-Proton launch → `PRISM ready, backend: Orca`, `prism_orca_bridge.dll` loaded as a Wine
 builtin (`+loaddll`); the same launch through protontricks-launch → `backend: SAPI` again. The
-new selection/logging code is MinGW syntax-checked only; a Linux cross-build stops at the bcrypt
-host tool (`seal-descriptions`), so `build.ps1` on Windows is still owed.
+new selection/logging code is MinGW syntax-checked only; a Linux cross-build of the plugin stops
+at the bcrypt host tool (`seal-descriptions`), so `build.ps1` on Windows is still owed for it.
 
-**Not run:** the rebuilt DLL anywhere; speech heard by ear; the Speech Dispatcher bridge under
-Proton (needs `libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4 lacks); a Windows
-launch after the selection change; an old launcher installing the 1.0.11 layout.
+The launcher under Proton (2026-11-09, same box): the shipped one timed out in its Steam check —
+`timed out waiting for a Steam user`, `exit 1` — even on a fresh license, because under Wine
+there is no `steam.exe` to open and no `ActiveUser` in the prefix registry. It now skips that
+check under Wine (`Sys::UnderWine`), and the wrapper starts `D2RAccess.exe`, not the loader, so
+the license renews online as on Windows. A MinGW-built launcher from this change, run through
+the wrapper: fresh path → loader started, game session on Orca; `--validate` → unmodded game
+started, `User Last Online` changed 12 s later (foreground window and Escape holds work through
+Wine), `License validated`, loader started, `exit 0`. That MinGW exe (a dev build, update check
+skipped) is the one installed on this box until a Windows build replaces it.
 
-**Next step:** build on Windows (`build.ps1` + ctest), then the reporter starts it with
+**Not run:** the rebuilt plugin DLL anywhere; speech heard by ear; the Speech Dispatcher bridge
+under Proton (needs `libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4 lacks); a
+Windows launch after either change; the launcher's Battle.net path under Wine; an old launcher
+installing the 1.0.11 layout.
+
+**Next step:** build on Windows (`build.ps1` + ctest), then the reporter plays through
 `sh ./d2r-access-proton.sh` and says whether Cthulhu speaks; if silent, the `[speech]`/`[prism]`
 lines of the last session say why.
 

@@ -33,7 +33,11 @@ Shipped in the game folder next to `D2R.exe` and `D2RLoader.exe`. Sources: `laun
    (32-bit view); fresh path: started without arguments if not running (no signed-in check is
    known); validation: always run with `--exec="launch OSI"`, which a running app takes over and a
    closed one opens with. Failure: an error box ("could not start the game, this copy needs Steam /
-   the Battle.net app open and signed in"), exit. Fresh: start the loader.
+   the Battle.net app open and signed in"), exit. Fresh: start the loader. Under Wine the Steam
+   check is skipped whole (`Sys::UnderWine`): Steam is the host's Linux client, outside the prefix,
+   so there is no `steam.exe` to open and no `ActiveUser` in the prefix registry; that wait timed
+   out and the launcher exited on a fresh license (reproduced under Proton, 2026-11-09). Proton
+   gives the game its Steam connection itself; the Battle.net path is unchanged.
 4. Validation starts the unmodded game. Steam: `D2R.exe` without arguments, after writing a missing
    `steam_appid.txt` with the `appid` of the `steamapps\appmanifest_*.acf` whose `installdir` is the
    game folder's name (without it `D2R.exe` quits in 1.5 s and asks Steam to start it again, which
@@ -114,6 +118,11 @@ validated" said, D2RLoader started; the fresh path (0 days) started the loader a
 
 2026-11-03, the user, Steam copy: with Steam closed the launcher opened it and went on, on the
 fresh path and with `--validate`.
+
+2026-11-09, the reporter's box (Arch, Proton Experimental, Cthulhu), launcher built from this
+change: fresh path logged `under Wine: Steam is the host's client, not checked` and started the
+loader; with `--validate`, `D2R.exe` started, the date changed 12 s later (the foreground window
+and Escape holds work through Wine), `License validated`, loader started, `exit 0`.
 
 2026-11-03, the user's Battle.net app (Diablo IV installed, no D2R): with the app running,
 `Battle.net.exe --exec="launch Fen"` (Fen: Diablo IV's code, from bnetlauncher) started

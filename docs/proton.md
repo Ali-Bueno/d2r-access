@@ -54,18 +54,29 @@ change; why PRISM moved out of `d2r-access/` is in [the launcher](launcher.md#se
 
 ## Starting the game
 
-`D2RAccess.exe` does not work under Proton yet: it looks for a Windows `steam.exe` and Steam's
-registry keys, which a prefix lacks. Start the game with the shipped wrapper, from the game folder:
+Start the game with the shipped wrapper, from the game folder:
 
 ```sh
 sh ./d2r-access-proton.sh
 ```
 
 `d2r-access-proton.sh` (in the zip's root, beside `D2RAccess.exe`; source `packaging/`) sets
-`WINEDLLPATH` to the `prism/wine` folder and runs Proton directly on `D2RLoader.exe`, the way the
-reporter's working Grimdark wrapper does. Set `PROTON` to another Proton build's `proton` script
-if needed. As a Steam launch option — `"<game folder>/d2r-access-proton.sh" %command%` — it ignores
-Steam's command and starts the loader in the same prefix.
+`WINEDLLPATH` to the `prism/wine` folder and runs Proton directly on `D2RAccess.exe`, the way the
+reporter's working Grimdark wrapper does. The launcher is the entry point, as on Windows: it
+validates the license online when due, then starts `D2RLoader.exe` — starting the loader
+directly never renews the 30-day offline license. Set `PROTON` to another Proton build's
+`proton` script if needed. As a Steam launch option —
+`"<game folder>/d2r-access-proton.sh" %command%` — it ignores Steam's command and starts the
+launcher in the same prefix.
+
+Under Wine the launcher skips its Steam check (`EnsureSteam` in `launcher/launcher_main.cpp`):
+Steam is the host's Linux client, outside the prefix, so there is no `steam.exe` to open and no
+`ActiveUser` in the prefix registry — that wait timed out after 60 s and the launcher exited
+before starting anything (reproduced 2026-11-09, `d2rloader/logs/d2r-access-launcher.log`:
+`timed out waiting for a Steam user`, `exit 1`, on an otherwise fresh license). Proton gives the
+game its Steam connection itself. The rest of the flow runs as on Windows, verified on the
+reporter's box the same day: `--validate` started the unmodded game, `User Last Online` changed
+12 s later (the Escape holds reach the game through Wine), `License validated`, loader started.
 
 Do not use `protontricks-launch`: it does not pass `WINEDLLPATH` through to the game (seen
 2026-11-09: same prefix, same files; protontricks-launch → `backend: SAPI`, direct Proton →
