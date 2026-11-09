@@ -1,3 +1,2 @@
-graphify-out/graph.json merge=graphify
 # Shell scripts run on Linux (Proton); a CRLF checkout on Windows would break them in the release zip.
 *.sh text eol=lf
