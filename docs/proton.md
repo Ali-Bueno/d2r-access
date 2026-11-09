@@ -105,6 +105,16 @@ no Battle.net cache was written. The old prefix was restored. Closing vanilla on
 change may simply be too early under Proton, before the account-presence/cache work an
 interactive vanilla session completes.
 
+What cleared it on the reporter's box (2026-11-09): temporarily clear Steam's LaunchOptions,
+start vanilla from Play so Steam's original reaper/SteamLinuxRuntime command runs `D2R.exe`,
+press a key at the title and reach **Online character select**, exit cleanly, restore the
+launch option verbatim, then start modded as usual — it passed `Connecting to Battle.net`
+into character select and character creation. Note the wrapper itself only extracts Steam's
+`proton` and runs it directly, bypassing that reaper/runtime chain; wrapper-run vanilla
+reached account presence and cache writes but then logged a game-server error (666). Which
+part — the full Steam command chain, the complete clean online session, or both — is the
+decisive one is not isolated.
+
 Under Wine the launcher skips its Steam check (`EnsureSteam` in `launcher/launcher_main.cpp`):
 Steam is the host's Linux client, outside the prefix, so there is no `steam.exe` to open and no
 `ActiveUser` in the prefix registry — that wait timed out after 60 s and the launcher exited

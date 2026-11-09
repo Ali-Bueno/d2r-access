@@ -113,13 +113,27 @@ account-presence/cache completion an interactive vanilla session reached. No log
 of an account ban: interactive vanilla reached BGS presence and wrote cache files before
 its game-server error; account-side entitlement/session state still cannot be ruled out.
 
+Resolved for this install at 10:37 by taking the wrapper out of the launch entirely once:
+with Steam LaunchOptions temporarily cleared, vanilla ran through Steam's original
+reaper/SteamLinuxRuntime/pressure-vessel command to **Online character select** (BGS `PROD`,
+presence/cache complete, no error 666), exited cleanly (Alt+F4; Steam released the session
+10:36:02), and with the launch option restored verbatim the modded start passed `Connecting
+to Battle.net` into `CharacterSelectPanel` at 10:37:57, then character creation and the
+in-game tutorial prompt. By contrast, wrapper-run vanilla extracts Steam's `proton` and runs
+it directly, bypassing that reaper/runtime chain; it reached presence/cache but then error
+666 and a shutdown crash. Which element matters — the full Steam command chain, the complete
+clean online session, or both — is not isolated. No account ban: the same account reached
+Online character select in vanilla.
+
 **Not run:** Speech Dispatcher in game, for the reasons just above; a Windows game launch with
 this DLL; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
 layout.
 
-**Next step:** compare against a successful modded session's `blz-log.txt`/loader log
-(BGS `TEST` backend result and state artifact), and test a validation run that leaves
-vanilla up through presence/cache completion instead of closing on the date change.
+**Next step:** the reporter plays. Code follow-up for the license modal's return: make the
+wrapper preserve Steam's full launch chain (reaper/SteamLinuxRuntime) while substituting
+the launcher and setting `WINEDLLPATH`, instead of extracting `proton` and bypassing it;
+until then the recovery above (one original-command vanilla session to Online character
+select, clean exit, restore the launch option) is the documented workaround.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
