@@ -32,7 +32,8 @@ the factory that loads the bridge DLL), so the probe could never succeed. The pl
 `PRISM_BACKEND_IS_SUPPORTED_AT_RUNTIME` check on the acquired backend, freeing it on failure.
 Proven outside the game under Wine against the shipped `prism.dll` (throwaway harness,
 2026-11-09): `registry_get` null for Orca, Speech Dispatcher and Spiel; `registry_acquire`
-succeeds and Orca initializes. An in-game run of a rebuilt DLL is still outstanding.
+succeeds and Orca initializes. Run in game later the same day with a Windows-built DLL:
+`PRISM ready, backend: Orca` after the `[speech]` enumeration (plugin log 09:40/09:49).
 
 Wine Access's NVDA stand-in does not help either: since PRISM 0.16.2 the NVDA backend also requires
 `RpcMgmtInqIfIds` (`source/backends/nvda.cpp`, `server_supports_interface`), which Wine's `rpcrt4`

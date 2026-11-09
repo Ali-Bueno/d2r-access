@@ -80,14 +80,24 @@ without the game: MinGW syntax check, plus a throwaway harness under Wine agains
 Orca and Speech Dispatcher initialize, Spiel reports unsupported (no `prism_spiel_bridge.dll.so`
 present); the harness never speaks.
 
-**Not run:** a Windows-built plugin DLL with the acquire fix, in game under Proton — the
-selection logic is proven only by the Wine harness above; Speech Dispatcher in game, for the reasons
-just above; a Windows game launch with this DLL; the launcher's Battle.net path under Wine; an old launcher
-installing the 1.0.11 layout.
+The rebuilt plugin then ran in game the same day (Windows VM build, Steam Play → wrapper):
+`[speech] wine=1 backends=15`, `PRISM ready, backend: Orca`, and the title-screen/license-modal
+announcements queued to that backend (plugin log 09:40 and 09:49), closing the acquire regression
+in game. Those runs stop at the game's own 30-days license modal, a separate open problem: the
+launcher logged a fresh date (0 days) with the Wine Steam check skipped, and a forced
+`--validate` run changed `User Last Online` at 09:48:59 and said `License validated`, yet the
+loader-hosted game showed the modal at 09:49:10. Vanilla `D2R.exe` logged BGS `PROD -
+us.actual.battle.net`; the loader-hosted game logged `TEST - localhost` with a backend error.
+The validation run refreshed no Battle.net cache file in the prefix — only `Settings.json`
+changed — so what state beyond the date the check wants is still unknown.
 
-**Next step:** a Windows build of `prism-oversight-fix`, then the reporter's run of it with the `sh` launch option
-(`PRISM ready, backend: Orca` after the `[speech]` lines); if a Proton session is silent, the
-`[speech]`/`[prism]` lines of its last session say why.
+**Not run:** Speech Dispatcher in game, for the reasons just above; a Windows game launch with
+this DLL; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
+layout; the vanilla-through-Steam isolation run for the license modal above.
+
+**Next step:** vanilla `D2R.exe` through Steam's Play button (the installed wrapper temporarily
+points at it): inspect its live BGS/auth lines, restore the wrapper to `D2RAccess.exe`, then
+retry the modded start.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
