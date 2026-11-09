@@ -36,15 +36,16 @@ modded game still showed "You have not been online in the last 30 days" after
 `Connecting to Battle.net`, with the license date minutes old — the date alone is not what the
 check reads. With the wrapper set as Steam's launch option for the game (written into this
 box's `localconfig.vdf`) and started from Steam's Play button, the same start reaches the main
-menu and character select, no modal (plugin log 01:42). Which part of Steam's launch
-environment the check needs was not isolated. So the wrapper is a Steam launch option, not a
-shell command ([Proton](docs/proton.md#starting-the-game)).
+menu and character select, no modal (plugin log 01:42). A forced `--validate` through Steam
+(02:23, temporary flag in the installed wrapper copy) renewed the date with Steam as parent and
+the modded start right after reached character select the same way. Which part of Steam's
+launch environment the check needs was not isolated. So the wrapper is a Steam launch option,
+not a shell command ([Proton](docs/proton.md#starting-the-game)).
 
-**Not run:** the rebuilt plugin DLL anywhere; speech heard by ear; the Speech Dispatcher bridge
-under Proton (needs `libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4 lacks); a
-Windows launch after either change; the launcher's Battle.net path under Wine; a stale-license
-validation with Steam as the parent (the 01:29 `--validate` ran standalone, where the date
-changed but play would still have been blocked); an old launcher installing the 1.0.11 layout.
+**Not run:** the rebuilt plugin DLL anywhere; speech confirmed by ear; the Speech Dispatcher
+bridge under Proton (needs `libspeechd.so.2` inside the runtime, which SteamLinuxRuntime_4
+lacks); a Windows launch after either change; the launcher's Battle.net path under Wine; an old
+launcher installing the 1.0.11 layout.
 
 **Next step:** build on Windows (`build.ps1` + ctest), then the reporter plays from Steam's Play
 button and says whether Cthulhu speaks; if silent, the `[speech]`/`[prism]` lines of the last
