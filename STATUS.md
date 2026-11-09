@@ -89,15 +89,18 @@ launcher logged a fresh date (0 days) with the Wine Steam check skipped, and a f
 loader-hosted game showed the modal at 09:49:10. Vanilla `D2R.exe` logged BGS `PROD -
 us.actual.battle.net`; the loader-hosted game logged `TEST - localhost` with a backend error.
 The validation run refreshed no Battle.net cache file in the prefix — only `Settings.json`
-changed — so what state beyond the date the check wants is still unknown.
+changed. Vanilla `D2R.exe` through the same Steam Play wrapper then went further: BGS `PROD`
+at 09:55:57, account-presence traffic at 09:56:01, and new Battle.net cache files at
+09:56:02–03 (a game-server error and a shutdown crash followed, 09:56:17/09:57:24). So an
+interactive vanilla session refreshes auth/cache state that the launcher's date-only
+validation does not; whether that state clears the loader-hosted modal is the open question.
 
 **Not run:** Speech Dispatcher in game, for the reasons just above; a Windows game launch with
 this DLL; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
-layout; the vanilla-through-Steam isolation run for the license modal above.
+layout; the modded retry after the vanilla auth refresh above.
 
-**Next step:** vanilla `D2R.exe` through Steam's Play button (the installed wrapper temporarily
-points at it): inspect its live BGS/auth lines, restore the wrapper to `D2RAccess.exe`, then
-retry the modded start.
+**Next step:** the reporter's modded start from Steam's Play button with the wrapper restored
+to `D2RAccess.exe`: menu speech, or the same 30-days modal at `Connecting to Battle.net`.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
