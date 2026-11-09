@@ -44,6 +44,15 @@ struct PrismApi {
 	decltype(&prism_backend_free)          backendFree         = nullptr;
 	decltype(&prism_error_string)          errorString         = nullptr;
 	decltype(&prism_backend_is_speaking)   backendIsSpeaking   = nullptr; // optional: older DLLs may lack it
+	decltype(&prism_registry_count)        registryCount       = nullptr; // optional, as above
+	decltype(&prism_registry_id_at)        registryIdAt        = nullptr; // optional, as above
+	decltype(&prism_registry_name)         registryName        = nullptr; // optional, as above
+	decltype(&prism_registry_priority)     registryPriority    = nullptr; // optional, as above
+	decltype(&prism_registry_get)          registryGet         = nullptr; // optional, as above
+	decltype(&prism_registry_acquire)      registryAcquire     = nullptr; // optional, as above
+	decltype(&prism_backend_get_features)  backendGetFeatures  = nullptr; // optional, as above
+	decltype(&prism_set_log_handler)       setLogHandler       = nullptr; // optional, as above
+	decltype(&prism_set_log_level)         setLogLevel         = nullptr; // optional, as above
 };
 
 // Everything PRISM-related is touched only by the speech thread: a speak
@@ -86,6 +95,7 @@ int                             g_silentPolls = 0; // speech thread only
 std::atomic<unsigned long long> g_leadUntil{0};
 constexpr unsigned long long    SpeakingPollMs = 100, SpeakingGraceMs = 250;
 bool                    g_available = false; // backend acquired (set by Initialize, cleared by Shutdown)
+std::atomic<const D2RL::PluginContext*> g_log{nullptr};
 
 template <typename Fn>
 bool Resolve(HMODULE library, const char* name, Fn& out) {
@@ -94,7 +104,7 @@ bool Resolve(HMODULE library, const char* name, Fn& out) {
 }
 
 bool ResolveApi(HMODULE library, PrismApi& api) {
-	return Resolve(library, "prism_config_init", api.configInit)
+	const bool required = Resolve(library, "prism_config_init", api.configInit)
 		&& Resolve(library, "prism_init", api.init)
 		&& Resolve(library, "prism_shutdown", api.shutdown)
 		&& Resolve(library, "prism_registry_acquire_best", api.registryAcquireBest)
@@ -103,8 +113,19 @@ bool ResolveApi(HMODULE library, PrismApi& api) {
 		&& Resolve(library, "prism_backend_speak", api.backendSpeak)
 		&& Resolve(library, "prism_backend_stop", api.backendStop)
 		&& Resolve(library, "prism_backend_free", api.backendFree)
-		&& Resolve(library, "prism_error_string", api.errorString)
-		&& (Resolve(library, "prism_backend_is_speaking", api.backendIsSpeaking), true);
+		&& Resolve(library, "prism_error_string", api.errorString);
+	// Optional: a stray older prism.dll may lack these; every caller checks for null.
+	Resolve(library, "prism_backend_is_speaking", api.backendIsSpeaking);
+	Resolve(library, "prism_registry_count", api.registryCount);
+	Resolve(library, "prism_registry_id_at", api.registryIdAt);
+	Resolve(library, "prism_registry_name", api.registryName);
+	Resolve(library, "prism_registry_priority", api.registryPriority);
+	Resolve(library, "prism_registry_get", api.registryGet);
+	Resolve(library, "prism_registry_acquire", api.registryAcquire);
+	Resolve(library, "prism_backend_get_features", api.backendGetFeatures);
+	Resolve(library, "prism_set_log_handler", api.setLogHandler);
+	Resolve(library, "prism_set_log_level", api.setLogLevel);
+	return required;
 }
 
 std::string Narrow(const std::wstring& text) {
@@ -124,10 +145,15 @@ std::wstring BuildPrismPath(const wchar_t* pluginDirectory) {
 	return path + PrismRelativePath;
 }
 
+// Same test PRISM's bridged backends make before loading their Wine bridges.
+bool UnderWine() {
+	const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+	return ntdll != nullptr && GetProcAddress(ntdll, "wine_get_version") != nullptr;
+}
+
 // Empty on Windows. Under Wine, what the host needs for speech, with the bridge folder's Unix path.
 std::string WineHint(const std::wstring& prismPath) {
-	const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-	if (ntdll == nullptr || GetProcAddress(ntdll, "wine_get_version") == nullptr) return {};
+	if (!UnderWine()) return {};
 	const std::wstring folder = prismPath.substr(0, prismPath.find_last_of(L'\\') + 1) + WineBridgeFolder;
 	std::string where = Narrow(folder);
 	using UnixName = char*(__cdecl*)(const wchar_t*);
@@ -137,6 +163,14 @@ std::string WineHint(const std::wstring& prismPath) {
 		HeapFree(GetProcessHeap(), 0, unixPath);
 	}
 	return " under Wine (start the game with WINEDLLPATH=" + where + "; is Speech Dispatcher or Orca running?)";
+}
+
+// PRISM's own log, into the plugin log. PRISM may call from its own threads; AsyncLog only queues.
+// Why a bridge did not load is in here and nowhere else (upstream logs it at debug, source "Orca"
+// and friends at v0.18.3), which is why AcquirePrism asks for debug under Wine.
+void PRISM_CALL PrismLog(void*, PrismLogLevel, const char* source, const char* message) {
+	if (const auto* log = g_log.load())
+		AsyncLog::InfoF(log, "[prism] %s: %s", source != nullptr ? source : "?", message != nullptr ? message : "");
 }
 
 // Speech thread only.
@@ -170,6 +204,12 @@ bool AcquirePrism(const std::wstring& path) {
 		ReleasePrism();
 		return false;
 	}
+	// PRISM's own log lines (why a Wine bridge did not load, say) belong in the plugin log.
+	// Under Wine ask for debug: upstream logs a failed bridge load there; at info it is silent.
+	if (g_state.api.setLogHandler != nullptr && g_state.api.setLogLevel != nullptr) {
+		g_state.api.setLogHandler(PrismLogHandler{&PrismLog, nullptr});
+		g_state.api.setLogLevel(UnderWine() ? PRISM_LOG_LEVEL_DEBUG : PRISM_LOG_LEVEL_INFO);
+	}
 	PrismConfig config = g_state.api.configInit();
 	g_state.context    = g_state.api.init(&config);
 	if (g_state.context == nullptr) {
@@ -177,21 +217,89 @@ bool AcquirePrism(const std::wstring& path) {
 		ReleasePrism();
 		return false;
 	}
-	g_state.backend = g_state.api.registryAcquireBest(g_state.context);
-	if (g_state.backend == nullptr) {
-		const std::string wine = WineHint(path);
-		g_state.lastError = "no screen reader backend available" + (wine.empty() ? std::string(" (is NVDA/JAWS running?)") : wine);
-		ReleasePrism();
-		return false;
+	const bool wine = UnderWine();
+	// Every backend PRISM registered, in the log: which ones exist is the first thing a
+	// "silent under Proton" report needs, and only PRISM knows.
+	struct BackendInfo {
+		PrismBackendId id;
+		int            priority;
+		std::string    name;
+	};
+	std::vector<BackendInfo> backends;
+	const bool canEnumerate = g_state.api.registryCount != nullptr && g_state.api.registryIdAt != nullptr
+		&& g_state.api.registryName != nullptr && g_state.api.registryPriority != nullptr;
+	if (canEnumerate) {
+		const size_t count = g_state.api.registryCount(g_state.context);
+		backends.reserve(count);
+		for (size_t i = 0; i < count; ++i) {
+			const PrismBackendId id   = g_state.api.registryIdAt(g_state.context, i);
+			const char*          name = g_state.api.registryName(g_state.context, id);
+			backends.push_back(BackendInfo{id, g_state.api.registryPriority(g_state.context, id), name != nullptr ? name : "?"});
+		}
+		if (const auto* log = g_log.load()) {
+			AsyncLog::InfoF(log, "[speech] wine=%d backends=%zu", wine ? 1 : 0, backends.size());
+			for (const BackendInfo& backend : backends)
+				AsyncLog::InfoF(log, "[speech] backend %s priority=%d", backend.name.c_str(), backend.priority);
+		}
 	}
-	// Since PRISM v0.18 acquire_best hands out a shared backend that is already
-	// initialized, so ALREADY_INITIALIZED is the normal outcome here, not a failure.
-	const PrismError error = g_state.api.backendInitialize(g_state.backend);
-	if (error != PRISM_OK && error != PRISM_ERROR_ALREADY_INITIALIZED) {
-		const char* name  = g_state.api.backendName(g_state.backend);
-		g_state.lastError = std::string("backend ") + (name != nullptr ? name : "?") + " failed to initialize: " + g_state.api.errorString(error);
-		ReleasePrism();
-		return false;
+	// Since PRISM v0.18 acquire hands out a shared backend that is already
+	// initialized, so ALREADY_INITIALIZED is the normal outcome below, not a failure.
+	if (wine && canEnumerate && g_state.api.registryGet != nullptr && g_state.api.registryAcquire != nullptr) {
+		// Under Wine only the bridged backends can speak. Wine's SAPI reports a voice
+		// (Proton's protontts over eSpeak-NG) but the Steam runtime ships no eSpeak-NG
+		// data, so it stays mute while looking like success and hides the WINEDLLPATH
+		// fix in the error below (seen 2026-11-08: "backend: SAPI", phontab missing).
+		// Never accept it, or any other Windows backend, under Wine.
+		std::sort(backends.begin(), backends.end(),
+			[](const BackendInfo& a, const BackendInfo& b) { return a.priority > b.priority; });
+		for (const BackendInfo& candidate : backends) {
+			if (candidate.id != PRISM_BACKEND_SPEECH_DISPATCHER && candidate.id != PRISM_BACKEND_ORCA
+				&& candidate.id != PRISM_BACKEND_SPIEL) continue;
+			// registryGet hands out the shared backend: probe it, never free it.
+			PrismBackend* shared = g_state.api.registryGet(g_state.context, candidate.id);
+			if (shared == nullptr) {
+				if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] %s unavailable", candidate.name.c_str());
+				continue;
+			}
+			if (g_state.api.backendGetFeatures != nullptr
+				&& (g_state.api.backendGetFeatures(shared) & PRISM_BACKEND_IS_SUPPORTED_AT_RUNTIME) == 0) {
+				if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] %s not supported at runtime", candidate.name.c_str());
+				continue;
+			}
+			PrismBackend* backend = g_state.api.registryAcquire(g_state.context, candidate.id);
+			if (backend == nullptr) {
+				if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] %s unavailable", candidate.name.c_str());
+				continue;
+			}
+			const PrismError error = g_state.api.backendInitialize(backend);
+			if (error != PRISM_OK && error != PRISM_ERROR_ALREADY_INITIALIZED) {
+				if (const auto* log = g_log.load()) AsyncLog::InfoF(log, "[speech] %s failed to initialize: %s", candidate.name.c_str(), g_state.api.errorString(error));
+				g_state.api.backendFree(backend);
+				continue;
+			}
+			g_state.backend = backend;
+			break;
+		}
+		if (g_state.backend == nullptr) {
+			g_state.lastError = "no screen reader backend available" + WineHint(path);
+			ReleasePrism();
+			return false;
+		}
+	} else {
+		g_state.backend = g_state.api.registryAcquireBest(g_state.context);
+		if (g_state.backend == nullptr) {
+			const std::string wineHint = WineHint(path);
+			g_state.lastError = "no screen reader backend available" + (wineHint.empty() ? std::string(" (is NVDA/JAWS running?)") : wineHint);
+			ReleasePrism();
+			return false;
+		}
+		const PrismError error = g_state.api.backendInitialize(g_state.backend);
+		if (error != PRISM_OK && error != PRISM_ERROR_ALREADY_INITIALIZED) {
+			const char* name  = g_state.api.backendName(g_state.backend);
+			g_state.lastError = std::string("backend ") + (name != nullptr ? name : "?") + " failed to initialize: " + g_state.api.errorString(error);
+			ReleasePrism();
+			return false;
+		}
 	}
 	const char* name    = g_state.api.backendName(g_state.backend);
 	g_state.backendName = name != nullptr ? name : "";
@@ -199,7 +307,6 @@ bool AcquirePrism(const std::wstring& path) {
 	return true;
 }
 
-std::atomic<const D2RL::PluginContext*> g_log{nullptr};
 
 // Speech thread only: whether the backend tells when it stops talking, found out once and logged.
 void Tells(bool yes) {
@@ -273,7 +380,12 @@ bool Initialize(const wchar_t* pluginDirectory) {
 		g_state.lastError = "plugin directory unknown";
 		return false;
 	}
+	// LogTo may already have run so AcquirePrism's [speech]/[prism] lines are kept;
+	// Shutdown clears the context, so put it back. A failed attempt shuts down again
+	// below and the caller re-runs LogTo after Initialize.
+	const D2RL::PluginContext* logContext = g_log.load();
 	Shutdown(); // a previous failed attempt may have left the thread running
+	g_log = logContext;
 
 	// Absolute path: the game's DLL search path must not decide which prism.dll loads.
 	std::promise<bool> ready;

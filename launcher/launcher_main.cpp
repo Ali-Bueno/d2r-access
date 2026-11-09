@@ -115,6 +115,13 @@ void MarkFirstRunSeen(const std::wstring& settingsPath) {
 }
 
 bool EnsureSteam() {
+	if (Sys::UnderWine()) {
+		// Steam is the host's Linux client, outside the prefix: no steam.exe to start and no
+		// ActiveUser in the prefix registry, so the wait below only timed out (2026-11-09).
+		// Proton gives the game its Steam connection itself; nothing to ensure here.
+		Log::Line("under Wine: Steam is the host's client, not checked");
+		return true;
+	}
 	if (!Sys::IsProcessRunning(SteamProcess)) {
 		const auto steam = Sys::SteamExePath();
 		if (!steam) {

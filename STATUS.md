@@ -2,19 +2,75 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Speech under Linux with Proton: PRISM 0.18.3 and its Wine bridges — 2026-11-08 (issue #5, release 1.0.11)
+## Speech under Linux with Proton: Orca chosen, SAPI refused under Wine — 2026-11-09 (issue #5, PR #6, release 1.0.12)
 
-A Linux player (Proton, Cthulhu): the mod ran but never spoke, `no screen reader backend available`.
-PRISM 0.18.2's Windows build has no bridged backends. Now PRISM 0.18.3 with the Orca, Speech
-Dispatcher and Spiel bridges, in its own folder `plugins/d2r-access/prism/` so every launcher can
-install it; the game must start with `WINEDLLPATH` set ([Proton](docs/proton.md)). Under Wine a
-failure logs the folder's Unix path. `release.json` names `D2RAccess.zip` again ([launcher](docs/launcher.md#self-update)).
+1.0.11 (PRISM 0.18.3 + Wine bridges in `plugins/d2r-access/prism/`, 2026-11-08) still did not speak
+on its first Proton run: `PRISM ready, backend: SAPI`. The launch had no `WINEDLLPATH` — and
+`protontricks-launch` does not pass it through — so no bridge was findable and PRISM fell through
+to Wine's SAPI: Proton's `protontts` over eSpeak-NG, mute in the Steam runtime, which ships no
+eSpeak-NG data (the reporter's `/usr/share/espeak-ng-data/phontab` error, in the launch output
+right after `protontts.dll` loads). Now a shipped wrapper, `d2r-access-proton.sh`, starts the
+launcher through Proton directly with `WINEDLLPATH` set, and under Wine the plugin accepts only the
+bridged backends (PRISM's priority among Speech Dispatcher/Orca/Spiel), logging a `[speech]`
+backend enumeration and PRISM's own lines as `[prism]` instead of silently taking SAPI
+([Proton](docs/proton.md)).
 
-Seen on Windows, 141/141: the new `prism.dll` loads from the new folder and picks NVDA.
+Seen on the reporter's box (Arch, Proton Experimental, Cthulhu) with the shipped 1.0.11 DLL:
+direct-Proton launch → `PRISM ready, backend: Orca`, `prism_orca_bridge.dll` loaded as a Wine
+builtin (`+loaddll`); the same launch through protontricks-launch → `backend: SAPI` again. The
+new selection/logging code was only MinGW syntax-checked there (a Linux cross-build of the plugin
+stops at the bcrypt host tool, `seal-descriptions`); the Windows build is below.
 
-**Not run:** anything under Proton; an old launcher installing the new layout.
+The launcher under Proton (2026-11-09, same box): the shipped one timed out in its Steam check —
+`timed out waiting for a Steam user`, `exit 1` — even on a fresh license, because under Wine
+there is no `steam.exe` to open and no `ActiveUser` in the prefix registry. It now skips that
+check under Wine (`Sys::UnderWine`), and the wrapper starts `D2RAccess.exe`, not the loader, so
+the license renews online as on Windows. A MinGW-built launcher from this change, run through
+the wrapper: fresh path → loader started, game session on Orca; `--validate` → unmodded game
+started, `User Last Online` changed 12 s later (foreground window and Escape holds work through
+Wine), `License validated`, loader started, `exit 0`. That MinGW exe (a dev build, update check
+skipped) is the one installed on this box until a Windows build replaces it.
 
-**Next step:** the reporter's log with `PRISM ready, backend: ...` under Proton.
+Then the second half (same day, the reporter's screenshots): started from a bare shell, the
+modded game still showed "You have not been online in the last 30 days" after
+`Connecting to Battle.net`, with the license date minutes old — the date alone is not what the
+check reads. With the wrapper set as Steam's launch option for the game (written into this
+box's `localconfig.vdf`) and started from Steam's Play button, the same start reaches the main
+menu and character select, no modal (plugin log 01:42). A forced `--validate` through Steam
+(02:23, temporary flag in the installed wrapper copy) renewed the date with Steam as parent and
+the modded start right after reached character select the same way. Which part of Steam's
+launch environment the check needs was not isolated. So the wrapper is a Steam launch option,
+not a shell command ([Proton](docs/proton.md#starting-the-game)).
+
+Heard, 2026-11-09: the reporter played in the menus from that start and confirms Cthulhu speaks
+the mod under Proton (they also turned some graphics settings down in the options, by ear).
+
+Speech Dispatcher alone (2026-11-09): the bridge binary works on this host (throwaway harness:
+available/create/speak all OK against the running speechd, and the reporter heard its test
+sentence — direct to speechd, bypassing Cthulhu, in the same espeak-ng voice both use), but in game the shipped DLL never
+probes it — upstream ties Speech Dispatcher and SAPI at priority 97 and SAPI wins (Orca is 100);
+seen with the Orca bridge renamed away: `backend: SAPI`, no load attempt in `+loaddll`. Inside
+Steam's runtime `libspeechd.so.2` is also absent (SteamLinuxRuntime_4). Orca/Cthulhu is the
+supported path ([Proton](docs/proton.md)).
+
+On Windows (2026-11-09, merging PR #6): `build.ps1` builds it with MSVC and CTest passes 141/141.
+A ctypes probe of the deployed `prism.dll` with the plugin's log setup lists PRISM's priorities
+(NVDA 103; PCTalker, ZDSR, BoyPCReader 101; JAWS, Orca and four more 100; OneCore 98; SAPI, UIA
+and Speech Dispatcher 97; Spiel 96: the tie above), still picks NVDA, and PRISM logs nothing at
+info or debug while it starts. The wrapper was fixed for the release zip: kept LF by
+`.gitattributes` (a Windows checkout had made it CRLF, which `sh` cannot run), started through `sh`
+(the zip keeps no execute bit), and it now keeps Steam's `STEAM_COMPAT_*` and the game's Proton
+instead of fixed `~/.local/share/Steam` and Proton Experimental paths; checked with a dry run
+under `sh` (Steam-like arguments and a bare shell), not under Proton.
+
+**Not run:** the rebuilt plugin DLL under Proton — so its explicit bridged-only selection, which
+removes the tie, is itself unexercised; Speech Dispatcher in game, for the reasons just above; a
+Windows game launch with this DLL; the launcher's Battle.net path under Wine; an old launcher
+installing the 1.0.11 layout.
+
+**Next step:** the reporter's run of the release with the `sh` launch option
+(`PRISM ready, backend: Orca` after the `[speech]` lines); if a Proton session is silent, the
+`[speech]`/`[prism]` lines of its last session say why.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 
