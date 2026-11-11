@@ -314,13 +314,14 @@ void StairwaysListedOnce() {
 		Check(std::any_of(piece.seeds.begin(), piece.seeds.end(), [](const auto& seed) { return seed.feature == PlaceFeature::Hellforge; })
 			&& Places::Listings(piece).empty(), "the Hellforge is a landmark in both its layouts, listed by its own object only");
 	}
-	// Travincal: the bone-heaped platform in the High Council's hall, the only one of its model named.
-	const auto* council = Places::Find("Act3/Travincal/TravN.ds1");
-	const auto altars = council ? Places::Listings(Places::PieceOf(*council)) : std::vector<Places::Listing>{};
-	Check(altars.size() == 1 && altars[0].kind == PlaceFeature::CouncilAltar && altars[0].x == 66.5 && altars[0].y == 101.5,
-		"the Council's altar is listed in Travincal's hall (a tester, 2026-11-10)");
-	const auto* south = Places::Find("Act3/Travincal/TravS.ds1");
-	Check(south && Places::Listings(Places::PieceOf(*south)).empty(), "and nowhere else in Travincal");
+	// Travincal: the altars and blood pits of the central square, whose corner braziers are the
+	// DS1's FloorBrazier objects at 60,20 to 85,45; not the temple's hall north of it.
+	const auto* square = Places::Find("Act3/Travincal/TravS.ds1");
+	const auto altars = square ? Places::Listings(Places::PieceOf(*square)) : std::vector<Places::Listing>{};
+	Check(altars.size() == 1 && altars[0].kind == PlaceFeature::CouncilAltar && altars[0].x > 70 && altars[0].x < 76
+		&& altars[0].y > 30 && altars[0].y < 35, "the Council's altar is listed in Travincal's central square (a tester, 2026-11-11)");
+	const auto* temple = Places::Find("Act3/Travincal/TravN.ds1");
+	Check(temple && Places::Listings(Places::PieceOf(*temple)).empty(), "and nowhere else in Travincal");
 }
 
 // The Pandemonium Fortress's hall, where the stash and Tyrael are, is inside; the courtyard

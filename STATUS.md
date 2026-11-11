@@ -13,7 +13,7 @@ Test characters for legacy graphics: `pruebaclasico` (classic) and `pruebalod` (
 | "No route through explored areas" to the Kurast Causeway | fixed: a corridor mouth across the border is no crossing | [beacon](docs/beacon.md#area-borders) |
 | Nihlathak listed in Harrogath after Anya's rescue | fixed: the player's own walk answers in a shared game; a sighting is forgotten once gone | [entity scan](docs/entity-scan.md#npcs-at-marker-objects-2026-10-25) |
 | Flesh Spawner family without the raiser's sound | done: monstats AI `VileMother` | [entity cues](docs/entity-cues.md) |
-| A landmark at Travincal's centre | done: `CouncilAltar`, a tracker entry | [places](docs/places.md) |
+| A landmark at Travincal's centre | done: `CouncilAltar`, a tracker entry. Moved in 1.0.14 (2026-11-11) from the temple's hall to the central square, 91 units southwest, on the tester's screenshot; not heard live | [places](docs/places.md) |
 | Quest closed in this game read as "Empty" | reader accepts a status with no heading; ASSUMED cause, no log of that pane | [quests](docs/quests.md) |
 | Travincal "treasures" under Objects and Treasure | the jungle stash pillars (OperateFn 51) are containers now; the log has no Council fight, so the report may mean something else | [ground items](docs/ground-items.md) |
 | Legacy graphics: menus read differently, no word on the toggle (F5 here, not G) | wip, heard live 2026-11-11: the switch is said, the character sheet's rows are places, option rows say their captions, a click is no longer refused in the legacy Options. Stash, hireling, trade, waypoints, quest log and mini menu not looked at in legacy | [legacy graphics](docs/legacy-graphics.md) |

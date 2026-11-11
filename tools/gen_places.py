@@ -103,9 +103,9 @@ FEATURES = [
     # The great pentagram at the heart of the Chaos Sanctuary (a tester, 2026-10-27): also a tracker
     # entry. Its centre is the DS1's DiabloStart, where Diablo appears; the HD star sits 7 subtiles off.
     ("Pentagram", "object", r"^DiabloStart$"),
-    # The High Council's hall in Travincal: its raised platform heaped with bones, the blood round it
-    # (a tester, 2026-11-10: something to walk towards and around). Also a tracker entry.
-    ("CouncilAltar", "model", r"act3_travincal_platforms/raised01$"),
+    # Travincal's central square, before the High Council's temple: its two bloodied altars and two
+    # blood pits (a tester, 2026-11-10: something to walk towards and around). Also a tracker entry.
+    ("CouncilAltar", "model", r"act3_temple_props/(?:altar01|pit_small01)$"),
 ]
 # Seeds not matched by a rule: the top landing of each cliff stairway (CliffStairs is its bottom).
 DERIVED_FEATURES = ["CliffStairsTop"]
@@ -116,13 +116,21 @@ SUPERSEDES = {"BloodFountain": ("Fountain",)}
 FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.ds1$"),
                          # cryptnwarpnext.ds1 keeps an unused copy of the Countess's room.
                          "BloodCistern": re.compile(r"^(?!act1/crypt/cryptcountess[12]\.ds1$)"),
-                         # The same platform model stands in many other pieces, as plain masonry.
-                         "CouncilAltar": re.compile(r"^(?!act3/travincal/travn\.ds1$)")}
+                         # The same altars and pits furnish the Kurast temples and Travincal's side halls.
+                         "CouncilAltar": re.compile(r"^(?!act3/travincal/travs\.ds1$)")}
 # Subtiles added around a feature's seeds: the Hangman's Tree is said under its whole canopy,
 # one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk); the
 # pentagram over its inner pentagon, two tiles round where Diablo appears, where a route to it ends;
-# the Council's altar one tile round its platform.
+# the Council's altar one tile round its altars and pits.
 FEATURE_PADDING = {"HangmanTree": 5, "Pentagram": 10, "CouncilAltar": 5}
+# Subtiles within which a feature's seeds are one landmark, where MERGE_RADIUS is too short: the
+# square's altars stand three tiles apart, its pits between them.
+FEATURE_MERGE_RADIUS = {"CouncilAltar": 15}
+# An HD layout draws raised ground towards the camera: an entity h HD units up sits h times this
+# many subtiles right and down of its DS1 subtile (docs/places.md, "Raised ground").
+SUBTILES_PER_HD_HEIGHT = 0.64
+# Features standing on raised ground, placed by their own height.
+RAISED_FEATURES = {"CouncilAltar"}
 # HD layouts drawn off their DS1's origin: (x, y) subtiles to take off every entity. The Pandemonium
 # Fortress's hall walls (int_wall*, ext_wall*) and brazier mounts sit 22 right and 22 down of the
 # DS1's hall (west wall at x 15, colonnade at x 35, braziers at y 25-55; a tester's log, 2026-10-27).
@@ -132,7 +140,8 @@ MESH_FOOTPRINTS = re.compile(r"act3_jungle_bridges/")
 STAIRS_COLLISION_NODES = 0x30  # .physics: node records start here, 32 bytes each (min xyz, max xyz, two words)
 # HD height: nodes within one subtile of the lowest top (highest base) are one landing, the stairway's full width.
 STAIRS_LANDING_SLACK = HD_PER_SUBTILE
-FEATURE_RX = [(n, s, re.compile(p)) for n, s, p in FEATURES]
+# A rule kept to named files is the more specific one: tried first.
+FEATURE_RX = sorted(((n, s, re.compile(p)) for n, s, p in FEATURES), key=lambda rule: rule[0] not in FEATURE_SKIPPED_FILES)
 
 # Feature -> regex over the basename of a prefab placement, tried before the model rules.
 PREFAB_FEATURES = {
@@ -265,18 +274,22 @@ def entity_strings(e):
     return out
 
 
-def classify_feature(e):
+def skipped_in(name, rel):
+    return name in FEATURE_SKIPPED_FILES and FEATURE_SKIPPED_FILES[name].search(rel)
+
+
+def classify_feature(e, rel):
     texts = entity_strings(e)
     pf = comp(e, "PrefabPlacementDefinitionComponent")
     prefab_path = pf["prefab"].lower() if pf else ""
     for name, rx in PREFAB_RX:
         if any(rx.search(t) for t in texts["prefab"]):
-            if name in PREFAB_NOT_FEATURES and PREFAB_NOT_FEATURES[name].search(prefab_path):
+            if skipped_in(name, rel) or name in PREFAB_NOT_FEATURES and PREFAB_NOT_FEATURES[name].search(prefab_path):
                 return None, None
             return name, "prefab"
     for name, source, rx in FEATURE_RX:
         pool = texts["model"] + texts["audio"] + texts["name"] if source == "any" else texts[source]
-        if any(rx.search(t) for t in pool):
+        if any(rx.search(t) for t in pool) and not skipped_in(name, rel):
             return name, "model"
     return None, None
 
@@ -289,12 +302,12 @@ def basename_of(e):
     return e["name"].lower()
 
 
-def merge_seeds(seeds):
+def merge_seeds(seeds, radius=MERGE_RADIUS):
     """seeds: [(x, y, rect)] of one feature -> one rect per cluster of nearby anchors (union)."""
     clusters = []  # [sumx, sumy, n, rect]
     for x, y, rect in seeds:
         for c in clusters:
-            if abs(c[0] / c[2] - x) <= MERGE_RADIUS and abs(c[1] / c[2] - y) <= MERGE_RADIUS:
+            if abs(c[0] / c[2] - x) <= radius and abs(c[1] / c[2] - y) <= radius:
                 c[0] += x
                 c[1] += y
                 c[2] += 1
@@ -494,7 +507,7 @@ def object_seeds(ds1_path, rel, classes, stats):
         for name, source, rx in FEATURE_RX:
             if not cls or source != "object" or not rx.search(cls):
                 continue
-            if name in FEATURE_SKIPPED_FILES and FEATURE_SKIPPED_FILES[name].search(rel):
+            if skipped_in(name, rel):
                 continue
             sx, sy = sizes.get(cls, (1, 1))
             rect = (clamp_subtile(x - sx // 2), clamp_subtile(y - sy // 2), clamp_subtile(x - sx // 2 + sx), clamp_subtile(y - sy // 2 + sy))
@@ -515,11 +528,10 @@ def scan_preset(path, rel, hd_root, cache, stats, object_seeded):
             continue
         t["position"]["x"] -= offset_x * HD_PER_SUBTILE
         t["position"]["z"] -= offset_y * HD_PER_SUBTILE
-        feature, kind = classify_feature(e)
-        if feature in FEATURE_SKIPPED_FILES and FEATURE_SKIPPED_FILES[feature].search(rel):
-            feature = None
+        feature, kind = classify_feature(e, rel)
         if feature:
-            x, y = round(t["position"]["x"] / HD_PER_SUBTILE), round(t["position"]["z"] / HD_PER_SUBTILE)
+            lift = t["position"]["y"] * SUBTILES_PER_HD_HEIGHT if feature in RAISED_FEATURES else 0
+            x, y = round(t["position"]["x"] / HD_PER_SUBTILE - lift), round(t["position"]["z"] / HD_PER_SUBTILE - lift)
             landings = stairs_landings(e, t, hd_root, stats) if feature == "CliffStairs" else None
             if landings:
                 for name, rect in zip(("CliffStairs", "CliffStairsTop"), landings):
@@ -558,7 +570,7 @@ def scan_preset(path, rel, hd_root, cache, stats, object_seeded):
     seeds = []
     for feature in FEATURE_NAMES:
         pad = FEATURE_PADDING.get(feature, 0)
-        for rect in merge_seeds(raw_seeds.get(feature, [])):
+        for rect in merge_seeds(raw_seeds.get(feature, []), FEATURE_MERGE_RADIUS.get(feature, MERGE_RADIUS)):
             seeds.append((clamp_subtile(rect[0] - pad), clamp_subtile(rect[1] - pad),
                           clamp_subtile(rect[2] + pad), clamp_subtile(rect[3] + pad), feature))
     return seeds, merge_volumes(volumes)

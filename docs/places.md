@@ -326,8 +326,25 @@ object is the anchor. Tests: `places_tests.cpp` (`FortressHall`, the heart and b
 
 **The Council's altar** (a tester, 2026-11-10: a landmark at Travincal's centre, to walk towards and
 round instead of into the Council): feature `CouncilAltar`, a tracker entry, said "despoiled,
-blood-soaked altar" (the tester's words). Its anchor is the raised platform heaped with bones in the
-High Council's hall, `act3_travincal_platforms/raised01` at 66,101 of `act3/travincal/travn.ds1`,
-ringed by the piece's blood and gore models; padded 5 subtiles. The same model is plain masonry in
-some 75 other pieces, so the rule is kept to that file (`FEATURE_SKIPPED_FILES`). The Compelling Orb
-is no DS1 object (objpreset.txt has none for Act III), so it cannot be the anchor. Unverified live.
+blood-soaked altar" (the tester's words). Its anchor is the central square before the temple, in
+`act3/travincal/travs.ds1`: the two `act3_temple_props/altar01` and two `pit_small01` models between
+the four `FloorBrazier` objects at 60,20 to 85,45, merged into one landmark (`FEATURE_MERGE_RADIUS`)
+and padded 5 subtiles: 62,22 to 88,44. The same models furnish other pieces, so the rule is kept to
+that file (`FEATURE_SKIPPED_FILES`); a rule kept to named files is tried before the general ones, so
+these are not also "altar". The Compelling Orb is no DS1 object (objpreset.txt has none for Act III),
+so it cannot be the anchor. Unverified live.
+
+Until 2026-11-11 the anchor was the bone-heaped `act3_travincal_platforms/raised01` in the temple's
+hall (`travn.ds1`), where the Council stands. The tester, with a screenshot of the square: the
+landmark belongs 19 steps southwest of that (steps of 5 units; the square's centre is 91 units from
+it), outside the temple.
+
+**Raised ground.** An HD layout draws raised ground displaced towards the camera: an entity h HD
+units up sits about 0.64 × h subtiles right and down of its DS1 subtile. Measured on DS1 brazier
+objects against their HD mount points: the square's four corners (height 15.3–15.7, off by 9.7–10.2),
+sixteen more `FloorBrazier` in `travn.ds1` and `travs.ds1` (heights 5–11, 0.60–0.77 a unit), and the
+Pandemonium Fortress, whose 22 subtiles (`HD_LAYOUT_OFFSETS`) are its hall's height of 35. The
+generator takes it off the features in `RAISED_FEATURES` only, the Council's altar so far
+(`SUBTILES_PER_HD_HEIGHT`); other landmarks on raised ground are still said where the HD layout
+draws them, up to 10 subtiles off in Travincal. Not applied to every entity: a model hung above the
+floor is not displaced, and the floor's height under an entity is not in the layout.
