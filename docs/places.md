@@ -343,8 +343,29 @@ it), outside the temple.
 units up sits about 0.64 × h subtiles right and down of its DS1 subtile. Measured on DS1 brazier
 objects against their HD mount points: the square's four corners (height 15.3–15.7, off by 9.7–10.2),
 sixteen more `FloorBrazier` in `travn.ds1` and `travs.ds1` (heights 5–11, 0.60–0.77 a unit), and the
-Pandemonium Fortress, whose 22 subtiles (`HD_LAYOUT_OFFSETS`) are its hall's height of 35. The
-generator takes it off the features in `RAISED_FEATURES` only, the Council's altar so far
-(`SUBTILES_PER_HD_HEIGHT`); other landmarks on raised ground are still said where the HD layout
-draws them, up to 10 subtiles off in Travincal. Not applied to every entity: a model hung above the
-floor is not displaced, and the floor's height under an entity is not in the layout.
+Pandemonium Fortress, whose 22 subtiles (`HD_LAYOUT_OFFSETS`) are its hall's height of 35.
+
+Over every preset (2026-11-11, 661 `*mount_point*` entities in 196 files against the nearest DS1
+object): of the 179 standing 4 HD units up or more, none lies within 1.5 subtiles of its object as
+drawn and 78% do once 0.64 × height is taken off; the fit is best between 0.62 and 0.66. It holds
+below ground too where the mount stands on it (Act I caves 16 of 16, the jungle 91%), and fails
+where mounts are set into walls or floors (tombs, Chaos Sanctuary, River of Flame: about −2 units
+on level ground). So the height that counts is the floor's, and an entity's own height is the
+floor's only when it stands on it.
+
+The generator takes it off the features in `FLOOR_FEATURES` (`SUBTILES_PER_HD_HEIGHT`), by each
+entity's own height once it is 1 HD unit off zero (`LEVEL_GROUND_HEIGHT`): altars, the Council's
+altar, tables, beds, tents, wagons, campfires and forges. Those were chosen by what lies around
+them: a raised one has the layout's other entities at its own height (81–100% of them in the caves,
+Kurast, Travincal, Harrogath and the Bloody Foothills), while a raised bar, statue, kitchen prop, stall, hanging corpse, burnt beam or dock
+has them at zero: it hangs, floats or stands on something, and stays where it is drawn. In the
+Fortress a floor feature takes its own height and not the file's 22: the forge stands in the lower
+court, 27 up. 161 seeds moved: Travincal's and Kurast's altars and tables (6–9
+subtiles), the caves' camps, the Bloody Foothills' tents and wagons, Harrogath's smithy (from 8–12
+subtiles off the DS1's `LarzukStandardPlace` to 3–4) and Malah's table. Two benches on Lut
+Gholein's west rampart, 25 up, fall outside the piece and are dropped (the run prints them).
+
+Not corrected: features outside `FLOOR_FEATURES` inside raised buildings (a Kurast hut's kitchen),
+and the interior volumes, whose boxes do not carry the floor's height; only the Fortress's hall is
+placed, by its measured offset. An estimate of the floor from the entities around a spot was tried
+on the mount points and placed 22–45% of the raised ones, against 78% by their own height.

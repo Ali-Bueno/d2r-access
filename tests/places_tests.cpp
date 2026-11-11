@@ -322,6 +322,12 @@ void StairwaysListedOnce() {
 		&& altars[0].y > 30 && altars[0].y < 35, "the Council's altar is listed in Travincal's central square (a tester, 2026-11-11)");
 	const auto* temple = Places::Find("Act3/Travincal/TravN.ds1");
 	Check(temple && Places::Listings(Places::PieceOf(*temple)).empty(), "and nowhere else in Travincal");
+	// Raised ground: Harrogath's smithy is placed by its height, beside the DS1's LarzukStandardPlace at 143,28.
+	const auto* harrogath = Places::Find("Expansion/Town/TownWest.ds1");
+	const auto smithy = harrogath ? Places::PieceOf(*harrogath) : Places::Piece{};
+	Check(std::any_of(smithy.seeds.begin(), smithy.seeds.end(), [](const auto& seed) {
+		return seed.feature == PlaceFeature::Forge && std::abs(seed.minX - 143) <= 4 && std::abs(seed.minY - 28) <= 4; }),
+		"a forge on raised ground is listed where Larzuk stands, not where the HD layout draws it");
 }
 
 // The Pandemonium Fortress's hall, where the stash and Tyrael are, is inside; the courtyard

@@ -129,9 +129,12 @@ FEATURE_MERGE_RADIUS = {"CouncilAltar": 15}
 # An HD layout draws raised ground towards the camera: an entity h HD units up sits h times this
 # many subtiles right and down of its DS1 subtile (docs/places.md, "Raised ground").
 SUBTILES_PER_HD_HEIGHT = 0.64
-# Features standing on raised ground, placed by their own height.
-RAISED_FEATURES = {"CouncilAltar"}
-# HD layouts drawn off their DS1's origin: (x, y) subtiles to take off every entity. The Pandemonium
+# Features whose models stand on the floor, so their own height is the ground's: placed by it. The
+# others hang, float or stand on something (food, awnings, bar tops, statues, docks) and are not.
+FLOOR_FEATURES = {"Altar", "CouncilAltar", "Tables", "Beds", "Tents", "Wagon", "Campfire", "Forge"}
+# HD units; a model's origin this close to zero is level ground, not a height to place it by.
+LEVEL_GROUND_HEIGHT = 1.0
+# HD layouts drawn off their DS1's origin: (x, y) subtiles to take off every other entity. The Pandemonium
 # Fortress's hall walls (int_wall*, ext_wall*) and brazier mounts sit 22 right and 22 down of the
 # DS1's hall (west wall at x 15, colonnade at x 35, braziers at y 25-55; a tester's log, 2026-10-27).
 HD_LAYOUT_OFFSETS = {"act4/fort/fortress.ds1": (22, 22)}
@@ -526,12 +529,15 @@ def scan_preset(path, rel, hd_root, cache, stats, object_seeded):
         t = comp(e, "TransformDefinitionComponent")
         if not t:
             continue
-        t["position"]["x"] -= offset_x * HD_PER_SUBTILE
-        t["position"]["z"] -= offset_y * HD_PER_SUBTILE
         feature, kind = classify_feature(e, rel)
+        raised = feature in FLOOR_FEATURES and abs(t["position"]["y"]) >= LEVEL_GROUND_HEIGHT
+        lift = t["position"]["y"] * SUBTILES_PER_HD_HEIGHT if raised else None
+        t["position"]["x"] -= (offset_x if lift is None else lift) * HD_PER_SUBTILE
+        t["position"]["z"] -= (offset_y if lift is None else lift) * HD_PER_SUBTILE
         if feature:
-            lift = t["position"]["y"] * SUBTILES_PER_HD_HEIGHT if feature in RAISED_FEATURES else 0
-            x, y = round(t["position"]["x"] / HD_PER_SUBTILE - lift), round(t["position"]["z"] / HD_PER_SUBTILE - lift)
+            x, y = round(t["position"]["x"] / HD_PER_SUBTILE), round(t["position"]["z"] / HD_PER_SUBTILE)
+            if lift and not (0 <= x <= SUBTILE_MAX and 0 <= y <= SUBTILE_MAX):
+                stats["lifted_out"].append((rel, feature, x, y))
             landings = stairs_landings(e, t, hd_root, stats) if feature == "CliffStairs" else None
             if landings:
                 for name, rect in zip(("CliffStairs", "CliffStairsTop"), landings):
@@ -658,7 +664,7 @@ def main():
     known = lvlprest_files(rows)
     stats = {"rotated": 0, "tiny": 0, "features": defaultdict(Counter), "ignored": Counter(), "unknown": Counter(),
              "fp_ok": 0, "fp_missing": 0, "fp_outside": 0, "fp_huge": 0, "stairs_ok": 0, "stairs_missing": 0, "mesh_ok": 0, "mesh_missing": 0,
-             "ds1_missing": 0}
+             "ds1_missing": 0, "lifted_out": []}
     presets_dir = args.hd_root / PRESET_SUBDIR
     prefab_cache = {}
     classes = load_object_classes(args.objpreset, args.objects)
@@ -702,6 +708,7 @@ def main():
     print(f"stairs from collision: {stats['stairs_ok']}; without a collision file: {stats['stairs_missing']}")
     print(f"footprints from collision: {stats['mesh_ok']}; without a collision file: {stats['mesh_missing']}")
     print(f"DS1 files {len(ds1_files)}; presets without one: {stats['ds1_missing']}")
+    print(f"floor features whose height puts them outside their piece, dropped: {stats['lifted_out']}")
     print("file names:", file_names)
     print("ignored volumes:", dict(stats["ignored"]), "unclassified:", dict(stats["unknown"]))
     for f in FEATURE_NAMES:
