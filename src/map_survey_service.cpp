@@ -432,6 +432,7 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	DeathPlaceService::Track(NativeDrlg::MapSeed(NativeWorld::PlayerRoom(), state.level), state.level, world.player);
 	const auto discovered = Discovered(state, world, scene);
 	g_townNpcs.Found(state.level, TownNpcsFound(state, world, scene));
+	g_townNpcs.Forget(state.level, scene.townNpcs, NativeEntities::GoneTownNpcs(), grid);
 	const auto items = LoadedItems(state);
 	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
 	const auto here = Here(state, world);

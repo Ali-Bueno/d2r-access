@@ -495,6 +495,27 @@ void SeenNpcWithoutPresetIsRemembered() {
 	Check(sightings.Listed(40, {}, true).empty(), "a new game forgets it");
 }
 
+// A tester, 2026-11-10: Nihlathak stayed in Harrogath's scanner after Anya's rescue.
+void GoneNpcIsForgotten() {
+	constexpr uint64_t Nihlathak = 515, Larzuk = 512, Malah = 513;
+	const auto npc = [](uint64_t place, double x, double y) {
+		auto entity = Make(static_cast<uint32_t>(place), x, y, EntityRadar::Kind::Npc);
+		entity.category = EntityRadar::Category::Npc; entity.placeId = place;
+		return entity;
+	};
+	const auto grid = GridFor(OpenWorld());
+	TownNpcSightings sightings;
+	sightings.Found(109, {npc(Nihlathak, 900, 900), npc(Larzuk, 900, 950), npc(Malah, 25, 25)});
+	sightings.Forget(109, {}, {}, grid);
+	Check(sightings.Listed(109, {}, true).size() == 2, "a seen NPC whose last place is in view without it is forgotten; far ones stay");
+	sightings.Forget(109, {}, {Nihlathak}, grid);
+	const auto left = sightings.Listed(109, {}, true);
+	Check(left.size() == 1 && left.front().placeId == Larzuk, "one the game has taken from town is forgotten from anywhere");
+	sightings.Found(109, {npc(Malah, 25, 25)});
+	sightings.Forget(109, {npc(Malah, 26, 25)}, {Malah}, grid);
+	Check(sightings.Listed(109, {}, false).size() == 2, "one still listed is never forgotten");
+}
+
 EntityRadar::Entity TownPortal(uint32_t id, const char* owner, const char* level, double x = 38, double y = 38) {
 	auto portal = Make(id, x, y, EntityRadar::Kind::Object);
 	portal.category = EntityRadar::Category::Portal; portal.owner = owner; portal.name = level;
@@ -580,6 +601,7 @@ int main() {
 	TownNpcsListedOnceSeen();
 	TownNpcSwitchListsEveryoneOrTheSeen();
 	SeenNpcWithoutPresetIsRemembered();
+	GoneNpcIsForgotten();
 	NewPortalOfTheSameOwnerReplacesTheOld();
 	RosterDropsAPortalItNoLongerNames();
 	StepsGoAroundWalls();

@@ -10,7 +10,7 @@ An accessibility mod for Diablo II: Resurrected. It reads the game through your 
 
 ## Requirements
 
-- Diablo II: Resurrected 3.3.x from Steam or Battle.net, on 64-bit Windows 10 or 11.
+- Diablo II: Resurrected 3.3.x or 3.4.x from Steam or Battle.net, on 64-bit Windows 10 or 11. On 3.4 the loader first shows a notice that this version is not fully tested: press OK.
 - On Steam, your Battle.net account linked to Steam (https://account.battle.net/connections): the game needs that link to run and to renew its license online.
 - NVDA or JAWS running before you start the game. Without either, the mod speaks with the Windows voice.
 - On Linux, Steam with Proton works too, started a different way: see [Linux with Proton](#linux-with-proton).

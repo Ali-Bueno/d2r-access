@@ -117,6 +117,16 @@ crossing to the walk's mouth, the arch. A crossing with a DOOR collision bit wit
 (`ZoneTransitions::DoorAt`) is no longer moved: the door is the way in. Risk: if the Monastery
 Gate's inner door is a door object, its entry goes back there. Unverified live.
 
+**A mouth across the border is not taken (2026-11-10).** A tester's log, Upper Kurast (81) to the
+Kurast Causeway (82): 14 `[route] none name=Kurast Causeway here=0 map=1 restricted=1` in four
+minutes, the area fully explored. The areas meet at y=2440 (`[areas]`: 81 at tile 864,488, 82 at
+880,472 48x16) and the place was remembered at 4512,2420, 20 subtiles inside 82: the Causeway
+itself reads as a corridor running on from the crossing, so `CorridorMouth` gave its far mouth.
+A route ends in this level's rooms only, so none was found; the Bazaar's crossing, on the
+player's own side, routed. `ZoneTransitions::Find` now keeps the crossing unless the mouth lies
+in one of the level's own rooms. INFERRED from the positions; the log dumps no end area.
+Test: `zone_transitions_tests` (the Kurast case). Unverified live.
+
 **Crossings seen are kept for the game (2026-10-14).** A tester crossed from
 the Cold Plains into the Stony Field at 5400,5222, came back by waypoint, and
 the beacon refused the Stony Field eight times from 129 to 334 units away

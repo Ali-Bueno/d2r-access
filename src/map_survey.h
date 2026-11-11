@@ -117,6 +117,10 @@ private:
 class TownNpcSightings {
 public:
 	void Found(int level, const std::vector<EntityRadar::Entity>& found);
+	// Drops the sightings `townNpcs` lacks that are among `gone` (taken from town by the
+	// game), or whose last place the map sees within the scan's reach: nobody is there.
+	void Forget(int level, const std::vector<EntityRadar::Entity>& townNpcs, const std::vector<uint64_t>& gone,
+		const Navigation::Grid& grid, const Settings& settings = {});
 	// The seen NPCs of this level: the ones of `townNpcs` that were, and a stand-in at
 	// the last known place for each seen one `townNpcs` lacks (no preset, not loaded).
 	std::vector<EntityRadar::Entity> Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const;

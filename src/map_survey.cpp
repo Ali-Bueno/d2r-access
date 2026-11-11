@@ -321,6 +321,17 @@ void TownNpcSightings::Found(int level, const std::vector<EntityRadar::Entity>& 
 		if (npc.placeId) m_seen[level][npc.placeId] = npc;
 }
 
+void TownNpcSightings::Forget(int level, const std::vector<EntityRadar::Entity>& townNpcs, const std::vector<uint64_t>& gone,
+	const Navigation::Grid& grid, const Settings& settings) {
+	const auto seen = m_seen.find(level);
+	if (seen == m_seen.end()) return;
+	std::erase_if(seen->second, [&](const auto& sighting) {
+		const auto& [placeId, npc] = sighting;
+		if (std::any_of(townNpcs.begin(), townNpcs.end(), [&](const auto& other) { return other.placeId == placeId; })) return false;
+		return std::find(gone.begin(), gone.end(), placeId) != gone.end() || Observed(grid, npc.position, settings.forgetWithin);
+	});
+}
+
 std::vector<EntityRadar::Entity> TownNpcSightings::Seen(int level, const std::vector<EntityRadar::Entity>& townNpcs) const {
 	std::vector<EntityRadar::Entity> result;
 	const auto seen = m_seen.find(level);

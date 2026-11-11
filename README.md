@@ -23,7 +23,7 @@ on anything that sounds wrong are welcome.
 
 ### Requirements
 
-- Diablo II: Resurrected 3.3.x from Steam or Battle.net, on 64-bit Windows 10 or 11.
+- Diablo II: Resurrected 3.3.x or 3.4.x from Steam or Battle.net, on 64-bit Windows 10 or 11. On 3.4 the loader first shows a notice that this version is not fully tested: press OK.
 - **D2RLoader 1.3.1-beta**, the build `d2rloader.net` distributes (1.3.0-beta also works). The
   complete package below includes it.
 - NVDA or JAWS running before the game starts; without either, PRISM uses the Windows voice (SAPI).

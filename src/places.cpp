@@ -161,7 +161,8 @@ int Padding(PresetPlace place) {
 }
 
 bool Tracked(PlaceFeature kind) {
-	return Stairway(kind) || kind == PlaceFeature::BloodCistern || kind == PlaceFeature::BloodFountain || kind == PlaceFeature::Pentagram;
+	return Stairway(kind) || kind == PlaceFeature::BloodCistern || kind == PlaceFeature::BloodFountain || kind == PlaceFeature::Pentagram
+		|| kind == PlaceFeature::CouncilAltar;
 }
 bool Tracked(PlaceInterior kind) { return kind == PlaceInterior::Palace; }
 bool Stairway(PlaceFeature kind) { return kind == PlaceFeature::CliffStairs || kind == PlaceFeature::CliffStairsTop; }

@@ -198,7 +198,9 @@ Readout Describe(const Snapshot& snapshot) {
 		result.contentSettleMs = 150;
 		// Catalog names also exist for empty sockets. Only the matching live
 		// heading establishes that this quest has details (docs/quests.md).
-		if (title.empty() || title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text)) {
+		// A status given with no heading at all (a quest closed in this game) is still this quest's.
+		const bool untitled = title.empty() && !objective.empty();
+		if (!untitled && (title.empty() || title != Clean(snapshot.nodes[static_cast<size_t>(focus)].text))) {
 			result.option = Strings::Current().slotEmpty;
 			return result;
 		}

@@ -23,6 +23,10 @@ bool Within(NativeUi::Cell point);
 NativeUi::Rect BottomCorner();
 // True when the pointer stands on a point of the game's client pixels.
 bool At(NativeUi::Cell point);
+// Whether the game moves the pointer when asked: put a step beside `point`, then back on it.
+// For a pointer that may stand on the point already where the layout's units are not pixels
+// (legacy graphics, docs/legacy-graphics.md). The pointer ends on the point.
+bool Answers(NativeUi::Cell point);
 // The pointer on the middle of the rectangle, now, or on the part of it nearest the middle that a
 // screen shows: a window can hang off the screen (2026-11-03, a game at 307,133 and 2560 wide).
 // False when none of it can be pointed at.

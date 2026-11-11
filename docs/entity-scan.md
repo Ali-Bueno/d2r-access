@@ -172,7 +172,7 @@ the mod reads the player's, and also takes bit 0 or 15 for done.
 | 50 HratliEnd (379) | `0x5EB870` | row 16:13 set | row 16 done |
 | 52 NatalyaStart (382) | `0x5EBC20` | row 22 (The Guardian):13 clear | row 22 not done |
 | 66 DrehyaInTown (459) | `0x547A40` | quest data `+0xA4 == 2`: after the thaw, on talking to Malah | row 37 bit 0 or 15 |
-| 68 NihlathakInTown (461) | `0x548EE0` | Prison of Ice data `+0xA8 == 0` (below) | row 37 without bit 0 or 15, none of levels 112-114, 121-124 entered this game, no other player |
+| 68 NihlathakInTown (461) | `0x548EE0` | Prison of Ice data `+0xA8 == 0` (below) | gone once the player has entered one of levels 112-114, 121-124 this game; else, alone in the game, there while row 37 lacks bits 0 and 15; else unknown |
 | 70/71 Larzuk (542/543) | `0x548A40` (one slot) | once, Siege data `+0x3D == 0` | none: slot unknown |
 
 **Nihlathak (2026-10-27, `re/` decompile by an agent, MEASURED unless noted).** Harrogath's
@@ -187,6 +187,16 @@ town unit). The Betrayal of Harrogath (row 38) never touches it. The mod's rule
 never the reverse), counts the levels its own reads have been in this game (`GameLevels`, by
 session), and gives no answer when other players are in the game, whose creator and walks it cannot
 see. InitFn 69 (462) is in the Halls of Vaught's `wildtemple/Nihl*.ds1`, never in town.
+
+**Still listed after Anya's rescue (a tester, 2026-11-10).** Two causes. With other players in the
+game the rule gave no answer even when the player's own walk had taken him: that walk now answers
+first. And a town NPC once seen stayed in `MapSurvey::TownNpcSightings` for the whole game, so the
+stand-in outlived him whatever the rule said. A sighting is now dropped when no NPC of that identity
+is listed and either every marker of its row refuses to spawn (`TownNpcs::MarkersGone`, through
+`NativeEntities::GoneTownNpcs`) or the map sees its last place within the scan's reach
+(`TownNpcSightings::Forget`). The second covers NPCs with no rule (Kaelan) and shared games, once
+the player walks by. Tests: `npc_spawn_rules_tests`, `town_npcs_tests`, `map_survey_tests`
+(`GoneNpcIsForgotten`). Unverified live.
 
 A marker with no rule gives no spawn: that NPC is listed once seen, as before. Kaelan
 is not placed from the marker (one NPC per marker); he too is listed once seen. Live

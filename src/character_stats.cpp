@@ -46,7 +46,8 @@ constexpr const char* ValueSuffixes[] = {"Stat", "Text"};
 // bare "0 of 500", which says nothing at all on its own. CombinedPointsInfo
 // reads "0 Stat Points Remaining" and needs no help.
 struct Standalone { const char* widget; const char* labelKey; };
-constexpr Standalone StandaloneLines[] = {{"CombinedXP", "strchrexp"}, {"CombinedPointsInfo", nullptr}};
+// NextLevelXP is the legacy layout's (CharacterStatsPanel.json), labelled by a box not called Title.
+constexpr Standalone StandaloneLines[] = {{"CombinedXP", "strchrexp"}, {"CombinedPointsInfo", nullptr}, {"NextLevelXP", "strchrnxtlvl"}};
 void Append(std::string& text, std::string_view part) {
 	if (part.empty() || text == part) return;
 	if (!text.empty()) text += text.ends_with('.') ? " " : ". ";
@@ -89,6 +90,8 @@ std::string RowValue(std::string_view title, const Lookup& text) {
 	// Two weapons in hand: the game empties <stem>Stat and states one number per weapon, the right
 	// hand's on top. MEASURED 2026-11-04, docs/character-panel.md.
 	const auto top = text(stem + "StatTop"), bottom = text(stem + "StatBottom");
+	// The legacy layout names a value by the stem alone (LevelTitle and Level, CurrentXPTitle and CurrentXP).
+	if (top.empty() && bottom.empty()) return text(stem);
 	if (top.empty() || bottom.empty()) return top + bottom;
 	const auto& slots = Strings::Current().equipmentSlots;
 	return std::string(slots[RightHand]) + " " + top + ", " + slots[LeftHand] + " " + bottom;
@@ -228,7 +231,19 @@ std::vector<Line> Rows(uintptr_t panel) {
 
 std::string Name(uintptr_t panel) { return ChildText(panel, "CharacterName"); }
 
-std::string Points(uintptr_t panel) { return ChildText(panel, "CombinedPointsInfo"); }
+std::string Points(uintptr_t panel) {
+	auto points = ChildText(panel, "CombinedPointsInfo");
+	if (!points.empty()) return points;
+	// The legacy layout: the count in one box, "Stat Points Remaining" in another, both shown only with points to spend.
+	points = ChildText(panel, "UnusedPoints");
+	if (!points.empty()) Append(points, ChildText(panel, "UnusedPointsText"));
+	return points;
+}
+
+bool LabelRow(uintptr_t widget, uintptr_t panel) {
+	if (!widget || !SupportedPanel(NativeWidgets::ReadName(panel))) return false;
+	return NativeWidgets::ReadName(widget).ends_with(TitleSuffix) && !NativeWidgets::FindChild(widget, FocusChild) && !Text(widget).empty();
+}
 std::string SkillChoices(uintptr_t panel) { return ChildText(panel, "SkillCounter"); }
 
 Attribute AttributeOf(uintptr_t panel, std::string_view button) {

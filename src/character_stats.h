@@ -16,6 +16,10 @@ namespace D2RAccess::CharacterStats {
 // True when the focused widget is one of those label rows.
 bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type& type);
 
+// A label row of one of those panels with no "Tooltip" child to stop on: the legacy
+// layout's, where the keyboard's cursor stands on the label itself (docs/legacy-graphics.md).
+bool LabelRow(uintptr_t widget, uintptr_t panel);
+
 // Label and value of the focused row, with the panel name and the character's
 // identity as the body so both are spoken once on entering the panel. Empty
 // when the focus is not a readable row.

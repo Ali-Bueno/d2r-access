@@ -181,6 +181,8 @@ Readout Describe(const UiText::Snapshot& snapshot) {
 			if (Control(child.kind) || child.kind == UiText::Kind::Legend || InsideNestedControl(snapshot, i, focus)) continue;
 			if (child.kind == UiText::Kind::Text || child.kind == UiText::Kind::LinkedText) Append(childText, child.text);
 		}
+		// The legacy option rows caption a control X with a box beside it called XText (VideoOptionsPanel.json).
+		if (!node.name.empty()) Append(controlText, TextNamed(snapshot, node.name + "Text"));
 		Append(controlText, childText);
 		Append(controlText, node.text);
 		if (controlText.empty() && node.kind == UiText::Kind::Tabs) Append(controlText, node.text);

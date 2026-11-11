@@ -179,5 +179,18 @@ int main() {
 	};
 	Check(FrontendNativeFallback::DescribeRow(reward).text == "45% completado, Activa", "a composite control reads every word it draws, its buttons' included");
 
+	// Legacy graphics, 2026-11-11: an option was read as its value alone ("ALTA"), a slider as its widget's name.
+	UiText::Snapshot video;
+	video.name = "VideoOptionsPanel";
+	video.focus = 73;
+	video.nodes = {
+		{70, -1, Kind::Other, "VideoOptionsPanel", "VideoOptionsPanel"},
+		{71, 0, Kind::Other, "Row LightingQuality", "TableRowWidget"},
+		{72, 1, Kind::Text, "LightingQualityText", "TextBoxWidget", "CALIDAD DE LUZ"},
+		{73, 1, Kind::ValueControl, "LightingQuality", "CarouselWidget"},
+		{74, 3, Kind::Text, "Text", "TextBoxWidget", "ALTA"},
+	};
+	Check(FrontendNativeFallback::Describe(video).text == "CALIDAD DE LUZ, ALTA", "a legacy option row says its caption before its value");
+
 	Passed();
 }

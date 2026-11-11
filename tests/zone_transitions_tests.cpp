@@ -140,5 +140,17 @@ int main() {
 	Check(!ZoneTransitions::DoorAt(doorWorld, {9, 5}), "an open crossing has no door");
 	doorWorld.rooms[0].cells[5 * 10 + 8] = Radar::Collision::Door;
 	Check(ZoneTransitions::DoorAt(doorWorld, {9, 5}), "a shut door beside the crossing is found");
+	// Upper Kurast, 2026-11-10: the Causeway is a corridor of the next area, its other mouth 20 cells into it.
+	auto kurast = Room(0, 0, 10, 30), causeway = Room(10, 0, 30, 30);
+	for (int y = 1; y < 29; ++y)
+		for (int x = 11; x < 20; ++x) causeway.cells[static_cast<size_t>(y) * causeway.width + x - causeway.x] = Wall;
+	for (int y = 14; y <= 16; ++y)
+		for (int x = 9; x < 20; ++x) Carve(x < 10 ? kurast : causeway, x, y);
+	world = World(kurast, causeway, {5, 15});
+	layout = Layout(6);
+	Check(ZoneTransitions::CorridorMouth(world, {9, 15}).x == 19, "the bridge reads as a corridor opening in the next area");
+	found = ZoneTransitions::Find(world, layout, 100);
+	Check(found.size() == 1 && found[0].position.x == 9 && found[0].position.y == 15,
+		"a corridor's mouth across the border leaves the crossing on this area's side");
 	Passed();
 }

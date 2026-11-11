@@ -34,6 +34,8 @@ using SpawnTest = std::function<std::optional<bool>(int initFn)>;
 // The spawns of the NPCs placed by marker objects (Generated::NpcMarkers) rather than by
 // monster presets: one for each marker whose test passes; none for one that cannot be told.
 std::vector<Spawn> MarkerSpawns(const std::vector<Marker>& markers, const SpawnTest& spawns);
+// The identities of the marker NPCs the game has taken from town: every marker of the row fails its test.
+std::vector<uint64_t> MarkersGone(const std::vector<Marker>& markers, const SpawnTest& spawns);
 
 // Gives the live units of every NPC row the presets place exactly once, and the only
 // loaded unit of an NPC row they never place, that row's identity. Appends a stand-in

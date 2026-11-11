@@ -15,6 +15,7 @@
 #include "control_hints.h"
 #include "control_state.h"
 #include "focus_tracker.h"
+#include "legacy_graphics.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
 #include "ui_text.h"
@@ -177,6 +178,10 @@ constexpr const char* ScrollControllerTarget = "ScrollController";
 // SetQuestAlert, QuestUpdate. None carries text, so the quest watch reads the
 // panel itself once the game has filled it.
 constexpr const char* QuestLogTarget = "QuestLogPanelMessage";
+// Sent on every switch between legacy and modern graphics, by the key and by the creation
+// screen's button alike (MEASURED 2026-11-11, docs/legacy-graphics.md).
+constexpr const char* SystemTarget = "SystemMessage";
+constexpr const char* RendererChangedCommand = "RenderingToHDChanged";
 
 // Messages that flood the trace without carrying UI state (observed per
 // frame). Entries are "target" or "target:command".
@@ -380,6 +385,8 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 		FocusTracker::NoteScrollInput();
 	} else if (std::strcmp(event->target, QuestLogTarget) == 0) {
 		QuestService::Note(event->command);
+	} else if (std::strcmp(event->target, SystemTarget) == 0 && std::strcmp(event->command, RendererChangedCommand) == 0) {
+		LegacyGraphics::Changed(GetTickCount64());
 	} else if (std::strcmp(event->target, FrontEndNavigationTarget) == 0) {
 		AnnounceNavigation(*event);
 		if (std::strcmp(event->command, FrontEndReadyCommand) == 0) {

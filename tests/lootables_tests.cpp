@@ -28,6 +28,9 @@ constexpr Object Objects[] = {
 	// Furniture that drops, which nothing covered before.
 	{"ArmorStand1",        104, true},
 	{"WeaponRack1",        106, true},
+	// The jungle's stone stashes: only the first carries the container bit (a tester, 2026-11-10).
+	{"JunglePillar0",      185, true},
+	{"JunglePillar3",      188, true},
 	// Objects that hand over a fixed quest item.
 	{"HoradricCubeChest",  354, true},
 	{"Malus",              108, true},

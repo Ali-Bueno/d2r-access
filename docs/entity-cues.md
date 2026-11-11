@@ -9,7 +9,7 @@ runtime dependencies are needed.
 |---|---|---|
 | Friendly NPC or another player | Light wooden tap | Nearest visible NPC or player |
 | Boss or elite | Deep resonant metallic swoop | Highest enemy priority |
-| Resurrecting shaman (Fallen and fetish shamans, the Greater Mummy family, the Sarcophagus that spawns mummies; champions and uniques too, bosses keep theirs) | Mid-register resonant swoop | Next enemy priority |
+| Resurrecting shaman (Fallen and fetish shamans, the Greater Mummy family, the Sarcophagus that spawns mummies, the Flesh Spawner's family that bears its young until killed — monstats AI `VileMother`, a tester, 2026-11-10; champions and uniques too, bosses keep theirs) | Mid-register resonant swoop | Next enemy priority |
 | Ordinary ranged enemy | Brighter resonant swoop | Third enemy priority; optional |
 | Any other enemy | Short rough growl | The nearest few, in the voices left; optional |
 

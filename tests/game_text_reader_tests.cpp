@@ -298,7 +298,7 @@ int main() {
 	Check(speech.empty(), "while the same row stays silent");
 	panels = previousPanels; focus = previousFocus; speech.clear(); Settle(); speech.clear();
 	const int populatedQuestHelpReads = questHelpReads;
-	panels[0].nodes[2].text.clear(); speech.clear(); Settle();
+	panels[0].nodes[2].text.clear(); panels[0].nodes[3].text.clear(); speech.clear(); Settle();
 	Check(questHelpReads == populatedQuestHelpReads, "an unpopulated quest detail pane does not acquire controller actions");
 	speech.clear(); Event(GameplayEventKind::GameLeft);
 	Check(!Settle() && speech.empty(), "leaving the game clears speech context");

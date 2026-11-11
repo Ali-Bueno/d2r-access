@@ -1,6 +1,7 @@
 #include "keyboard_menu.h"
 
 #include "async_log.h"
+#include "character_stats.h"
 #include "click_words.h"
 #include "focus_tracker.h"
 #include "game_text_reader.h"
@@ -196,6 +197,7 @@ struct BuildCost { double walk = 0, grids = 0, thin = 0, mend = 0; int cells = 0
 BuildCost g_cost;
 Clock::time_point g_tickStart;     // when this tick of the menu began
 bool g_logBuild = false;           // the next build is a key's, and is logged whatever it costs
+int g_labels = 0, g_labelsPlaced = 0; // of the build being made: CharacterStats::LabelRow labels, and those PlacedRect placed
 uint64_t g_buildLogged = 0;        // when a build was last logged for being slow
 constexpr double SlowBuildMs = 10; // a build this slow is logged, at most once a second
 
@@ -365,6 +367,31 @@ bool AddCells(Entry entry, GridJump::Grid grid) {
 	return true;
 }
 
+// A widget's own rectangle, placed by those of the widgets it is drawn in (legacy layouts
+// place every widget by plain offsets; live 2026-11-11, docs/legacy-graphics.md).
+// The widget it is drawn in may be anchored (the panel: -320,-240 from the screen's middle), so
+// the place is taken from a widget beside it that the game does give a focus rectangle.
+std::optional<NativeUi::Rect> PlacedRect(uintptr_t widget) {
+	auto rect = NativeUi::LocalRect(widget);
+	if (!rect || rect->width <= 0 || rect->height <= 0) return std::nullopt;
+	uintptr_t outer = NativeUi::Parent(widget);
+	for (int depth = 0; outer && depth < MaxDepth; ++depth, outer = NativeUi::Parent(outer)) {
+		for (const uintptr_t beside : NativeUi::Children(outer)) {
+			const auto focus = NativeUi::Visible(beside) ? NativeSkillNavigation::RectAt(beside, NativeUi::FocusSelection(beside)) : std::nullopt;
+			const auto own = focus ? NativeUi::LocalRect(beside) : std::nullopt;
+			if (!own) continue;
+			rect->x += focus->x - own->x;
+			rect->y += focus->y - own->y;
+			return rect;
+		}
+		const auto around = NativeUi::LocalRect(outer);
+		if (!around) return std::nullopt;
+		rect->x += around->x;
+		rect->y += around->y;
+	}
+	return std::nullopt;
+}
+
 void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, uintptr_t view, int depth) {
 	if (!widget || depth > MaxDepth || g_entries.size() >= MaxEntries || !NativeUi::Visible(widget)) return;
 	Entry entry;
@@ -394,13 +421,20 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, uintptr_t view, i
 	// A slider and an option that steps are one place each: their arrows are
 	// what the left and right arrow keys click, not places of their own.
 	const bool steps = NativeValueControls::Of(widget) != NativeValueControls::Kind::None;
-	const bool control = type.kind == Kind::Button || type.kind == Kind::Toggle || type.kind == Kind::ListItem
+	// The legacy character sheet has no stop on its rows: each label is one.
+	const bool label = CharacterStats::LabelRow(widget, panel);
+	const bool control =type.kind == Kind::Button || type.kind == Kind::Toggle || type.kind == Kind::ListItem
 		|| type.kind == Kind::Focusable || type.kind == Kind::InventorySlot || type.kind == Kind::InventoryItem
 		|| type.kind == Kind::Tabs || type.kind == Kind::StatButton || type.kind == Kind::TabButton
-		|| type.kind == Kind::ValueControl || type.kind == Kind::QuestButton || type.kind == Kind::TextInput;
+		|| type.kind == Kind::ValueControl || type.kind == Kind::QuestButton || type.kind == Kind::TextInput
+		|| label;
 	if (!whole && control && type.name != "BeltWidget") {
 		// A row of a list that scrolls is a place wherever the scroll has drawn it; FrameLists sorts them out.
-		if (auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget)); rect && (view || OnScreen(*rect))) {
+		auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget));
+		// A label is no stop of the game's and has no focus rectangle: its own stands for it.
+		if (label) ++g_labels;
+		if (!rect && label && (rect = PlacedRect(widget))) { entry.point = *rect; ++g_labelsPlaced; }
+		if (rect && (view || OnScreen(*rect))) {
 			// A row of the hire list is a place, and so is each skill icon and the
 			// price drawn inside it (the user, 2026-10-01: "the player should be able
 			// to highlight the individual skill icons"). The row's place is its name
@@ -580,6 +614,7 @@ std::string Build(const D2RL::PluginContext* context) {
 	const auto start = Clock::now();
 	g_entries.clear();
 	g_targets.clear();
+	g_labels = g_labelsPlaced = 0;
 	struct Open { uintptr_t panel; std::string name; };
 	std::vector<Open> shown;
 	const auto panels = NativeUi::Panels();
@@ -770,7 +805,7 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	// The pointer is where it is put at once (MEASURED 2026-09-27). One that has not moved and is
 	// not on the point did not go there; one already on it did (2026-11-03: refused after a menu came back).
 	const NativeUi::Cell point{rect->x + rect->width / 2, rect->y + rect->height / 2};
-	g_landed = placed && (pointer.x != before.x || pointer.y != before.y || MenuMouse::At(point));
+	g_landed = placed && (pointer.x != before.x || pointer.y != before.y || MenuMouse::At(point) || MenuMouse::Answers(point));
 	if (g_landed) g_parkOwed = true; // the pointer is the cursor's until play takes it off the world
 	else AsyncLog::WarnF(context, "[cursor] the pointer did not go to %s: it is at %ld,%ld and was put on %d,%d; a click is refused",
 		entry->name.c_str(), pointer.x, pointer.y, point.x, point.y);
@@ -825,6 +860,7 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 
 void Census(const D2RL::PluginContext* context) {
 	AsyncLog::InfoF(context, "[cursor] menu: %s-- %zu things%s%s", g_menu.c_str(), g_targets.size(), g_cover.empty() ? "" : ", all of it ", g_cover.c_str());
+	if (g_labels) AsyncLog::InfoF(context, "[cursor] %d labels with no stop of the game's, %d given a place", g_labels, g_labelsPlaced);
 	for (size_t i = 0; i < g_targets.size(); ++i) {
 		const auto& target = g_targets[i];
 		AsyncLog::InfoF(context, "[cursor] thing %s (%s) rect %d,%d %dx%d cells %dx%d items %zu frame %d+%d", g_entries[i].name.c_str(),

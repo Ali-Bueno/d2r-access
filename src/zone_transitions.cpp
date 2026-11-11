@@ -99,7 +99,14 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 		}
 	}
 	// The Cathedral's doors end the colonnade walk, which reads as a corridor (a tester, 2026-10-20).
-	for (auto& exit : result) if (!DoorAt(world, exit.position)) exit.position = CorridorMouth(world, exit.position);
+	// A corridor running on into the next area (Kurast Causeway) has its other mouth there: no way to end at.
+	const auto own = [&](Radar::Position point) {
+		return std::any_of(layout.rooms.begin(), layout.rooms.end(), [&](const auto& room) { return Contains(room.rect, point); });
+	};
+	for (auto& exit : result) {
+		if (DoorAt(world, exit.position)) continue;
+		if (const auto mouth = CorridorMouth(world, exit.position); own(mouth)) exit.position = mouth;
+	}
 	return result;
 }
 

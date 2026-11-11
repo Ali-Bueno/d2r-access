@@ -15,6 +15,7 @@ constexpr uint64_t SettleMs = 60; // from a move of the pointer to a press on wh
 constexpr uint64_t HoldMs = 40;   // from a press to its release
 constexpr int CornerSide = 8;     // the corner the pointer rests in during play, its middle 4 pixels from the edges
 constexpr int PointerSlack = 2;   // pixels a pointer may stand off a point and still be on it
+constexpr int ProbeStep = 4;      // UI units beside a point: more than a pixel in any layout
 
 enum class Act { Place, Down, Up, Wheel };
 struct Step {
@@ -93,6 +94,13 @@ bool At(NativeUi::Cell point) {
 	POINT pointer{}, wanted{point.x, point.y};
 	if (!GetCursorPos(&pointer) || !ClientToScreen(GetForegroundWindow(), &wanted)) return false;
 	return std::abs(pointer.x - wanted.x) <= PointerSlack && std::abs(pointer.y - wanted.y) <= PointerSlack;
+}
+
+bool Answers(NativeUi::Cell point) {
+	POINT beside{}, back{};
+	if (!NativeSkillNavigation::PlacePointer({point.x + ProbeStep, point.y}) || !GetCursorPos(&beside)) return false;
+	if (!NativeSkillNavigation::PlacePointer(point) || !GetCursorPos(&back)) return false;
+	return beside.x != back.x || beside.y != back.y;
 }
 
 void Nudge() {

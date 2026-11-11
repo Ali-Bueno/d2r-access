@@ -178,6 +178,13 @@ stash loop pauses while the game's stash layout is open (`BankOriginalLayout`,
 They are added (`ContainerRowCount` 175 of 587, `tools/objects_containers.py`); armor stands and
 bookshelves loop the chest cue.
 
+2026-11-10: a tester's Travincal log listed one "Stash" under treasure and another under object.
+The jungle's stone stashes (JunglePillar0-3, classes 185-188) share OperateFn 51, in neither list;
+only JunglePillar0 carries the SubClass container bit, so the other three fell to
+`Category::Interactable` with no chest loop. 51 is added to both (`ContainerRowCount` 179,
+182 lootable classes). ASSUMED from the rows' shape (selectable shut, not open; one sibling
+marked a container by the game) that 51 drops loot; unverified live.
+
 ## Shrine and well loops (2026-10-12)
 
 A tester noticed shrines and wells only through the scanner. Every one the player can still use

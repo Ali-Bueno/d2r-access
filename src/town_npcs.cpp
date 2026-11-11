@@ -3,6 +3,7 @@
 #include "generated/npc_markers.h"
 
 #include <algorithm>
+#include <map>
 
 namespace D2RAccess::TownNpcs {
 uint64_t Identity(uint32_t monster) { return static_cast<uint64_t>(monster) + 1; }
@@ -13,6 +14,21 @@ std::vector<Spawn> MarkerSpawns(const std::vector<Marker>& markers, const SpawnT
 		for (const auto& known : Generated::NpcMarkers)
 			if (known.object == marker.object && spawns(known.initFn).value_or(false))
 				result.push_back({known.monster, marker.position, marker.aroundPlayer});
+	return result;
+}
+
+std::vector<uint64_t> MarkersGone(const std::vector<Marker>& markers, const SpawnTest& spawns) {
+	std::map<uint32_t, bool> gone;
+	for (const auto& marker : markers)
+		for (const auto& known : Generated::NpcMarkers)
+			if (known.object == marker.object) {
+				const bool refused = spawns(known.initFn) == false;
+				const auto [row, first] = gone.try_emplace(known.monster, refused);
+				if (!first) row->second = row->second && refused;
+			}
+	std::vector<uint64_t> result;
+	for (const auto& [monster, refused] : gone)
+		if (refused) result.push_back(Identity(monster));
 	return result;
 }
 

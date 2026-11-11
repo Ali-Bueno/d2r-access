@@ -302,10 +302,12 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 		// leave rangedtype empty: the archer's cue too (a tester, 2026-10-27).
 		constexpr std::array<uint32_t, 4> CatapultClasses{497, 498, 499, 500};
 		entity.enemy.ranged |= std::find(CatapultClasses.begin(), CatapultClasses.end(), classId) != CatapultClasses.end();
-		// *hcIdx values of the FallenShaman, FetishShaman, GreaterMummy and MummyGenerator (the
-		// Sarcophagus, which spawns mummies) AI rows in the game's monstats.txt.
-		constexpr std::array<uint32_t, 27> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
-			645, 646, 647, 662, 663, 664, 101, 102, 103, 104, 105, 228, 229, 667, 668, 669, 670};
+		// *hcIdx values of the FallenShaman, FetishShaman, GreaterMummy, MummyGenerator (the
+		// Sarcophagus, which spawns mummies) and VileMother (the Flesh Spawner's family, which
+		// bears its young until killed) AI rows in the game's monstats.txt.
+		constexpr std::array<uint32_t, 32> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
+			645, 646, 647, 662, 663, 664, 101, 102, 103, 104, 105, 228, 229, 667, 668, 669, 670,
+			298, 299, 300, 675, 676};
 		entity.enemy.resurrector = std::find(ShamanClasses.begin(), ShamanClasses.end(), classId) != ShamanClasses.end();
 		uint16_t rarity = 0;
 		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity)) {
@@ -353,6 +355,7 @@ std::string NpcName(const Tables& tables, uint32_t classId) {
 }
 std::mutex g_townPresetsMutex;
 std::string g_townPresets;
+std::vector<uint64_t> g_goneTownNpcs;
 std::mutex g_gameLevelsMutex;
 NpcSpawnRules::GameLevels g_gameLevels; // every level the player's reads have been in, this game
 // In a town, every NPC its presets place once is listed from anywhere in it,
@@ -378,15 +381,17 @@ void AddTownNpcs(uintptr_t room, uintptr_t level, const std::vector<uintptr_t>& 
 		std::lock_guard lock(g_gameLevelsMutex);
 		return g_gameLevels.Entered(session, entered);
 	}, shared};
-	const auto placed = TownNpcs::MarkerSpawns(markers, [&game](int initFn) { return NpcSpawnRules::Spawns(initFn, NativeQuestFlags::Read, game); });
+	const TownNpcs::SpawnTest test = [&game](int initFn) { return NpcSpawnRules::Spawns(initFn, NativeQuestFlags::Read, game); };
+	const auto placed = TownNpcs::MarkerSpawns(markers, test);
 	spawns.insert(spawns.end(), placed.begin(), placed.end());
+	auto gone = TownNpcs::MarkersGone(markers, test);
 	// A row placed twice is not listed: the log tells which NPC that was (a tester, 2026-10-20: Natalya).
 	std::map<uint32_t, int> counts;
 	for (const auto& spawn : spawns) ++counts[spawn.monster];
 	std::string summary;
 	for (const auto& [monster, count] : counts)
 		if (!NpcName(tables, monster).empty()) summary += " " + std::to_string(monster) + "x" + std::to_string(count);
-	{ std::lock_guard lock(g_townPresetsMutex); g_townPresets = std::move(summary); }
+	{ std::lock_guard lock(g_townPresetsMutex); g_townPresets = std::move(summary); g_goneTownNpcs = std::move(gone); }
 	TownNpcs::Merge(spawns, liveNpcs, [&](uint32_t monster) { return NpcName(tables, monster); }, entities);
 }
 // A player's corpse, own or another's: its inventory's link ID names the owner,
@@ -1045,6 +1050,10 @@ std::string LevelName(uint32_t levelId) {
 	return ReadLevelTable(tables) ? LevelText(tables, levelId, LevelNameKey) : std::string{};
 }
 
+std::vector<uint64_t> GoneTownNpcs() {
+	std::lock_guard lock(g_townPresetsMutex);
+	return g_goneTownNpcs;
+}
 std::string TownPresets() {
 	std::lock_guard lock(g_townPresetsMutex);
 	return g_townPresets;

@@ -37,7 +37,7 @@ DWORD_OFFSETS = {"SizeX": 0x90, "SizeY": 0x94}
 # barrels, 14 crates/coffins/corpses/logs, 19 armor stands, 20 weapon racks,
 # 26 bookshelves, 30 exploding chests, 39-41 and 57-59 the act-specific special
 # chests, 68 the evil urn.
-CONTAINER_OPERATE = {1, 3, 4, 5, 7, 14, 19, 20, 26, 30, 39, 40, 41, 57, 58, 59, 68}
+CONTAINER_OPERATE = {1, 3, 4, 5, 7, 14, 19, 20, 26, 30, 39, 40, 41, 51, 57, 58, 59, 68}
 
 
 def rows_from_txt(path):

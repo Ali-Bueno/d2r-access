@@ -154,6 +154,7 @@ add_library(d2r-access SHARED
 	src/automap_cells.cpp
 	src/native_automap.cpp
 	src/automap_service.cpp
+	src/legacy_graphics.cpp
 	src/native_ui.cpp
 	src/pad_filter.cpp
 	src/message_hold.cpp

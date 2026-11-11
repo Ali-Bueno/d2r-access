@@ -183,6 +183,12 @@ int main() {
 	journal.nodes.push_back(Node{35, 0, Kind::Text, "Counter", "TextBoxWidget", "Monstruos restantes: 3"});
 	Check(Describe(journal).option == Strings::Current().slotEmpty, "other panel text does not turn an empty socket into a quest");
 	journal.nodes.pop_back();
+	// A tester, 2026-11-10: a quest another player closed in this game was read as empty.
+	journal.nodes[3].text = "No puedes completar esta misión en esta partida.";
+	readout = Describe(journal);
+	Check(readout.body == "Cementerio" && readout.option == "No puedes completar esta misión en esta partida.",
+		"a status the pane gives without a heading is read under the icon's own name");
+	journal.nodes[3].text.clear();
 	journal.nodes[2].text = "Cementerio";
 	readout = Describe(journal);
 	(void)reader.Update(readout, 4300);

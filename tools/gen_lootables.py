@@ -49,6 +49,7 @@ CONTAINER_FNS = {
     20,  # WeaponRack1/2/Left/Right
     26,  # Bookshelf1/2
     30,  # ExplodingChest100 (and ExplodingCow, which is not loot -- see below)
+    51,  # JunglePillar0-3, the jungle's stone stashes (a tester, 2026-11-10: three of the four were no treasure)
     68,  # IceCaveEvilUrn
 }
 

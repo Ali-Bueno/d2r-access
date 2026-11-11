@@ -103,6 +103,9 @@ FEATURES = [
     # The great pentagram at the heart of the Chaos Sanctuary (a tester, 2026-10-27): also a tracker
     # entry. Its centre is the DS1's DiabloStart, where Diablo appears; the HD star sits 7 subtiles off.
     ("Pentagram", "object", r"^DiabloStart$"),
+    # The High Council's hall in Travincal: its raised platform heaped with bones, the blood round it
+    # (a tester, 2026-11-10: something to walk towards and around). Also a tracker entry.
+    ("CouncilAltar", "model", r"act3_travincal_platforms/raised01$"),
 ]
 # Seeds not matched by a rule: the top landing of each cliff stairway (CliffStairs is its bottom).
 DERIVED_FEATURES = ["CliffStairsTop"]
@@ -112,11 +115,14 @@ SUPERSEDES = {"BloodFountain": ("Fountain",)}
 # Files whose own preset name already says what the feature would (a cottage on fire).
 FEATURE_SKIPPED_FILES = {"BurningBuilding": re.compile(r"^act1/outdoors/cott7\.ds1$"),
                          # cryptnwarpnext.ds1 keeps an unused copy of the Countess's room.
-                         "BloodCistern": re.compile(r"^(?!act1/crypt/cryptcountess[12]\.ds1$)")}
+                         "BloodCistern": re.compile(r"^(?!act1/crypt/cryptcountess[12]\.ds1$)"),
+                         # The same platform model stands in many other pieces, as plain masonry.
+                         "CouncilAltar": re.compile(r"^(?!act3/travincal/travn\.ds1$)")}
 # Subtiles added around a feature's seeds: the Hangman's Tree is said under its whole canopy,
 # one tile past the corpses hanging from its boughs (a tester, 2026-10-17: only at the trunk); the
-# pentagram over its inner pentagon, two tiles round where Diablo appears, where a route to it ends.
-FEATURE_PADDING = {"HangmanTree": 5, "Pentagram": 10}
+# pentagram over its inner pentagon, two tiles round where Diablo appears, where a route to it ends;
+# the Council's altar one tile round its platform.
+FEATURE_PADDING = {"HangmanTree": 5, "Pentagram": 10, "CouncilAltar": 5}
 # HD layouts drawn off their DS1's origin: (x, y) subtiles to take off every entity. The Pandemonium
 # Fortress's hall walls (int_wall*, ext_wall*) and brazier mounts sit 22 right and 22 down of the
 # DS1's hall (west wall at x 15, colonnade at x 35, braziers at y 25-55; a tester's log, 2026-10-27).

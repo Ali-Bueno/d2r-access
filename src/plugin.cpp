@@ -21,6 +21,7 @@
 #include "interaction_reader.h"
 #include "keyboard_menu.h"
 #include "keyboard_service.h"
+#include "legacy_graphics.h"
 #include "localization.h"
 #include "modal_reader.h"
 #include "credits_reader.h"
@@ -229,6 +230,7 @@ void OnUiTick(const D2RL::PluginContext* context) {
 	D2RAccess::CreditsReader::Tick(context); lap("CreditsReader");
 	D2RAccess::WidgetProbe::Tick(context); lap("WidgetProbe");
 	D2RAccess::UiMessageMonitor::Tick(context); lap("UiMessageMonitor");
+	D2RAccess::LegacyGraphics::Tick(context, GetTickCount64()); lap("LegacyGraphics");
 	D2RAccess::AudioDescription::Tick(context); lap("AudioDescription");
 	D2RAccess::MovieProbe::Tick(context); lap("MovieProbe");
 	D2RAccess::NativeWidgets::Tick(context); lap("NativeWidgets");

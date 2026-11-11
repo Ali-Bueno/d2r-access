@@ -437,5 +437,33 @@ int main() {
 	Check(CharacterStats::HoverWords("Chance to Block: 20%\nAverage chance Fallen will hit you: 40%")
 		== "Average chance Fallen will hit you: 40%. Chance to Block: 20%", "two whole lines are two sentences");
 	Check(CharacterStats::HoverWords("").empty(), "no text, nothing said");
+
+	// Legacy graphics (CharacterStatsPanel.json, live 2026-11-11): no Tooltip stops, values named by the stem alone.
+	widgets.clear(); order.clear();
+	widgets[Panel] = {"CharacterStatsPanel", "", 0};
+	Add(2, "CharacterName", "Ulfr");
+	Add(3, "ClassInfo", "Bárbaro");
+	Add(4, "NextLevelXPText", "Siguiente nivel");
+	Add(5, "NextLevelXP", "500");
+	Add(6, "CurrentXPTitle", "Experiencia");
+	Add(7, "CurrentXP", "120");
+	Add(8, "LevelTitle", "Nivel");
+	Add(9, "Level", "3");
+	Add(10, "StrengthTitle", "Fuerza");
+	Add(12, "StrengthStat", "30");
+	Check(CharacterStats::LabelRow(10, Panel) && CharacterStats::LabelRow(8, Panel), "a label with no stop of its own is a place of the keyboard's cursor");
+	Check(!CharacterStats::LabelRow(12, Panel) && !CharacterStats::LabelRow(4, Panel), "a value, or a label not called Title, is not");
+	Check(CharacterStats::Read(On(8), {}).option == "Nivel. 3" && CharacterStats::Read(On(6), {}).option == "Experiencia. 120",
+		"a legacy row reads the value its stem names");
+	const auto legacy = CharacterStats::Lines(Panel);
+	Check(std::find(legacy.begin(), legacy.end(), "Fuerza. 30") != legacy.end() && std::find(legacy.begin(), legacy.end(), "500") != legacy.end(),
+		"the legacy sheet lists its rows and the next level's experience");
+	Check(CharacterStats::Points(Panel).empty(), "no points line while the legacy sheet shows none");
+	Add(20, "UnusedPoints", "5");
+	Add(21, "UnusedPointsText", "Puntos de estad. restantes");
+	Check(CharacterStats::Points(Panel) == "5. Puntos de estad. restantes" && CharacterStats::HasPoints(CharacterStats::Points(Panel)),
+		"the legacy sheet's points are its count and its label");
+	Add(11, "Tooltip", "", 10);
+	Check(!CharacterStats::LabelRow(10, Panel), "a label the game stops on already is left to that stop");
 	Passed();
 }

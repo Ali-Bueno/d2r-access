@@ -323,3 +323,11 @@ Chaos Sanctuary heart's `DiabloStart` object (53,53 of `act4/diab/heart.ds1`), w
 appears, padded 10 subtiles: it is said within the star's inner pentagon and a route to it ends
 there. The HD star model (`act4_diab_cathedral/pentagram01`) sits 7 subtiles off that object, so the
 object is the anchor. Tests: `places_tests.cpp` (`FortressHall`, the heart and both forges).
+
+**The Council's altar** (a tester, 2026-11-10: a landmark at Travincal's centre, to walk towards and
+round instead of into the Council): feature `CouncilAltar`, a tracker entry, said "despoiled,
+blood-soaked altar" (the tester's words). Its anchor is the raised platform heaped with bones in the
+High Council's hall, `act3_travincal_platforms/raised01` at 66,101 of `act3/travincal/travn.ds1`,
+ringed by the piece's blood and gore models; padded 5 subtiles. The same model is plain masonry in
+some 75 other pieces, so the rule is kept to that file (`FEATURE_SKIPPED_FILES`). The Compelling Orb
+is no DS1 object (objpreset.txt has none for Act III), so it cannot be the anchor. Unverified live.

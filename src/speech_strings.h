@@ -18,7 +18,7 @@ namespace D2RAccess::Strings {
 enum class Language { enUS, deDE, esES, esMX, frFR, itIT, jaJP, koKR, plPL, ptBR, ruRU, zhCN, zhTW };
 
 inline constexpr std::size_t LanguageCount = 13;
-inline constexpr std::size_t PresetPlaceWords = 16, PlaceInteriorWords = 11, PlaceFeatureWords = 34;
+inline constexpr std::size_t PresetPlaceWords = 16, PlaceInteriorWords = 11, PlaceFeatureWords = 35;
 
 
 
@@ -275,7 +275,10 @@ struct Table {
 	const char* automapLogged;         // the automap diagnostic finished; details are in the log
 	const char* automapWatchOn;        // the automap watch logs every change from now on
 	const char* automapWatchOff;
-	const char* skillBarSlot;          // %s = controller button, %s = skill name and HUD count
+	const char* legacyGraphicsOn;      // the game's renderer was switched (legacy_graphics.h)
+	const char* legacyGraphicsOff;
+	const char* legacyGraphicsChanged; // switched, and the layouts do not tell which way
+	const char* skillBarSlot;         // %s = controller button, %s = skill name and HUD count
 	// Keyboard play: walking, exploring, retreating and fighting. `keyboard_service.h`
 	const char* walkTo; // %s = what the character sets out for
 	const char* walkStopped; // a walk, a retreat or a fight ended by the player
@@ -682,7 +685,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.terrainOverview, t.terrainSeparator, t.terrainDirection, t.terrainEdge, t.terrainBorder,
 		t.terrainExplored, t.terrainUnexplored, t.terrainUnexploredFrom, t.terrainPercent, t.terrainUnavailable,
 		t.roomExits, t.roomExitNamed, t.roomNoExits, t.wayUnexplored, t.placeFoundExit, t.placeFound, t.placeFoundQuest, t.roomOutside, t.roomsEnabled, t.roomsDisabled, t.roomsUnavailable, t.mapSidesOn, t.mapSidesOff, 
-		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.skillBarSlot,
+		t.automapLogged, t.automapWatchOn, t.automapWatchOff, t.legacyGraphicsOn, t.legacyGraphicsOff, t.legacyGraphicsChanged, t.skillBarSlot,
 		t.walkTo, t.walkStopped, t.walkBlocked, t.walkNoRoute, t.walkNothing, t.exploreTo, t.exploreArrived, t.exploreNothing,
 		t.retreatTo, t.retreatEntrance, t.targetNone, t.targetOutOfReach, t.interactNothing, t.actionsUnavailable,
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.skillHotkeysOn, t.skillHotkeysOff, t.handSpeechOn, t.handSpeechOff,

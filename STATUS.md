@@ -2,6 +2,22 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## The tester's list of 2026-11-10 — release 1.0.13 (2026-11-11); only the legacy graphics row heard live
+
+141 tests pass. The game is D2R 3.4.95041, which D2RLoader 1.3.x does not yet list as supported: it
+shows a notice with an OK button at each start, and the plugin's readers all verified on it.
+Test characters for legacy graphics: `pruebaclasico` (classic) and `pruebalod` (expansion), offline.
+
+| Report | State | Where |
+|---|---|---|
+| "No route through explored areas" to the Kurast Causeway | fixed: a corridor mouth across the border is no crossing | [beacon](docs/beacon.md#area-borders) |
+| Nihlathak listed in Harrogath after Anya's rescue | fixed: the player's own walk answers in a shared game; a sighting is forgotten once gone | [entity scan](docs/entity-scan.md#npcs-at-marker-objects-2026-10-25) |
+| Flesh Spawner family without the raiser's sound | done: monstats AI `VileMother` | [entity cues](docs/entity-cues.md) |
+| A landmark at Travincal's centre | done: `CouncilAltar`, a tracker entry | [places](docs/places.md) |
+| Quest closed in this game read as "Empty" | reader accepts a status with no heading; ASSUMED cause, no log of that pane | [quests](docs/quests.md) |
+| Travincal "treasures" under Objects and Treasure | the jungle stash pillars (OperateFn 51) are containers now; the log has no Council fight, so the report may mean something else | [ground items](docs/ground-items.md) |
+| Legacy graphics: menus read differently, no word on the toggle (F5 here, not G) | wip, heard live 2026-11-11: the switch is said, the character sheet's rows are places, option rows say their captions, a click is no longer refused in the legacy Options. Stash, hireling, trade, waypoints, quest log and mini menu not looked at in legacy | [legacy graphics](docs/legacy-graphics.md) |
+
 ## Speech under Linux with Proton: Orca chosen, SAPI refused under Wine — 2026-11-09 (issue #5, PR #6, release 1.0.12)
 
 1.0.11 (PRISM 0.18.3 + Wine bridges in `plugins/d2r-access/prism/`, 2026-11-08) still did not speak

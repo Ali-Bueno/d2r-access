@@ -63,6 +63,9 @@ void Nihlathak() {
 	Check(NpcSpawnRules::Spawns(NihlathakInTown, Flags({{PrisonOfIce, Goal | RewardPending}}), next) == true,
 		"the game tests the reward's bits alone");
 	Check(!NpcSpawnRules::Spawns(NihlathakInTown, Flags({}), {next.entered, true}), "with other players in the game it cannot be told");
+	levels.Note(NextGame, 113);
+	Check(NpcSpawnRules::Spawns(NihlathakInTown, Flags({}), {next.entered, true}) == false,
+		"but the player's own walk towards Anya takes him in a shared game too");
 	Check(!NpcSpawnRules::Spawns(NihlathakInTown, Flags({})), "nor without the game's levels");
 }
 }

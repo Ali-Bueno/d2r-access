@@ -35,11 +35,13 @@ std::optional<bool> JerhynFirst(const QuestFlags& flags) {
 // when its creator joins with Anya's rescue rewarded (row 37 bit 0 or 15), or on entering those
 // levels. docs/entity-scan.md#npcs-at-marker-objects-2026-10-25
 std::optional<bool> NihlathakHome(const QuestFlags& flags, const ThisGame& game) {
-	if (game.shared || !game.entered) return std::nullopt;
+	if (!game.entered) return std::nullopt;
+	// The player's own walk takes him whoever else is in the game; the others' cannot be seen.
+	if (std::any_of(NihlathakGoneLevels.begin(), NihlathakGoneLevels.end(), game.entered)) return false;
+	if (game.shared) return std::nullopt;
 	const auto prison = flags(PrisonOfIceRow);
 	if (!prison) return std::nullopt;
-	if (*prison & EntityRadar::QuestDoneBits) return false;
-	return std::none_of(NihlathakGoneLevels.begin(), NihlathakGoneLevels.end(), game.entered);
+	return !(*prison & EntityRadar::QuestDoneBits);
 }
 }
 

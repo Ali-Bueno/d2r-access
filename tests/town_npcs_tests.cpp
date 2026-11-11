@@ -109,6 +109,9 @@ void MarkersGiveSpawns() {
 		&& second[1].monster == Natalya && second[1].position.y == 40,
 		"each marker whose test passes spawns its NPC there; the other placeholder and other objects give none");
 	Check(TownNpcs::MarkerSpawns(markers, [](int) { return std::optional<bool>{}; }).empty(), "a test that cannot be told spawns nothing");
+	const auto gone = TownNpcs::MarkersGone(markers, [](int initFn) -> std::optional<bool> { return initFn == 19; });
+	Check(gone == std::vector<uint64_t>{TownNpcs::Identity(Natalya)}, "an NPC every marker refuses is gone; one that only moved is not");
+	Check(TownNpcs::MarkersGone(markers, [](int) { return std::optional<bool>{}; }).empty(), "a test that cannot be told takes nobody");
 	std::vector<EntityRadar::Entity> entities;
 	const auto names = [](uint32_t monster) { return monster == Jerhyn ? std::string("Jerhyn") : std::string("Natalya"); };
 	auto spawns = TownNpcs::MarkerSpawns(markers, [](int initFn) -> std::optional<bool> { return initFn == 18 || initFn == 52; });

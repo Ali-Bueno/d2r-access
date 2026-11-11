@@ -94,6 +94,16 @@ The rule depends on the correct catalog identity. The Cain report exposed the
 HD-icon numbering mistake fixed above. `questNoObjective` still covers a pane
 that names the selected quest but carries no objective line.
 
+**A status with no heading (2026-11-10).** A tester, multiplayer: a quest another player had
+closed in the game (the Hellforge; the Horadric Staff with a host further on) was read as "Empty",
+where the game says it cannot be completed in this game (`ui.json`: `qstsother`,
+`qstsThankYouComeAgain`, `...Multi`, `...Single`). No log of that pane exists: the one log at hand
+(2026-11-10) shows `qstsprevious` and "Quest completed." arriving with their heading and read
+correctly, and "Empty" only on a pane blank in both boxes. ASSUMED: the closed status comes with
+`LongDescription` alone. The reader now takes a pane with no heading but an objective as the
+focused quest's own, named from the icon; a heading of another quest is still a stale pane. If
+the report persists, the `[quest] watch` line of that moment (`short=`/`long=`) settles it.
+
 ## Journal detail reading — 2026-09-16 follow-up
 
 The controller session at 21:44 proved `ShortDescription` / `LongDescription`
