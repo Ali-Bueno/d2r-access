@@ -93,14 +93,77 @@ info or debug while it starts. The wrapper was fixed for the release zip: kept L
 instead of fixed `~/.local/share/Steam` and Proton Experimental paths; checked with a dry run
 under `sh` (Steam-like arguments and a bare shell), not under Proton.
 
-**Not run:** the rebuilt plugin DLL under Proton — so its explicit bridged-only selection, which
-removes the tie, is itself unexercised; Speech Dispatcher in game, for the reasons just above; a
-Windows game launch with this DLL; the launcher's Battle.net path under Wine; an old launcher
-installing the 1.0.11 layout.
+The reporter's run of shipped 1.0.12 (2026-11-09, 05:59/06:09) was silent: `[speech] wine=1
+backends=15`, then Orca/Speech Dispatcher/Spiel each `unavailable`, then no-backend, and no
+`[prism]` lines. The install was exonerated: `WINEDLLPATH` in the live loader's
+`/proc/<pid>/environ` was correct, and a PROTON_LOG trace shows `prism_orca_bridge.dll` loading
+as a builtin only in the launcher's process (which uses `acquire_best` and spoke), never in the
+loader's. Cause: the plugin's Wine branch probed each candidate with `prism_registry_get`,
+which returns only a backend something has already acquired (PRISM 0.18.3
+`FrozenRegistry::get` returns `Entry.cached.lock()`, a weak_ptr only `acquire_entry` fills by
+running the factory that loads the bridge) — the probe gated the only call that could fill it.
+1.0.11 spoke because `acquire_best` goes through acquire. Fixed on `prism-oversight-fix`
+(2026-11-09): acquire directly (the acquire is the probe), features check after acquire with
+`backendFree` on failure, `registryGet` resolution removed. Proven on the reporter's box
+without the game: MinGW syntax check, plus a throwaway harness under Wine against the shipped
+`prism.dll` — `registry_get` null for all three bridged backends, `registry_acquire` non-null,
+Orca and Speech Dispatcher initialize, Spiel reports unsupported (no `prism_spiel_bridge.dll.so`
+present); the harness never speaks.
 
-**Next step:** the reporter's run of the release with the `sh` launch option
-(`PRISM ready, backend: Orca` after the `[speech]` lines); if a Proton session is silent, the
-`[speech]`/`[prism]` lines of its last session say why.
+The rebuilt plugin then ran in game the same day (Windows VM build, Steam Play → wrapper):
+`[speech] wine=1 backends=15`, `PRISM ready, backend: Orca`, and the title-screen/license-modal
+announcements queued to that backend (plugin log 09:40 and 09:49), closing the acquire regression
+in game. Those runs stop at the game's own 30-days license modal, a separate open problem: the
+launcher logged a fresh date (0 days) with the Wine Steam check skipped, and a forced
+`--validate` run changed `User Last Online` at 09:48:59 and said `License validated`, yet the
+loader-hosted game showed the modal at 09:49:10. Vanilla `D2R.exe` logged BGS `PROD -
+us.actual.battle.net`; the loader-hosted game logged `TEST - localhost` with a backend error.
+The validation run refreshed no Battle.net cache file in the prefix — only `Settings.json`
+changed. Vanilla `D2R.exe` through the same Steam Play wrapper then went further: BGS `PROD`
+at 09:55:57, account-presence traffic at 09:56:01, and new Battle.net cache files at
+09:56:02–03 (a game-server error and a shutdown crash followed, 09:56:17/09:57:24). So an
+interactive vanilla session refreshes auth/cache state that the launcher's date-only
+validation does not, but it did not clear the modal: the modded retry at 10:00 and an A/B at
+10:07 with the pre-cleanup pair (launcher `installed 1.0.12, latest 1.0.12`; patched local
+plugin, Orca acquired and speaking) both reached the same modal seconds after `Connecting to
+Battle.net`. The VM/dev build and its release tag are therefore exonerated — `development
+build` only skips the update check and names the build; `TEST - localhost` is the
+loader-hosted game's BGS environment, not a server chosen by the plugin build. The preserved
+VM pair was restored after the A/B. Vanilla itself logged a game-server communication error
+(666) after account presence, so healthy Battle.net game-server auth is not proven either.
+A fresh Proton prefix reproduced it at 10:19: the launcher wrote its `First Time` stub,
+vanilla changed the date and the launcher said `License validated`, then the loader-hosted
+game hit the same modal. The fresh `Settings.json` remained a 68-byte `First Time` + date
+stub and only one Battle.net `.metr` cache file was created; the old prefix was restored
+afterward. The wrapper hardening in `0628111` (LF/CRLF packaging check; preserve Steam's
+`STEAM_COMPAT_*`, pick Steam's Proton) is exonerated by the fresh run's own logs: correct
+prefix, `SteamAPI_Init` OK, vanilla BGS `PROD`. What remains suspect is the validation
+stopping rule under Proton — closing vanilla as soon as the date changes can precede the
+account-presence/cache completion an interactive vanilla session reached. No log evidence
+of an account ban: interactive vanilla reached BGS presence and wrote cache files before
+its game-server error; account-side entitlement/session state still cannot be ruled out.
+
+Resolved for this install at 10:37 by taking the wrapper out of the launch entirely once:
+with Steam LaunchOptions temporarily cleared, vanilla ran through Steam's original
+reaper/SteamLinuxRuntime/pressure-vessel command to **Online character select** (BGS `PROD`,
+presence/cache complete, no error 666), exited cleanly (Alt+F4; Steam released the session
+10:36:02), and with the launch option restored verbatim the modded start passed `Connecting
+to Battle.net` into `CharacterSelectPanel` at 10:37:57, then character creation and the
+in-game tutorial prompt. By contrast, wrapper-run vanilla extracts Steam's `proton` and runs
+it directly, bypassing that reaper/runtime chain; it reached presence/cache but then error
+666 and a shutdown crash. Which element matters — the full Steam command chain, the complete
+clean online session, or both — is not isolated. No account ban: the same account reached
+Online character select in vanilla.
+
+**Not run:** Speech Dispatcher in game, for the reasons just above; a Windows game launch with
+this DLL; the launcher's Battle.net path under Wine; an old launcher installing the 1.0.11
+layout.
+
+**Next step:** the reporter plays. Code follow-up for the license modal's return: make the
+wrapper preserve Steam's full launch chain (reaper/SteamLinuxRuntime) while substituting
+the launcher and setting `WINEDLLPATH`, instead of extracting `proton` and bypassing it;
+until then the recovery above (one original-command vanilla session to Online character
+select, clean exit, restore the launch option) is the documented workaround.
 
 ## Ground items say the loader's sockets and item level — 2026-11-06 (release 1.0.10)
 

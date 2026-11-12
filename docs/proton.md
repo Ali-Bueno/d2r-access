@@ -22,6 +22,19 @@ data — the launch output's `Error processing file '/usr/share/espeak-ng-data/p
 looked like success and stayed mute, hiding the fix. Under Wine the plugin now refuses every
 non-bridged backend and logs why each bridge failed (`src/screen_reader.cpp`).
 
+1.0.12 shipped that explicit selection and was silent again (2026-11-09): `[speech] wine=1
+backends=15`, every bridge `unavailable`, no `[prism]` lines — the bridges were never loaded,
+with `WINEDLLPATH` verified correct in the loader process. The selection probed each backend
+with `prism_registry_get`, which only returns a backend something has already acquired (PRISM
+0.18.3's `FrozenRegistry::get` reads a weak cache that only `acquire_entry` fills, by running
+the factory that loads the bridge DLL), so the probe could never succeed. The plugin now calls
+`prism_registry_acquire` directly — the acquire is the probe — and runs the
+`PRISM_BACKEND_IS_SUPPORTED_AT_RUNTIME` check on the acquired backend, freeing it on failure.
+Proven outside the game under Wine against the shipped `prism.dll` (throwaway harness,
+2026-11-09): `registry_get` null for Orca, Speech Dispatcher and Spiel; `registry_acquire`
+succeeds and Orca initializes. Run in game later the same day with a Windows-built DLL:
+`PRISM ready, backend: Orca` after the `[speech]` enumeration (plugin log 09:40/09:49).
+
 Wine Access's NVDA stand-in does not help either: since PRISM 0.16.2 the NVDA backend also requires
 `RpcMgmtInqIfIds` (`source/backends/nvda.cpp`, `server_supports_interface`), which Wine's `rpcrt4`
 leaves as a stub that always fails (found by the d4-assist session, 2026-11-08). d4-assist speaks
@@ -79,9 +92,28 @@ It has to go through Steam's Play button. The same wrapper run from a bare shell
 title screen but the game then shows "You have not been online in the last 30 days", even with
 the license date minutes old (seen 2026-11-09, plugin log: `Connecting to Battle.net` →
 `DismissableModal`). Through Steam — the launch environment its reaper/pressure-vessel start
-gives the game — the same start goes on to the main menu and character select, no modal. Which
-part of that environment the check needs was not isolated; the date in `Settings.json` alone is
-not it.
+gives the game — that earlier start went on to the main menu and character select, no modal.
+Later the same day, Play-button starts hit the modal again despite a fresh date, a forced
+`--validate`, an interactive vanilla session that refreshed Battle.net cache files, and an A/B
+with a release-tagged launcher; the remaining state the check wants is not isolated yet (see
+STATUS). The date in `Settings.json` alone is not it. A plugin/launcher `development build`
+label only skips the update check and names the build; it does not choose a server — `TEST -
+localhost` in `blz-log.txt` is the loader-hosted game's BGS environment.
+A fresh Proton prefix reproduced the modal as well (2026-11-09): the launcher's validation
+changed the date, but `Settings.json` stayed a 68-byte `First Time` + date stub and almost
+no Battle.net cache was written. The old prefix was restored. Closing vanilla on the date
+change may simply be too early under Proton, before the account-presence/cache work an
+interactive vanilla session completes.
+
+What cleared it on the reporter's box (2026-11-09): temporarily clear Steam's LaunchOptions,
+start vanilla from Play so Steam's original reaper/SteamLinuxRuntime command runs `D2R.exe`,
+press a key at the title and reach **Online character select**, exit cleanly, restore the
+launch option verbatim, then start modded as usual — it passed `Connecting to Battle.net`
+into character select and character creation. Note the wrapper itself only extracts Steam's
+`proton` and runs it directly, bypassing that reaper/runtime chain; wrapper-run vanilla
+reached account presence and cache writes but then logged a game-server error (666). Which
+part — the full Steam command chain, the complete clean online session, or both — is the
+decisive one is not isolated.
 
 Under Wine the launcher skips its Steam check (`EnsureSteam` in `launcher/launcher_main.cpp`):
 Steam is the host's Linux client, outside the prefix, so there is no `steam.exe` to open and no
@@ -104,8 +136,7 @@ running speechd, create and speak OK. But with the 1.0.11 plugin it is unreachab
 upstream registers Speech Dispatcher and SAPI at the same priority (97; Orca is 100), SAPI wins
 the tie, and `acquire_best` never probes the bridge — seen the same day with the Orca bridge
 temporarily renamed away: `backend: SAPI`, and no bridge load attempt in a `+loaddll` trace.
-The shipped plugin's successor in this repo asks for the bridged backends explicitly, which
-removes the tie; and inside Steam's runtime the bridge additionally needs `libspeechd.so.2`,
+The plugin's explicit bridged-backend selection (above) removes the tie; and inside Steam's runtime the bridge additionally needs `libspeechd.so.2`,
 which SteamLinuxRuntime_4 does not ship. So a Speech-Dispatcher-only host stays unverified until
 both a rebuilt plugin and a runtime-visible libspeechd exist; the `[speech]`/`[prism]` log lines
 below will then say whether that bridge loaded.
