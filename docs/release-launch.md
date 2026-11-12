@@ -103,7 +103,10 @@ controls), one `configs/<mod>.toml` per mod. `configs/d2r.toml` and the code it 
   `D2RAccess.exe` (Steam and Battle.net copies alike, `[shortcut] steam_url = false`); the question
   says the other way to start (Steam's Play button if set; else `D2RAccess.exe` in the game folder,
   since Battle.net's Play starts the game without the mod). An existing shortcut is refreshed
-  without asking.
+  without asking. The question has a "Do not ask again" box (testers, 2026-11-11: asked at every
+  update): ticked with No, it is remembered per Windows user (`HKCU\Software\d2r-access\Installer`,
+  `NoDesktopShortcut`) and later installs skip the question; uninstalling forgets it. Not seen
+  with a screen reader; the launcher's own update never asks.
 - Uninstall removes the launcher with the mod, so it clears the launch option if it is still the
   one it set; it can also remove D2RLoader (never the game's `mods` folder nor the VC++ DLLs).
 - The main button (Install / Update / Reinstall) always installs the newest release; **Modify...**

@@ -2,6 +2,19 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Loader sliders, the portal after Baal, the installer's shortcut question — release 1.0.16 (2026-11-11)
+
+141 tests pass; the installer's 27.
+
+| Report | State | Where |
+|---|---|---|
+| Numbers beside D2RLoader's sliders (extra stash pages) not read | fixed, heard live by keyboard: caption, "slider", number, and each step's number once. Not run with a pad nor in legacy graphics | [keyboard play](docs/keyboard-play.md#sliders-outside-the-catalog-say-their-caption-and-number-2026-11-11-1016) |
+| The portal after Baal has no portal sound | fixed: an object drawn as a portal is an exit. Not heard live | [portals](docs/portals.md#the-portal-after-baal-is-an-exit-2026-11-11-1016) |
+| Installer asks about the desktop shortcut at every update | "Do not ask again" box, remembered per user. Not seen with a screen reader | [release launch](docs/release-launch.md) |
+
+Seen on the way, not changed: the loader's checkbox rows say their tooltip, not their caption
+("Show item levels on equipment." for "Display item levels").
+
 ## The tester's list of 2026-11-10 — release 1.0.13 (2026-11-11); only the legacy graphics row heard live
 
 141 tests pass. The game is D2R 3.4.95041, which D2RLoader 1.3.x does not yet list as supported: it
