@@ -54,6 +54,7 @@ std::string Text(std::string_view key) {
 	if (key == "Waypoint") return "Punto de ruta";
 	if (key == "Duriel's Lair") return "Guarida de Duriel";
 	if (key == "Portal") return "Portal";
+	if (key == "strlastcinematic") return "Fin de la Destrucción";
 	if (key == "To Tal Rasha's Tomb") return "To Tal Rasha's Tomb";
 	if (key == "Tal Rasha's Tomb") return "Tal Rasha's Tomb";
 	if (key == PlayerCorpseNameKey) return "Cadáver";
@@ -539,6 +540,22 @@ void SewerStairs() {
 		&& f.Find(entities, 17)->category == EntityRadar::Category::Exit && f.Find(entities, 17)->name == "Escaleras de la cloaca"
 		&& !f.Find(entities, 17)->placeId, "open stairs are an exit, kept to this game since a new one starts them shut");
 }
+void PortalAfterBaal() {
+	Fixture f;
+	constexpr uint32_t lastPortal = 565; // objects.txt ReallyTheLastPortal: the red portal's art, no portal SubClass
+	Check(Generated::PortalArtObject(lastPortal), "the portal after Baal is drawn with a portal's art");
+	std::vector<uint8_t> objects(ObjectStride * (lastPortal + 1));
+	std::memcpy(objects.data() + ObjectStride * lastPortal + ObjNameKey, "strlastcinematic", sizeof "strlastcinematic");
+	objects[ObjectStride * lastPortal + ObjSelectable + ObjectOpened] = 1;
+	f.tables.At(Objects, reinterpret_cast<uintptr_t>(objects.data())); f.tables.At<uint64_t>(ObjectCount, lastPortal + 1);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitClass, lastPortal);
+	f.casket.At<uint32_t>(GroundItemLayout::UnitMode, ObjectOpened);
+	std::vector<EntityRadar::Entity> entities;
+	const auto* portal = f.Read(entities) ? f.Find(entities, 17) : nullptr;
+	Check(portal && portal->kind == EntityRadar::Kind::Exit && portal->category == EntityRadar::Category::Portal
+		&& portal->name == "Fin de la Destrucción" && !portal->destinationLevel && !portal->placeId,
+		"the portal to the closing cinematic is an exit under the game's own label, leading to no level");
+}
 void TeleportPadClass() {
 	Fixture f;
 	std::vector<EntityRadar::Entity> entities;
@@ -661,6 +678,7 @@ int main() {
 	QuestMechanismModes();
 	SealNumbersAndCount();
 	SewerStairs();
+	PortalAfterBaal();
 	TeleportPadClass();
 	CairnStoneModes();
 	Fixture f;

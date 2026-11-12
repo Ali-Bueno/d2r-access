@@ -130,7 +130,8 @@ unit-tested only.
   (`SoulStoneForge`, `DiabloStart`), not from HD models (the star's model sits 7 subtiles off). The
   pentagram is listed; the Hellforge, already listed as its object, only gets its words.
 - **A portal never moves to an area border** (`Crosses`), and objects drawn with a portal's art
-  are portals (`PortalArtObject`, from objects.txt Tokens). Rejected: a list of class names.
+  are portals (`PortalArtObject`, from objects.txt Tokens), and exits with the portal sound even
+  when they lead to no level (the one after Baal, 1.0.16). Rejected: a list of class names.
 - **Nihlathak is listed from the game's own rule**, decompiled: the Prison of Ice data is reset each
   game, so the mod keeps the levels entered this game itself; level 112 counts as gone even when
   the game would keep him (never a phantom NPC), and multiplayer gives no answer. Rejected: the

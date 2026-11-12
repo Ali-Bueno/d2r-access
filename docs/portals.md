@@ -83,3 +83,13 @@ no portal SubClass and is named after a level ("Harrogath"). It is drawn with th
 art (Token `pp`, `PortalPermanent`'s), and so are `ReallyTheLastPortal`, `GuildPortal`,
 `PermanentPortal2` and `CainPortal`: `tools/gen_lootables.py` lists every object sharing a portal
 row's Token (`Generated::PortalArtObject`), and those are portals. It keeps leading to Harrogath.
+
+## The portal after Baal is an exit (2026-11-11, 1.0.16)
+
+A tester: the portal that opens in the Worldstone Chamber once Baal dies had no portal sound.
+`ReallyTheLastPortal` (objects.txt 565, OperateFn 72) has no portal SubClass and its name key,
+`strlastcinematic` ("Destruction's End"), is no level's, so it was a `Portal` by category but an
+`Object` by kind, and only exits get the loop (`GroundItemService` landmarks). An object drawn with
+a portal's art (`Generated::PortalArtObject`) is now an exit: it has the portal loop and is listed
+as a portal under the game's own label. It leads to no level, so it has no destination and is
+not remembered between games. Test: `native_entities_tests.cpp`, `PortalAfterBaal`. Not heard live.

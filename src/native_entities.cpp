@@ -662,7 +662,8 @@ bool ReadObject(uintptr_t unit, uintptr_t room, const Tables& tables, uint64_t s
 	const bool warp = openWarp || operate == RoomWarpOperateFn;
 	// Listed with the exits too: Tal Rasha's Chamber behind the tomb's broken wall (a tester, 2026-10-24).
 	const bool namedExit = tables.levelKeys && tables.levelKeys->contains(key);
-	const bool exit = (subClass & SubClassExit) || warp || namedExit;
+	// Drawn as a portal and named after no level: the way out after Baal, to the closing cinematic.
+	const bool exit = (subClass & SubClassExit) || warp || namedExit || Generated::PortalArtObject(classId);
 	entity.kind = exit ? EntityRadar::Kind::Exit : EntityRadar::Kind::Object;
 	entity.category = ObjectCategory(classId, subClass, warp || namedExit, key);
 	if (namedExit) entity.destinationLevel = LevelNamed(tables, key);
