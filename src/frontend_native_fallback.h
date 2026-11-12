@@ -16,6 +16,7 @@ struct Readout {
 	bool enabled = true;
 	std::optional<bool> toggled;
 	std::string value;
+	bool slider = false; // the value is a slider's number, said after its role
 	std::string labelKey;
 	std::string contents; // a text box's text; masked boxes never expose theirs
 };

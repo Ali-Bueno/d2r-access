@@ -54,7 +54,8 @@ Also seen:
   stock one), and the legacy panel is anchored (`rect` -320,-240 from the screen's middle), so
   `KeyboardMenu`'s `PlacedRect` places a label from a widget beside it that does have one.
 - On landing in an option sub-screen the cursor's own name for the row follows its reading once
-  ("LightingQuality"). A slider's row says its caption; A says its value. Left as is.
+  ("LightingQuality"). A slider's row says its caption; A says its value. Left as is. Since 1.0.16
+  the row should say caption, "slider" and number ([why](keyboard-play.md#sliders-outside-the-catalog-say-their-caption-and-number-2026-11-11-1016)); not heard in legacy.
 - The `Level` box holds its label's text ("Nivel") until the game fills it, so the first words on
   opening can be "Nivel Nivel". Left as is.
 - The plugin's own commands are listed in English in Options, Controls with `text_locale = esES`.

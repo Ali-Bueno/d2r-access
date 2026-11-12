@@ -909,6 +909,24 @@ the value already stepped as `before`, saw no change 120 ms later, and clicked t
 - Seen after: `8 -> 7 -> 6 -> 7 -> 8` on the players slider, one step a press, each number right. At
   the end of the track the click is tried and the value is said again; nothing moves.
 
+### Sliders outside the catalog say their caption and number (2026-11-11, 1.0.16)
+
+A tester: the numbers beside D2RLoader's sliders (extra stash pages) were not read. SEEN live on
+`D2RLoaderSettingsPanel`, the Gameplay tab: its rows are built at run time, so no catalog entry
+matches and the native fallback reads them. It said `FloorItemDisplayLimitSlider`, the widget's name.
+
+- The row is `Row X` holding `XText` (the caption) and `XSlider`, a `SettingsSliderWidget`; the game's
+  own rows are `XText` and `X`. `FrontendNativeFallback::Describe` takes the box named after the
+  slider, else the caption before it in its row.
+- The number is in the slider's own object, not the tree: the tracker copies
+  `NativeValueControls::Shown` into the focused node before `Describe`, which carries it as the value.
+- Said as the catalog's sliders are: caption, "slider", number; a step says the new number alone.
+- By keyboard the cursor and the fallback's 100 ms poll both noticed a step, and now and then the
+  number was said twice: the cursor's saying swallows the echo (`EchoMs`).
+- Seen after: `Additional shared tabs, deslizador, 0`, then `1`, `0`; eight steps on the item limit,
+  each number once. Not run: a pad; the legacy graphics option sliders, which take the same path
+  (unit test only).
+
 ### The attributes
 
 - **The tooltip read backwards.** J said "equip more weapons and armor.. Increases attack damage and

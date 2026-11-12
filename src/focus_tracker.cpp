@@ -1173,8 +1173,11 @@ void Tick(const D2RL::PluginContext* context) {
 			g_lastNativeFallbackFocus = focused.widget;
 			g_lastNativeFallbackPoll = now;
 			const NativeMemory::ReadScope scope;
-			const UiText::Snapshot snapshot = NativeUi::Snapshot(focused.panel, focused.widget);
+			UiText::Snapshot snapshot = NativeUi::Snapshot(focused.panel, focused.widget);
 			if (PanelState::Hud(snapshot.name)) return;
+			// A slider draws its number in a box of its own object, outside the tree.
+			if (NativeValueControls::Of(focused.widget) == NativeValueControls::Kind::Slider)
+				for (auto& node : snapshot.nodes) if (node.id == focused.widget) node.text = NativeValueControls::Shown(focused.widget);
 			const auto readout = FrontendNativeFallback::Describe(snapshot);
 			if (!readout.text.empty()) {
 				const bool contextChanged = g_lastNativeFallbackContext != readout.context;
@@ -1201,10 +1204,14 @@ void Tick(const D2RL::PluginContext* context) {
 				case UiText::Kind::Button: role = Strings::Current().roleButton; break;
 				case UiText::Kind::Toggle: role = Strings::Current().roleCheckbox; break;
 				case UiText::Kind::TextInput: role = Strings::Current().roleTextField; break;
-				case UiText::Kind::ValueControl: if (!readout.value.empty()) role = Strings::Current().roleDropdown; break;
+				case UiText::Kind::ValueControl:
+					if (readout.slider) role = Strings::Current().roleSlider;
+					else if (!readout.value.empty()) role = Strings::Current().roleDropdown;
+					break;
 				default: break;
 				}
 				if (role) phrase += ", " + std::string(role);
+				if (readout.slider && !readout.value.empty()) phrase += ", " + readout.value;
 				if (!readout.contents.empty()) phrase += ", " + readout.contents;
 				if (state) phrase += ", " + std::string(state);
 				if (!readout.enabled) phrase += ", " + std::string(Strings::Current().unavailable);

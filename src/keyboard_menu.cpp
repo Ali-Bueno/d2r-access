@@ -69,6 +69,7 @@ constexpr uint64_t FillGapMs = 500;     // a plan sent again before the server a
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
 constexpr uint64_t TitleMs = 1200;      // what a menu is called is heard before the cursor names its first place
 constexpr uint64_t OwnStepMs = 120;     // by then the game has stepped a value on the arrow key itself, if it does
+constexpr uint64_t EchoMs = 250;        // a value the cursor said is not said again by a reader polling the same control
 constexpr uint64_t ChoiceMs = 8000;     // a class clicked that is not chosen by then was not chosen: its figure walks forward first
 constexpr uint64_t RowPairMs = 400;     // a click on a row this soon after another is the second of the two that act on it
 constexpr int ScrollStuck = 3;          // wheels that move nothing before a row is given up on
@@ -1133,7 +1134,10 @@ void Adjusted(const D2RL::PluginContext* context, uint64_t now) {
 	AsyncLog::InfoF(context, "[cursor] value of %s: %d -> %d %s, shown \"%s\"", entry->name.c_str(), step.before, *value,
 		*value == step.before ? "unchanged" : step.clicked ? "by a click on its arrow" : "by the game on the key", shown.c_str());
 	// A reader that heard the game say the value changed has said it already.
-	if (ScreenReader::LastSpoken() < step.since && !shown.empty()) ScreenReader::Speak(shown, true);
+	if (ScreenReader::LastSpoken() < step.since && !shown.empty()) {
+		ScreenReader::Speak(shown, true);
+		ScreenReader::Swallow(shown, now + EchoMs); // a reader that sees the same change a moment later
+	}
 	g_seenValue = {step.widget, *value};
 	step = {};
 }

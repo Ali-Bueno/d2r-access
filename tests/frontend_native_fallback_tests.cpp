@@ -192,5 +192,27 @@ int main() {
 	};
 	Check(FrontendNativeFallback::Describe(video).text == "CALIDAD DE LUZ, ALTA", "a legacy option row says its caption before its value");
 
+	// D2RLoader's own settings, seen live 2026-11-11: a slider XSlider is captioned by XText in its row.
+	UiText::Snapshot loader;
+	loader.name = "D2RLoaderSettingsPanel";
+	loader.focus = 83;
+	loader.nodes = {
+		{80, -1, Kind::Other, "D2RLoaderSettingsPanel", "Panel"},
+		{81, 0, Kind::Other, "Row AdditionalSharedTabs", "TableRowWidget"},
+		{82, 1, Kind::Text, "AdditionalSharedTabsText", "TextBoxWidget", "Additional shared tabs"},
+		{83, 1, Kind::ValueControl, "AdditionalSharedTabsSlider", "SettingsSliderWidget", "3", true, 0, std::nullopt, "More shared stash tabs."},
+	};
+	readout = FrontendNativeFallback::Describe(loader);
+	Check(readout.text == "Additional shared tabs" && readout.slider && readout.value == "3",
+		"a slider says the caption beside it and carries its number apart");
+	const auto threeTabs = readout.identity;
+	loader.nodes.back().text = "4";
+	Check(FrontendNativeFallback::Describe(loader).identity != threeTabs, "a slider's new number is news");
+	video.focus = 76;
+	video.nodes.push_back({75, 1, Kind::Text, "GammaText", "TextBoxWidget", "GAMMA"});
+	video.nodes.push_back({76, 1, Kind::ValueControl, "Gamma", "SettingsSliderWidget", "50"});
+	readout = FrontendNativeFallback::Describe(video);
+	Check(readout.text == "GAMMA" && readout.value == "50", "a legacy slider is captioned by the box named after it");
+
 	Passed();
 }

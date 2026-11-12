@@ -6,6 +6,8 @@ namespace D2RAccess::FrontendNativeFallback {
 namespace {
 // The game's key-binding string (keybinds.json) for the I/II tabs over the weapon slots, which have no text.
 constexpr const char* SwapWeaponsKey = "Cfgswapweapons";
+// The options slider. Its number is drawn outside the tree: the caller puts it in the node's text.
+constexpr std::string_view SliderType = "SettingsSliderWidget";
 
 bool Under(const UiText::Snapshot& snapshot, size_t child, size_t parent) {
 	for (int at = static_cast<int>(child); at >= 0 && static_cast<size_t>(at) < snapshot.nodes.size();) {
@@ -168,6 +170,14 @@ Readout Describe(const UiText::Snapshot& snapshot) {
 		Append(controlText, result.value);
 		Append(controlText, node.text);
 		if (controlText.empty()) Append(controlText, node.name);
+	} else if (node.type == SliderType) {
+		// Captioned as a legacy option row (XText), else by the caption beside it in its row.
+		std::string label = node.name.empty() ? std::string{} : TextNamed(snapshot, node.name + "Text");
+		if (label.empty()) label = LabelBefore(snapshot, focus);
+		Append(controlText, label);
+		if (controlText.empty()) Append(controlText, node.name);
+		result.value = UiText::Clean(node.text);
+		result.slider = true;
 	} else if (node.type == "DropdownListWidget") {
 		Append(controlText, LabelBefore(snapshot, focus));
 		result.value = UiText::Clean(node.text);
@@ -218,6 +228,7 @@ Readout Describe(const UiText::Snapshot& snapshot) {
 	}
 	result.text = controlText;
 	result.identity = result.context + "/" + std::to_string(node.id) + "/" + controlText;
+	if (result.slider) result.identity += "/" + result.value;
 	if (result.toggled) result.identity += *result.toggled ? "/1" : "/0";
 	result.identity += result.enabled ? "/enabled" : "/disabled";
 	return result;
