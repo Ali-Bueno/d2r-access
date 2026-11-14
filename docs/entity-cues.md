@@ -9,7 +9,7 @@ runtime dependencies are needed.
 |---|---|---|
 | Friendly NPC or another player | Light wooden tap | Nearest visible NPC or player |
 | Boss or elite | Deep resonant metallic swoop | Highest enemy priority |
-| Resurrecting shaman (Fallen and fetish shamans, the Greater Mummy family, the Sarcophagus that spawns mummies, the Flesh Spawner's family that bears its young until killed — monstats AI `VileMother`, a tester, 2026-11-10; champions and uniques too, bosses keep theirs) | Mid-register resonant swoop | Next enemy priority |
+| Resurrecting shaman (Fallen and fetish shamans, the Greater Mummy family, the Sarcophagus that spawns mummies, the Flesh Spawner's family that bears its young until killed — monstats AI `VileMother`, a tester, 2026-11-10; the [standing spawners](#nests-and-huts-are-raisers-2026-11-13); champions and uniques too, bosses keep theirs) | Mid-register resonant swoop | Next enemy priority |
 | Ordinary ranged enemy | Brighter resonant swoop | Third enemy priority; optional |
 | Any other enemy | Short rough growl | The nearest few, in the voices left; optional |
 
@@ -177,3 +177,18 @@ The same tester: the allied fighters on the battlefields were announced "Combata
 name (`act5barb1`/`2`, 522-523, NameStr "Act 5 Combatant", AI `NpcBarb`). They are now named with
 the game's "Barbarian" (ui.json, the class name, so every language has it), the way cows and camels
 take a name from another table (`AllyNameKey`).
+
+## Nests and huts are raisers (2026-11-13)
+
+A tester: the Foul Crow Nests "do not emit sounds at all". Nothing drops them: monstats rows
+`crownest1`-`4` (*hcIdx 206-209, AI `FoulCrowNest`) are named, hostile and killable, the same kind
+of row as the Sarcophagus (both cast the skill `Nest`), so they had the plain growl of the crows
+they spawn and could not be told from them. Their MonStats2 rows (SizeX 3, `inert`, no `objCol`)
+stamp MONSTER bits alone (D2MOO `PATH_AllocDynamicPath`), which the terrain layer strips, so their
+own footprint does not hide them from the sight ray. Read from the tables, not heard live.
+
+Every standing spawner now has the raiser's sound (`ShamanClasses` in `native_entities.cpp`), by
+its AI row: `FoulCrowNest` (206-209), `MosquitoNest` (334-337, rows the game leaves disabled),
+`MinionSpawner` (484-491, 710) and `GenericSpawner` (528, the Evil hut), Act V's huts. Left as they
+were: the sand maggots, which fight and lay eggs on the side, and the Den's `evilhole` rows, unnamed
+helper units the reader never lists.

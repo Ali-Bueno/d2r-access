@@ -303,11 +303,13 @@ bool ReadMonster(uintptr_t unit, uintptr_t room, const Tables& tables, const std
 		constexpr std::array<uint32_t, 4> CatapultClasses{497, 498, 499, 500};
 		entity.enemy.ranged |= std::find(CatapultClasses.begin(), CatapultClasses.end(), classId) != CatapultClasses.end();
 		// *hcIdx values of the FallenShaman, FetishShaman, GreaterMummy, MummyGenerator (the
-		// Sarcophagus, which spawns mummies) and VileMother (the Flesh Spawner's family, which
-		// bears its young until killed) AI rows in the game's monstats.txt.
-		constexpr std::array<uint32_t, 32> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
+		// Sarcophagus, which spawns mummies), VileMother (the Flesh Spawner's family, which
+		// bears its young until killed) and the standing spawners FoulCrowNest, MosquitoNest,
+		// MinionSpawner and GenericSpawner (nests and Act V huts) AI rows in the game's monstats.txt.
+		constexpr std::array<uint32_t, 50> ShamanClasses{58, 59, 60, 61, 62, 278, 279, 280, 281, 282,
 			645, 646, 647, 662, 663, 664, 101, 102, 103, 104, 105, 228, 229, 667, 668, 669, 670,
-			298, 299, 300, 675, 676};
+			298, 299, 300, 675, 676, 206, 207, 208, 209, 334, 335, 336, 337,
+			484, 485, 486, 487, 488, 489, 490, 491, 710, 528};
 		entity.enemy.resurrector = std::find(ShamanClasses.begin(), ShamanClasses.end(), classId) != ShamanClasses.end();
 		uint16_t rarity = 0;
 		if (Peek(unit + UnitData, data) && data && Peek(data + MonRarityFlags, rarity)) {

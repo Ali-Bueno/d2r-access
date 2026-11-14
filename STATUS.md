@@ -2,6 +2,14 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Nests and huts sound as raisers — release 1.0.17 (2026-11-13)
+
+141 tests pass; built and deployed, not heard live.
+
+| Report | State | Where |
+|---|---|---|
+| Foul Crow Nests "emit no sound" | they had the plain growl, like their crows; nests and Act V huts now have the raiser's sound | [entity cues](docs/entity-cues.md#nests-and-huts-are-raisers-2026-11-13) |
+
 ## Loader sliders, the portal after Baal, the installer's shortcut question — release 1.0.16 (2026-11-11)
 
 141 tests pass; the installer's 27.
