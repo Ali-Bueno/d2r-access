@@ -120,8 +120,11 @@ uintptr_t FindChild(uintptr_t parent, std::string_view name) {
 }
 }
 
+bool handWords = false; // the game's words for each skill block's hand, off for the older checks
 namespace D2RAccess::Localization {
 std::string Text(std::string_view key) {
+	if (handWords && key == "StrHDHelpLeftMouse") return "Habilidad del botón izquierdo";
+	if (handWords && key == "StrHDHelpRightMouse") return "Habilidad del botón derecho";
 	if (key == "minipanelchar") return "Personaje";
 	if (key == "MiniPanelHireinv") return "Mercenario";
 	if (key == "strchrlvl") return "Nivel";
@@ -240,6 +243,12 @@ int main() {
 	Add(84, "Tooltip", "", 82);
 	Check(CharacterStats::Read(On(74), {}).option == "Daño. 12 a 30", "a focused attack row reads the value beside it");
 	Check(CharacterStats::Read(On(84), {}).option == "Daño. 5 a 9", "and the identically named row elsewhere reads its own, not the first one's");
+	// Both hands holding the same skill read alike, so each row says its hand (measured 2026-11-16).
+	handWords = true;
+	Check(CharacterStats::Read(On(74), {}).option == "Habilidad del botón izquierdo. Daño. 12 a 30"
+		&& CharacterStats::Read(On(84), {}).option == "Habilidad del botón derecho. Daño. 5 a 9", "each attack row says its hand");
+	Check(CharacterStats::Lines(Panel)[8] == "Habilidad del botón izquierdo. Daño. 12 a 30", "and so does the stick's list");
+	handWords = false;
 
 	// The cursor the right stick walks: it never leaves the list.
 	using Push = InputDirection::StickPush;

@@ -287,6 +287,15 @@ hit": the stop after "Rating" came, the one after "602." did not. A row ending i
 followed by a comma ("Attack Rating. 602, Fallen: 95%..."), any other by a period as before
 (`WithChance`, `character_stats_reader.cpp`).
 
+## Each hand's attack rows say their hand (2026-11-16)
+
+A tester (ROG Ally, keyboard): "pressing down twice listed the same thing twice". Measured live the
+same day: the keyboard cursor's second stop was the other hand's `AttackDamageTitle` (one under
+`LeftSkillStats`, one under `RightSkillStats`); a level-1 barbarian has Attack on both hands, so both
+read "ATAQUE Daño. 3-7". Every row of those two blocks now begins with the game's own words for its
+hand, `StrHDHelpLeftMouse` / `StrHDHelpRightMouse` ("Habilidad del botón izquierdo"), in the focused
+reader and the stick's list alike (`CharacterStats::HandOf`).
+
 ## Two weapons in hand (2026-11-03)
 
 A tester's dual-claw Assassin heard "Damage" with no number and Attack Rating with only the chance.

@@ -133,6 +133,15 @@ std::string LevelAndClass(uintptr_t panel) {
 }
 
 bool SupportedPanel(std::string_view name) { return name == CharacterPanel || name == HirelingPanel; }
+
+// The attack rows of each hand's skill, alike when both hands hold the same skill.
+constexpr std::string_view LeftBlock = "LeftSkillStats", RightBlock = "RightSkillStats";
+// The block's hand in the game's own words (ui.json), so two alike rows can be told apart.
+std::string HandOf(std::string_view block) {
+	if (block == LeftBlock) return UiText::Clean(Localization::Text("StrHDHelpLeftMouse"));
+	if (block == RightBlock) return UiText::Clean(Localization::Text("StrHDHelpRightMouse"));
+	return {};
+}
 }
 
 bool HandlesFocus(NativeUi::Focus focus, const NativeUi::Type&) {
@@ -157,7 +166,6 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	if (label.empty()) return result; // the row has not rendered its label yet
 	result.context = NativeWidgets::ReadName(focus.panel);
 	result.body = Identity(focus.panel);
-	result.option = label;
 	// Among the row's own siblings, not anywhere under the panel: the attack
 	// damage and attack rating rows exist twice in the layout, once under
 	// LeftSkillStats and once under RightSkillStats, with identical widget
@@ -165,6 +173,8 @@ UiText::Readout Read(NativeUi::Focus focus, const NativeUi::Type& type) {
 	// pair. Falls back to the panel when the container cannot be read, which
 	// is the lookup this had before and still better than saying nothing.
 	const auto container = NativeUi::Parent(title);
+	result.option = container ? HandOf(NativeWidgets::ReadName(NativeUi::Parent(container))) : std::string{};
+	Append(result.option, label);
 	Append(result.option, Value(container ? container : focus.panel, NativeWidgets::ReadName(title), result.context));
 	result.focusKey = std::to_string(focus.widget);
 	return result;
@@ -205,16 +215,17 @@ std::vector<Line> Rows(uintptr_t panel) {
 		const auto text = UiText::Clean(node.text);
 		if (text.empty()) continue;
 		if (std::string_view(node.name).ends_with(TitleSuffix)) {
-			std::string line = text;
-			const auto value = panelName == HirelingPanel
-				? Value(panel, node.name, panelName)
-				: SiblingValue(snapshot, node.parent, node.name);
-			Append(line, value);
 			const auto grandparent = [&]() -> std::string_view {
 				if (node.parent < 0) return {};
 				const int up = snapshot.nodes[static_cast<size_t>(node.parent)].parent;
 				return up < 0 ? std::string_view{} : std::string_view(snapshot.nodes[static_cast<size_t>(up)].name);
 			};
+			std::string line = HandOf(grandparent());
+			Append(line, text);
+			const auto value = panelName == HirelingPanel
+				? Value(panel, node.name, panelName)
+				: SiblingValue(snapshot, node.parent, node.name);
+			Append(line, value);
 			lines.push_back({std::move(line), ChanceOf(panelName, node.name, grandparent())});
 			continue;
 		}

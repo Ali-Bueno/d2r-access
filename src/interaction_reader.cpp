@@ -151,6 +151,10 @@ std::string g_tabTitle;
 // Forgotten once the focus leaves the tree's panel, so a reopened tree names it again.
 uintptr_t g_skillTab = 0;
 uintptr_t g_skillTabPanel = 0;
+// The branch tab the keyboard cursor stood on and read aloud, so its first skill does not
+// name the branch again ("Warcries", then "Warcries. Howl", measured 2026-11-16).
+uintptr_t g_tabSaid = 0, g_tabSaidPanel = 0;
+std::string g_tabSaidTitle;
 uintptr_t g_branchShown = 0; // the branch the open tree showed last, whatever had focus
 // The panel the last readout was about, to tell a tab change that moved focus
 // to another panel from one that left it where it was.
@@ -1057,6 +1061,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	// after another tab, counts as moved when the next tab change comes.
 	if (focus.panel != g_readPanel) g_readPanel = 0;
 	if (focus.panel != g_skillTabPanel) g_skillTab = g_skillTabPanel = 0;
+	if (focus.panel != g_tabSaidPanel) g_tabSaid = g_tabSaidPanel = 0;
 	// The character panel's own stick reader goes first: it claims all four
 	// directions, and ReadDetail below would otherwise take up from it. Nothing
 	// is lost by that order -- the character panel holds neither items nor
@@ -1573,6 +1578,17 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if (!announcement.text.empty()) {
 		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
+		if (!progression.skill && focus.widget && NativeWidgets::ReadName(focus.panel) == SkillsTreePanel
+			&& NativeUi::Classify(focus.widget).kind == UiText::Kind::TabButton) {
+			g_tabSaid = focus.widget;
+			g_tabSaidPanel = focus.panel;
+			g_tabSaidTitle = announcement.text;
+		}
+		if (progression.skill && progression.tab && progression.tab != g_skillTab && progression.tab == g_tabSaid) {
+			g_skillTab = progression.tab;
+			g_skillTabPanel = focus.panel;
+			if (announcement.text.starts_with(g_tabSaidTitle + ". ")) announcement.text.erase(0, g_tabSaidTitle.size() + 2);
+		}
 		if (progression.skill && progression.tab) {
 			// The branch leads, as the tree opens and on each LT/RT change, with the skill
 			// choices left in a class tree (a tester, 2026-10-13: "Defensive Auras, 1 Skill
@@ -1638,6 +1654,8 @@ void Reset() {
 	g_tabFocus.clear();
 	g_skillTab = 0;
 	g_skillTabPanel = 0;
+	g_tabSaid = g_tabSaidPanel = 0;
+	g_tabSaidTitle.clear();
 	if (g_lineReader.widget) PadFilter::ReleaseB();
 	g_lineReader = {};
 	g_keyLines = {};
