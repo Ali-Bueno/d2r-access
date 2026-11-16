@@ -374,6 +374,8 @@ struct Table {
 	const char* secretDraftsOff;
 	const char* doorwaysListedOn; // doorways in the scanner with the doors
 	const char* doorwaysListedOff;
+	const char* rememberItemsOn; // ground items kept in the scanner when the level is left and entered again
+	const char* rememberItemsOff;
 	std::array<const char*, GlossarySoundCount> glossarySounds;
 	// Item quality suffixes indexed by the game's item quality value
 	// (D2RL::ItemQuality: 0 none, 1 low, 2 normal, 3 superior, 4 magic, 5 set,
@@ -691,7 +693,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.skillHotkeysOn, t.skillHotkeysOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
 		t.beaconSoundsOn, t.beaconSoundsOff, t.beaconFollowScanOn, t.beaconFollowScanOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.updateCheckOn, t.updateCheckOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.padLeadsBeen, t.padLeadsNew, t.padLeadsOn, t.padLeadsOff, t.padStepsOn, t.padStepsOff, t.padSoundsOn, t.padSoundsOff, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.durabilityAlertsOn, t.durabilityAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.unexploredEverywhereOn, t.unexploredEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction,
-		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff};
+		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff, t.rememberItemsOn, t.rememberItemsOff};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);

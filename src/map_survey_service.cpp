@@ -133,6 +133,7 @@ std::atomic<bool>    g_townNpcsEverywhere{ true };
 std::atomic<bool>    g_unexploredSpread{ true }; // unexplored areas one per direction in turn
 std::atomic<bool>    g_unexploredEverywhere{ true }; // every unexplored area, not only those at the edge
 std::atomic<bool>    g_doorwaysListed{ true }; // doorways in the scanner with the doors
+std::atomic<bool>    g_rememberItems{ true }; // ground items kept with their level, listed on a return
 std::atomic<bool>    g_padLeads{ true }, g_padSteps{ true }; // the Arcane Sanctuary's teleport pads (PadWays)
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
@@ -391,13 +392,13 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 	return g_fullAssistance ? scene.enemies : MapSurvey::Charted(world, scene.enemies, here);
 }
 
-// Items on the ground in every loaded room of the level, however far.
+// Items on the ground in every loaded room of the level, however far, that the item loops would sound.
 std::vector<EntityRadar::Entity> LoadedItems(const Lifecycle& state) {
 	std::vector<EntityRadar::Entity> items;
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return items;
 	for (const auto& item : snapshot.items) {
-		if (item.source != GroundItems::SourceKind::Item || item.name.empty()) continue;
+		if (item.source != GroundItems::SourceKind::Item || item.name.empty() || !GroundItems::LootFilter::Loops(item)) continue;
 		EntityRadar::Entity entity;
 		entity.id = item.id;
 		entity.kind = EntityRadar::Kind::Item;
@@ -443,7 +444,7 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	std::vector<EntityRadar::Entity> present = scene.landmarks;
 	present.insert(present.end(), scene.enemies.begin(), scene.enemies.end());
 	present.insert(present.end(), items.begin(), items.end());
-	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present);
+	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present, g_rememberItems);
 	g_registry.ForgetEnemies(NativeEntities::TakeDeadMonsters());
 	if (std::vector<EntityRadar::RosterPortals> roster; g_registry.HasPortals() && NativeEntities::ReadRosterPortals(roster))
 		for (const auto& drop : g_registry.DropStalePortals(roster, present))
@@ -529,7 +530,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	level = state.level;
 	if (!g_supported || !Playing(state)) return false;
 	ForgetOtherGames(state);
-	g_registry.Select(state.level, !g_fullAssistance);
+	g_registry.Select(state.level, !g_fullAssistance, g_rememberItems);
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
@@ -692,6 +693,8 @@ bool ReachFilter() { return g_reachFilter.load(); }
 bool TownNpcsEverywhere() { return g_townNpcsEverywhere.load(); }
 void SetTownNpcsEverywhere(bool on) { g_townNpcsEverywhere = on; }
 bool UnexploredSpread() { return g_unexploredSpread.load(); }
+bool RememberItems() { return g_rememberItems.load(); }
+void SetRememberItems(bool on) { g_rememberItems = on; }
 bool DoorwaysListed() { return g_doorwaysListed.load(); }
 void SetDoorwaysListed(bool on) { g_doorwaysListed = on; }
 void SetUnexploredSpread(bool on) { g_unexploredSpread = on; }
@@ -801,7 +804,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_observedAt = world.player;
 	g_observedTime = now;
 	ForgetOtherGames(state);
-	g_registry.Select(state.level, !g_fullAssistance);
+	g_registry.Select(state.level, !g_fullAssistance, g_rememberItems);
 	const auto read = Clock::now();
 	Scene scene;
 	if (!Collect(state, world, scene)) return;

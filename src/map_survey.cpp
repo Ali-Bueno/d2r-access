@@ -11,7 +11,8 @@ namespace {
 
 // Cycling order. A stranded player's first question is how to leave, so the
 // ways out come first; then what the level is for, then its scenery. Items sit
-// last because the ground-item reader already covers what is underfoot.
+// after enemies and scenery: loot is an errand, not a way to go, and the
+// ground-item loops already cover what is underfoot.
 constexpr EntityRadar::Category CategoryOrder[] = {
 	EntityRadar::Category::Exit,
 	EntityRadar::Category::Portal,
@@ -124,7 +125,15 @@ void Registry::Observe(int level, const std::vector<EntityRadar::Entity>& visibl
 			else if (Observed(grid, tracked.entity.position, settings.forgetWithin)) tracked.misses = settings.missesBeforeForgetting;
 			continue;
 		}
-		const bool stillPresent = loaded(tracked.entity);
+		bool stillPresent = loaded(tracked.entity);
+		// An item loaded again under a new id, out of sight, is still there: it takes the new id.
+		if (!stillPresent && present && tracked.entity.kind == EntityRadar::Kind::Item) {
+			const auto again = std::find_if(present->begin(), present->end(), [&](const EntityRadar::Entity& entity) {
+				return EntityRadar::Recreated(tracked.entity, entity) && std::none_of(m_tracked.begin(), m_tracked.end(), [&](const Tracked& other) {
+					return EntityRadar::SameTarget(other.entity, entity); });
+			});
+			if (again != present->end()) { tracked.entity.id = again->id; stillPresent = true; }
+		}
 		if (!stillPresent && Observed(grid, tracked.entity.position, settings.forgetWithin)) ++tracked.misses;
 	}
 	m_tracked.erase(std::remove_if(m_tracked.begin(), m_tracked.end(), [&settings](const Tracked& tracked) {
@@ -188,28 +197,37 @@ void Registry::Clear() {
 	m_entities.clear();
 }
 
-void Registry::KeepLandmarks() {
-	std::erase_if(m_tracked, [](const Tracked& tracked) {
-		return tracked.entity.kind != EntityRadar::Kind::Object && tracked.entity.kind != EntityRadar::Kind::Exit;
+void Registry::KeepLandmarks(bool keepItems) {
+	std::erase_if(m_tracked, [keepItems](const Tracked& tracked) {
+		const auto kind = tracked.entity.kind;
+		return kind != EntityRadar::Kind::Object && kind != EntityRadar::Kind::Exit && !(keepItems && kind == EntityRadar::Kind::Item);
 	});
 	m_entities.clear();
 	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
 }
 
-void Memory::Select(int level, bool exploration) {
+void Registry::ForgetItems() {
+	std::erase_if(m_tracked, [](const Tracked& tracked) { return tracked.entity.kind == EntityRadar::Kind::Item; });
+	m_entities.clear();
+	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
+}
+
+void Memory::Select(int level, bool exploration, bool rememberItems) {
 	if (level == m_level) return;
 	// Full assistance keeps every level's discoveries whole for the session, to
 	// be walked back to (the user, 2026-09-28: "if it has been discovered and
 	// loaded, I should be able to return to it using the scanner").
-	if (exploration)
-		if (const auto previous = m_levels.find(m_level); previous != m_levels.end()) previous->second.KeepLandmarks();
+	if (const auto previous = m_levels.find(m_level); previous != m_levels.end()) {
+		if (exploration) previous->second.KeepLandmarks(rememberItems);
+		else if (!rememberItems) previous->second.ForgetItems();
+	}
 	m_level = level;
 }
 
 void Memory::Observe(int level, const std::vector<EntityRadar::Entity>& visible,
 	const Navigation::Grid& grid, bool exploration, const Settings& settings,
-	const std::vector<EntityRadar::Entity>* present) {
-	Select(level, exploration);
+	const std::vector<EntityRadar::Entity>* present, bool rememberItems) {
+	Select(level, exploration, rememberItems);
 	m_levels[level].Observe(level, visible, grid, settings, present);
 }
 

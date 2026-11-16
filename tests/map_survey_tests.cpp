@@ -363,6 +363,61 @@ void ExplorationSurveyUsesOrientation() {
 	Check(Radar::ScreenSector(diagonal.front().offset) == 7, "a target up the world X axis is up and to the left on screen");
 }
 
+void GroundItemsFollowTheRememberItemsSwitch() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	for (const bool exploration : {true, false}) {
+		const char* mode = exploration ? "exploration" : "full assistance";
+		auto loot = Make(3, 26, 20);
+		loot.category = EntityRadar::Category::Item;
+		auto enemy = Make(2, 25, 20, EntityRadar::Kind::Enemy);
+		Memory kept;
+		kept.Observe(1, {enemy, loot}, grid, exploration, {}, nullptr, true);
+		kept.Select(2, exploration, true);
+		kept.Select(1, exploration, true);
+		const bool item = std::any_of(kept.Entities().begin(), kept.Entities().end(), [](const auto& e) { return e.kind == EntityRadar::Kind::Item; });
+		Check(item, std::string("a ground item survives leaving and re-entering the level in ") + mode + " with the switch on");
+		Memory dropped;
+		dropped.Observe(1, {enemy, loot}, grid, exploration, {}, nullptr, false);
+		dropped.Select(2, exploration, false);
+		dropped.Select(1, exploration, false);
+		const bool none = std::none_of(dropped.Entities().begin(), dropped.Entities().end(), [](const auto& e) { return e.kind == EntityRadar::Kind::Item; });
+		Check(none, std::string("a ground item is dropped on leaving the level in ") + mode + " with the switch off");
+	}
+}
+
+void RememberedItemGoneWhenItsPlaceIsSeenEmpty() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Memory memory;
+	const auto loot = Make(3, 26, 20);
+	memory.Observe(1, {loot}, grid, true, {}, nullptr, true);
+	memory.Select(2, true, true);
+	memory.Select(1, true, true);
+	const std::vector<EntityRadar::Entity> none;
+	for (int i = 0; i < 3; ++i) memory.Observe(1, {}, grid, true, {}, &none, true);
+	Check(memory.Entities().empty(), "a remembered item whose place is within reach and empty is forgotten");
+}
+
+void RememberedItemLoadedAgainKeepsItself() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	Memory memory;
+	auto loot = Make(3, 26, 20);
+	loot.name = "Large Axe";
+	memory.Observe(1, {loot}, grid, true, {}, nullptr, true);
+	memory.Select(2, true, true);
+	memory.Select(1, true, true);
+	auto again = loot;
+	again.id = 77; // the game gave it a new unit id when the room loaded again
+	const std::vector<EntityRadar::Entity> present{again};
+	for (int i = 0; i < 5; ++i) memory.Observe(1, {}, grid, true, {}, &present, true);
+	Check(memory.Entities().size() == 1 && memory.Entities().front().id == 77,
+		"an item loaded again under a new id out of sight stays listed and follows the new id");
+	memory.Observe(1, {again}, grid, true, {}, &present, true);
+	Check(memory.Entities().size() == 1, "seeing it again does not list it twice");
+}
+
 void ReturningToLevelRetainsFixedLandmarks() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
@@ -371,10 +426,10 @@ void ReturningToLevelRetainsFixedLandmarks() {
 	waypoint.category = EntityRadar::Category::Waypoint;
 	const auto enemy = Make(2, 25, 20, EntityRadar::Kind::Enemy);
 	const auto loot = Make(3, 26, 20, EntityRadar::Kind::Item);
-	memory.Observe(1, {waypoint, enemy, loot}, grid, true);
-	memory.Observe(2, {}, grid, true);
+	memory.Observe(1, {waypoint, enemy, loot}, grid, true, {}, nullptr, false);
+	memory.Observe(2, {}, grid, true, {}, nullptr, false);
 	Check(memory.Entities().empty(), "other level does not show the previous level's entries");
-	memory.Select(1, true);
+	memory.Select(1, true, false);
 	Check(memory.Entities().size() == 1 && memory.Entities().front().id == waypoint.id,
 		"returning in the same session retains a known waypoint but no enemy or loot");
 	memory.Clear();
@@ -622,6 +677,9 @@ int main() {
 	ExplorationSurveyUsesOrientation();
 	ReturningToLevelRetainsFixedLandmarks();
 	FullAssistanceKeepsEveryLevel();
+	GroundItemsFollowTheRememberItemsSwitch();
+	RememberedItemGoneWhenItsPlaceIsSeenEmpty();
+	RememberedItemLoadedAgainKeepsItself();
 	ScannerSplitsLandmarksFromLiveEnemies();
 	ChartedRoomsAdmitLandmarksOutOfSight();
 	FixedPlacesAreTheLayoutsOwn();

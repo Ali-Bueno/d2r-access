@@ -34,6 +34,10 @@ void SetPadLeads(bool on);
 // An unexplored room past teleport pads is as far as the way through them.
 bool PadSteps();
 void SetPadSteps(bool on);
+// Ground items kept with their level and listed again on a return, in either mode; on by
+// default (a tester, 2026-11-16). Off drops them on leaving the level. docs/ground-items.md
+bool RememberItems();
+void SetRememberItems(bool on);
 // Doorways listed with the doors, on by default (docs/ground-items.md#doorways-2026-10-20).
 bool DoorwaysListed();
 void SetDoorwaysListed(bool on);

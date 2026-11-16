@@ -2032,6 +2032,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{MapSurveyService::UnexploredSpread, MapSurveyService::SetUnexploredSpread, phrase(&T::unexploredSpreadOn, &T::unexploredSpreadOff), false, "unexplored-spread"},
 		{MapSurveyService::UnexploredEverywhere, MapSurveyService::SetUnexploredEverywhere, phrase(&T::unexploredEverywhereOn, &T::unexploredEverywhereOff), false, "unexplored-everywhere"},
 		{MapSurveyService::DoorwaysListed, MapSurveyService::SetDoorwaysListed, phrase(&T::doorwaysListedOn, &T::doorwaysListedOff), false, "doorways-listed"},
+		{MapSurveyService::RememberItems, MapSurveyService::SetRememberItems, phrase(&T::rememberItemsOn, &T::rememberItemsOff), false, "remember-items"},
 	}});
 	groups.push_back({GroupName(G::Items), {
 		{item(Item::Speech), setItem(Item::Speech), [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},

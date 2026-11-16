@@ -599,3 +599,16 @@ plays the recording untouched, and a change restarts the playing loops. The **Lo
 group of the settings list holds them, with `drop-sound-speed`, `wall-bump-repeat` (now from
 250 ms: a repeat keeps its own spacing, a new contact still waits the radar's cue interval) and
 `corpse-interval`. Keys unchanged where a setting moved.
+
+
+## Remembered items (2026-11-16)
+
+A tester: "If you re-enter the dungeon, dropped items are still there but no longer on your
+scanner; you have to find the location of the item manually to make it register again." The
+scanner's `Item` category kept loot only while the level stayed current; exploration mode dropped
+it on leaving (`Registry::KeepLandmarks`). Rule now: a discovered item (enemy rule, past the loot
+filter) is kept with its level for the whole game, in both modes, and listed on the return with
+name, distance and direction, routable with the beacon. It is forgotten when its place is within
+reach and the live read shows nothing there (picked up by anyone), and on a new game. An item
+the game loads again under a new unit id out of sight takes the new id instead of being forgotten.
+Switch `remember-items` (Ctrl+S Navigation, on); off drops items on leaving the level. Unverified live.

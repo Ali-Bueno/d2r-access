@@ -73,8 +73,10 @@ public:
 	std::vector<DroppedPortal> DropStalePortals(const std::vector<EntityRadar::RosterPortals>& roster,
 		const std::vector<EntityRadar::Entity>& present);
 	void Clear();
-	// A return visit retains fixed places; enemies and loot are transient.
-	void KeepLandmarks();
+	// A return visit retains fixed places; enemies are transient. Loot stays with `keepItems`.
+	void KeepLandmarks(bool keepItems = false);
+	// Drops every remembered item (the loot-memory switch is off).
+	void ForgetItems();
 
 	int                                     Level() const { return m_level; }
 	const std::vector<EntityRadar::Entity>& Entities() const { return m_entities; }
@@ -92,13 +94,14 @@ private:
 
 // Session-scoped memory of everything discovered, one registry a level. Full
 // assistance keeps every level whole until Clear; exploration keeps only the
-// fixed places of a level it leaves.
+// fixed places of a level it leaves. Ground items follow `rememberItems`: kept
+// with the level in either mode, or dropped on leaving it (docs/ground-items.md).
 class Memory {
 public:
-	void Select(int level, bool exploration);
+	void Select(int level, bool exploration, bool rememberItems = true);
 	void Observe(int level, const std::vector<EntityRadar::Entity>& visible,
 		const Navigation::Grid& grid, bool exploration, const Settings& settings = {},
-		const std::vector<EntityRadar::Entity>* present = nullptr);
+		const std::vector<EntityRadar::Entity>* present = nullptr, bool rememberItems = true);
 	const std::vector<EntityRadar::Entity>& Entities() const;
 	// Enemies the game now holds dead, on every level kept.
 	void ForgetEnemies(const std::vector<uint32_t>& dead);

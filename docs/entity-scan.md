@@ -94,10 +94,16 @@ automap; enemies are the one live category.
   "No route through explored areas" and none could ever be explored. What the
   map cannot tell, a room past ground not seen yet, stays listed. Log, on a
   change: `[survey] level L: N unexplored rooms with no way in from x,y left out: ...`.
-- **Ground loot and ordinary chests are not listed.** They are not on the
-  automap, and their loops and step-on speech already cover them
-  (`docs/ground-items.md`). Quest containers stay, as the automap draws them
-  (`MapSurvey::Split`).
+- **Ground items** (`Item`, after the enemies and the scenery) are listed once
+  discovered by the enemy rule (in range and in sight, or in the room underfoot;
+  all loaded ones with full assistance) and only those the item loops would
+  sound (`GroundItems::LootFilter::Loops`). They stay with their level for the
+  game, in both modes, and are forgotten when their place is within reach and
+  empty, or on a new game. Switch `remember-items` (Ctrl+S Navigation, on); off
+  drops them on leaving the level
+  (`MapSurvey::Memory::Select`, `docs/ground-items.md#remembered-items-2026-11-16`).
+  Ordinary chests are not listed: their loops and step-on speech cover them.
+  Quest containers stay, as the automap draws them (`MapSurvey::Split`).
 - In exploration mode (the default) a landmark is listed once it stands in an
   explored logical room: one stood in, the one underfoot, or one the stock
   automap has drawn in, meaning at least one floor or wall cell
