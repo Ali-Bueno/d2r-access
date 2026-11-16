@@ -202,25 +202,47 @@ std::optional<Sys::Process> StartGame(Client client, const std::wstring& gameFol
 	}
 }
 
-// Presses Escape on a schedule until Settings.json shows a new date, the game exits or the time runs out.
+// Presses Escape on a schedule until Settings.json shows a new date and the presses have passed the
+// title screen, the game exits or the time runs out.
 Wait WaitForNewDate(const Sys::Process& game, const std::wstring& settingsPath, std::optional<std::uint64_t> before) {
 	const std::uint64_t deadline = Sys::NowMs() + WaitTimeoutMs;
-	std::optional<std::uint64_t> lastPress;
+	std::optional<std::uint64_t> lastPress, changedAt, firstPressAfter;
+	int pressesAfter = 0;
 	bool held      = false;
 	bool announced = false;
+	bool refused   = false;
 	Wait result;
 	for (;;) {
 		const std::uint64_t now = Sys::NowMs();
-		const auto text         = Sys::ReadTextFile(settingsPath);
-		if (DateChanged(before, text ? ParseLastOnline(*text) : std::nullopt)) { result = Wait::Validated; break; }
-		if (Sys::HasExited(game)) { result = Wait::GameExited; break; }
-		if (now >= deadline) { result = Wait::Timeout; break; }
+		if (!changedAt) {
+			const auto text = Sys::ReadTextFile(settingsPath);
+			if (DateChanged(before, text ? ParseLastOnline(*text) : std::nullopt)) {
+				changedAt = now;
+				Log::Line("the date changed; passing the title screen");
+			}
+		}
+		if (changedAt) {
+			const AfterDate after = AfterNewDate(now, *changedAt, pressesAfter, firstPressAfter);
+			if (after != AfterDate::Wait) {
+				Log::Line(after == AfterDate::MenuReached ? std::format("title screen passed: {} presses after the date", pressesAfter)
+				                                          : "no press reached the game after the date: closing it on the title screen");
+				result = Wait::Validated;
+				break;
+			}
+		}
+		if (Sys::HasExited(game)) { result = changedAt ? Wait::Validated : Wait::GameExited; break; }
+		if (!changedAt && now >= deadline) { result = Wait::Timeout; break; }
 		switch (NextKeyAction(now, lastPress, held)) {
 		case KeyAction::Press:
 			if (const HWND window = Sys::FindMainWindow(game.id)) {
 				Sys::BringToForeground(window);
 				// Never press into another program when Windows refused to bring the game forward.
-				if (GetForegroundWindow() != window) break;
+				if (GetForegroundWindow() != window) {
+					if (!refused) Log::Line("Windows did not bring the game forward; no key pressed");
+					refused = true;
+					break;
+				}
+				if (changedAt && ++pressesAfter == 1) firstPressAfter = now;
 				if (!announced) {
 					// Said once the game has the focus, so the screen reader's window title does not cut it.
 					Speech::SayOverFocus(Strings::Current().launcherValidating);

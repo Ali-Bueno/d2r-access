@@ -2,6 +2,18 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Issues #8 and #9: the 30-day modal, the loader's tutorial — 2026-11-16 (not released)
+
+141 tests pass; built and deployed.
+
+| Report | State | Where |
+|---|---|---|
+| #9: A does nothing in the main menu; arrows leave `D2RLoaderTutorialPanel` for buttons under it | fixed: the tutorial is the whole keyboard menu until Got It, like a modal. Not heard live (this PC saw the tutorial long ago) | [keyboard play](docs/keyboard-play.md#every-menu-walked--2026-11-04) |
+| #8: 30-day modal on every start, though the launcher validated | after the new date the validation now presses on past the title screen and waits for the online main menu before closing; logs when Windows will not bring the game forward. Verified live with `--validate`; the modal itself does not reproduce here | [launcher](docs/launcher.md#flow) |
+
+**Next step:** the tester's run of a build with both fixes; if the modal stays, their launcher log
+says whether presses reached the game (`title screen passed` or `Windows did not bring the game forward`).
+
 ## Nests and huts sound as raisers — release 1.0.17 (2026-11-13)
 
 141 tests pass; built and deployed, not heard live.

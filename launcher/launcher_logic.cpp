@@ -183,4 +183,9 @@ KeyAction NextKeyAction(std::uint64_t now, std::optional<std::uint64_t> lastPres
 	return !lastPress || now - *lastPress >= EscapePeriodMs ? KeyAction::Press : KeyAction::None;
 }
 
+AfterDate AfterNewDate(std::uint64_t now, std::uint64_t changed, int presses, std::optional<std::uint64_t> firstPress) {
+	if (presses >= PressesPastTitle && firstPress && now - *firstPress >= MenuSettleMs) return AfterDate::MenuReached;
+	return now - changed >= PastTitleTimeoutMs ? AfterDate::NoPress : AfterDate::Wait;
+}
+
 }

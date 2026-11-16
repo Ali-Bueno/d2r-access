@@ -79,4 +79,14 @@ enum class KeyAction { None, Press, Release };
 // The Escape press-and-hold schedule while waiting for the date to change.
 KeyAction NextKeyAction(std::uint64_t nowMs, std::optional<std::uint64_t> lastPressMs, bool held);
 
+// The game writes the new date on its title screen by itself; one tester's license was accepted under
+// the loader only once the online main menu had been reached (issue #8, docs/launcher.md, Flow 5).
+inline constexpr int           PressesPastTitle   = 2;      // the first leaves the title screen, the second is spare
+inline constexpr std::uint64_t MenuSettleMs       = 5'000;  // from the first, for the main menu to come up
+inline constexpr std::uint64_t PastTitleTimeoutMs = 30'000; // from the new date, when no press reaches the game
+
+enum class AfterDate { Wait, MenuReached, NoPress };
+// Once the date changed at `changedMs`: whether the presses that reached the game since have passed the title.
+AfterDate AfterNewDate(std::uint64_t nowMs, std::uint64_t changedMs, int presses, std::optional<std::uint64_t> firstPressMs);
+
 }

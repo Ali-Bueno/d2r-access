@@ -117,6 +117,16 @@ void KeySchedule() {
 	Check(EscapeHoldMs >= 500 && EscapeHoldMs < EscapePeriodMs, "the hold skips videos and fits the period");
 }
 
+void PastTitle() {
+	constexpr std::uint64_t date = 1'000;
+	Check(AfterNewDate(date, date, 0, std::nullopt) == AfterDate::Wait, "the new date alone does not close the game");
+	Check(AfterNewDate(date + MenuSettleMs, date, 1, date) == AfterDate::Wait, "one press is not enough");
+	Check(AfterNewDate(date + MenuSettleMs - 1, date, PressesPastTitle, date) == AfterDate::Wait, "the menu gets its time");
+	Check(AfterNewDate(date + MenuSettleMs, date, PressesPastTitle, date) == AfterDate::MenuReached, "past the title, the menu up");
+	Check(AfterNewDate(date + PastTitleTimeoutMs, date, 0, std::nullopt) == AfterDate::NoPress, "no press reaches the game");
+	Check(PressesPastTitle * EscapePeriodMs < MenuSettleMs && MenuSettleMs < PastTitleTimeoutMs, "the presses fit the settle, the settle the timeout");
+}
+
 }
 
 int main() {
@@ -127,6 +137,7 @@ int main() {
 	Locale();
 	Arguments();
 	KeySchedule();
+	PastTitle();
 	FirstRunMark();
 	SteamLibrary();
 	Passed();

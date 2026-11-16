@@ -46,8 +46,21 @@ Shipped in the game folder next to `D2R.exe` and `D2RLoader.exe`. Sources: `laun
    wait up to 90 s for the `D2R.exe` it launches and open it by name. None: an error box (install
    or update the game in Battle.net first, or validate by hand: Play, main menu, close), then step 6.
 5. Every 250 ms read `Settings.json`; every 1.5 s focus the game window and hold Escape 600 ms
-   (SendInput, scan code). Escape never activates Play at the main menu. When the date changes: release,
-   `WM_CLOSE`, wait 10 s, `TerminateProcess`, then speak "License validated" and start the loader.
+   (SendInput, scan code). Escape never activates Play at the main menu. When the date changes, the
+   presses go on until two of them have reached the game and 5 s have passed since the first
+   (`AfterNewDate`), so the title screen is passed and the online main menu is up; then release,
+   `WM_CLOSE`, wait 10 s, `TerminateProcess`, speak "License validated" and start the loader. When no
+   press reaches the game (Windows refused to bring it forward, logged once) it is closed 30 s after
+   the date. Why (issue #8, 2026-11-15): the game writes the date on its title screen by itself, about
+   2 minutes in with no key at all (measured 2026-11-16) or 21 s in on the tester's PC, whose launcher
+   log has no "validating" sentence, so it never got the game forward and closed it on the title
+   screen 4 s after the date. Under the loader that license still showed the 30-day modal, until the
+   tester ran the game to the online main menu by hand. Here a title-screen date was enough (the
+   loader reached the menu, 2026-11-16), so the cause is that tester's word; what else the game
+   stores at the main menu is not known: on this PC `Settings.json` was the only file written in the
+   save, Blizzard and Battle.net folders, and no Blizzard registry key changed. Verified live
+   2026-11-16 with `--validate`: date 17 s after `D2R.exe` started, 4 presses and 5.8 s later the game
+   closed, the loader reached the main menu with no modal.
 6. Timeout (120 s), the game exiting by itself, or any start failure: close the game. Date 20-30 days
    old: speak that the game starts anyway and start the loader. 30 days or more, or no date at all:
    speak to check the internet and try again; no loader.
@@ -97,7 +110,8 @@ Both are online-only, need the player, and could not be reproduced on the user's
 
 `launcher/launcher_logic.h`: `ValidateAfterDays` 20, `OfflineLimitDays` 30, `EscapeHoldMs` 600,
 `EscapePeriodMs` 1500, `PollMs` 250, `WaitTimeoutMs` 120000, `CloseWaitMs` 10000, `KillWaitMs` 5000,
-`SteamTimeoutMs` 60000, `GameAppearTimeoutMs` 90000. `launcher_main.cpp`: `BattleNetLaunch`.
+`SteamTimeoutMs` 60000, `GameAppearTimeoutMs` 90000, `PressesPastTitle` 2, `MenuSettleMs` 5000,
+`PastTitleTimeoutMs` 30000. `launcher_main.cpp`: `BattleNetLaunch`.
 
 ## Log
 
