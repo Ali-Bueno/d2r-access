@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Issues #8 and #9: the 30-day modal, the loader's tutorial — 2026-11-16 (not released)
+## Issues #8 and #9, the Den's last monsters, items per level — release 1.0.18 (2026-11-16)
 
 141 tests pass; built and deployed.
 
@@ -11,7 +11,7 @@
 | #9: A does nothing in the main menu; arrows leave `D2RLoaderTutorialPanel` for buttons under it | fixed: the tutorial is the whole keyboard menu until Got It, like a modal. Not heard live (this PC saw the tutorial long ago) | [keyboard play](docs/keyboard-play.md#every-menu-walked--2026-11-04) |
 | #8: 30-day modal on every start, though the launcher validated | after the new date the validation now presses on past the title screen and waits for the online main menu before closing; logs when Windows will not bring the game forward. Verified live with `--validate`; the modal itself does not reproduce here | [launcher](docs/launcher.md#flow) |
 
-Later the same day, a ROG Ally tester's keyboard report and a Den of Evil report (not released; 141 tests pass):
+Later the same day, a ROG Ally tester's keyboard report and a Den of Evil report (in 1.0.18; 141 tests pass):
 
 | Report | State | Where |
 |---|---|---|
@@ -21,9 +21,10 @@ Later the same day, a ROG Ally tester's keyboard report and a Den of Evil report
 | Items left in a level drop off the scanner after leaving it | fixed: items remembered per level for the game, Ctrl+S `remember-items` (on). Not heard live | [ground items](docs/ground-items.md) |
 | Den of Evil "4 remaining", none on the scanner | built, not heard live: once the Den counter shows, the scanner lists all loaded enemies there and keeps them on return (Ctrl+S `counted-monsters`). Fallback if the last ones are still missing: server-side read (RE'd on 3.3, needs 3.4 fingerprints and a live measurement) | [entity scan](docs/entity-scan.md#counted-monsters-2026-11-16), [server units RE](docs/server-units-re.md) |
 
-**Next step:** the tester's run of a build with both fixes; if the modal stays, their launcher log
-says whether presses reached the game (`title screen passed` or `Windows did not bring the game forward`).
-For the Den: fingerprint the server functions on 3.4, then the live measurement in `docs/server-units-re.md`.
+**Next step:** the testers' run of 1.0.18. If the modal stays, their launcher log says whether
+presses reached the game (`title screen passed` or `Windows did not bring the game forward`). If the
+Den's last monsters are still missing from the scanner, fingerprint the server functions on 3.4 and
+take the live measurement in `docs/server-units-re.md`. The Ally's cursor jumps wait for its log.
 
 ## Nests and huts sound as raisers — release 1.0.17 (2026-11-13)
 
