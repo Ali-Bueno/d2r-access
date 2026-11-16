@@ -838,6 +838,10 @@ from the title screen through every menu listed below. Saves were copied first a
 - **A panel that takes every click is the whole menu** (`Covers`): the game's own mark, a
   `ClickCatcherWidget` on a `RectangleWidget` that shades the screen (`SettingsPanelHD.json`,
   `PauseLayoutHD.json`). The inventory has a catcher too, but not on a shade, and shares the screen.
+  Modals (`*Modal`), an open dropdown's rows and D2RLoader's first-start tutorial
+  (`D2RLoaderTutorialPanel`) are the whole menu by name. The tutorial has no catcher, yet until its
+  Got It the main menu under it ignores clicks (issue #9, a tester's log of 2026-11-15: 30 clicks on
+  Create Character, no panel opened); before, the arrows left it for the buttons under it.
 - **Closing it gives the cursor back** (`Uncovered`): a stack of where it stood, for modals and dropdowns
   as well, and the place is said again with what changed (`FocusTracker::Reannounce`).
 - **A list is a group seen through a frame** (`Target::frame`, `FrameLists`): any `ScrollViewWidget` or

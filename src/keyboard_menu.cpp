@@ -99,6 +99,8 @@ constexpr std::string_view LeftSkill = "LeftSkillButton", RightSkill = "RightSki
 constexpr std::string_view SkillList = "SkillSelect";
 // The rows of an open dropdown, a panel of its own drawn over the menu it belongs to.
 constexpr std::string_view DropdownList = "DropdownListContents";
+// D2RLoader's first-start tutorial: until Got It, clicks on the main menu under it do nothing (issue #9).
+constexpr std::string_view LoaderTutorial = "D2RLoaderTutorialPanel";
 // The list of mercenaries to hire, and the NPC's dialogue it is opened from.
 constexpr std::string_view HirePanel = "HireMenuPanel", NpcDialog = "NpcDialogPanel";
 constexpr const char* LeftHandKey = "StrHDHelpLeftMouse";
@@ -629,7 +631,7 @@ std::string Build(const D2RL::PluginContext* context) {
 	}
 	g_cover.clear();
 	for (size_t i = shown.size(); i-- > 0;) {
-		const bool alone = shown[i].name.ends_with("Modal") || shown[i].name == DropdownList;
+		const bool alone = shown[i].name.ends_with("Modal") || shown[i].name == DropdownList || shown[i].name == LoaderTutorial;
 		if (!alone && !Covers(shown[i].panel)) continue;
 		g_cover = shown[i].name;
 		// What it covers is out of reach; a tab of the options opened after it is part of it.
