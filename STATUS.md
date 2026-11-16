@@ -11,8 +11,19 @@
 | #9: A does nothing in the main menu; arrows leave `D2RLoaderTutorialPanel` for buttons under it | fixed: the tutorial is the whole keyboard menu until Got It, like a modal. Not heard live (this PC saw the tutorial long ago) | [keyboard play](docs/keyboard-play.md#every-menu-walked--2026-11-04) |
 | #8: 30-day modal on every start, though the launcher validated | after the new date the validation now presses on past the title screen and waits for the online main menu before closing; logs when Windows will not bring the game forward. Verified live with `--validate`; the modal itself does not reproduce here | [launcher](docs/launcher.md#flow) |
 
+Later the same day, a ROG Ally tester's keyboard report and a Den of Evil report (not released; 141 tests pass):
+
+| Report | State | Where |
+|---|---|---|
+| Down twice "lists the same thing twice" on the character sheet | measured live: the two hands' attack rows (both Attack at level 1). Each row now says its hand in the game's words. Heard in the log, not by ear | [character panel](docs/character-panel.md#each-hands-attack-rows-say-their-hand-2026-11-16) |
+| Skill tree: the branch said again on the first skill after the tab | fixed and seen in the log: the tab the cursor read counts as the branch said | `interaction_reader.cpp` `g_tabSaid` |
+| "The cursor jumps" on character, inventory and skills | not reproduced by keyboard here (one step per press; diagonal moves only past empty skill slots). Suspect on the Ally: an idle XInput device releasing the cursor; needs the tester's log (`[cursor] released: a pad was used`) | [keyboard play](docs/keyboard-play.md) |
+| Items left in a level drop off the scanner after leaving it | fixed: items remembered per level for the game, Ctrl+S `remember-items` (on). Not heard live | [ground items](docs/ground-items.md) |
+| Den of Evil "4 remaining", none on the scanner | wip: server-side monsters RE'd on 3.3 (game table, level rooms, saved records of freed rooms, the Den counter); needs 3.4 fingerprints and one live measurement in the Den | [server units RE](docs/server-units-re.md) |
+
 **Next step:** the tester's run of a build with both fixes; if the modal stays, their launcher log
 says whether presses reached the game (`title screen passed` or `Windows did not bring the game forward`).
+For the Den: fingerprint the server functions on 3.4, then the live measurement in `docs/server-units-re.md`.
 
 ## Nests and huts sound as raisers — release 1.0.17 (2026-11-13)
 
