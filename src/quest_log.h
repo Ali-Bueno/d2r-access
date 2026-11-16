@@ -3,6 +3,7 @@
 #include "generated/quest_catalog.h"
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,5 +43,9 @@ bool NeedsValue(std::string_view text);
 // string when this quest ships no such line. D2 keeps a separate singular line
 // for the last one remaining, which is used when value is 1 and it exists.
 std::string Counter(const Generated::Quest& quest, int remaining, const Resolver& resolve);
+
+// The value in `text` (or in one of its lines) when it is this quest's counter line filled in,
+// the singular line counting as 1; nullopt for anything else, a raw placeholder included.
+std::optional<int> CounterValue(const Generated::Quest& quest, std::string_view text, const Resolver& resolve);
 
 }

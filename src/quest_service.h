@@ -21,4 +21,7 @@ void SetEnabled(bool enabled);
 // ends with it, so a player who missed the moment it fell still hears it (a tester, 2026-11-02).
 // `level` is a Levels.txt Id; false when the client's flag cannot be read. docs/quests.md
 bool Eclipsed(int level);
+// The Levels.txt Id of the level whose monster counter the quest log is showing, 0 when none
+// (Den of Evil only). Cleared on joining or leaving a game. docs/entity-scan.md#counted-monsters-2026-11-16
+int CountedLevel();
 }

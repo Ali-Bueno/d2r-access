@@ -197,10 +197,11 @@ void Registry::Clear() {
 	m_entities.clear();
 }
 
-void Registry::KeepLandmarks(bool keepItems) {
-	std::erase_if(m_tracked, [keepItems](const Tracked& tracked) {
+void Registry::KeepLandmarks(bool keepItems, bool keepEnemies) {
+	std::erase_if(m_tracked, [keepItems, keepEnemies](const Tracked& tracked) {
 		const auto kind = tracked.entity.kind;
-		return kind != EntityRadar::Kind::Object && kind != EntityRadar::Kind::Exit && !(keepItems && kind == EntityRadar::Kind::Item);
+		return kind != EntityRadar::Kind::Object && kind != EntityRadar::Kind::Exit
+			&& !(keepItems && kind == EntityRadar::Kind::Item) && !(keepEnemies && kind == EntityRadar::Kind::Enemy);
 	});
 	m_entities.clear();
 	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
@@ -212,13 +213,13 @@ void Registry::ForgetItems() {
 	for (const Tracked& tracked : m_tracked) m_entities.push_back(tracked.entity);
 }
 
-void Memory::Select(int level, bool exploration, bool rememberItems) {
+void Memory::Select(int level, bool exploration, bool rememberItems, int keepEnemiesOf) {
 	if (level == m_level) return;
 	// Full assistance keeps every level's discoveries whole for the session, to
 	// be walked back to (the user, 2026-09-28: "if it has been discovered and
 	// loaded, I should be able to return to it using the scanner").
 	if (const auto previous = m_levels.find(m_level); previous != m_levels.end()) {
-		if (exploration) previous->second.KeepLandmarks(rememberItems);
+		if (exploration) previous->second.KeepLandmarks(rememberItems, m_level == keepEnemiesOf);
 		else if (!rememberItems) previous->second.ForgetItems();
 	}
 	m_level = level;
@@ -226,8 +227,8 @@ void Memory::Select(int level, bool exploration, bool rememberItems) {
 
 void Memory::Observe(int level, const std::vector<EntityRadar::Entity>& visible,
 	const Navigation::Grid& grid, bool exploration, const Settings& settings,
-	const std::vector<EntityRadar::Entity>* present, bool rememberItems) {
-	Select(level, exploration, rememberItems);
+	const std::vector<EntityRadar::Entity>* present, bool rememberItems, int keepEnemiesOf) {
+	Select(level, exploration, rememberItems, keepEnemiesOf);
 	m_levels[level].Observe(level, visible, grid, settings, present);
 }
 

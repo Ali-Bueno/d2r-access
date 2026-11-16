@@ -12,6 +12,7 @@
 #include "quest_progress.h"
 #include "quest_seals.h"
 #include "radar_ui.h"
+#include "ui_text.h"
 #include "screen_reader.h"
 #include "speech_priority.h"
 #include "speech_strings.h"
@@ -66,6 +67,10 @@ bool g_ready = false, g_enabled = true, g_seen = false;
 constexpr int ActTwoFirstLevel = 40, ActThreeFirstLevel = 75;
 constexpr bool InActTwo(int level) { return level >= ActTwoFirstLevel && level < ActThreeFirstLevel; }
 std::atomic<int> g_level{0};
+// The quest whose log line counts monsters left on a level (Levels.txt Id 8, "Act 1 - Cave 1": Den of Evil).
+struct MonsterCount { const char* widget; int level; };
+constexpr MonsterCount MonsterCounts[] = {{"Quest0", 8}};
+std::atomic<int> g_countedLevel{0}, g_countedLeft{0};
 // The Tainted Sun's eclipse falls soon after the player reaches the quest's levels; a sighted
 // player sees the land go dark (a tester, 2026-10-20).
 EclipseWatch::Watch g_eclipse;
@@ -150,6 +155,22 @@ Reading Read() {
 	return result;
 }
 
+// A reading of a monster-counting quest that shows its counter names the level and what is left.
+void NoteCounter(const D2RL::PluginContext* context, const QuestProgress::Reading& reading,
+	const QuestLog::Resolver& resolve) {
+	if (reading.quest.empty()) return;
+	for (const auto& count : MonsterCounts) {
+		const auto* quest = QuestLog::ForWidget(count.widget);
+		if (!quest || UiText::Clean(QuestLog::Title(*quest, resolve)) != reading.quest) continue;
+		const auto left = QuestLog::CounterValue(*quest, reading.objective, resolve);
+		if (!left || (g_countedLevel.load() == count.level && g_countedLeft.load() == *left)) return;
+		g_countedLevel = count.level;
+		g_countedLeft = *left;
+		AsyncLog::InfoF(context, "[quest] counting monsters on level %d: %d left", count.level, *left);
+		return;
+	}
+}
+
 void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycle::GameplayEvent* event, void*) noexcept {
 	if (!D2RL::Lifecycle::HasGameplayEventField(event, D2RL::Lifecycle::GameplayEventRequiredSize)) return;
 	if (event->kind == Kind::LevelChanged) { g_level.store(event->currentValue); return; }
@@ -161,6 +182,8 @@ void __cdecl OnGameplay(const D2RL::PluginContext* context, const D2RL::Lifecycl
 	}
 	g_ready = false;
 	Reset();
+	g_countedLevel = 0;
+	g_countedLeft = 0;
 	g_session = event->sessionGeneration;
 	g_player = event->playerId;
 	g_ready = event->kind == Kind::LocalPlayerReady;
@@ -272,6 +295,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			AsyncLog::InfoF(context, "[quest] watch: %s %s | title=%s short=%s long=%s identified=%u",
 				reading.panel.empty() ? "no panel" : reading.panel.c_str(), reading.open ? "open" : "closed",
 				reading.title.c_str(), reading.shortText.c_str(), reading.longText.c_str(), !g_sample.quest.empty());
+			NoteCounter(context, g_sample, resolve);
 			g_last = reading;
 			g_seen = true;
 		}
@@ -284,6 +308,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 			const auto title = Localization::Text(packet->titleId);
 			auto native = QuestProgress::Identify(title, title, packet->objective, resolve);
 			if (!native.quest.empty()) {
+				NoteCounter(context, native, resolve);
 				g_reader.Correlate(std::move(native));
 				AsyncLog::InfoF(context, "[quest] packet objective: row=%u title-id=%u", packet->row, packet->titleId);
 			}
@@ -318,6 +343,7 @@ void Reset() {
 	g_nativeReady.store(g_ready && g_enabled, std::memory_order_release);
 }
 
+int CountedLevel() { return g_countedLevel.load(); }
 
 // For the keyboard's settings list (settings_list.h): the switch as it stands,
 // and the same change the console command makes.

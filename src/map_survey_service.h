@@ -38,6 +38,10 @@ void SetPadSteps(bool on);
 // default (a tester, 2026-11-16). Off drops them on leaving the level. docs/ground-items.md
 bool RememberItems();
 void SetRememberItems(bool on);
+// While the quest log counts monsters left on the level (Den of Evil), the scanner lists every
+// loaded enemy and keeps them on leaving it; on by default. docs/entity-scan.md#counted-monsters-2026-11-16
+bool CountedMonsters();
+void SetCountedMonsters(bool on);
 // Doorways listed with the doors, on by default (docs/ground-items.md#doorways-2026-10-20).
 bool DoorwaysListed();
 void SetDoorwaysListed(bool on);

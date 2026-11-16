@@ -128,6 +128,8 @@ live numeric progress, completion text, missing objectives and deduplication.
 
 ## Reaching the kill counter (2026-09-16, working 2026-09-17)
 
+The Den's live counter also gates the scanner's monster listing: see [entity scan](entity-scan.md#counted-monsters-2026-11-16).
+
 The Den of Evil kill counter is never spoken because the mod never obtains it: the journal readout
 took only the `ShortDescription`/`LongDescription` text boxes and discarded the rest of the panel, and
 `QuestLog::Counter` has no production caller. Across the whole 28 MB live session log the counter

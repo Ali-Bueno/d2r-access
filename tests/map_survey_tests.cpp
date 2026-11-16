@@ -363,6 +363,33 @@ void ExplorationSurveyUsesOrientation() {
 	Check(Radar::ScreenSector(diagonal.front().offset) == 7, "a target up the world X axis is up and to the left on screen");
 }
 
+void EnemiesOfTheCountedLevelAreKeptOnLeaving() {
+	Radar::World world = OpenWorld();
+	const Navigation::Grid grid = GridFor(world);
+	const auto enemy = Make(2, 25, 20, EntityRadar::Kind::Enemy);
+	const auto count = [](const Memory& memory) {
+		return std::count_if(memory.Entities().begin(), memory.Entities().end(), [](const auto& e) { return e.kind == EntityRadar::Kind::Enemy; });
+	};
+	const std::vector<EntityRadar::Entity> present{enemy};
+	Memory counted;
+	counted.Observe(1, {enemy}, grid, true, {}, &present, true, 1);
+	counted.Select(2, true, true, 1);
+	counted.Select(1, true, true, 1);
+	Check(count(counted) == 1, "an enemy of the counted level is listed again on return in exploration");
+	counted.ForgetEnemies({2});
+	Check(count(counted) == 0, "a kept enemy the game holds dead is still forgotten");
+	Memory other;
+	other.Observe(1, {enemy}, grid, true, {}, nullptr, true, 5);
+	other.Select(2, true, true, 5);
+	other.Select(1, true, true, 5);
+	Check(count(other) == 0, "enemies of another level are dropped on leaving it");
+	Memory plain;
+	plain.Observe(1, {enemy}, grid, true, {}, nullptr, true);
+	plain.Select(2, true, true);
+	plain.Select(1, true, true);
+	Check(count(plain) == 0, "without a counted level exploration drops enemies as before");
+}
+
 void GroundItemsFollowTheRememberItemsSwitch() {
 	Radar::World world = OpenWorld();
 	const Navigation::Grid grid = GridFor(world);
@@ -678,6 +705,7 @@ int main() {
 	ReturningToLevelRetainsFixedLandmarks();
 	FullAssistanceKeepsEveryLevel();
 	GroundItemsFollowTheRememberItemsSwitch();
+	EnemiesOfTheCountedLevelAreKeptOnLeaving();
 	RememberedItemGoneWhenItsPlaceIsSeenEmpty();
 	RememberedItemLoadedAgainKeepsItself();
 	ScannerSplitsLandmarksFromLiveEnemies();

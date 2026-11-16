@@ -25,6 +25,7 @@
 #include "place_service.h"
 #include "navigation_mode.h"
 #include "quest_seals.h"
+#include "quest_service.h"
 #include "radar_ui.h"
 #include "room_catalogue.h"
 #include "screen_reader.h"
@@ -134,6 +135,7 @@ std::atomic<bool>    g_unexploredSpread{ true }; // unexplored areas one per dir
 std::atomic<bool>    g_unexploredEverywhere{ true }; // every unexplored area, not only those at the edge
 std::atomic<bool>    g_doorwaysListed{ true }; // doorways in the scanner with the doors
 std::atomic<bool>    g_rememberItems{ true }; // ground items kept with their level, listed on a return
+std::atomic<bool>    g_countedMonsters{ true }; // every loaded enemy listed while the quest log counts monsters left
 std::atomic<bool>    g_padLeads{ true }, g_padSteps{ true }; // the Arcane Sanctuary's teleport pads (PadWays)
 std::atomic<bool>    g_reachToggle{ false };
 // What the filter last left out, so the log says it once and not at every key.
@@ -388,8 +390,16 @@ std::vector<EntityRadar::Entity> Discovered(const Lifecycle& state, const Radar:
 
 // Enemies are never charted: in range and in sight right now, or in the room the
 // player stands in, or all loaded with full assistance.
-std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene& scene, const std::vector<NativeRooms::Room>& here) {
-	return g_fullAssistance ? scene.enemies : MapSurvey::Charted(world, scene.enemies, here);
+// While the quest log counts monsters left on this level, all loaded enemies too (docs/entity-scan.md#counted-monsters-2026-11-16).
+int CountedLevel() { return g_countedMonsters ? QuestService::CountedLevel() : 0; }
+
+std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene& scene, const std::vector<NativeRooms::Room>& here, int level) {
+	const int counted = CountedLevel();
+	static std::atomic<int> logged{0};
+	if (counted && counted == level && logged.exchange(counted) != counted)
+		AsyncLog::InfoF(g_context, "[survey] quest counter on level %d: listing all loaded enemies", counted);
+	else if (!counted) logged = 0;
+	return g_fullAssistance || (counted && counted == level) ? scene.enemies : MapSurvey::Charted(world, scene.enemies, here);
 }
 
 // Items on the ground in every loaded room of the level, however far, that the item loops would sound.
@@ -437,14 +447,14 @@ void Observe(const Lifecycle& state, const Radar::World& world, const Navigation
 	const auto items = LoadedItems(state);
 	std::vector<EntityRadar::Entity> seen = g_fullAssistance ? scene.landmarks : discovered;
 	const auto here = Here(state, world);
-	const auto enemies = Enemies(world, scene, here);
+	const auto enemies = Enemies(world, scene, here, state.level);
 	seen.insert(seen.end(), enemies.begin(), enemies.end());
 	const auto found = g_fullAssistance ? items : MapSurvey::Charted(world, items, here);
 	seen.insert(seen.end(), found.begin(), found.end());
 	std::vector<EntityRadar::Entity> present = scene.landmarks;
 	present.insert(present.end(), scene.enemies.begin(), scene.enemies.end());
 	present.insert(present.end(), items.begin(), items.end());
-	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present, g_rememberItems);
+	g_registry.Observe(state.level, seen, grid, !g_fullAssistance, {}, &present, g_rememberItems, CountedLevel());
 	g_registry.ForgetEnemies(NativeEntities::TakeDeadMonsters());
 	if (std::vector<EntityRadar::RosterPortals> roster; g_registry.HasPortals() && NativeEntities::ReadRosterPortals(roster))
 		for (const auto& drop : g_registry.DropStalePortals(roster, present))
@@ -530,7 +540,7 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	level = state.level;
 	if (!g_supported || !Playing(state)) return false;
 	ForgetOtherGames(state);
-	g_registry.Select(state.level, !g_fullAssistance, g_rememberItems);
+	g_registry.Select(state.level, !g_fullAssistance, g_rememberItems, CountedLevel());
 	Radar::World world;
 	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return false;
 	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
@@ -695,6 +705,8 @@ void SetTownNpcsEverywhere(bool on) { g_townNpcsEverywhere = on; }
 bool UnexploredSpread() { return g_unexploredSpread.load(); }
 bool RememberItems() { return g_rememberItems.load(); }
 void SetRememberItems(bool on) { g_rememberItems = on; }
+bool CountedMonsters() { return g_countedMonsters.load(); }
+void SetCountedMonsters(bool on) { g_countedMonsters = on; }
 bool DoorwaysListed() { return g_doorwaysListed.load(); }
 void SetDoorwaysListed(bool on) { g_doorwaysListed = on; }
 void SetUnexploredSpread(bool on) { g_unexploredSpread = on; }
@@ -804,7 +816,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 	g_observedAt = world.player;
 	g_observedTime = now;
 	ForgetOtherGames(state);
-	g_registry.Select(state.level, !g_fullAssistance, g_rememberItems);
+	g_registry.Select(state.level, !g_fullAssistance, g_rememberItems, CountedLevel());
 	const auto read = Clock::now();
 	Scene scene;
 	if (!Collect(state, world, scene)) return;

@@ -240,3 +240,25 @@ A tester at the docks' stash could not find Natalya until near her. Kurast Docks
 placed twice (`TownNpcs::Merge` drops a row placed more than once), or her preset missing from
 the map's list. `[survey] town NPCs on level 75` now ends with the town's NPC presets as
 `row x count` (`NativeEntities::TownPresets`; Natalya is MonStats row 297) to tell which.
+
+## Counted monsters (2026-11-16)
+
+A tester heard "4 remaining" in the Den of Evil and found none on the scanner: exploration mode lists
+only enemies in sight or in the player's room, and drops them on leaving the level.
+
+Once the quest log shows the Den's counter ("Monsters left: %d", `qstsa1q14`; the last one is
+`qstsa1q140`), the scanner changes for that level only:
+
+- every enemy the client has loaded on level 8 is listed, as in full assistance;
+- enemies remembered there are kept when the player leaves it, so they are listed on return.
+
+Before the counter appears nothing changes. The gate is the counter on purpose (the user's design).
+`QuestLog::CounterValue` reads the value from the journal reading or a quest packet's objective;
+`QuestService::CountedLevel()` holds the level (Levels.txt Id 8, "Act 1 - Cave 1"), cleared on game join
+and leave. Switch: Ctrl+S, Navigation, `counted-monsters` (on by default).
+
+Log lines: `[quest] counting monsters on level 8: N left` (on change) and
+`[survey] quest counter on level 8: listing all loaded enemies` (once).
+
+Limit: a monster the client never loaded is not listed. The server-side read in
+[server-units-re.md](server-units-re.md) would be needed for those.

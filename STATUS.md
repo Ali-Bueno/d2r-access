@@ -19,7 +19,7 @@ Later the same day, a ROG Ally tester's keyboard report and a Den of Evil report
 | Skill tree: the branch said again on the first skill after the tab | fixed and seen in the log: the tab the cursor read counts as the branch said | `interaction_reader.cpp` `g_tabSaid` |
 | "The cursor jumps" on character, inventory and skills | not reproduced by keyboard here (one step per press; diagonal moves only past empty skill slots). Suspect on the Ally: an idle XInput device releasing the cursor; needs the tester's log (`[cursor] released: a pad was used`) | [keyboard play](docs/keyboard-play.md) |
 | Items left in a level drop off the scanner after leaving it | fixed: items remembered per level for the game, Ctrl+S `remember-items` (on). Not heard live | [ground items](docs/ground-items.md) |
-| Den of Evil "4 remaining", none on the scanner | wip: server-side monsters RE'd on 3.3 (game table, level rooms, saved records of freed rooms, the Den counter); needs 3.4 fingerprints and one live measurement in the Den | [server units RE](docs/server-units-re.md) |
+| Den of Evil "4 remaining", none on the scanner | built, not heard live: once the Den counter shows, the scanner lists all loaded enemies there and keeps them on return (Ctrl+S `counted-monsters`). Fallback if the last ones are still missing: server-side read (RE'd on 3.3, needs 3.4 fingerprints and a live measurement) | [entity scan](docs/entity-scan.md#counted-monsters-2026-11-16), [server units RE](docs/server-units-re.md) |
 
 **Next step:** the tester's run of a build with both fixes; if the modal stays, their launcher log
 says whether presses reached the game (`title screen passed` or `Windows did not bring the game forward`).

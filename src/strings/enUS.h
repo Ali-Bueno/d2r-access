@@ -323,6 +323,8 @@ inline constexpr Table enUS {
 	.doorwaysListedOff = "Doorways not listed",
 	.rememberItemsOn = "Ground items remembered in the scanner",
 	.rememberItemsOff = "Ground items forgotten on leaving the level",
+	.countedMonstersOn = "Quest monsters left shown in the scanner",
+	.countedMonstersOff = "Quest monsters left not shown in the scanner",
 	.glossarySounds = {"radar: wall", "radar: open floor", "radar: passage", "radar: passage to unexplored ground", "radar: unexplored open floor", "radar: door", "radar: small obstacle", "wall bump", "guidance: target locked", "guidance: ping toward the target", "guidance: arrived", "guidance: cancelled", "NPC nearby", "NPC with an exclamation mark", "boss", "elite enemy", "enemy that raises the dead", "ranged enemy", "enemy growl", "enemy within melee reach", "enemy in your sights", "inventory edge", "gold", "potion", "scroll", "rune", "gem", "normal equipment", "magic equipment", "rare equipment", "set or unique equipment", "stairs, entrance or portal", "chest", "quest item or object", "corpse to loot", "weapon or armor rack", "stash", "wooden door", "metal door", "stone door", "slime door", "unexplored area", "area border", "new place found", "gold, Last Epoch", "health potion, Last Epoch", "mana potion, Last Epoch", "rejuvenation potion, Last Epoch", "other potion, Last Epoch", "shrine", "well", "usable corpses nearby, Necromancer", "doorway", "walked distance click", "Assassin charge chord"},
 	.itemQualities = {"", "low quality", "", "superior", "magic", "set", "rare", "unique", "crafted"},
 	.terrainPlaces = {"north corner", "northwest edge", "west corner", "northeast edge", "centre", "southwest edge", "east corner", "southeast edge", "south corner"},

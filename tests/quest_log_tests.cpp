@@ -96,5 +96,14 @@ int main() {
 	Check(QuestLog::Counter(den, 1, Resolve) == "Monstruos restantes: 1", "without a singular line the counter still reads");
 	Check(QuestLog::Counter(tower, 3, Resolve).empty(), "a quest with no counter reports none");
 
+	g_strings["qstsa1q140"] = "Falta un monstruo.";
+	Check(QuestLog::CounterValue(den, "Monstruos restantes: 4", Resolve) == 4, "a filled counter line gives its value");
+	Check(QuestLog::CounterValue(den, "Mata a todos.\nMonstruos restantes: 12\n", Resolve) == 12, "a counter line among others is found");
+	Check(QuestLog::CounterValue(den, "Falta un monstruo.", Resolve) == 1, "the singular line counts as one");
+	Check(!QuestLog::CounterValue(den, "Busca el cubil.", Resolve), "a plain objective has no value");
+	Check(!QuestLog::CounterValue(den, "Monstruos restantes: %d", Resolve), "a raw placeholder has no value");
+	Check(!QuestLog::CounterValue(den, "Monstruos restantes: x", Resolve), "a non-numeric value is refused");
+	Check(!QuestLog::CounterValue(tower, "Monstruos restantes: 4", Resolve), "a quest with no counter has no value");
+
 	Passed();
 }
