@@ -2,9 +2,9 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## Arrows a hand did not mean — 2026-11-17 (not released)
+## Arrows a hand did not mean, bfbeast's keyboard session — release 1.0.19 (2026-11-17)
 
-142 tests pass; built and deployed, not run live.
+142 tests pass; released, not run live.
 
 | Report | State | Where |
 |---|---|---|
@@ -14,8 +14,10 @@
 | bfbeast: Enter does nothing on the difficulty after Enter chose the character; A does | Enter on a modal's button clicks it as A, when the game left the modal alone for 250 ms | same |
 | bfbeast: the inventory's pointer sits in an item's middle, not the cell; orientation lost in the stash and shops | an item now says its first cell and size after its words, from the grid (Ctrl+S `item-cells`, on); tested, not heard live | same |
 
-**Next step:** release it; the tester turns `menu-arrow-guard` on. If the jumps stay, their log:
-`released: a pad was used (...)` points at the pad, `[menu-keys] arrow N ignored` at the hand.
+**Next step:** the testers' run of 1.0.19; the tester with cerebral palsy turns `menu-arrow-guard`
+on. If the jumps stay, their log: `released: a pad was used (...)` points at the pad,
+`[menu-keys] arrow N ignored` at the hand. Hear the item cells and the skill tree's single branch
+name live.
 
 ## Issues #8 and #9, the Den's last monsters, items per level — release 1.0.18 (2026-11-16)
 
