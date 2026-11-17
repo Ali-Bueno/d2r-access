@@ -23,6 +23,7 @@ inline constexpr Table itIT {
 	.expanded            = "espanso",
 	.collapsed           = "compresso",
 	.selected            = "selezionato",
+	.notSelected         = "non selezionato",
 	.checked             = "selezionato",
 	.unchecked           = "non selezionato",
 	.optionIndex         = "opzione %d",

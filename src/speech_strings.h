@@ -62,6 +62,7 @@ struct Table {
 	const char* expanded;          // a list row whose own entries are shown (a Chronicle set's pieces)
 	const char* collapsed;
 	const char* selected;          // the row a list acts on (the Chronicle category filtering the entries)
+	const char* notSelected;       // a skill tree branch tab whose branch is not the one shown
 	const char* checked;
 	const char* unchecked;
 	const char* optionIndex;       // %d = index (1-based), count unknown
@@ -701,7 +702,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.skillHotkeysOn, t.skillHotkeysOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
 		t.beaconSoundsOn, t.beaconSoundsOff, t.beaconFollowScanOn, t.beaconFollowScanOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.updateCheckOn, t.updateCheckOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.padLeadsBeen, t.padLeadsNew, t.padLeadsOn, t.padLeadsOff, t.padStepsOn, t.padStepsOff, t.padSoundsOn, t.padSoundsOff, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.durabilityAlertsOn, t.durabilityAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.unexploredEverywhereOn, t.unexploredEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction,
-		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff, t.rememberItemsOn, t.rememberItemsOff, t.countedMonstersOn, t.countedMonstersOff, t.menuArrowRepeatOn, t.menuArrowRepeatOff, t.menuArrowGuardOn, t.menuArrowGuardOff, t.itemCellsOn, t.itemCellsOff};
+		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff, t.rememberItemsOn, t.rememberItemsOff, t.countedMonstersOn, t.countedMonstersOff, t.menuArrowRepeatOn, t.menuArrowRepeatOff, t.menuArrowGuardOn, t.menuArrowGuardOff, t.itemCellsOn, t.itemCellsOff, t.notSelected};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);

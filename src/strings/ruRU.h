@@ -23,6 +23,7 @@ inline constexpr Table ruRU {
 	.expanded            = "развёрнуто",
 	.collapsed           = "свёрнуто",
 	.selected            = "выбрано",
+	.notSelected         = "не выбрано",
 	.checked             = "установлен",
 	.unchecked           = "снят",
 	.optionIndex         = "пункт %d",

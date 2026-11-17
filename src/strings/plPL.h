@@ -23,6 +23,7 @@ inline constexpr Table plPL {
 	.expanded            = "rozwinięte",
 	.collapsed           = "zwinięte",
 	.selected            = "wybrane",
+	.notSelected         = "niewybrane",
 	.checked             = "zaznaczone",
 	.unchecked           = "niezaznaczone",
 	.optionIndex         = "opcja %d",

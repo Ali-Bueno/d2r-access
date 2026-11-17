@@ -23,6 +23,7 @@ inline constexpr Table jaJP {
 	.expanded            = "展開",
 	.collapsed           = "折りたたみ",
 	.selected            = "選択中",
+	.notSelected         = "未選択",
 	.checked             = "チェックあり",
 	.unchecked           = "チェックなし",
 	.optionIndex         = "選択肢 %d",

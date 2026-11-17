@@ -23,6 +23,7 @@ inline constexpr Table esES {
 	.expanded            = "desplegado",
 	.collapsed           = "plegado",
 	.selected            = "seleccionado",
+	.notSelected         = "no seleccionado",
 	.checked             = "marcado",
 	.unchecked           = "no marcado",
 	.optionIndex         = "opción %d",

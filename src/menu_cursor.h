@@ -62,8 +62,9 @@ const Target* Find(std::span<const Target> targets, uintptr_t widget);
 // Where the place is drawn: the control, the whole item, or the empty cell.
 Rect RectOf(const Target& target, const Place& place);
 // The same place after the menu changed under it: an item moved or gone, a
-// grid resized. A place whose control is gone has widget 0.
-Place Settle(std::span<const Target> targets, const Place& place);
+// grid resized. A place whose control is gone has widget 0. `byCell` (an item in hand) keeps the
+// cell itself, as Move gives it; otherwise an item covering the cell is the place.
+Place Settle(std::span<const Target> targets, const Place& place, bool byCell = false);
 // How far the middle of a row lies past its frame, in pixels: above it negative,
 // below it positive, 0 in view, as anything with no frame is.
 int Beyond(const Target& target);

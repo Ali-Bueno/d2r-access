@@ -23,6 +23,7 @@ inline constexpr Table zhCN {
 	.expanded            = "已展开",
 	.collapsed           = "已折叠",
 	.selected            = "已选中",
+	.notSelected         = "未选中",
 	.checked             = "已勾选",
 	.unchecked           = "未勾选",
 	.optionIndex         = "第%d个选项",

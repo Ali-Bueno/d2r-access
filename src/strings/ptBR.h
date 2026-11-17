@@ -23,6 +23,7 @@ inline constexpr Table ptBR {
 	.expanded            = "expandido",
 	.collapsed           = "recolhido",
 	.selected            = "selecionado",
+	.notSelected         = "não selecionado",
 	.checked             = "marcado",
 	.unchecked           = "não marcado",
 	.optionIndex         = "opção %d",

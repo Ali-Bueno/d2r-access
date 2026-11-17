@@ -23,6 +23,7 @@ inline constexpr Table frFR {
 	.expanded            = "développé",
 	.collapsed           = "réduit",
 	.selected            = "sélectionné",
+	.notSelected         = "non sélectionné",
 	.checked             = "coché",
 	.unchecked           = "non coché",
 	.optionIndex         = "option %d",

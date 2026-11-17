@@ -981,22 +981,26 @@ bool HandlesFocus(NativeUi::Focus focus) {
 constexpr std::string_view SkillsTreePanel = "SkillsTreePanel";
 constexpr const char* SkillContainers[] = {"SkillButtonContainer", "CommonSkillsContainer", "ItemSkillsContainer"};
 constexpr std::string_view SkillCounter = "SkillCounter";
-void TickSkillBranch(const D2RL::PluginContext* context, uint64_t now) {
-	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(SkillsTreePanel) : 0;
-	if (!panel || !NativeUi::Visible(panel)) { g_branchShown = 0; return; }
-	uintptr_t open = 0;
-	bool classTree = false;
+// The tab of the branch the tree shows, 0 if none is; `classTree` is set when it is a class's own.
+uintptr_t OpenBranch(uintptr_t panel, bool* classTree = nullptr) {
 	for (const uintptr_t tab : NativeUi::FindControls(panel, UiText::Kind::TabButton)) {
 		if (!NativeUi::Visible(tab)) continue;
 		for (const uintptr_t child : NativeUi::Children(tab)) {
 			const auto name = NativeWidgets::ReadName(child);
 			const auto known = std::find(std::begin(SkillContainers), std::end(SkillContainers), name);
 			if (known == std::end(SkillContainers) || !NativeUi::Visible(child)) continue;
-			open = tab;
-			classTree = known == std::begin(SkillContainers);
+			if (classTree) *classTree = known == std::begin(SkillContainers);
+			return tab;
 		}
-		if (open) break;
 	}
+	return 0;
+}
+
+void TickSkillBranch(const D2RL::PluginContext* context, uint64_t now) {
+	const uintptr_t panel = NativeWidgets::IsAvailable() ? NativeWidgets::FindPanel(SkillsTreePanel) : 0;
+	if (!panel || !NativeUi::Visible(panel)) { g_branchShown = 0; return; }
+	bool classTree = false;
+	const uintptr_t open = OpenBranch(panel, &classTree);
 	if (!open || open == g_branchShown) return;
 	const bool first = !g_branchShown;
 	g_branchShown = open;
@@ -1620,13 +1624,18 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 		g_helpContext = helpContext;
 	}
 	if (!announcement.text.empty()) {
-		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		if (!progression.skill && focus.widget && NativeWidgets::ReadName(focus.panel) == SkillsTreePanel
 			&& NativeUi::Classify(focus.widget).kind == UiText::Kind::TabButton) {
 			g_tabSaid = focus.widget;
 			g_tabSaidPanel = focus.panel;
 			g_tabSaidTitle = announcement.text;
+			// The arrows reach the branch tabs above the skills, and a tab said by its name alone
+			// sounded like the branch changing under the player (a tester, 2026-11-16: "when I
+			// am on one branch, it likes to move to another branch"). It says whether it is shown.
+			if (const uintptr_t open = OpenBranch(focus.panel))
+				Append(announcement.text, open == focus.widget ? Strings::Current().selected : Strings::Current().notSelected);
 		}
+		D2RAccess::AsyncLog::InfoF(context, "[interaction] %s -> \"%s\"", readout.context.c_str(), announcement.text.c_str());
 		if (progression.skill && progression.tab && progression.tab != g_skillTab && progression.tab == g_tabSaid) {
 			g_skillTab = progression.tab;
 			g_skillTabPanel = focus.panel;

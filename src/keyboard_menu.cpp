@@ -1056,8 +1056,9 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 		g_thingsLogged = now;
 	}
 	g_beltRows = rows;
-	auto place = MenuCursor::Settle(g_targets, back);
-	if (!place.widget && !(changed && g_entered)) place = MenuCursor::Settle(g_targets, g_place);
+	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
+	auto place = MenuCursor::Settle(g_targets, back, holding);
+	if (!place.widget && !(changed && g_entered)) place = MenuCursor::Settle(g_targets, g_place, holding);
 	// The last point spent takes every "+" with it: the cursor stays on that attribute's row.
 	if (!place.widget && !changed && g_statButton) place = MenuCursor::OnRow(g_targets, *g_statButton);
 	const bool entering = !place.widget;
@@ -1065,7 +1066,6 @@ void Refresh(const D2RL::PluginContext* context, uint64_t now) {
 		if (!MenuCursor::Find(g_targets, g_place.widget)) { g_place = {}; NativeUi::ClearCursor(); }
 		place = Entrance();
 	}
-	const bool holding = InventoryCursor::HoldingItem(context).value_or(false);
 	if (place == g_place && holding == g_holding && !redrawn) return;
 	// What the menu is called is heard out first, unless an arrow asks sooner.
 	if (now < g_titleUntil) { g_refreshAt = g_titleUntil; return; }

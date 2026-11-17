@@ -139,12 +139,15 @@ Rect RectOf(const Target& target, const Place& place) {
 	return {left, top, right - left, bottom - top};
 }
 
-Place Settle(std::span<const Target> targets, const Place& place) {
+Place Settle(std::span<const Target> targets, const Place& place, bool byCell) {
 	const auto* target = Find(targets, place.widget);
 	if (!target) return {};
 	if (!IsGrid(*target)) return {target->widget, {}, {}};
 	const Cell cell{std::clamp(place.travel.x, 0, target->grid.width - 1), std::clamp(place.travel.y, 0, target->grid.height - 1)};
-	return OnCell(*target, cell);
+	// With an item in hand the cursor goes cell by cell; settled onto the top-left of the item
+	// under it, a step down a tall item came back up a moment later (a tester, 2026-11-16:
+	// "the inventory jumps around").
+	return byCell ? Place{target->widget, cell, cell} : OnCell(*target, cell);
 }
 
 int Beyond(const Target& target) {

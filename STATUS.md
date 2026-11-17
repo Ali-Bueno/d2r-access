@@ -2,6 +2,17 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## A Warlock player's keyboard log — release 1.0.20 (2026-11-17)
+
+142 tests pass; released, not run live.
+
+| Report | State | Where |
+|---|---|---|
+| Inventory with an item in hand: the cursor moves by itself to the item's top-left after each arrow; can't step down past a tall item | fixed: `MenuCursor::Settle` keeps the cell while an item is in hand (`byCell`); tested | [keyboard play](docs/keyboard-play.md#a-warlock-players-keyboard-session-1018-no-pad--2026-11-17) |
+| Skill tree: "moves to another branch" — the arrows reach the tabs, said by name like a branch change | a branch tab says "selected" / "not selected" from the tree (`OpenBranch`); not heard live | same |
+
+**Next step:** the testers' run of 1.0.20: hear the held item's cell kept and the tabs' state.
+
 ## Arrows a hand did not mean, bfbeast's keyboard session — release 1.0.19 (2026-11-17)
 
 142 tests pass; released, not run live.

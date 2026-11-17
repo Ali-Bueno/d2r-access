@@ -23,6 +23,7 @@ inline constexpr Table koKR {
 	.expanded            = "펼침",
 	.collapsed           = "접힘",
 	.selected            = "선택됨",
+	.notSelected         = "선택 안 됨",
 	.checked             = "선택됨",
 	.unchecked           = "선택 안 됨",
 	.optionIndex         = "옵션 %d",

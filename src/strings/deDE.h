@@ -23,6 +23,7 @@ inline constexpr Table deDE {
 	.expanded            = "ausgeklappt",
 	.collapsed           = "eingeklappt",
 	.selected            = "ausgewählt",
+	.notSelected         = "nicht ausgewählt",
 	.checked             = "markiert",
 	.unchecked           = "nicht markiert",
 	.optionIndex         = "Option %d",

@@ -135,6 +135,9 @@ int main() {
 		auto targets = Inventory({10, 4, {{1, 0, 2, 2}}});
 		const Place on{Items, {1, 0}, {2, 1}};
 		Check(MenuCursor::Settle(targets, on) == on, "a place that still stands is kept");
+		const Place lower{Items, {2, 1}, {2, 1}};
+		Check(MenuCursor::Settle(targets, lower, true) == lower, "with an item in hand the cell inside an item is kept");
+		Check(MenuCursor::Settle(targets, lower) == Place{Items, {1, 0}, {2, 1}}, "with none, the item covering it is the place");
 		targets[10].grid.items.clear();
 		Check(MenuCursor::Settle(targets, on) == Place{Items, {2, 1}, {2, 1}}, "with the item gone the cursor is on the cell it stood on");
 		targets[10].grid = {3, 1, {}};

@@ -1023,3 +1023,21 @@ The log shows one step per arrow everywhere; what was heard as presses doubled w
   The cells are the grid's, walked from the focused cell (`ItemCellsPhrase` in
   `interaction_reader.cpp`), so the pad's focus says them too. Ctrl+S `item-cells` (Items and
   menus, on) goes back to the name alone. Tested in `interaction_reader_tests.cpp`, not heard live.
+
+### A Warlock player's keyboard session (1.0.18, no pad) — 2026-11-17
+
+The log (16 Nov, 1.0.18, `taken: a menu is up and no pad is connected` throughout) showed two
+jumps that were the mod's, beside held arrows repeating down the options (one step every 230 ms,
+which 1.0.19's Windows repeat settings and `menu-arrow-repeat` cover):
+
+- **Inventory, an item in hand: the cursor moved on its own about 230 ms after each arrow.** With
+  an item in hand `MenuCursor::Move` steps cell by cell (`byCell`), but the next `Refresh` settled
+  the place with `MenuCursor::Settle`, which put it on the top-left of the item under it. Right
+  along row 2 every tall item pulled the cursor up to row 1, and down a 2x2 cap came back up: the
+  cursor could not pass it. `Settle` now takes `byCell` and keeps the cell while an item is in
+  hand. Tested in `menu_cursor_tests.cpp`, not run live.
+- **Skill tree: "when I am on one branch, it likes to move to another".** Up from the top skills
+  the arrows reach the branch tabs, and a tab said its name alone, as a branch change does: with
+  Eldritch open the player heard "Demon", "Eldritch", "Chaos". A branch tab now says whether its
+  branch is the one shown ("Demon, not selected", "Eldritch, selected"), read from the tree
+  (`OpenBranch` in `interaction_reader.cpp`). Not heard live.
