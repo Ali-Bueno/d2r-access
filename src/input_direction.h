@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 // Value controls (sliders, dropdowns) fire a UI update event when the player
 // changes them, but the event carries no value, only that the control
@@ -187,6 +188,8 @@ Stick LeftStick();
 // Whether a pad was used -- a button pressed, a stick or trigger pushed past
 // its threshold -- since the previous Take(), then cleared.
 bool TakePadUse();
+// The last such use, for the log: the pad, and its buttons or its sticks and triggers.
+std::string LastPadUse();
 // Every button pressed on any pad since the previous Take() (XInput masks), and
 // whether a stick or trigger was pushed past its threshold: for the tutorial's
 // question, which answers to some presses and hears every other.

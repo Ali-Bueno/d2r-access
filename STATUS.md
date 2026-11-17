@@ -2,6 +2,21 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Arrows a hand did not mean — 2026-11-17 (not released)
+
+142 tests pass; built and deployed, not run live.
+
+| Report | State | Where |
+|---|---|---|
+| A tester with cerebral palsy, keyboard with a pad connected: arrows "jump around" in the main menu, inventory and skill tree (leaves the branch chosen with Page Up/Down) | keyboard accidents only (the user: the pad stays as it is). Held arrows follow Windows' repeat and FilterKeys; Ctrl+S `menu-arrow-repeat` (on) and `menu-arrow-guard` (off: a bounce or a brushed neighbour does nothing). The pad's release line now says what was used | [keyboard play](docs/keyboard-play.md#arrows-a-hand-did-not-mean--2026-11-17) |
+
+| bfbeast (keyboard, no pad): skill tree tabs heard as double presses ("Po-Poison and Bone") | speech, not steps: the tab's click and the skill tree's reader both said the branch; now only the reader (with the points left) | [keyboard play](docs/keyboard-play.md#bfbeasts-keyboard-session-1018-no-pad--2026-11-17) |
+| bfbeast: Enter does nothing on the difficulty after Enter chose the character; A does | Enter on a modal's button clicks it as A, when the game left the modal alone for 250 ms | same |
+| bfbeast: the inventory's pointer sits in an item's middle, not the cell; orientation lost in the stash and shops | an item now says its first cell and size after its words, from the grid (Ctrl+S `item-cells`, on); tested, not heard live | same |
+
+**Next step:** release it; the tester turns `menu-arrow-guard` on. If the jumps stay, their log:
+`released: a pad was used (...)` points at the pad, `[menu-keys] arrow N ignored` at the hand.
+
 ## Issues #8 and #9, the Den's last monsters, items per level — release 1.0.18 (2026-11-16)
 
 141 tests pass; built and deployed.

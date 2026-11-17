@@ -7,8 +7,10 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <limits>
+#include <string>
 #include <utility>
 
 namespace D2RAccess::InputDirection {
@@ -75,6 +77,7 @@ bool g_leftStickClick = false;
 bool g_backWithA = false, g_backWithB = false, g_backWithX = false, g_backWithY = false, g_backWithLb = false, g_backWithRb = false;
 bool g_backWithDpadUp = false;
 bool g_padUsed = false;
+std::string g_padUse; // what the last use was, for the log
 PadPresses g_padPresses;
 bool g_backWithLt = false, g_backWithRt = false;
 bool g_lbAlone = false, g_rbAlone = false;
@@ -192,7 +195,14 @@ void Poll() {
 
 			const XINPUT_GAMEPAD& pad = state.Gamepad;
 			const bool pushed = Pushed(pad);
-			if ((pad.wButtons & ~edges.buttons) != 0 || (pushed && !edges.pushed)) g_padUsed = true;
+			if (const WORD pressed = pad.wButtons & ~edges.buttons; pressed || (pushed && !edges.pushed)) {
+				g_padUsed = true;
+				char use[160]{};
+				if (pressed) std::snprintf(use, sizeof(use), "pad %lu, buttons 0x%04X", padIndex + 1, pressed);
+				else std::snprintf(use, sizeof(use), "pad %lu, sticks %d,%d %d,%d, triggers %u %u", padIndex + 1, pad.sThumbLX,
+					pad.sThumbLY, pad.sThumbRX, pad.sThumbRY, pad.bLeftTrigger, pad.bRightTrigger);
+				g_padUse = use;
+			}
 			g_padPresses.buttons |= pad.wButtons & ~edges.buttons;
 			g_padPresses.moved = g_padPresses.moved || (pushed && !edges.pushed);
 			edges.buttons = pad.wButtons;
@@ -326,6 +336,7 @@ void Poll() {
 
 Stick LeftStick() { return g_leftStick; }
 bool TakePadUse() { return std::exchange(g_padUsed, false); }
+std::string LastPadUse() { return g_padUse; }
 PadPresses TakePadPresses() { return std::exchange(g_padPresses, {}); }
 void DropGestures() {
 	g_dpad = {};

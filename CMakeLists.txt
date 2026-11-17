@@ -217,6 +217,7 @@ add_library(d2r-access SHARED
 	src/combat_target.cpp
 	src/explore_goal.cpp
 	src/grid_jump.cpp
+	src/key_repeat.cpp
 	src/menu_cursor.cpp
 	src/click_words.cpp
 	src/menu_mouse.cpp
@@ -693,6 +694,9 @@ if(BUILD_TESTING)
 	add_test(NAME explore-goal COMMAND explore-goal-tests)
 	d2r_test(grid-jump-tests tests/grid_jump_tests.cpp src/grid_jump.cpp)
 	add_test(NAME grid-jump COMMAND grid-jump-tests)
+	# When a held menu arrow steps again: the mod's pace, Windows' keyboard settings and FilterKeys.
+	d2r_test(key-repeat-tests tests/key_repeat_tests.cpp src/key_repeat.cpp)
+	add_test(NAME key-repeat COMMAND key-repeat-tests)
 	d2r_test(menu-cursor-tests tests/menu_cursor_tests.cpp src/menu_cursor.cpp src/grid_jump.cpp)
 	add_test(NAME menu-cursor COMMAND menu-cursor-tests)
 	d2r_test(click-words-tests tests/click_words_tests.cpp src/click_words.cpp src/speech_strings.cpp)

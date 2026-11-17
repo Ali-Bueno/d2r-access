@@ -8,6 +8,7 @@
 #include "hire_stats.h"
 #include "input_direction.h"
 #include "inventory_cursor.h"
+#include "key_repeat.h"
 #include "keyboard_service.h"
 #include "menu_cursor.h"
 #include "menu_mouse.h"
@@ -60,13 +61,17 @@ using UiText::Kind;
 constexpr uint64_t SettleMs = 90;       // from a move of the pointer to a tooltip taken as the new place's
 constexpr uint64_t RefreshMs = 250;     // how often the open menu is looked at again
 constexpr uint64_t AfterClickMs = 250;  // from a click to a look at what it changed
-constexpr uint64_t RepeatDelayMs = 500; // a held arrow steps again after this long
-constexpr uint64_t RepeatMs = 180;      // and then this often
+// Windows' keyboard settings are asked again this often, so a change made with the game open counts.
+constexpr uint64_t RepeatSettingsMs = 2000;
 constexpr uint64_t SilenceMs = 450;     // a place no reader has named by then is named here
 constexpr uint64_t GraceMs = 60;        // how long a key seen directly waits for the loader to deliver it
 constexpr uint64_t DeliveredMs = 150;   // a delivery this near a key seen directly is the same press
 constexpr uint64_t FillGapMs = 500;     // a plan sent again before the server answered is one it refuses
 constexpr uint64_t ClickGapMs = 200;    // a held key repeats its press; a click is not repeated
+// Enter on a modal's button is the game's first: a modal it has not closed nor moved in this long
+// (chosen: many frames at the game's pace, short enough to feel at once) is clicked by the cursor.
+constexpr uint64_t EnterWaitMs = 250;
+constexpr std::string_view ModalSuffix = "Modal"; // the game's name for a dialog's panel, CharacterDifficultyModal
 constexpr uint64_t TitleMs = 1200;      // what a menu is called is heard before the cursor names its first place
 constexpr uint64_t OwnStepMs = 120;     // by then the game has stepped a value on the arrow key itself, if it does
 constexpr uint64_t EchoMs = 250;        // a value the cursor said is not said again by a reader polling the same control
@@ -205,7 +210,7 @@ uint64_t g_buildLogged = 0;        // when a build was last logged for being slo
 constexpr double SlowBuildMs = 10; // a build this slow is logged, at most once a second
 
 // `owed`: a step asked for while the wheel was turning, made as soon as it stops.
-struct Arrow { int key; Direction direction; InputDirection::StickPush push; bool down = false, owed = false; uint64_t next = 0; };
+struct Arrow { int key; Direction direction; InputDirection::StickPush push; KeyRepeat::Press press{}; bool owed = false; };
 Arrow g_arrows[] = {
 	{VK_LEFT, Direction::Left, InputDirection::StickPush::Left}, {VK_RIGHT, Direction::Right, InputDirection::StickPush::Right},
 	{VK_UP, Direction::Up, InputDirection::StickPush::Up}, {VK_DOWN, Direction::Down, InputDirection::StickPush::Down},
@@ -214,6 +219,10 @@ Arrow g_arrows[] = {
 // and what may be held with each for it still to be the menu's key.
 enum class With { Nothing, Shift, ClickModifiers };
 struct Watched { int key; Act act; With with; bool down = false, waiting = false, logged = false; uint64_t since = 0; };
+// Enter, watched for a modal's button the game leaves alone: the difficulty after a character was
+// chosen by Enter, which only A clicked (bfbeast, 2026-11-17).
+struct EnterPress { bool down = false; uint64_t at = 0; std::string menu; Place place; };
+EnterPress g_enter;
 Watched g_watched[] = {
 	{'A', Act::ClickLeft, With::ClickModifiers}, {'D', Act::ClickRight, With::ClickModifiers}, {VK_PRIOR, Act::TabPrevious, With::Nothing},
 	{VK_NEXT, Act::TabNext, With::Nothing}, {VK_HOME, Act::MenuPrevious, With::Nothing}, {VK_END, Act::MenuNext, With::Nothing},
@@ -237,6 +246,12 @@ std::atomic<bool> g_keepArrows{false};
 // Arrows the game's window was told of, by their bit in g_arrows: a press that comes and goes
 // inside one update is seen here, as polling does not (the key list takes 50 ms to read).
 std::atomic<uint32_t> g_arrowTaps{0};
+// Ctrl+S `menu-arrow-repeat`: whether a held arrow walks on (a tester with cerebral palsy, 2026-11-17).
+std::atomic<bool> g_arrowRepeat{true};
+// Ctrl+S `menu-arrow-guard`, off: a bounced arrow and a neighbouring arrow brushed do nothing (key_repeat.h).
+std::atomic<bool> g_arrowGuard{false};
+KeyRepeat::Timing g_repeat;
+std::atomic<uint64_t> g_repeatRead{0};
 HHOOK g_letterHook = nullptr;
 bool g_letterTried = false;
 const D2RL::PluginContext* g_letterContext = nullptr;
@@ -1332,12 +1347,15 @@ void ClickWidget(const D2RL::PluginContext* context, uint64_t now, uintptr_t wid
 }
 
 // A tab is named as it opens, and heard out before the cursor names the first place of its page.
-void SayTab(uint64_t now, const std::string& name, bool onTab) {
-	ScreenReader::Speak(name, true);
+// `readerSays`: a reader says the page shown, so the name is said here only if none has by
+// SilenceMs (the skill tree's branch and its points, InteractionReader).
+void SayTab(uint64_t now, const std::string& name, bool onTab, bool readerSays = false) {
 	g_said = onTab ? name : std::string{};
+	g_titleUntil = now + TitleMs;
+	if (readerSays) { Expect(now, name); return; }
+	ScreenReader::Speak(name, true);
 	g_landedAt = 0;
 	g_toSay.clear();
-	g_titleUntil = now + TitleMs;
 }
 
 void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
@@ -1381,7 +1399,9 @@ void StepTab(const D2RL::PluginContext* context, uint64_t now, int delta) {
 	if (next == open) { ScreenReader::Speak(Name(*tab, {}), true); return; }
 	const std::string name = Name(*tab, {});
 	ClickWidget(context, now, tab->widget, NativeUi::FocusSelection(tab->widget), "tab");
-	SayTab(now, name, g_place.widget == tab->widget);
+	// The skill tree's reader says the branch with the points left to spend. Said here too, it cut
+	// this one's first syllable each time ("Po-Poison and Bone": bfbeast, 2026-11-17).
+	SayTab(now, name, g_place.widget == tab->widget, true);
 }
 
 // The shared stash's pages, by the native command. The game shows the page that
@@ -1531,10 +1551,42 @@ void Watch(const D2RL::PluginContext* context, uint64_t now, bool typing) {
 		jump.down = down;
 	}
 }
+
+void WatchEnter(const D2RL::PluginContext* context, uint64_t now, bool typing) {
+	const bool down = Down(VK_RETURN);
+	const bool pressed = down && !g_enter.down;
+	g_enter.down = down;
+	if (pressed && !typing && g_engaged && !Down(VK_SHIFT) && !Down(VK_CONTROL) && !Down(VK_MENU)
+		&& g_menu.find(ModalSuffix) != std::string::npos)
+		if (const auto* entry = EntryOf(g_place.widget); entry && entry->kind == Kind::Button) {
+			g_enter.at = now + EnterWaitMs;
+			g_enter.menu = g_menu;
+			g_enter.place = g_place;
+		}
+	if (!g_enter.at || now < g_enter.at || MenuMouse::Busy()) return;
+	g_enter.at = 0;
+	Refresh(context, now);
+	if (g_menu != g_enter.menu || g_place != g_enter.place) {
+		AsyncLog::Info(context, "[menu-keys] Enter: the game took it");
+		return;
+	}
+	AsyncLog::Info(context, "[menu-keys] Enter: the game left the modal as it was; the cursor clicks");
+	Click(context, now, MenuMouse::Button::Left);
+}
 }
 
 bool Active() { return g_active.load(); }
 bool Engaged() { return g_active.load() && g_engaged; }
+bool ArrowRepeat() { return g_arrowRepeat.load(); }
+bool ArrowGuard() { return g_arrowGuard.load(); }
+void SetArrowGuard(bool on) {
+	g_arrowGuard = on;
+	g_repeatRead = 0;
+}
+void SetArrowRepeat(bool on) {
+	g_arrowRepeat = on;
+	g_repeatRead = 0; // asked again on the next update
+}
 bool Typing() { return g_typing.load(); }
 
 void Deliver(Act act) {
@@ -1623,7 +1675,7 @@ void Reset() {
 	g_letterHook = nullptr;
 	g_letterTried = false;
 	g_pending = 0;
-	for (auto& arrow : g_arrows) { arrow.down = arrow.owed = false; arrow.next = 0; }
+	for (auto& arrow : g_arrows) { arrow.press = {}; arrow.owed = false; }
 	for (auto& key : g_watched) { key.down = key.waiting = false; }
 }
 
@@ -1650,14 +1702,16 @@ void Tick(const D2RL::PluginContext* context) {
 		// left it, over the world, and the game names whatever passes under it (2026-11-03: Cain, every second).
 		if (g_parkOwed && Foreground() && KeyboardService::Playing() && Park(context)) g_parkOwed = false;
 		g_pending = 0;
-		for (auto& arrow : g_arrows) { arrow.down = Down(arrow.key); arrow.owed = false; }
+		for (auto& arrow : g_arrows) { arrow.press.down = Down(arrow.key); arrow.owed = false; }
 		g_arrowTaps = 0;
 		for (auto& key : g_watched) { key.down = Down(key.key); key.waiting = false; }
+		g_enter.down = Down(VK_RETURN);
+		g_enter.at = 0;
 		return;
 	}
 	// A pad used while the keyboard has the menu takes the menu back: the game
 	// is in its controller mode again, and its focus is the one to read.
-	if (g_engaged && padUsed) Release(context, "a pad was used");
+	if (g_engaged && padUsed) Release(context, ("a pad was used (" + InputDirection::LastPadUse() + ")").c_str());
 	// A box of text the game says is being edited has every key. One the cursor
 	// is on has the keys that type and the left and right arrows, whatever the
 	// game says: out of controller mode it says nothing (READ), and the name box
@@ -1701,13 +1755,35 @@ void Tick(const D2RL::PluginContext* context) {
 
 	const bool control = Down(VK_CONTROL), shift = Down(VK_SHIFT), alt = Down(VK_MENU);
 	const uint32_t taps = g_arrowTaps.exchange(0);
+	if (now - g_repeatRead >= RepeatSettingsMs) {
+		const auto timing = KeyRepeat::From(KeyRepeat::Read(), g_arrowRepeat.load(), g_arrowGuard.load());
+		if (timing.delayMs != g_repeat.delayMs || timing.periodMs != g_repeat.periodMs || timing.bounceMs != g_repeat.bounceMs
+			|| timing.repeats != g_repeat.repeats || timing.guard != g_repeat.guard || !g_repeatRead)
+			AsyncLog::InfoF(context, "[menu-keys] a held arrow: %s, first after %llu ms, then every %llu ms; bounce %llu ms; "
+				"guard %s", timing.repeats ? "repeats" : "does not repeat", static_cast<unsigned long long>(timing.delayMs),
+				static_cast<unsigned long long>(timing.periodMs), static_cast<unsigned long long>(timing.bounceMs),
+				timing.guard ? "on" : "off");
+		g_repeat = timing;
+		g_repeatRead = now;
+	}
+	const KeyRepeat::Timing timing = g_repeat;
+	// Which arrows were held before this update and which go down in it, for the guard.
+	bool downs[std::size(g_arrows)]{}, held[std::size(g_arrows)]{};
+	size_t starting = 0;
+	for (size_t i = 0; i < std::size(g_arrows); ++i) {
+		downs[i] = Down(g_arrows[i].key);
+		held[i] = g_arrows[i].press.down;
+		if (!held[i] && (downs[i] || (taps & (1u << i)))) ++starting;
+	}
 	for (size_t i = 0; i < std::size(g_arrows); ++i) {
 		auto& arrow = g_arrows[i];
-		const bool down = Down(arrow.key);
-		bool step = false;
-		if (!arrow.down && (down || (taps & (1u << i)))) { step = true; arrow.next = now + RepeatDelayMs; }
-		else if (down && now >= arrow.next) { step = true; arrow.next = now + RepeatMs; }
-		arrow.down = down;
+		bool otherHeld = starting > 1;
+		for (size_t j = 0; j < std::size(g_arrows); ++j) otherHeld = otherHeld || (j != i && held[j]);
+		const bool tapped = (taps & (1u << i)) != 0;
+		const bool starts = !arrow.press.down && (downs[i] || tapped);
+		bool step = KeyRepeat::Step(arrow.press, downs[i], tapped, now, timing, otherHeld);
+		if (starts && !step && timing.guard)
+			AsyncLog::InfoF(context, "[menu-keys] arrow %zu ignored: %s", i, otherHeld ? "another arrow is down" : "it bounced");
 		const bool turning = MenuMouse::Busy() || g_scrolling.place.widget || g_edge.on;
 		if (turning) { arrow.owed = arrow.owed || step; continue; }
 		step = step || arrow.owed;
@@ -1721,6 +1797,7 @@ void Tick(const D2RL::PluginContext* context) {
 	}
 
 	Watch(context, now, typing);
+	WatchEnter(context, now, typing);
 	const uint32_t pending = g_pending.exchange(0);
 	for (size_t act = 0; act < Acts; ++act)
 		if (pending & (1u << act)) Do(context, now, static_cast<Act>(act));

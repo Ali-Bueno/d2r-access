@@ -30,6 +30,11 @@ void SetHandSpeech(bool enabled);
 // user chose compare on demand, hold Y and the left stick (2026-10-03).
 bool CompareAloud();
 void SetCompareAloud(bool enabled);
+// Whether an item in a grid says, after its words, the cell it begins on and, when it covers more
+// than one, its size: "Row 1, column 3, 1 column by 3 rows". A settings-list switch, on (bfbeast,
+// 2026-11-17: by name alone a keyboard player lost their place in the stash and the shops).
+bool ItemCells();
+void SetItemCells(bool enabled);
 // Whether holding Y says how the left stick reads the comparison, when it is
 // not read aloud. A settings-list switch, on by default (the user, 2026-11-01).
 bool CompareHint();

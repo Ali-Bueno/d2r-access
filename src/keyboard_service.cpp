@@ -2042,6 +2042,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{AutoDetail::ControlTooltips, AutoDetail::SetControlTooltips, phrase(&T::controlTooltipsEnabled, &T::controlTooltipsDisabled), true, "control-tooltips"},
 		{InteractionReader::HandSpeech, InteractionReader::SetHandSpeech, phrase(&T::handSpeechOn, &T::handSpeechOff), false, "hand-speech"},
 		{InteractionReader::CompareAloud, InteractionReader::SetCompareAloud, phrase(&T::compareAloudOn, &T::compareAloudOff), false, "compare-aloud"},
+		{InteractionReader::ItemCells, InteractionReader::SetItemCells, phrase(&T::itemCellsOn, &T::itemCellsOff), false, "item-cells"},
 		{InteractionReader::CompareHint, InteractionReader::SetCompareHint, phrase(&T::compareHintOn, &T::compareHintOff), false, "compare-hint"},
 		{GridEdgeService::Enabled, GridEdgeService::SetEnabled, phrase(&T::gridEdgeOn, &T::gridEdgeOff), false, "inventory-edge"},
 		{InventoryArrivalService::StashNotice, InventoryArrivalService::SetStashNotice, phrase(&T::stashNoticeOn, &T::stashNoticeOff), false, "stash-notice"},
@@ -2051,6 +2052,8 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{[] { return SkillBarService::Enabled(); }, [](bool on) { SkillBarService::SetEnabled(on); }, phrase(&T::skillBarReaderOn, &T::skillBarReaderOff), false, "skill-bar"},
 		{FocusTracker::ScreenHints, FocusTracker::SetScreenHints, phrase(&T::screenHintsOn, &T::screenHintsOff), false, "screen-hints"},
 		{GameTextReader::Enabled, GameTextReader::SetEnabled, phrase(&T::gameTextEnabled, &T::gameTextDisabled), true, "game-text"},
+		{KeyboardMenu::ArrowRepeat, KeyboardMenu::SetArrowRepeat, phrase(&T::menuArrowRepeatOn, &T::menuArrowRepeatOff), false, "menu-arrow-repeat"},
+		{KeyboardMenu::ArrowGuard, KeyboardMenu::SetArrowGuard, phrase(&T::menuArrowGuardOn, &T::menuArrowGuardOff), false, "menu-arrow-guard"},
 	}});
 	groups.push_back({GroupName(G::Alerts), {
 		{[] { return VitalsService::Enabled(); }, [](bool on) { VitalsService::SetEnabled(on); }, phrase(&T::vitalsEnabled, &T::vitalsDisabled), true, "vitals"},

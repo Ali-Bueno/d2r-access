@@ -974,3 +974,52 @@ Den of Evil in the quest log, Blood Moor, two kills, a skeleton from the bound k
   a level 3 Sorceress with a point to spend, Spanish and English, autodetail on and off, from the
   tab, from below and from beside. If it comes again, look for `[interaction] held back a skill
   tooltip` in that player's log.
+
+## Arrows a hand did not mean — 2026-11-17
+
+A tester with cerebral palsy, who plays by keyboard with a pad connected: the arrows "jump around"
+in the main menu, the inventory and the skill tree, where a branch chosen with Page Up/Down was left
+for another. Not reproduced here (no log yet). The user: only what the keyboard could do by
+accident is changed; the pad's behaviour stays as it is.
+
+- **A held arrow walked on at the mod's own pace whatever Windows was set to.** The arrows are
+  polled, so Windows' keyboard repeat and FilterKeys never applied. Now the first repeat waits the
+  longer of the mod's 500 ms and Windows' delay, then the longer of 180 ms and Windows' rate;
+  FilterKeys' repeat and bounce times count when it is on (`key_repeat.h`, tested). Ctrl+S
+  `menu-arrow-repeat` (Items and menus, on) turns the repeat off: a held arrow steps once.
+- **A bounce or a brushed neighbour stepped.** Ctrl+S `menu-arrow-guard` (Items and menus, off):
+  the same arrow pressed again within 250 ms of coming up does nothing (`GuardBounceMs`, chosen, not
+  measured), nor does an arrow pressed while another is down or with another in the same update,
+  until it comes up. Each one kept out is logged (`[menu-keys] arrow N ignored: ...`).
+- The log says the pace at start and on a change (`[menu-keys] a held arrow: ...; guard on|off`),
+  and the line of a pad taking the menu back now says what was used
+  (`[cursor] released: a pad was used (pad 1, buttons 0x1000)`, or its sticks and triggers). That
+  release and where the next arrow starts are unchanged.
+
+Seen, not changed: Ctrl and Shift with an arrow read the tooltip's lines and move no cursor, so a
+modifier held or latched by Sticky Keys cannot make the cursor jump. Not run live. If the jumps stay,
+the player's log answers: `released: a pad was used (...)` before them points at the pad, `ignored`
+lines at the hand, and neither at the cursor's own steps.
+
+### bfbeast's keyboard session (1.0.18, no pad) — 2026-11-17
+
+The log shows one step per arrow everywhere; what was heard as presses doubled was speech.
+
+- **Skill tree, Page Up/Down: "Su-Summoning, Po-Poison and Bone, C-Curses".** The tab's click said
+  the branch (`SayTab`) and 60-70 ms later the skill tree's reader said it again with the points
+  left (`[skill-tree] branch shown -> "Poison and Bone. 1 Skill Choice Remaining"`), interrupting
+  it. The cursor now leaves the branch to that reader and says it only if no reader has by
+  `SilenceMs`. Not heard live.
+- **Difficulty after a character chosen by Enter: Enter did nothing, A worked.** Enter is the game's
+  key, never the cursor's; the game chooses a character with it, but in keyboard mode does nothing
+  with it in `CharacterDifficultyModal`. Now Enter on a button of a panel named `...Modal` clicks it
+  as A does, if after `EnterWaitMs` (250 ms) the game has neither closed the modal nor moved the
+  cursor (`[menu-keys] Enter: ...`). Not run live.
+- **Inventory: the pointer goes to the middle of an item, not the cell under it**, which disorients
+  in the stash and shops. An item said only its name, an empty cell its row and column, so a step
+  off a tall item landed on a row nothing had placed. Now an item says, after its words, the cell
+  it begins on and, when it covers more than one, its size: "Grand Charm of Strength (7). magic.
+  Row 1, column 3. 1 column by 3 rows" (with autodetail the size is said with the name already).
+  The cells are the grid's, walked from the focused cell (`ItemCellsPhrase` in
+  `interaction_reader.cpp`), so the pad's focus says them too. Ctrl+S `item-cells` (Items and
+  menus, on) goes back to the name alone. Tested in `interaction_reader_tests.cpp`, not heard live.

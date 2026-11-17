@@ -85,6 +85,10 @@ std::string controllerHelp;
 NativeUi::ItemPresence equipmentPresence = NativeUi::ItemPresence::Unknown;
 NativeUi::ItemPresence itemPresence = NativeUi::ItemPresence::Unknown;
 uintptr_t gridItem = 0, equipmentItem = 0;
+// The grid an item is looked up in for its cells: its size, and each item's rectangle.
+struct GridRect { int x, y, width, height; uintptr_t item; };
+NativeUi::Cell gridSize;
+std::vector<GridRect> gridItems;
 std::optional<bool> holdingItem;
 InputDirection::StickPush pendingPush = InputDirection::StickPush::None;
 // The character panel's stick reader runs ahead of the detail readout, so
@@ -109,6 +113,13 @@ Type Classify(uintptr_t widget) {
 Cell GridCell(uintptr_t) { return cell; }
 ItemPresence GridItemPresence(uintptr_t) { return itemPresence; }
 uintptr_t GridItem(uintptr_t) { return gridItem; }
+Cell GridSize(uintptr_t) { return gridSize; }
+GridSlot GridItemAt(uintptr_t, Cell at) {
+	if (at.x < 0 || at.y < 0 || at.x >= gridSize.x || at.y >= gridSize.y) return {};
+	for (const auto& rect : gridItems)
+		if (at.x >= rect.x && at.x < rect.x + rect.width && at.y >= rect.y && at.y < rect.y + rect.height) return {true, rect.item};
+	return {true, 0};
+}
 uintptr_t EquipmentItem(uintptr_t) { return equipmentItem; }
 ItemPresence EquipmentItemPresence(uintptr_t) { return equipmentPresence; }
 StashSlotCount StashSlotStackCount(uintptr_t) { return {}; }
@@ -427,6 +438,19 @@ int main() {
 	ClearSpeech(); focus = {20, 21}; inventory = {}; cell = {0, 1}; selection = uint64_t{1} << 32;
 	Tooltip("Pergamino del portal de la ciudad"); Settle();
 	Check(speech == std::vector<std::string>{"Inventario. Pergamino del portal de la ciudad"}, "player inventory reads the item without coordinates");
+	// Where the grid says where the item is, its first cell and size follow its words, said at once
+	// with them (bfbeast, 2026-11-17), from whichever of its cells the focus is on.
+	ClearSpeech(); gridSize = {10, 4}; gridItems = {{2, 0, 1, 3, 0x500}}; gridItem = 0x500;
+	cell = {2, 1}; selection = (uint64_t{1} << 32) | 2;
+	Tooltip("Gran hechizo de fuerza"); Settle();
+	Check(speech.size() == 1 && speech[0].starts_with("Gran hechizo de fuerza") && speech[0].find("Fila 1, columna 3") != std::string::npos
+		&& speech[0].find("1 columna por 3 filas") != std::string::npos, "an item says its top-left cell and its size after its name");
+	InteractionReader::SetItemCells(false);
+	ClearSpeech(); cell = {2, 2}; selection = (uint64_t{2} << 32) | 2;
+	Tooltip("Gran hechizo de fuerza"); Settle();
+	Check(speech == std::vector<std::string>{"Gran hechizo de fuerza"}, "with item-cells off, the item says its name alone");
+	InteractionReader::SetItemCells(true);
+	gridSize = {}; gridItems.clear(); gridItem = 0;
 	// The style command's red index ('1') marks a requirement this character does not meet.
 	ClearSpeech(); cell = {1, 1}; selection = (uint64_t{1} << 32) | 1;
 	Tooltip("\xEE\x81\xBE" "1Fuerza necesaria: 40\n" "\xEE\x81\xBE" "0Armadura de placas"); Settle();

@@ -242,6 +242,10 @@ names and action labels are unaffected. If an occupied cell never renders text,
 it remains silent. The user confirmed the new behavior on 2026-09-15:
 “parece que funcionó bien”.
 
+Since 2026-11-17 a described item's cell and size come back after its description, in the same
+announcement (Ctrl+S `item-cells`, on): the early coordinate-only announcement stays gone
+([keyboard play](keyboard-play.md#bfbeasts-keyboard-session-1018-no-pad--2026-11-17)).
+
 ## Stash gold (2026-09-25)
 
 The stash's gold is drawn in the `gold_amount` text box (under `basicstash_container` in

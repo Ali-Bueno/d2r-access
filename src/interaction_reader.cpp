@@ -195,6 +195,7 @@ std::string g_itemLogged;
 // "Item in hand" and "Placed in", a switch of the settings list; on unless turned off.
 std::atomic<bool> g_handSpeech{true};
 std::atomic<bool> g_compareAloud{false}; // see CompareAloud
+std::atomic<bool> g_itemCells{true};      // see ItemCells
 std::atomic<bool> g_compareHint{true};   // see CompareHint
 
 // The equipped-item records last logged, so [compare] is written once per
@@ -543,6 +544,46 @@ std::string SizePhrase(uintptr_t item) {
 	char phrase[100]{};
 	std::snprintf(phrase, sizeof(phrase), format, size.width, size.height);
 	return phrase;
+}
+
+// Where an item in a grid begins and the cells it covers, as the grid holds it: from the cell the
+// focus is on, left and then up while the same item is there (items are rectangles), then right
+// and down for its size. An item said by name alone told a keyboard player nowhere where it was,
+// and a step off a tall one landed on a row they could not place (bfbeast, 2026-11-17). Kept for
+// the cell the focus is on, so the getter is asked only when it moves.
+struct ItemCellsKey { uintptr_t widget = 0, item = 0; NativeUi::Cell at; bool detail = false; };
+ItemCellsKey g_itemCellsKey;
+std::string g_itemCellsSaid;
+std::string ItemCellsPhrase(uintptr_t widget, uintptr_t item) {
+	const auto at = NativeUi::GridCell(widget);
+	if (!item || at.x < 0) return {};
+	const bool detail = AutoDetail::Enabled();
+	if (g_itemCellsKey.widget == widget && g_itemCellsKey.item == item && g_itemCellsKey.at.x == at.x && g_itemCellsKey.at.y == at.y
+		&& g_itemCellsKey.detail == detail)
+		return g_itemCellsSaid;
+	g_itemCellsKey = {widget, item, at, detail};
+	g_itemCellsSaid.clear();
+	const auto size = NativeUi::GridSize(widget);
+	const auto same = [&](int x, int y) {
+		const auto slot = NativeUi::GridItemAt(widget, {x, y});
+		return slot.known && slot.item == item;
+	};
+	if (size.x < 1 || !same(at.x, at.y)) return {};
+	NativeUi::Cell first = at;
+	while (first.x > 0 && same(first.x - 1, first.y)) --first.x;
+	while (first.y > 0 && same(first.x, first.y - 1)) --first.y;
+	int width = 1, height = 1;
+	while (first.x + width < size.x && same(first.x + width, first.y)) ++width;
+	while (first.y + height < size.y && same(first.x, first.y + height)) ++height;
+	char phrase[160]{};
+	std::snprintf(phrase, sizeof(phrase), Strings::Current().gridCell, first.y + 1, first.x + 1);
+	g_itemCellsSaid = phrase;
+	// With autodetail the size is said with the name already.
+	if ((width > 1 || height > 1) && !detail) {
+		std::snprintf(phrase, sizeof(phrase), Strings::Current().itemSize[(width > 1 ? 2 : 0) + (height > 1 ? 1 : 0)], width, height);
+		Append(g_itemCellsSaid, phrase);
+	}
+	return g_itemCellsSaid;
 }
 
 // The inventory's gold row, named by the game's own widget name.
@@ -1307,7 +1348,9 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 			// The cube says how it opens with its name (a tester, 2026-10-19).
 			if (const auto hint = CubeState::OpenHint(focusItem); !hint.empty() && readout.option.find(hint) == std::string::npos)
 				Append(readout.option, hint);
-			readout.coordinates.clear(); // a described cell keeps its existing coordinate-free readout
+			// Its cell after its words, said together: on their own first, they were said again with
+			// the description 350 ms later, cutting it (docs/native-tooltips.md).
+			readout.coordinates = g_itemCells ? ItemCellsPhrase(focus.widget, focusItem) : std::string{};
 		}
 		else if (progression.skill) {
 			// The choices left are right stick right's, and join the readout only
@@ -1354,7 +1397,7 @@ bool Tick(const D2RL::PluginContext* context, uint64_t now, NativeUi::Focus focu
 	}
 	if ((type.kind == UiText::Kind::InventoryGrid || beltItem) && !heldOver.empty()) {
 		readout.option = heldOver;
-		readout.coordinates.clear();
+		readout.coordinates = type.kind == UiText::Kind::InventoryGrid && g_itemCells ? ItemCellsPhrase(focus.widget, focusItem) : std::string{};
 		renderedDescription = true;
 	}
 	// An empty gem, rune or material slot draws no tooltip: its item, with a zero count.
@@ -1688,6 +1731,8 @@ StashCount::GoldTab OpenStashTab(const D2RL::PluginContext* context) {
 bool HandSpeech() { return g_handSpeech; }
 void SetHandSpeech(bool enabled) { g_handSpeech = enabled; }
 bool CompareAloud() { return g_compareAloud; }
+bool ItemCells() { return g_itemCells; }
+void SetItemCells(bool enabled) { g_itemCells = enabled; }
 void SetCompareAloud(bool enabled) { g_compareAloud = enabled; }
 bool CompareHint() { return g_compareHint; }
 void SetCompareHint(bool enabled) { g_compareHint = enabled; }

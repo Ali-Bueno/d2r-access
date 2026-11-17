@@ -57,6 +57,15 @@ bool Active();
 // True while the keyboard's cursor has the menu: no pad is connected, or an
 // arrow key took it. A pad player's menus are up (Active) but never engaged. UI thread.
 bool Engaged();
+// Whether a held arrow steps again (Ctrl+S `menu-arrow-repeat`, on). The pace is the mod's,
+// or Windows' keyboard repeat and FilterKeys where they are slower (key_repeat.h). Any thread.
+bool ArrowRepeat();
+void SetArrowRepeat(bool on);
+// Ctrl+S `menu-arrow-guard`, off: an arrow pressed again within KeyRepeat::GuardBounceMs of
+// coming up, or pressed while another arrow is down, does nothing. For players whose hand
+// bounces on a key or brushes the next one. Any thread.
+bool ArrowGuard();
+void SetArrowGuard(bool on);
 // True while the cursor is on a box of text. The keys that type, alone or with
 // Shift, are the box's then, and so are the left and right arrows; up and down
 // leave the box. Any thread.
