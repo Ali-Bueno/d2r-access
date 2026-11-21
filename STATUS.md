@@ -2,7 +2,7 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
-## A tester's list: Shift+Home to the Blood Moor, the retreat's way out, yards, forgetting an area, legacy classes — 2026-11-21, unreleased
+## A tester's list: Shift+Home to the Blood Moor, the retreat's way out, yards, forgetting an area, legacy classes — release 1.0.21 (2026-11-21)
 
 142 tests pass; built, deployed and run live (Rogue Encampment, character creation).
 
@@ -17,7 +17,7 @@
 **Next step:** the testers' run: Shift+Home to the Blood Moor from other spots of the camp;
 `distance-yards` heard (unit-tested only).
 
-## A tester's End key and D2R.text.bin — 2026-11-19, unreleased
+## A tester's End key and D2R.text.bin — release 1.0.21 (2026-11-19)
 
 Both builds compile (local and `-Release`); not run live.
 
