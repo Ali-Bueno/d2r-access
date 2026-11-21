@@ -221,6 +221,10 @@ int g_revision = 0;
 Mode g_mode = Mode::Idle;
 Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a retreat heads for
+std::optional<LevelRoute::Area> g_border; // a walk to an area border with no crossing known yet: the edge to reach
+std::atomic<bool> g_retreatWay{true};      // Ctrl+S retreat-direction: a retreat's arrival says which way the way out is
+bool RetreatWay() { return g_retreatWay.load(); }
+void SetRetreatWay(bool on) { g_retreatWay = on; }
 uint32_t g_itemPick = 0;    // the item, object or NPC comma, full stop, [ or ] chose, which the next D takes
 EntityRadar::Kind g_itemPickKind = EntityRadar::Kind::Item; // an item, an object or an NPC: ids of different kinds may meet
 std::string g_itemPickName;
@@ -796,7 +800,8 @@ bool Led(const Lifecycle& state, const Scene& scene, const Entity& target, int m
 		g_ledPlace = target.position;
 		g_ledPlaceAt = now;
 	}
-	const auto way = g_plan.From(*memory, scene.world.player, g_ledPlace, margin, scene.world.bodyPattern);
+	const auto way = g_border ? g_plan.From(*memory, scene.world.player, *g_border, scene.world.bodyPattern)
+		: g_plan.From(*memory, scene.world.player, g_ledPlace, margin, scene.world.bodyPattern);
 	if (!LevelRoute::Ahead(way.path, scene.grid, ahead)) return false;
 	if (now < g_ledLog || now - g_ledLog >= LedLogMs || way.guess != g_ledGuess) {
 		g_ledLog = now;
@@ -858,10 +863,22 @@ Progress Advance(const Lifecycle& state, const Scene& scene, const Entity& targe
 
 // No way on foot to a thing further off than `reach`: the loaded floor does not
 // get to it, and the remembered map shows it cut off.
-bool NoWay(const Lifecycle& state, const Scene& scene, const Entity& target, double reach) {
+bool NoWay(const Lifecycle& state, const Scene& scene, const Entity& target, double reach,
+	const std::optional<LevelRoute::Area>& border = std::nullopt) {
 	if (Distance(scene.world.player, target.position) <= reach) return false;
+	if (border) {
+		const auto* known = Reached(state, scene.world);
+		return known && known->Within({border->minX, border->minY, border->maxX + 1, border->maxY + 1}) == LevelRoute::Reach::Answer::CutOff;
+	}
 	if (target.kind != EntityRadar::Kind::Room && Steps(scene.grid, target.position, Margin(target)) >= 0) return false;
 	return CutOff(state, scene.world, target);
+}
+
+// A walk to an area border heads for its crossing as the beacon does, or for the
+// shared edge while none is known: the gap in a palisade is seldom at its middle.
+std::optional<LevelRoute::Area> BorderOf(const Lifecycle& state, const Radar::World& world, Entity& target, Mode mode) {
+	if (mode != Mode::Walk || !ZoneTransitions::Crosses(target)) return std::nullopt;
+	return BeaconService::PlaceBorder(state.player, state.session, state.level, world, target);
 }
 
 // ---- walking to what the scanner named, and to the nearest thing to use ----
@@ -878,23 +895,30 @@ bool NoWay(const Lifecycle& state, const Scene& scene, const Entity& target, dou
 // from where the pad put the player.
 bool SetOut(const Lifecycle& state, const Entity& target, Mode mode, const char* reason) {
 	Entity leg = target;
-	if (Scene scene; Look(state, scene, false) && NoWay(state, scene, target, UseReach + HalfFootprint(target))) {
+	std::optional<LevelRoute::Area> border;
+	Scene scene;
+	const bool seen = Look(state, scene, false);
+	if (seen) border = BorderOf(state, scene.world, leg, mode);
+	if (seen && NoWay(state, scene, leg, UseReach + HalfFootprint(leg), border)) {
 		LevelRoute::Pad pad;
 		std::optional<Entity> first;
-		if (PadWay(state, scene.world, target, pad)) first = PadThing(state, scene.entities, pad);
+		if (PadWay(state, scene.world, leg, pad)) first = PadThing(state, scene.entities, pad);
 		if (!first) {
 			End("no way", true);
-			AsyncLog::InfoF(g_context, "[keyboard] walk: not begun, no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
-				scene.world.player.x, scene.world.player.y, target.name.c_str(), target.position.x, target.position.y);
+			AsyncLog::InfoF(g_context, "[keyboard] walk: not begun, no way on foot from %.0f,%.0f to %s at %.0f,%.0f%s",
+				scene.world.player.x, scene.world.player.y, target.name.c_str(), leg.position.x, leg.position.y,
+				border ? ", no crossing known on its edge" : "");
 			ScreenReader::Speak(Format(Strings::Current().walkNoRoute, target.name.c_str()), true);
 			return false;
 		}
 		leg = *first;
+		border.reset();
 		AsyncLog::InfoF(g_context, "[keyboard] walk: by teleport pad at %d,%d, the first of the way to %s at %.0f,%.0f",
 			pad.x, pad.y, target.name.c_str(), target.position.x, target.position.y);
 	}
 	End(reason, false);
 	g_target = leg;
+	g_border = border;
 	g_mode = mode;
 	g_walker.Start();
 	g_nextAct = 0;
@@ -982,6 +1006,7 @@ void Walk(const Lifecycle& state, uint64_t now) {
 		AsyncLog::InfoF(g_context, "[keyboard] retreat: %s is gone, on to where it was, %.0f,%.0f", name.c_str(), g_target.position.x, g_target.position.y);
 		g_target.unit = Entity::NoUnit;
 	}
+	g_border = BorderOf(state, scene.world, g_target, g_mode);
 	if (!g_walkFromSet) { g_walkFrom = scene.world.player; g_walkFromSet = true; }
 	const double reach = UseReach + HalfFootprint(g_target);
 	if (g_mode == Mode::Explore && InTargetRoom(state, scene.world.player)) {
@@ -990,7 +1015,7 @@ void Walk(const Lifecycle& state, uint64_t now) {
 		return;
 	}
 	// Cut off, as the map now shows: said here, not from the edge nearest the thing.
-	if (g_mode != Mode::Interact && NoWay(state, scene, g_target, g_mode == Mode::Explore ? 0 : reach)) {
+	if (g_mode != Mode::Interact && NoWay(state, scene, g_target, g_mode == Mode::Explore ? 0 : reach, g_border)) {
 		AsyncLog::InfoF(g_context, "[keyboard] walk: no way on foot from %.0f,%.0f to %s at %.0f,%.0f",
 			scene.world.player.x, scene.world.player.y, name.c_str(), g_target.position.x, g_target.position.y);
 		End("no way", true);
@@ -1017,6 +1042,15 @@ void Walk(const Lifecycle& state, uint64_t now) {
 				AsyncLog::InfoF(g_context, "[keyboard] cross into %s: on to %.0f,%.0f", name.c_str(), beyond.x, beyond.y);
 				(void)NativeActions::MoveTo(beyond);
 			}
+		} else if (g_mode == Mode::Retreat && RetreatWay()) {
+			// Which way to go on, to take the way out at once when chased (a tester, 2026-11-21).
+			// An area border's crossing is its last cell on this side: said is the way past it.
+			End("arrived", true);
+			Entity way = g_target;
+			if (way.unit == Entity::NoUnit && ZoneTransitions::Crosses(way)) way.position = Beyond(scene.world.player, way.position);
+			const std::string said = Describe(scene.world, way, -1);
+			AsyncLog::InfoF(g_context, "[keyboard] retreat arrived at %.0f,%.0f: %s", scene.world.player.x, scene.world.player.y, said.c_str());
+			ScreenReader::Speak(Format(strings.beaconArrived, said.c_str()), true);
 		} else {
 			End("arrived", true);
 			ScreenReader::Speak(Format(strings.beaconArrived, name.c_str()), true);
@@ -2000,6 +2034,8 @@ std::vector<SettingsList::Group> SettingGroups() {
 		DirectionStyle(),
 		{BeaconService::FollowsScan, BeaconService::SetFollowsScan, phrase(&T::beaconFollowScanOn, &T::beaconFollowScanOff), false, "beacon-follow-scan"},
 		{GroundItemService::DistanceSteps, GroundItemService::SetDistanceSteps, phrase(&T::distanceStepsOn, &T::distanceStepsOff), false, "distance-steps"},
+		{EntityRadar::Yards, EntityRadar::SetYards, phrase(&T::distanceYardsOn, &T::distanceYardsOff), false, "distance-yards"},
+		{RetreatWay, SetRetreatWay, phrase(&T::retreatWayOn, &T::retreatWayOff), false, "retreat-direction"},
 		{RadarService::Diagonal, RadarService::SetDiagonal, [](bool diagonal) {
 			return RadarReadout::RaysPhrase(diagonal ? Radar::Frame::Diagonal : Radar::Frame::Cardinal, Strings::Current()); }, true, "radar-diagonal"},
 		{RadarService::BumpEnabled, RadarService::SetBumpEnabled, phrase(&T::wallBumpEnabled, &T::wallBumpDisabled), false, "wall-bump"},

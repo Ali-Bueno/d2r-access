@@ -9,6 +9,7 @@ namespace D2RAccess::EntityRadar {
 namespace {
 int Cell(double coordinate) { return static_cast<int>(std::lround(coordinate)); }
 std::atomic<int> g_unitsPerStep{0};
+std::atomic<bool> g_yards{false};
 bool SightBlocked(const Radar::World& world, int x, int y, Radar::Position centre,
 	const Entity::ObjectFootprint& footprint) {
 	uint16_t flags = 0;
@@ -84,18 +85,21 @@ bool UnderPlayer(double distance, const Settings& settings) {
 std::string DistancePhrase(double distance, const Settings& settings, const Strings::Table& strings) {
 	if (UnderPlayer(distance, settings)) return strings.scanAdjacent;
 	const int count = SpokenCount(distance * settings.unitsPerSubtile);
-	const bool steps = UnitsPerStep() > 0;
-	if (count == 1) return steps ? strings.distanceStep : strings.scanStep;
+	const bool yards = Yards(), steps = UnitsPerStep() > 0;
+	if (count == 1) return yards ? strings.distanceYard : steps ? strings.distanceStep : strings.scanStep;
 	char buffer[64];
-	std::snprintf(buffer, sizeof buffer, steps ? strings.distanceSteps : strings.scanSteps, count);
+	std::snprintf(buffer, sizeof buffer, yards ? strings.distanceYards : steps ? strings.distanceSteps : strings.scanSteps, count);
 	return buffer;
 }
 
 void SetUnitsPerStep(int units) { g_unitsPerStep.store(std::max(0, units), std::memory_order_relaxed); }
 int UnitsPerStep() { return g_unitsPerStep.load(std::memory_order_relaxed); }
+void SetYards(bool yards) { g_yards.store(yards, std::memory_order_relaxed); }
+bool Yards() { return g_yards.load(std::memory_order_relaxed); }
 
 int SpokenCount(double units) {
 	const int step = UnitsPerStep();
-	return std::max(1, static_cast<int>(std::lround(step > 0 ? units / step : units)));
+	const double count = Yards() ? units * YardsPerSubtile : step > 0 ? units / step : units;
+	return std::max(1, static_cast<int>(std::lround(count)));
 }
 }

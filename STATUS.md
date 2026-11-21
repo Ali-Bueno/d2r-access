@@ -2,6 +2,32 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## A tester's list: Shift+Home to the Blood Moor, the retreat's way out, yards, forgetting an area, legacy classes — 2026-11-21, unreleased
+
+142 tests pass; built, deployed and run live (Rogue Encampment, character creation).
+
+| Report | State | Where |
+|---|---|---|
+| Shift+Home in the camp: "No way to Blood Moor", Ctrl+R walks there | fixed in code: a walk to an area border is placed as the beacon places it (crossing, else one seen, else the whole shared edge); live from beside Warriv: walked and crossed | [keyboard play](docs/keyboard-play.md#shifthome-to-an-area-border-the-retreats-way-out--2026-11-21) |
+| A retreat's end does not say where the exit is | says the way out's distance and direction; Ctrl+S `retreat-direction` (on); live: "Has llegado a Campamento de las Arpías, 6 unidades, a las 2" | same |
+| Skill ranges in yards against the mod's steps | 1 yard = 1.5 units (skilldesc.txt); Ctrl+S `distance-yards` (off), the game's own word per language | [attack reach](docs/attack-reach.md#yards) |
+| A key to wipe the area's exploration when farming | Shift+O twice; rooms forgotten in memory and on disk, places kept; live in the Blood Moor (1% explored after) | [exploration](docs/exploration.md#forgetting-an-area-2026-11-21) |
+| Legacy graphics: A on a class does nothing | fixed and verified live: pointer and arrows use where the figure is drawn (measured); chosen state from the game's Select/Unselect, as in HD | [legacy graphics](docs/legacy-graphics.md#class-figures-do-not-take-the-keyboards-click--2026-11-21) |
+
+**Next step:** the testers' run: Shift+Home to the Blood Moor from other spots of the camp;
+`distance-yards` heard (unit-tested only).
+
+## A tester's End key and D2R.text.bin — 2026-11-19, unreleased
+
+Both builds compile (local and `-Release`); not run live.
+
+| Report | State | Where |
+|---|---|---|
+| End "stops responding" after a long session | not reproduced; no End-only path in the mod (`keyboard_service.cpp` Stop, `keyboard_menu.cpp` MenuNext). Waiting on the tester: in play or menu, other mod keys alive, the loader log | — |
+| "What is D2R.text.bin?" | the automatic code dump is now local builds only (`CodeDump::DumpInLocalBuild`) | [test releases](docs/test-releases.md#package-contents) |
+
+**Next step:** the tester's answers and log on End.
+
 ## A Warlock player's keyboard log — release 1.0.20 (2026-11-17)
 
 142 tests pass; released, not run live.

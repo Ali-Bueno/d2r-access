@@ -268,6 +268,10 @@ void LongLegs() {
 		"in steps the whole length and each leg are counted in steps");
 	Check(EntityRadar::DistancePhrase(2, {}, English) == "1 step", "a thing nearer than a step is a step away");
 	Check(EntityRadar::DistancePhrase(1, {}, English) == English.scanAdjacent, "under the player it is still right here");
+	EntityRadar::SetYards(true);
+	Check(EntityRadar::DistancePhrase(27, {}, English) == "18 yards", "yards before steps: two thirds of a subtile each");
+	Check(EntityRadar::DistancePhrase(2, {}, English) == "1 yard", "a thing nearer than a yard is a yard away");
+	EntityRadar::SetYards(false);
 	EntityRadar::SetUnitsPerStep(0);
 	Check(EntityRadar::DistancePhrase(50, {}, English) == "50 units", "back in units");
 }

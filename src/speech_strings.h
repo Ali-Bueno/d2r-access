@@ -624,6 +624,14 @@ struct Table {
 	const char* distanceSteps; // %d = steps
 	const char* distanceStepsOn;
 	const char* distanceStepsOff;
+	const char* distanceYard;  // a distance in the game's own skill unit (EntityRadar::YardsPerSubtile)
+	const char* distanceYards; // %d = yards, or the metres the game's skills say in this language
+	const char* distanceYardsOn;
+	const char* distanceYardsOff;
+	const char* retreatWayOn; // a retreat's arrival says which way the way out is (Ctrl+S retreat-direction)
+	const char* retreatWayOff;
+	const char* exploreForgetAsk; // %s = the level; the first press of the key that forgets its exploration
+	const char* exploreForgotten; // %s = the level whose exploration was forgotten
 	const char* routeLongLegsOn; // %d = the shortest leg before a turn, units (RouteLegs::MinLegUnits)
 	const char* routeLongLegsOff;
 	const char* narrowSlideOn; // stairs and narrow passages keep the game's slide (WallSlideService::NarrowSlide)
@@ -719,7 +727,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.lootFilterOn, t.lootFilterOff, t.lootPotionsOn, t.lootPotionsOff, t.lootGemsOn, t.lootGemsOff, t.tabPage, t.undiscovered, t.waypointHere, t.terrorZone,
 		t.hintDeleteCharacter, t.hintNoCharacters, t.hintPlayCharacter, t.mainMenu, t.padTypingOn, t.padTypingOff,
 		t.descriptionsOn, t.descriptionsOff, t.descriptionHintOn, t.descriptionHintOff, t.areaDescriptionHint, t.noAreaDescription, t.portalOwned,
-		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.chargesGained, t.chargesLost, t.chargesHeld, t.chargeAlertsOn, t.chargeAlertsOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.deleteHold, t.keyBindPrompt, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
+		t.skillAuraActive, t.skillActive, t.skillReportOn, t.skillReportOff, t.chargesGained, t.chargesLost, t.chargesHeld, t.chargeAlertsOn, t.chargeAlertsOff, t.staminaFrozen, t.staminaNormal, t.fortified, t.typingStarted, t.skillBound, t.hintMoreControls, t.radiantObject, t.rogueFountain, t.characterDeleted, t.deleteHold, t.keyBindPrompt, t.distanceStep, t.distanceSteps, t.distanceStepsOn, t.distanceStepsOff, t.distanceYard, t.distanceYards, t.distanceYardsOn, t.distanceYardsOff, t.retreatWayOn, t.retreatWayOff, t.exploreForgetAsk, t.exploreForgotten, t.routeLongLegsOn, t.routeLongLegsOff, t.narrowSlideOn, t.narrowSlideOff, t.speechPriority,
 		t.padQwertyOn, t.padQwertyOff, t.padApproachOn, t.padApproachOff, t.typingStartedQwerty, t.capsLockKey, t.backspaceKey, t.upperCase, t.lowerCase,
 		t.launcherMissingFiles, t.launcherValidating, t.launcherNeedsSteam, t.launcherNeedsBattleNet, t.launcherStarted, t.launcherOpeningSteam, t.launcherOpeningBattleNet, t.launcherStartingGame, t.launcherValidated, t.launcherFailedStartsAnyway, t.launcherFailedExpired, t.launcherBattleNetNoGame, t.launcherUpdateTitle, t.launcherUpdateAsk, t.launcherUpdated, t.launcherUpdateFailed}) visit(s);
 	each(t.lootEquipment);

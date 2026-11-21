@@ -833,6 +833,14 @@ bool Offered(EntityRadar::Entity& entity, int level) {
 	return true;
 }
 
+std::optional<LevelRoute::Area> PlaceBorder(uint32_t player, uint64_t session, int level, const Radar::World& world,
+	EntityRadar::Entity& entity) {
+	const Lifecycle state{true, player, session, level};
+	const auto border = ToCrossing(state, world, entity);
+	if (border.kind != Border::Kind::Unknown) return std::nullopt;
+	return GoalArea(state, entity, border);
+}
+
 bool Register(const D2RL::PluginContext* context) {
 	g_context = context;
 	NavigationMode::SetFullAssistance(RadarConfig::ReadNavigation(context).fullAssistance);

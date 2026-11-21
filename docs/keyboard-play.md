@@ -1041,3 +1041,27 @@ which 1.0.19's Windows repeat settings and `menu-arrow-repeat` cover):
   Eldritch open the player heard "Demon", "Eldritch", "Chaos". A branch tab now says whether its
   branch is the one shown ("Demon, not selected", "Eldritch, selected"), read from the tree
   (`OpenBranch` in `interaction_reader.cpp`). Not heard live.
+
+## Shift+Home to an area border, the retreat's way out — 2026-11-21
+
+A tester, in the Rogue Encampment: Shift+Home to the Blood Moor "often says there's no way",
+though Ctrl+R walks out there fine.
+
+- **Cause (read in the code, no log):** the beacon already finds an area border's crossing loaded,
+  else one seen this game (`CrossingMemory`), else heads for anywhere along the shared edge; the gap
+  in a palisade is seldom at its middle ([beacon](beacon.md#area-borders), Lut Gholein 2026-10-20).
+  The walk re-read the exit every tick with the loaded crossing only, so off it the target fell back
+  to the edge's middle, on ground the map shows cut off: "No way". The retreat walks to a cell it
+  stood on.
+- **Fix:** a walk to an area border is placed as the beacon places it
+  (`BeaconService::PlaceBorder`), at its start and on every tick. With no crossing known, "No way" is
+  said only when the whole shared edge is cut off, and the remembered-map lead plans to that edge
+  (`g_border`). Log: `walk: not begun, no way ... , no crossing known on its edge`.
+- **The retreat's way out:** arriving, a retreat says the way out by distance and direction
+  ("Arrived at Blood Moor, 4 units, north"); for an area border, the point just past its crossing
+  (`Beyond`). Ctrl+S `retreat-direction` (Navigation, on). Log: `[keyboard] retreat arrived at`.
+
+Verified live 2026-11-21 (fresh game, no crossing seen): Shift+Home from beside Warriv walked to
+the Blood Moor and crossed; Ctrl+R from a few steps in said "Has llegado a Campamento de las
+Arpías, 6 unidades, a las 2" (the way in had been "a las 8"). Other starting spots in the camp
+are not tried.

@@ -16,6 +16,7 @@
 #include "control_state.h"
 #include "focus_tracker.h"
 #include "legacy_graphics.h"
+#include "native_class_choice.h"
 #include "native_widgets.h"
 #include "speech_strings.h"
 #include "ui_text.h"
@@ -353,6 +354,7 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 
 	// UI messages arrive on the UI thread: a safe place to (re)arm the focus pump.
 	MenuNavigation::NoteAction(event->target, event->command);
+	NativeClassChoice::Note(event->target, event->command, Safe(event->text));
 	UiThreadPump::Kick(context);
 
 	if (g_trace && !IsTraceNoise(event->target, event->command)) {

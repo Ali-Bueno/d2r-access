@@ -449,6 +449,7 @@ void Collect(uintptr_t widget, uintptr_t panel, uintptr_t tab, uintptr_t view, i
 	if (!whole && control && type.name != "BeltWidget") {
 		// A row of a list that scrolls is a place wherever the scroll has drawn it; FrameLists sorts them out.
 		auto rect = NativeSkillNavigation::RectAt(widget, NativeUi::FocusSelection(widget));
+		if (const auto figure = rect ? NativeClassChoice::LegacyTarget(widget, *rect) : std::nullopt) rect = figure;
 		// A label is no stop of the game's and has no focus rectangle: its own stands for it.
 		if (label) ++g_labels;
 		if (!rect && label && (rect = PlacedRect(widget))) { entry.point = *rect; ++g_labelsPlaced; }
@@ -614,7 +615,7 @@ void LinkClasses() {
 	}
 	if (!below) return;
 	for (const auto& entry : g_entries)
-		if (NativeClassChoice::Is(entry.widget)) g_links.push_back({{entry.widget, {}, {}}, {below->widget, {}, {}}, Direction::Down});
+		if (NativeClassChoice::IsFigure(entry.widget)) g_links.push_back({{entry.widget, {}, {}}, {below->widget, {}, {}}, Direction::Down});
 }
 
 // True for a panel that takes every click, whatever is drawn under it.
@@ -719,7 +720,11 @@ NativeUi::Rect BeltPoint(uintptr_t belt, int slot, const NativeUi::Rect& rect) {
 // cell is where the pointer has to be for the item to begin on that cell.
 std::optional<NativeUi::Rect> PointerRect(const Entry& entry, const Place& place, bool holding) {
 	if (!entry.cells && entry.point.width > 0) return entry.point;
-	if (!entry.cells) return NativeSkillNavigation::RectAt(entry.widget, NativeUi::FocusSelection(entry.widget));
+	if (!entry.cells) {
+		const auto rect = NativeSkillNavigation::RectAt(entry.widget, NativeUi::FocusSelection(entry.widget));
+		if (const auto figure = rect ? NativeClassChoice::LegacyTarget(entry.widget, *rect) : std::nullopt) return figure;
+		return rect;
+	}
 	const auto* target = MenuCursor::Find(g_targets, entry.widget);
 	const uint64_t selection = Selection(entry, place.anchor, target ? target->grid.height : 1);
 	const auto first = NativeSkillNavigation::RectAt(entry.widget, selection);
@@ -760,7 +765,7 @@ std::string Name(const Entry& entry, const Place& place) {
 	// The hire list's skill icons and gold lines: by the skill, and by the game's words with the amount.
 	if (auto hire = HireStats::Said(entry.widget, entry.panel); !hire.empty()) return hire;
 	// A class's figure is called by the class's key in the string table.
-	if (NativeClassChoice::Is(entry.widget)) {
+	if (NativeClassChoice::IsFigure(entry.widget)) {
 		std::string name = UiText::Clean(Localization::Text(entry.name));
 		if (name.empty()) name = entry.name;
 		if (NativeClassChoice::Of(entry.widget) == NativeClassChoice::State::Chosen) name += ", " + std::string(Strings::Current().checked);
@@ -844,7 +849,7 @@ bool Land(const D2RL::PluginContext* context, uint64_t now, const Place& place) 
 	// waiting for one only left them silent, so they are named at once. Nor a
 	// skill icon or a gold line of the hire list: left to the wait they were
 	// called "Skill2" and "YourGoldTooltipWidget" (MEASURED 2026-09-30).
-	if (NativeClassChoice::Is(entry->widget) || g_menu.starts_with(DropdownList)
+	if (NativeClassChoice::IsFigure(entry->widget) || g_menu.starts_with(DropdownList)
 		|| !HireStats::Said(entry->widget, entry->panel).empty()) {
 		AsyncLog::InfoF(context, "[cursor] said at once \"%s\"", g_toSay.c_str());
 		ScreenReader::Speak(g_toSay, true);
@@ -1304,7 +1309,7 @@ void Click(const D2RL::PluginContext* context, uint64_t now, MenuMouse::Button b
 	// A click on the class that is chosen would put it back, and one on a figure
 	// that is stepping forward or back is lost. Another class is chosen by a
 	// click on it, which puts this one back.
-	if (entry && NativeClassChoice::Is(entry->widget)) {
+	if (entry && NativeClassChoice::IsFigure(entry->widget)) {
 		const auto state = NativeClassChoice::Of(entry->widget);
 		if (state != NativeClassChoice::State::NotChosen && state != NativeClassChoice::State::Unknown) {
 			AsyncLog::InfoF(context, "[cursor] no click on %s: its state is %d", entry->name.c_str(), static_cast<int>(state));

@@ -155,3 +155,15 @@ worked cases, sight, the ping's hysteresis),
 cadence, ping before growl, commands), `entity-cue-audio` (the ping's band,
 rise, placement). Live listening is pending: approach a pack with a bow and with
 a melee weapon, and check the plate stays quiet while the target trades.
+
+## Yards
+
+The game's skills give ranges and radii in yards of two thirds of a subtile: `skilldesc.txt` says
+Static Field's and Lower Resist's radius as `ln12*2` over `3` (`desccalca`/`desccalcb`), with
+`ln12` in subtiles. The mod's units are subtiles, so 18 yards are 27 units, and 27 steps with
+`step-click-interval` 1 (at 5, about 5 steps).
+
+Ctrl+S `distance-yards` (Navigation, off; a tester, 2026-11-21) says every distance in yards
+(`EntityRadar::YardsPerSubtile`), over `distance-steps`. The word is the one the game's skill
+text uses in that language (`StrSkill18`, `StrSkill56`): yards in English, Latin American
+Spanish, Japanese and Chinese; metres in the others. Tested: `route-legs-tests`.

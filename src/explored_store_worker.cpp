@@ -83,6 +83,16 @@ void Store::Submit(std::vector<Update> updates) {
 	Bound(table_);
 	wake_.notify_one();
 }
+void Store::Forget(Key key) {
+	std::lock_guard lock(mutex_);
+	const auto found = table_.find(key);
+	if (stopping_ || found == table_.end() || found->second.rooms.empty()) return;
+	found->second.rooms.clear();
+	found->second.touched = ++clock_;
+	++generation_;
+	dirty_ = true;
+	wake_.notify_one();
+}
 void Store::Stop() {
 	{
 		std::lock_guard lock(mutex_);

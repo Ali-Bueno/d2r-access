@@ -31,6 +31,7 @@ public:
 	bool SetDrawable(uint32_t level, int tileX, int tileY, uint32_t count); // true when it changed
 	uint32_t Drawable(uint32_t level, int tileX, int tileY) const; // 0 when never measured
 	void Forget(); // a new game starts from an unexplored map
+	void Forget(uint32_t level); // the player starts the level over (Shift+O)
 	// One room per line: `level tileX tileY s|v`, one level or all of them.
 	// Merge adds to what is known.
 	std::string Serialize(std::optional<uint32_t> level = std::nullopt) const;

@@ -60,3 +60,28 @@ Also seen:
   opening can be "Nivel Nivel". Left as is.
 - The plugin's own commands are listed in English in Options, Controls with `text_locale = esES`.
 - In the menus the click is A, not Enter: Enter is the game's own.
+
+## Class figures do not take the keyboard's click — 2026-11-21
+
+A tester: with legacy graphics, A on a class on the creation screen did nothing; with modern
+graphics it chooses it. Reproduced live: A on Druid, no `CharacterCreate:Select`.
+
+- **Cause (MEASURED):** a legacy figure is `CharacterCreateWidget`. Its rectangle is the layout
+  corner (`rect` x, y of `CharacterCreatePanel.json`) with the animation frame's size, but the
+  figure is drawn up and to the left of that corner by the frame's offset. The pointer went to the
+  rectangle's middle, below or beside the figure: no hover, and the click chose nothing.
+- **Measured by hovering** (`CharacterCreate:Hover`, 800x600 space): Barbarian, corner 400,330 and
+  86x183, takes the pointer at x 364-444 and y 200-380; Assassin, corner 232,364 and 51x189, at
+  x 195-225 but not 232, from y 230 to 400. A quarter of the size up and left of the corner
+  (x - w/4, y - h/4) is on all seven figures; the corner is on six, not the Assassin.
+- **Fix:** `NativeClassChoice::LegacyTarget` takes the figure as its size round that point: the
+  pointer goes to its middle, and the arrows step by it (by the layout rectangles, left from
+  Paladin and right from Necromancer went to the name box). Legacy figures are named by the
+  string table like the HD ones (`IsFigure`).
+- **Chosen or not:** the HD state offset `0x13FC` is not checked on the legacy widget; its state is
+  the game's own `CharacterCreate:Select`/`Unselect` messages instead (`NativeClassChoice::Note`,
+  cleared on `FrontEndNavigation:ToCharacterCreate`). Stepping forward or back is not known.
+- **Verified live:** the arrows walk Druid, Sorceress, Paladin, Barbarian, Necromancer, Assassin,
+  Amazon and back, each hovered by the game and said with its description. A says "Bárbaro,
+  marcado. <description>"; A again clicks nothing and says "Bárbaro, marcado"; choosing another
+  class unselects the first; Down goes to the name box.

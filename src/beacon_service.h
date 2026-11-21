@@ -1,8 +1,10 @@
 #pragma once
 
 #include "entity_radar.h"
+#include "level_route.h"
 #include <D2RLPlugin/api.h>
 
+#include <optional>
 #include <string>
 
 // Wiring around Beacon: the left-stick click locks whatever the level scanner
@@ -16,6 +18,10 @@ void Unregister();
 void Offer(const EntityRadar::Entity& entity, int level, uint64_t now);
 // What the scanner named last on this level, for a walk there; false when nothing was.
 bool Offered(EntityRadar::Entity& entity, int level);
+// An area border's target moved to its crossing, loaded or seen this game, as the
+// beacon has it; the stretch of shared edge to reach while no crossing is known.
+std::optional<LevelRoute::Area> PlaceBorder(uint32_t player, uint64_t session, int level, const Radar::World& world,
+	EntityRadar::Entity& entity);
 // What the scanner names is followed as it is named (the user, 2026-11-04: optional).
 bool FollowsScan();
 void SetFollowsScan(bool enabled);

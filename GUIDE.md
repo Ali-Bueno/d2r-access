@@ -56,6 +56,7 @@ of the package's `README.html`.
 | List passages | Mod+Y | Mod+Triangle | Ctrl+Y | Announces available passages from the current area (only in dungeons) |
 | Area scanner | Mod+B | Mod+Circle | Ctrl+O | Gives a rough overview of your current location, reading explored areas in each direction as well as discovered exits and landmarks |
 | Area descriptions | Mod+RS up | Mod+RS up | Shift+Y | Reads a short description of the current area |
+| Forget explored areas | — | — | Shift+O, twice | Forgets what you explored in the current area, so every room is unexplored again; the exits and waypoints found stay known. Press twice within three seconds |
 | Scanner | Right stick | Right stick | Ctrl+Page Up/Page Down, Page Up/Page Down | RS up/down (Ctrl+Page Up/Page Down) cycles categories (doors, items, enemies), RS left/right (Page Up/Page Down) cycles entries in each category. The scanner is updated with things you encounter. On the keyboard, Home repeats the entry |
 | Set beacon | Mod+LB | Mod+L1 | Ctrl+B | Places an audio beacon on the currently selected scanner target |
 | Beacon follows the scanner | Mod+A | Mod+Cross | Alt+B | Turns on or off: each thing the scanner names gets the beacon at once, and scanning something else moves it. Also in the settings, Navigation group. With "Route on BACK+A" turned on, this is Mod+RS down |

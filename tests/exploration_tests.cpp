@@ -150,6 +150,29 @@ void Store() {
 		&& updated.Visited(2, 10, 10) && updated.Visited(2, 30, 30), "shutdown flushes queued updates and keeps imported progress");
 	std::filesystem::remove_all(directory);
 }
+// Shift+O: the level starts over, here and on disk; its places stay known.
+void ForgetLevel() {
+	ExploredRooms::Memory memory;
+	(void)memory.Visit(5, 10, 10);
+	(void)memory.Mark(6, 20, 20);
+	memory.Forget(5);
+	Check(!memory.Known(5) && memory.Explored(6, 20, 20), "forgetting one level keeps the others");
+	const auto directory = Directory("forget");
+	const ExploredStore::Key map{0xABCD1234u, 9, 0x3333};
+	const ExploredStore::Place stairs{9, 0x10002, 102.5, 207, 13, "Al nivel 2 de la Cueva", 4, 3, "To The Cave Level 2"};
+	ExploredStore::Store worker;
+	Check(worker.Start(directory), "the store worker starts");
+	for (int i = 0; i < 100 && !worker.Ready(); ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	worker.Submit({{map, {{20, 20, true}}, {stairs}}});
+	worker.Forget(map);
+	worker.Submit({{map, {{30, 30, false}}}});
+	worker.Stop();
+	ExploredRooms::Memory read;
+	std::vector<ExploredStore::Place> places;
+	Check(ExploredStore::ReadArchive(directory, map, read, &places) && !read.Explored(9, 20, 20) && read.Explored(9, 30, 30)
+		&& places.size() == 1, "a forgotten map keeps only the rooms seen since, and all its places");
+	std::filesystem::remove_all(directory);
+}
 void Migration() {
 	const auto directory = Directory("migration");
 	const auto valid = directory / "explored-ABCD1234-2-0123456789ABCDEF.txt";
@@ -379,6 +402,7 @@ int main() {
 	RoundTrip();
 	Drawable();
 	Store();
+	ForgetLevel();
 	Migration();
 	FailureAndBounds();
 	Places();

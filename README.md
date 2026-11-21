@@ -91,6 +91,7 @@ package). The full lists are in the package's `README.html`, and in
 | BACK + right stick up | Shift+Y | Description of the area you are in |
 | BACK + Y | Ctrl+Y | The ways out of the room you are in |
 | BACK + B | Ctrl+O | Area overview |
+| — | Shift+O, twice | Forget what you explored in this area |
 | BACK + X | Z / X | Life, mana, stamina, states on you |
 | BACK + RT | Shift+Z | Mercenary, summons and party members, one at a time |
 | Hold LT / BACK + LT | — | The skills on each skill bar |

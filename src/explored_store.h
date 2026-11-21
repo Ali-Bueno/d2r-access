@@ -71,6 +71,7 @@ public:
 	bool Load(Key key, ExploredRooms::Memory& memory, std::vector<Place>* places = nullptr) const;
 	std::map<uint32_t, std::vector<Place>> AllKnownPlaces(uint32_t seed) const;
 	void Submit(std::vector<Update> updates); // immutable snapshots; no disk I/O
+	void Forget(Key key); // the map's rooms, not its places: a union with the disk never drops a room
 	void Stop(); // joins the worker after its final write attempt
 private:
 	void Run();

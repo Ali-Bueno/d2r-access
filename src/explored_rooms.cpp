@@ -60,6 +60,7 @@ uint32_t Memory::Drawable(uint32_t level, int tileX, int tileY) const {
 }
 
 void Memory::Forget() { levels_.clear(); dirty_ = false; }
+void Memory::Forget(uint32_t level) { levels_.erase(level); }
 
 std::string Memory::Serialize(std::optional<uint32_t> only) const {
 	std::string text;

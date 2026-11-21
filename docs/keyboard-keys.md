@@ -47,6 +47,7 @@ before adding one, and read this file first.
 | Shift+Y | the description of the area you are in, as BACK + right stick up ([descriptions](descriptions.md); the user, 2026-11-01) |
 | Shift+Z | the next companion -- summons, mercenary, party -- with its life, one per press, as BACK+RT (the user, 2026-11-01) |
 | Ctrl+O | the terrain overview |
+| Shift+O | forget what you explored in this area: twice within 3 seconds; its exits and waypoints stay known ([exploration](exploration.md#forgetting-an-area-2026-11-21)) |
 | Ctrl+T | the radar's state |
 | K, L | the tutorial: previous message, next message ([tutorial](tutorial.md); the user, 2026-10-21) |
 | Shift+K | the tutorial: its first message |

@@ -63,6 +63,12 @@ const D2RL::InputService* g_input = nullptr;
 std::vector<D2RL::Lifecycle::ListenerHandle> g_listeners;
 std::vector<D2RL::Input::ActionHandle> g_actions;
 std::atomic<bool> g_asked{false};
+std::atomic<bool> g_forgetAsked{false};
+// Policy: forgetting a level's exploration cannot be undone, so a lone press only
+// asks and a second within this long forgets.
+constexpr uint64_t ForgetConfirmMs = 3000;
+uint64_t g_forgetAskedAt = 0;
+int g_forgetLevel = 0;
 // Distances are spoken by the same rule as the entity scan and the exit review.
 const EntityRadar::Settings g_scan;
 ExploredRooms::Memory g_explored;
@@ -380,6 +386,29 @@ void Track(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t 
 		native.rooms.size(), native.level, cardinal[0] ? 1u : 0u, cardinal[1] ? 1u : 0u, cardinal[2] ? 1u : 0u, cardinal[3] ? 1u : 0u,
 		diagonal[0] ? 1u : 0u, diagonal[1] ? 1u : 0u, diagonal[2] ? 1u : 0u, diagonal[3] ? 1u : 0u, static_cast<unsigned long long>(frontierMs));
 }
+// Caller holds g_mutex. The level's seen and visited rooms, here and on disk, for a
+// player who farms it (a tester, 2026-11-21); its exits and waypoints stay known.
+void Forget(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
+	const auto& strings = Strings::Current();
+	const auto level = static_cast<uint32_t>(state.level);
+	const std::string name = LevelName(level, strings);
+	char phrase[256]{};
+	if (g_forgetLevel != state.level || now - g_forgetAskedAt > ForgetConfirmMs) {
+		g_forgetLevel = state.level;
+		g_forgetAskedAt = now;
+		std::snprintf(phrase, sizeof phrase, strings.exploreForgetAsk, name.c_str());
+		ScreenReader::Speak(phrase, true);
+		return;
+	}
+	g_forgetLevel = 0;
+	g_explored.Forget(level);
+	g_drawable.erase(level);
+	if (const auto key = g_keys.find(level); key != g_keys.end()) g_store.Forget(key->second);
+	g_loggedLevel = 0;
+	AsyncLog::InfoF(context, "[terrain] level=%u exploration forgotten by the player", level);
+	std::snprintf(phrase, sizeof phrase, strings.exploreForgotten, name.c_str());
+	ScreenReader::Speak(phrase, true);
+}
 auto Console(D2R::Game::Client*, const D2RL::ConsoleCommandContext* command, void*) noexcept -> D2RL::ConsoleCommandResult {
 	if (!command) return D2RL::ConsoleCommandResult::Failed;
 	const std::string_view arg(command->args ? command->args : "", command->args ? command->argsLength : 0);
@@ -391,6 +420,12 @@ auto Action(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, v
 	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize)
 		|| event->kind != D2RL::Input::ActionEventKind::Pressed) return D2RL::Input::ActionResult::Ignored;
 	g_asked = true;
+	return D2RL::Input::ActionResult::Handled;
+}
+auto ForgetAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent* event, void*) noexcept -> D2RL::Input::ActionResult {
+	if (!D2RL::Input::HasActionEventField(event, D2RL::Input::ActionEventRequiredSize)
+		|| event->kind != D2RL::Input::ActionEventKind::Pressed) return D2RL::Input::ActionResult::Ignored;
+	g_forgetAsked = true;
 	return D2RL::Input::ActionResult::Handled;
 }
 }
@@ -416,6 +451,11 @@ bool Register(const D2RL::PluginContext* context) {
 			.defaultPrimary = {D2RL::Input::Key::O, D2RL::Input::Modifier::Control}, .callback = Action};
 		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
 		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		const D2RL::Input::ActionRegistration forget{.structSize = D2RL::Input::ActionRegistrationSize,
+			.logicalId = "forget-exploration", .displayName = "Forget this area's exploration (press twice)", .category = "Accessibility",
+			.defaultPrimary = {D2RL::Input::Key::O, D2RL::Input::Modifier::Shift}, .callback = ForgetAction};
+		handle = D2RL::Input::InvalidHandle;
+		if (g_input->registerAction(context, &forget, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
@@ -437,6 +477,7 @@ void Tick(const D2RL::PluginContext* context, bool) {
 	const bool asked = g_asked.exchange(false);
 	const bool clicked = InputDirection::TakeBackWith(InputDirection::FaceButton::B);
 	const bool requested = asked || clicked;
+	const bool forget = g_forgetAsked.exchange(false);
 	if (!g_supported) {
 		ExplorationCueService::Silence();
 		if (requested) ScreenReader::Speak(Strings::Current().terrainUnavailable, true);
@@ -450,6 +491,10 @@ void Tick(const D2RL::PluginContext* context, bool) {
 	if (requested && playing) {
 		std::lock_guard lock(g_mutex);
 		Overview(context, state);
+	}
+	if (forget && playing) {
+		std::lock_guard lock(g_mutex);
+		Forget(context, state, now);
 	}
 	if (!playing) {
 		std::lock_guard lock(g_mutex);
@@ -656,7 +701,8 @@ void Unregister() {
 	g_places.clear();
 	g_drawable.clear();
 	g_state = {};
-	g_asked = false;
+	g_asked = g_forgetAsked = false;
+	g_forgetLevel = 0;
 	g_supported = false;
 	g_roomSounds = true;
 	g_placeAlerts = true;

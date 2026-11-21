@@ -161,7 +161,13 @@ std::string DistancePhrase(double distance, const Settings& settings, const Stri
 // 2026-10-22: "one click equals one step"); 0 says them in units. From any thread.
 void SetUnitsPerStep(int units);
 int UnitsPerStep();
-// The number a distance in units is said as: its units, or its steps; never under 1.
+// The game's skills give ranges in yards of two thirds of a subtile: skilldesc.txt
+// says a radius as `ln12*2/3` (Static Field, Lower Resist). docs/attack-reach.md#yards
+inline constexpr double YardsPerSubtile = 2.0 / 3.0;
+// Distances said in yards (a tester, 2026-11-21), before steps. From any thread.
+void SetYards(bool yards);
+bool Yards();
+// The number a distance in units is said as: its yards, its steps or its units; never under 1.
 int SpokenCount(double units);
 // Whether a thing this far away is under the player, spoken without distance or direction.
 bool UnderPlayer(double distance, const Settings& settings);

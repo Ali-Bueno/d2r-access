@@ -231,3 +231,21 @@ found in the first 2.5 s of a level (`TerrainService` `ArrivalHoldMs`) was said 
 the area's banner, which interrupts; such finds now wait and are said after that window. A find
 is said by the scanner's own name, so a tomb carries its symbol ("Tomb of Tal Rasha: Double
 Chevron"); it is still stored by its plain name. Unverified live. *Superseded 2026-11-01: testers finished the whole game, Acts I to V, with this in place.*
+
+## Forgetting an area (2026-11-21)
+
+A tester farms maps and wants every re-entry to start unexplored, to be sure no nook was
+missed. **Shift+O** (input action `forget-exploration`, rebindable) forgets the current level's seen and
+visited rooms; the first press only asks ("Press again to forget what you explored in ..."), a
+second within `ForgetConfirmMs` (3 s) forgets, since it cannot be undone.
+
+- In memory: `ExploredRooms::Memory::Forget(level)` and the level's measured drawable tiles, so
+  they are measured again.
+- On disk: `ExploredStore::Store::Forget(key)` clears the map entry's rooms. `Submit` only ever
+  unions with the record, so an empty snapshot could not clear it. The entry's places (exits,
+  waypoints, the stash) are kept, so the scanner still lists them.
+- The rooms loaded round the player are seen again on the next poll, as they would be on entry.
+
+Tested: `exploration-tests` `ForgetLevel` (the other levels kept; after a forget the archive holds
+only rooms seen since and all its places). Live 2026-11-21, the Blood Moor: the first press asked,
+the second forgot, and Ctrl+O then said 1% explored.
