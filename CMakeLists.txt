@@ -298,6 +298,10 @@ target_compile_definitions(d2r-access PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICO
 # The test release name spoken at start (tools/test-release.ps1 passes its tag); empty for a local build.
 set(D2R_ACCESS_RELEASE "" CACHE STRING "Release name spoken at start; empty for a local build")
 set_property(SOURCE src/plugin.cpp APPEND PROPERTY COMPILE_DEFINITIONS "D2R_ACCESS_RELEASE=\"${D2R_ACCESS_RELEASE}\"")
+# The code dump at the main menu is for local builds; a published release never writes it.
+if(D2R_ACCESS_RELEASE STREQUAL "")
+	set_property(SOURCE src/code_dump.cpp APPEND PROPERTY COMPILE_DEFINITIONS D2R_ACCESS_LOCAL_BUILD=1)
+endif()
 if(MSVC)
 	target_compile_options(d2r-access PRIVATE /W4 /permissive- /EHsc /utf-8)
 endif()

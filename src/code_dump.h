@@ -12,6 +12,9 @@ namespace D2RAccess::CodeDump {
 // dump file is present afterwards.
 bool EnsureDumped(const D2RL::PluginContext* context);
 
+// The dump taken on its own at the main menu: a local build only, never a published release.
+void DumpInLocalBuild(const D2RL::PluginContext* context);
+
 // Writes the WHOLE mapped image instead of one section
 // (d2r-access/D2R.image.bin + D2R.image.json).
 //

@@ -54,6 +54,12 @@ loader writes `<plugin-id>.toml` from the DLL's embedded `radar.toml` only when 
 new key; a missing key falls back to the compiled default (`radar_config.cpp`). Not yet seen live:
 a fresh install starting without `d2rloader.toml`.
 
+**No code dump in a release** (2026-11-19). A local build (no `-Release` tag) writes
+`d2r-access/D2R.text.bin` + `.json` at the first main menu, for offline analysis
+([`code_dump.h`](../src/code_dump.h)); a tagged build never does, after a tester asked what the file
+was. The `access-dump-code` console command still writes one on request. A file already written by an
+older release stays until deleted; nothing reads it in play.
+
 `release.json` names this same zip for the launcher's self-update. From 1.0.5 to 1.0.10 it named
 `D2RUpdate.zip`, the package without `prism.dll`; PRISM's own folder ended that ([why](launcher.md#self-update)).
 

@@ -393,7 +393,7 @@ auto __cdecl OnUiMessage(const D2RL::PluginContext* context, const D2RL::SharedE
 			PanelState::Reset();
 			FocusTracker::Reset();
 			Localization::DetectSpeechLanguage(context);
-			(void)CodeDump::EnsureDumped(context);
+			CodeDump::DumpInLocalBuild(context);
 		}
 	} else if (std::strcmp(event->command, HoverCommand) == 0 || std::strcmp(event->command, SelectCommand) == 0) {
 		AnnounceSelection(*event);

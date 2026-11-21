@@ -160,6 +160,14 @@ bool EnsureDumped(const D2RL::PluginContext* context) {
 	return true;
 }
 
+void DumpInLocalBuild(const D2RL::PluginContext* context) {
+#if D2R_ACCESS_LOCAL_BUILD
+	(void)EnsureDumped(context);
+#else
+	(void)context;
+#endif
+}
+
 bool EnsureImageDumped(const D2RL::PluginContext* context) {
 	if (context == nullptr || context->exeBase == 0) return false;
 	const std::wstring dir    = DumpDirectory(context);
