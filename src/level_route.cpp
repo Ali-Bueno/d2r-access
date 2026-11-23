@@ -24,13 +24,13 @@ int Cell(double value) { return static_cast<int>(std::lround(value)); }
 // The level with one cell of margin all round, never stood on, so no step is
 // tested against the level's edge, and where on it the body fits: on ground
 // seen open, with `unseen` on ground not seen yet, with `doors` in a doorway
-// whose door is shut.
+// whose door is shut, with `things` on a chest's, barrel's or urn's cells.
 struct Floor {
 	size_t across = 0;
 	std::vector<Ground> ground;
 	std::vector<uint8_t> stood;
 };
-Floor Standing(const Memory& memory, int bodyPattern, bool unseen, bool doors) {
+Floor Standing(const Memory& memory, int bodyPattern, bool unseen, bool doors, bool things) {
 	Floor floor;
 	const int width = memory.Width(), height = memory.Height();
 	floor.across = static_cast<size_t>(width) + 2;
@@ -44,7 +44,9 @@ Floor Standing(const Memory& memory, int bodyPattern, bool unseen, bool doors) {
 	for (int dy = -1; dy <= 1; ++dy)
 		for (int dx = -1; dx <= 1; ++dx)
 			if (Radar::InBody(bodyPattern, dx, dy)) body.push_back(dy * row + dx);
-	const auto open = [doors](Ground ground) { return ground == Ground::Open || (doors && ground == Ground::Door); };
+	const auto open = [doors, things](Ground ground) {
+		return ground == Ground::Open || (doors && ground == Ground::Door) || (things && ground == Ground::Thing);
+	};
 	floor.stood.assign(cells, 0);
 	for (int y = 1; y <= height; ++y) {
 		for (int x = 1; x <= width; ++x) {
@@ -147,10 +149,10 @@ bool Memory::Learn(const Radar::World& world) {
 				// one (Beacon, Navigation): shut, or a way would be planned through it
 				// for ever. A shut door's cells carry DOOR, which opening it clears
 				// (docs/collision-semantics.md), or OBJECT alone beside a door noted
-				// (NoteDoor); OBJECT alone elsewhere is a chest or a barrel.
+				// (NoteDoor); OBJECT alone elsewhere is a chest, a barrel or an urn (Ground::Thing).
 				const bool door = (shut & Radar::Collision::Door) || (shut == Radar::Collision::Object && NearDoor(x, y));
 				const Ground ground = (raw & Radar::Collision::Blank) || (shut & ~DoorBits) ? Ground::Blocked
-					: door ? Ground::Door : shut ? Ground::Blocked : Ground::Open;
+					: door ? Ground::Door : shut == Radar::Collision::Object ? Ground::Thing : shut ? Ground::Blocked : Ground::Open;
 				auto& cell = cells_[static_cast<size_t>(y - y_) * width_ + (x - x_)];
 				if (cell == ground) continue;
 				cell = ground;
@@ -264,7 +266,7 @@ Field::Field(const Memory& memory, const Area& goal, int bodyPattern, bool unsee
 	: x_(memory.X()), y_(memory.Y()), width_(memory.Width()), height_(memory.Height()) {
 	if (width_ <= 0 || height_ <= 0) return;
 	// Unless asked, a shut door is no part of a way: the game will not walk through one.
-	const Floor floor = Standing(memory, bodyPattern, unseen, doors);
+	const Floor floor = Standing(memory, bodyPattern, unseen, doors, false);
 	const size_t across = floor.across;
 	const auto& stood = floor.stood;
 	steps_.assign(stood.size(), -1);
@@ -366,7 +368,8 @@ Reach::Reach(const Memory& memory, Position from, int bodyPattern, const std::ve
 
 void Reach::Flood(const Memory& memory, Position from, int bodyPattern, const std::vector<Link>& links, int useWithin) {
 	if (width_ <= 0 || height_ <= 0) return;
-	const Floor floor = Standing(memory, bodyPattern, true, true);
+	// What is cut off is shut by walls: a door opens and a barrel breaks.
+	const Floor floor = Standing(memory, bodyPattern, true, true, true);
 	const size_t across = floor.across;
 	cells_.resize(floor.stood.size());
 	for (size_t i = 0; i < cells_.size(); ++i)

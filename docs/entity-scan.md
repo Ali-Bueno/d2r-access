@@ -88,16 +88,25 @@ automap; enemies are the one live category.
   **Either way, and in full assistance, an unexplored room the kept map shows no
   way into is left out** (`LeaveOutShutRooms` in `map_survey_service.cpp`:
   `KeyboardService::CutOff`, the whole-level `LevelRoute::Reach`, unseen ground
-  and doors passable, teleport pads too). A tester's log, 2026-10-27: in the
+  and doors passable, teleport pads too, and objects alone -- chests, barrels,
+  urns, `LevelRoute::Ground::Thing` -- since most break). A tester's log, 2026-10-27: in the
   Outer Cloister eight of the listed areas, rows 0-1 of its 7x5 grid of rooms,
   were the monastery's roofed blocks, every cell wall (`0x0005`), so each answered
   "No route through explored areas" and none could ever be explored. What the
   map cannot tell, a room past ground not seen yet, stays listed. Log, on a
   change: `[survey] level L: N unexplored rooms with no way in from x,y left out: ...`.
+  A tester's log, 2026-11-23, the Maggot Lair (level 62, 5 of 18 rooms seen): the
+  one corridor out of the first room is four cells wide with two objects
+  (`0x0400`, urns most likely) at 17554,5042 and 17554,5044; the body's cross fits
+  nowhere beside them, so the only room at the edge, 4, was left out and the
+  scanner listed nothing but "area 1", the room stood in. Objects no longer cut
+  ground off; routes still go round them, never through (no way is planned
+  through one: the game does not walk through an unbroken urn).
 - **Ground items** (`Item`, after the enemies and the scenery) are listed once
   discovered by the enemy rule (in range and in sight, or in the room underfoot;
-  all loaded ones with full assistance) and only those the item loops would
-  sound (`GroundItems::LootFilter::Loops`). They stay with their level for the
+  all loaded ones with full assistance), whatever the audible loot filter keeps
+  looping: it quiets loops only (a tester, 2026-11-23; from 1.0.18 to 1.0.21 a
+  filtered item was left out of the list). They stay with their level for the
   game, in both modes, and are forgotten when their place is within reach and
   empty, or on a new game. Switch `remember-items` (Ctrl+S Navigation, on); off
   drops them on leaving the level

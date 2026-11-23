@@ -31,7 +31,12 @@ using Radar::Position;
 // Door: a shut door, and nothing else in the cell that stops a walk. No way is
 // planned through one, since the game will not walk through it; but a door can
 // be opened, so what lies past one is not cut off (Reach).
-enum class Ground : uint8_t { Outside, Unseen, Open, Blocked, Door };
+// Thing: an object alone, away from any door -- a chest, a barrel, an urn. No way
+// is planned through one either, but most break, so it cuts nothing off (Reach).
+// A tester's log, 2026-11-23, the Maggot Lair: two urns in the one corridor out
+// of the first room left no place for the body, and its only unexplored room was
+// left out of the scanner as having no way in.
+enum class Ground : uint8_t { Outside, Unseen, Open, Blocked, Door, Thing };
 
 // Where a way ends: the cells, bounds included, the body may stand on to be there.
 // A thing is reached from round it (its own cells carry its collision), a room

@@ -402,13 +402,14 @@ std::vector<EntityRadar::Entity> Enemies(const Radar::World& world, const Scene&
 	return g_fullAssistance || (counted && counted == level) ? scene.enemies : MapSurvey::Charted(world, scene.enemies, here);
 }
 
-// Items on the ground in every loaded room of the level, however far, that the item loops would sound.
+// Items on the ground in every loaded room of the level, however far. The audible loot
+// filter quiets loops only: a filtered item is still listed (a tester, 2026-11-23).
 std::vector<EntityRadar::Entity> LoadedItems(const Lifecycle& state) {
 	std::vector<EntityRadar::Entity> items;
 	GroundItems::Snapshot snapshot;
 	if (!NativeGroundItems::ReadLevel(state.player, state.session, snapshot)) return items;
 	for (const auto& item : snapshot.items) {
-		if (item.source != GroundItems::SourceKind::Item || item.name.empty() || !GroundItems::LootFilter::Loops(item)) continue;
+		if (item.source != GroundItems::SourceKind::Item || item.name.empty()) continue;
 		EntityRadar::Entity entity;
 		entity.id = item.id;
 		entity.kind = EntityRadar::Kind::Item;

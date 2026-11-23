@@ -662,7 +662,8 @@ features). Built and unit-tested only.
   reaches the game too); a **Loot filter** group chooses what keeps looping (potions, gems and
   runes, equipment from a least quality up); silver items loop at every level but off; gold,
   scrolls and quest items always loop. Off by default, as the tester asked. The initial drop sound
-  is the game's and untouched.
+  is the game's and untouched. It quiets loops only: every item stays on the scanner's Item list
+  (the tester, 2026-11-23: "should only squelch the noise made by the items, not hide them").
 - **The Forgotten Tower's entrance is a quest place**: an exit to Tower Cellar Level 1 (Levels.txt
   Id 21, `EntityRadar::QuestDestinations`) gets the quest loop, the scanner's quest category and
   "a new quest object" wording, before and after the quest. **Exits are found from twice the scan

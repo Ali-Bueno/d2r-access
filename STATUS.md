@@ -2,6 +2,19 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Maggot Lair stuck in the first room, loot filter hiding items — release 1.0.22 (2026-11-23)
+
+142 tests pass; built and deployed, not run live.
+
+| Report | State | Where |
+|---|---|---|
+| Maggot Lair Level 1: only "area 1" listed, stuck in the first room (log on 1.0.17; a new map fixed it) | fixed in code: two objects (`0x0400`, urns most likely) in the one 4-cell corridor out left no place for the body's cross, so `LeaveOutShutRooms` dropped the only edge room (`left out: 4`). A lone object is now `LevelRoute::Ground::Thing`: it cuts nothing off; routes still go round it | [entity scan](docs/entity-scan.md) (no way in) |
+| Loot filter on: filtered items gone from the scanner's Item heading | regression of 1.0.18 (`e04f6e2`): `LoadedItems` took `LootFilter::Loops`. Removed: the filter quiets loops only | [entity scan](docs/entity-scan.md) (ground items), [decisions](docs/decisions.md) |
+
+**Next step:** the testers' run: potions with the filter on are listed; in a level whose way out
+is blocked by urns the next room is listed. Possible follow-up: a route that says the urn in
+the way instead of "No route".
+
 ## A tester's list: Shift+Home to the Blood Moor, the retreat's way out, yards, forgetting an area, legacy classes — release 1.0.21 (2026-11-21)
 
 142 tests pass; built, deployed and run live (Rogue Encampment, character creation).

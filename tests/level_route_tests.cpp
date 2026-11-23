@@ -324,12 +324,31 @@ int main() {
 		Check(!reach.Holds(memory, player, 1), "a map that changed is searched again");
 		reach = LevelRoute::Reach(memory, player, 1);
 		Check(reach.To({Left + 41.0, Top + 15.0}, 2) == Answer::Reached, "a chest is reached from beside it");
-		Check(reach.To({Left + 41.0, Top + 15.0}, 0) == Answer::CutOff, "fixture: its own cell is not stood on");
+		Check(memory.At(Left + 41, Top + 15) == Ground::Thing, "a chest's cells are a thing, not a wall");
+		Check(reach.To({Left + 41.0, Top + 15.0}, 0) == Answer::Reached, "and a thing cuts nothing off: even its own cells count as got to");
 		// A room: any of its ground. The rooms are 40 cells a side.
 		const auto rooms = level.Rooms();
 		Check(reach.Within(NativeRooms::Subtiles(rooms[0])) == Answer::Reached, "the room stood in is reached");
 		Check(reach.Within(NativeRooms::Subtiles(rooms[2])) == Answer::CutOff, "a room holding only the far walkway is cut off");
 		Check(reach.Within(NativeRooms::Subtiles(rooms[Across])) == Answer::CutOff, "and so is a room of nothing but wall");
+		{
+			// The Maggot Lair, a tester's log 2026-11-23: the one corridor out of the
+			// first room, four cells wide, with two urns in it. The body's cross fits
+			// nowhere past them, yet the room beyond has a way in: they break.
+			Level lair;
+			lair.Fill(Left, Top, Left + Width - 1, Top + Height - 1, Wall);
+			lair.Fill(Left + 10, Top + 10, Left + 30, Top + 20, 0); // the first room
+			lair.Fill(Left + 19, Top + 21, Left + 22, Top + 30, 0); // the corridor
+			lair.Fill(Left + 10, Top + 31, Left + 30, Top + 38, 0); // the room beyond
+			lair.Fill(Left + 20, Top + 24, Left + 20, Top + 24, 0x0400);
+			lair.Fill(Left + 20, Top + 26, Left + 20, Top + 26, 0x0400);
+			LevelRoute::Memory lairMemory;
+			Check(lairMemory.Begin(1, 1, lair.Rooms()), "fixture: the map begins");
+			const Position start{Left + 20.0, Top + 15.0}, beyond{Left + 20.0, Top + 35.0};
+			(void)lairMemory.Learn(lair.Loaded(start, 2));
+			Check(LevelRoute::Plan().From(lairMemory, start, beyond, 1, 1).path.empty(), "fixture: no way is planned past the urns");
+			Check(LevelRoute::Reach(lairMemory, start, 1).To(beyond, 1) == Answer::Reached, "but the ground past them is not cut off");
+		}
 		// Ground not seen yet may have a way: nothing past it is called cut off.
 		Level open;
 		open.Fill(Left + 60, Top, Left + 62, Top + Height - 1, Wall); // a wall from top to bottom
@@ -367,8 +386,8 @@ int main() {
 		level.At(Left + 100, Top + 30) = Object;
 		level.At(Left + 101, Top + 30) = Door | Wall;
 		(void)memory.Learn(level.Loaded({Left + 100.0, Top + 30.0}, 0));
-		Check(memory.At(Left + 100, Top + 30) == Ground::Blocked && memory.At(Left + 101, Top + 30) == Ground::Blocked,
-			"an object alone, and a door on a wall, are ground seen shut");
+		Check(memory.At(Left + 100, Top + 30) == Ground::Thing && memory.At(Left + 101, Top + 30) == Ground::Blocked,
+			"an object alone is a thing, and a door on a wall is ground seen shut");
 		const Position player{Left + 51.0, Top + 100.0}, place{Left + 51.0, Top + 20.0};
 		Check(LevelRoute::Plan().From(memory, player, place, 1, 1).path.empty(), "no way is planned through a shut door");
 		Check(LevelRoute::Reach(memory, player, 1).To(place, 1) == Answer::Reached, "what lies past a shut door is not cut off");
@@ -393,8 +412,8 @@ int main() {
 					(void)cells.Learn(jail.Loaded({Left + column * RoomCells + 5.0, Top + row * RoomCells + 5.0}, 0));
 		};
 		learnAll();
-		Check(cells.At(Left + 51, Top + 61) == Ground::Blocked && LevelRoute::Plan().From(cells, player, place, 1, 1, true).path.empty(),
-			"a door marked as an object reads as a wall until it is noted");
+		Check(cells.At(Left + 51, Top + 61) == Ground::Thing && LevelRoute::Plan().From(cells, player, place, 1, 1, true).path.empty(),
+			"a door marked as an object reads as a thing no way passes until it is noted");
 		Check(cells.NoteDoor({Left + 51.0, Top + 61.0}, 3) && !cells.NoteDoor({Left + 51.0, Top + 61.0}, 3), "a door is noted once");
 		learnAll();
 		Check(cells.At(Left + 51, Top + 61) == Ground::Door && cells.At(Left + 50, Top + 60) == Ground::Door
