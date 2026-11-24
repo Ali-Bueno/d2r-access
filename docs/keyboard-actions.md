@@ -69,6 +69,51 @@ the walk a click makes.
 The click code refuses a cell 256 subtiles or more away on either axis
 (`0x140100BB0`). The plugin's orders are at most `AutoWalk::Settings::reach`.
 
+## The stop
+
+`Halt(player)` at RVA `0xFE080` tells the server where the player stops (walk or
+run to its own cell, `0xED930`). It first asserts that the player's mode
+(`unit+0xC`) is not 2, 3 or 6 (walk, run, town walk); nothing else calls that
+assert's lambda (`0xFCAE0`). READ in the 3.3.94995 dump.
+
+The game takes the player out of the walk first. Of `Halt`'s seven callers, four
+(`0xFA2AF`, `0xFA518`, `0xFCEC0`, `0xFF828`) come after `0xFF010(7, player, 0,
+r9)`, r9 1 (0 for the last); the first two make that call only in mode 2, 3 or 6.
+`0xFF3CA` and `0xFF450` come after `0xF9860(player, mode)`, whose body was not
+read, nor was the way to `0xFF30F`. Up to 1.0.22 `NativeActions::Halt` called
+`0xFE080` alone, so a stop given while the character still walked tripped it:
+
+    BC_ASSERT: playerUnit->playerMode != PMODE_WALK && ... PMODE_RUN && ... PMODE_TOWNWALK
+    D2Client\src\Unit\Player.cpp:581, caller D2RLoader.exe+0x7600A, ID 466E673466849BCB
+
+- The message and file come from testers' `d2rloader.log`; the image keeps no
+  such strings, so the match with `0xFE080` is by the modes it compares.
+- `0x7600A` is in a thunk many asserts go through: it does not name the site.
+  "Scope: vanilla" and the short stack do not clear the mod.
+- A 1.0.18 log (3.4.95041, 2026-11-16): the session's first keyboard step at
+  19:07:39.059, the assert at 19:07:39.433. One line in a session with 11
+  `ended: arrived`, so the loader logs each ID once a session (MEASURED:
+  five such stops, one line).
+- A pad session (1.0.17, no keyboard walk) has no such line.
+- Harm: none reported, none seen; the character stopped all the same.
+
+**Fixed 2026-11-23:** in mode 2, 3 or 6 `Halt` first calls `0xFF010(7, player, 0,
+1)`, as the game does. Event 7 (`0xFF6EE`) with no place puts the character in
+its standing mode (1, or 5 in town) through `0xF9860`. `0xFF010` has its own
+fingerprint; if it fails, a stop goes as before and walking stays on.
+
+MEASURED on 3.4.95041, Rogue Encampment, running (`pruebalod`), the assert
+counted in `d2rloader.log` for the whole session:
+
+| Build | Done | Asserts |
+|---|---|---|
+| before | 5 arrow steps released while running | 1, at the first release |
+| after | 12 arrow steps, Shift+Home to Akara and to the stash, End in mid-walk, D on the stash | 0 |
+
+After the fix the position 0.25 s and 1.5 s past a stop was the same, and the
+next order walked. Not tried: walking instead of running, outside town, a fight,
+multiplayer.
+
 ## The selected skills
 
 READ: `[unit+0x100]` is the player's skill list; `[list+0x08]` the left hand's

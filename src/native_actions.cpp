@@ -2,6 +2,7 @@
 
 #include "async_log.h"
 #include "battle/skill_cast.h"
+#include "ground_item_layout.h"
 #include "layout_check.h"
 #include "native_ground_items.h"
 #include "native_memory.h"
@@ -21,6 +22,11 @@ constexpr uintptr_t CommandRva = 0xFABE0, HaltRva = 0xFE080;
 // What a click on the ground calls: MoveToPoint(command, player, x, y) has the
 // game find its own path to the cell, then issues the command to where that ends.
 constexpr uintptr_t MoveToPointRva = 0x101EF0;
+// PlayerEvent(event, player, where, always): the game takes a walking player out
+// of the walk with StopEvent before Halt, which asserts on one still walking
+// (docs/keyboard-actions.md#the-stop). It passes no place and 1 (0xFA297, 0xFA500, 0xFCE97).
+constexpr uintptr_t PlayerEventRva = 0xFF010;
+constexpr uint32_t StopEvent = 7, StopAlways = 1;
 // The player's skills (0x34A540, 0x34B400): the list at unit+0x100 holds the
 // left hand's skill at +8 and the right hand's at +0x10; a skill's first field
 // points at its skills.txt record, which begins with its 16-bit id (0x33E080).
@@ -47,6 +53,9 @@ constexpr Evidence Checks[] = {
 	{HaltRva, 367, 0x256CD056ADB87DC3ULL},     // the stop
 	{MoveToPointRva, 168, 0x8F1B71BB9A57CE71ULL}, // a click's walk to a point
 };
+constexpr Evidence StopChecks[] = {
+	{PlayerEventRva, 2168, 0xB2F4D70179DAA468ULL}, // up to its jump table
+};
 constexpr Evidence SkillChecks[] = {
 	{0x34A540, 50, 0x3330034D07C56C5BULL}, // unit -> skills, for the left hand
 	{0x33D1A0, 48, 0xF250096169552F56ULL}, // skills -> left skill
@@ -56,11 +65,13 @@ constexpr Evidence SkillChecks[] = {
 
 // Whatever the game returns is handed back untouched: the hook stands between it and its callers.
 using CommandFn = uintptr_t(*)(uint32_t, uintptr_t, int32_t, int32_t);
+using PlayerEventFn = int(*)(uint32_t, uintptr_t, const void*, uint32_t);
 const D2RL::PluginContext* g_context = nullptr;
 uintptr_t g_base = 0;
 CommandFn g_command = nullptr;  // the game's function, past our own hook when there is one
 CommandFn g_original = nullptr; // the hook's way on
 bool g_skills = false;
+PlayerEventFn g_playerEvent = nullptr; // null: a stop goes without the game's step out of the walk
 std::atomic<bool> g_logging{true};
 std::atomic<uint32_t> g_uiThread{0};
 uint32_t g_lastOp = ~0U;
@@ -122,10 +133,13 @@ bool Initialize(const D2RL::PluginContext* context, bool hooks) {
 	g_context = context;
 	g_command = g_original = nullptr;
 	g_skills = false;
+	g_playerEvent = nullptr;
 	if (!context || !LayoutCheck::Verify(context, context->exeBase, Checks, "actions", "keyboard walking and fighting are off")) return false;
 	g_base = context->exeBase;
 	g_command = reinterpret_cast<CommandFn>(g_base + CommandRva);
 	g_skills = LayoutCheck::Verify(context, context->exeBase, SkillChecks, "actions", "the selected skill cannot be read");
+	if (LayoutCheck::Verify(context, context->exeBase, StopChecks, "actions", "a stop goes without the game's step out of the walk"))
+		g_playerEvent = reinterpret_cast<PlayerEventFn>(g_base + PlayerEventRva);
 	if (hooks && context->InstallInlineHook(CommandRva, CommandPrefix, sizeof(CommandPrefix), &Observe, &g_original) && g_original) {
 		g_command = g_original;
 		AsyncLog::Info(context, "[actions] Verified; the game's own commands are logged.");
@@ -184,7 +198,11 @@ bool Halt() {
 	if (!g_command) return false;
 	uintptr_t player = 0, tables = 0;
 	if (!NativeGroundItems::RuntimeRoots(player, tables) || !player) return false;
+	uint32_t mode = 0;
+	const bool walking = NativeMemory::Peek(player + GroundItemLayout::UnitMode, mode)
+		&& (mode == GroundItemLayout::Walk || mode == GroundItemLayout::Run || mode == GroundItemLayout::TownWalk);
 	__try {
+		if (walking && g_playerEvent) g_playerEvent(StopEvent, player, nullptr, StopAlways);
 		reinterpret_cast<void(*)(uintptr_t)>(g_base + HaltRva)(player);
 		return true;
 	} __except (EXCEPTION_EXECUTE_HANDLER) { return false; }

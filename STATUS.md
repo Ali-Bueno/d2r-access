@@ -2,6 +2,16 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## A tester's assert on walking to Akara — release 1.0.23 (2026-11-23)
+
+142 tests pass; built, deployed and run live in the Rogue Encampment.
+
+| Report | State | Where |
+|---|---|---|
+| `BC_ASSERT: playerUnit->playerMode != PMODE_WALK ...` (Player.cpp:581) in the loader's log | fixed: ours, not the tester's machine; `NativeActions::Halt` skipped the game's own step out of the walk. Reproduced on this PC (one assert a session), none after | [keyboard actions](docs/keyboard-actions.md#the-stop) |
+
+**Next step:** the testers' run: stops in a fight and outside town, no such line in `d2rloader.log`.
+
 ## Maggot Lair stuck in the first room, loot filter hiding items — release 1.0.22 (2026-11-23)
 
 142 tests pass; built and deployed, not run live.
