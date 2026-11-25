@@ -132,7 +132,13 @@ bool Memory::Extend(const std::vector<NativeRooms::Room>& rooms) {
 }
 
 bool Memory::Learn(const Radar::World& world) {
-	if (cells_.empty() || world.session != session_ || world.level != level_) return false;
+	return world.level == level_ && LearnRooms(world, true);
+}
+
+bool Memory::LearnBeside(const Radar::World& world) { return world.level != level_ && LearnRooms(world, false); }
+
+bool Memory::LearnRooms(const Radar::World& world, bool own) {
+	if (cells_.empty() || world.session != session_) return false;
 	const uint16_t mask = static_cast<uint16_t>(world.walkingMask & ~NoPath);
 	bool changed = false;
 	// The first room covering a cell owns it (Radar::World::RoomAt): written last here.
@@ -154,7 +160,7 @@ bool Memory::Learn(const Radar::World& world) {
 				const Ground ground = (raw & Radar::Collision::Blank) || (shut & ~DoorBits) ? Ground::Blocked
 					: door ? Ground::Door : shut == Radar::Collision::Object ? Ground::Thing : shut ? Ground::Blocked : Ground::Open;
 				auto& cell = cells_[static_cast<size_t>(y - y_) * width_ + (x - x_)];
-				if (cell == ground) continue;
+				if (cell == ground || (!own && cell == Ground::Outside)) continue;
 				cell = ground;
 				changed = true;
 			}
@@ -253,6 +259,33 @@ Memory Memory::Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revisi
 	return copy;
 }
 
+bool Memory::Join(const Memory& a, const Memory& b, bool unseenA, bool unseenB) {
+	*this = {};
+	if (a.cells_.empty() || b.cells_.empty() || a.session_ != b.session_) return false;
+	const int minX = std::min(a.x_, b.x_), minY = std::min(a.y_, b.y_);
+	const int64_t width = int64_t(std::max(a.x_ + a.width_, b.x_ + b.width_)) - minX;
+	const int64_t height = int64_t(std::max(a.y_ + a.height_, b.y_ + b.height_)) - minY;
+	if (width * height > MaxCells) return false;
+	session_ = a.session_;
+	level_ = a.level_;
+	revision_ = 1;
+	x_ = minX; y_ = minY;
+	width_ = static_cast<int>(width); height_ = static_cast<int>(height);
+	cells_.assign(static_cast<size_t>(width * height), Ground::Outside);
+	const auto put = [&](const Memory& from, bool unseen) {
+		for (int y = 0; y < from.height_; ++y)
+			for (int x = 0; x < from.width_; ++x) {
+				const Ground ground = from.cells_[static_cast<size_t>(y) * from.width_ + x];
+				if (ground == Ground::Outside) continue;
+				cells_[static_cast<size_t>(y + from.y_ - y_) * width_ + (x + from.x_ - x_)] =
+					ground == Ground::Unseen && !unseen ? Ground::Outside : ground;
+			}
+	};
+	put(b, unseenB);
+	put(a, unseenA);
+	return true;
+}
+
 Ground Memory::At(int x, int y) const {
 	const int64_t dx = int64_t(x) - x_, dy = int64_t(y) - y_;
 	if (dx < 0 || dy < 0 || dx >= width_ || dy >= height_) return Ground::Outside;
@@ -300,6 +333,18 @@ int Field::Steps(int x, int y) const {
 }
 
 bool Field::At(Position from) const { return Steps(Cell(from.x), Cell(from.y)) == 0; }
+
+std::optional<Position> Field::Nearest(const Area& area) const {
+	std::optional<Position> nearest;
+	int fewest = -1;
+	for (int y = area.minY; y <= area.maxY; ++y)
+		for (int x = area.minX; x <= area.maxX; ++x)
+			if (const int steps = Steps(x, y); steps >= 0 && (fewest < 0 || steps < fewest)) {
+				fewest = steps;
+				nearest = Position{static_cast<double>(x), static_cast<double>(y)};
+			}
+	return nearest;
+}
 
 std::vector<Position> Field::From(Position from) const {
 	std::vector<Position> path;

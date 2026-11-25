@@ -1,11 +1,13 @@
 #pragma once
 
 #include "entity_radar.h"
+#include "native_rooms.h"
 #include "pad_links.h"
 #include "radar.h"
 
 #include <D2RLPlugin/api.h>
 
+#include <optional>
 #include <vector>
 
 namespace D2RAccess::LevelRoute { class Memory; }
@@ -71,6 +73,15 @@ std::vector<int> PadSteps(const Radar::World& world, const std::vector<const Ent
 // The shut doors among `entities` into the level's kept map, so a way passes one whose cells the
 // game marks as an object's, not a door's (LevelRoute::Memory::NoteDoor).
 void NoteDoors(const Radar::World& world, const std::vector<EntityRadar::Entity>& entities);
+// A room got to by way of a neighbouring level: the other level, the last cell of this one before it,
+// the steps of the whole way (level_detour.h) and the room.
+struct RoomDetour { int via = 0; Radar::Position cell; int steps = 0; NativeRooms::Bounds room; };
+// For each room of `things` (scanner room entries), its way through the neighbouring levels walked
+// this game. `guess`: ground of theirs not shown yet counts as a way. docs/detours.md
+std::vector<std::optional<RoomDetour>> Detours(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& things, bool guess);
+// On the way through: from where `world` has the player, the cell to enter `level` by for the room with
+// these bounds (max exclusive), and the steps to it.
+std::optional<RoomDetour> DetourBack(const Radar::World& world, int level, const NativeRooms::Bounds& room);
 // The map of the level `world` is of that the walks plan on (level_route.h),
 // learnt from `world` first, for the beacon to plan on too. Null when it is not
 // kept. Valid until the next call into this service.

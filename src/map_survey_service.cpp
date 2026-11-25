@@ -7,6 +7,7 @@
 #include "corpse_memory.h"
 #include "crossing_memory.h"
 #include "death_place_service.h"
+#include "detour_service.h"
 #include "map_survey.h"
 #include "layout_check.h"
 #include "native_drlg.h"
@@ -509,24 +510,55 @@ void LeaveOutCutOff(const Radar::World& world, std::vector<MapSurvey::Landmark>&
 // Unexplored rooms the level's map shows no way into, walled off or with no floor
 // at all: no route ends in one and it is never explored (a tester's log, 2026-10-27:
 // the Outer Cloister's roofed blocks). What cannot be told stays listed. docs/entity-scan.md
-void LeaveOutShutRooms(const Radar::World& world, std::vector<EntityRadar::Entity>& rooms) {
+// The rooms left out are returned: a neighbouring level may lead into them.
+std::vector<EntityRadar::Entity> LeaveOutShutRooms(const Radar::World& world, std::vector<EntityRadar::Entity>& rooms) {
+	std::vector<EntityRadar::Entity> left;
 	std::vector<const EntityRadar::Entity*> unexplored;
 	for (const auto& room : rooms)
 		if (room.category == EntityRadar::Category::UnexploredRoom) unexplored.push_back(&room);
-	if (unexplored.empty()) return;
+	if (unexplored.empty()) return left;
 	const auto cut = KeyboardService::CutOff(world, unexplored);
 	std::vector<uint32_t> shut;
 	for (size_t i = 0; i < unexplored.size(); ++i)
-		if (cut[i]) shut.push_back(unexplored[i]->id);
+		if (cut[i]) { shut.push_back(unexplored[i]->id); left.push_back(*unexplored[i]); }
 	std::erase_if(rooms, [&](const EntityRadar::Entity& room) {
 		return room.category == EntityRadar::Category::UnexploredRoom && std::find(shut.begin(), shut.end(), room.id) != shut.end(); });
-	if (shut == g_shutRooms && world.level == g_shutRoomsLevel) return;
+	if (shut == g_shutRooms && world.level == g_shutRoomsLevel) return left;
 	g_shutRooms = shut;
 	g_shutRoomsLevel = world.level;
 	std::string numbers;
 	for (const auto number : shut) numbers += Format(" %u", number);
 	AsyncLog::InfoF(g_context, "[survey] level %d: %zu unexplored rooms with no way in from %.0f,%.0f left out:%s", world.level,
 		shut.size(), world.player.x, world.player.y, numbers.c_str());
+	return left;
+}
+
+// The rooms left out that a neighbouring level leads into, as the crossings to take. Where nothing
+// unexplored is left in reach of a level mostly never shown, the nearest of all its rooms that has
+// such a way: a river's bank may show none of the far bank's rooms. docs/detours.md
+size_t g_detoursLogged = 0;
+void AddDetours(const Radar::World& world, const std::vector<RoomCatalogue::Entry>& entries, std::vector<EntityRadar::Entity>& rooms,
+	const std::vector<EntityRadar::Entity>& left, bool mostlyUnseen) {
+	auto detours = DetourService::Find(world, left, mostlyUnseen);
+	const auto unexplored = [](const EntityRadar::Entity& room) { return room.category == EntityRadar::Category::UnexploredRoom; };
+	if (detours.empty() && mostlyUnseen && std::none_of(rooms.begin(), rooms.end(), unexplored)) {
+		const Strings::Table& strings = Strings::Current();
+		auto all = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
+		std::erase_if(all, [&](const EntityRadar::Entity& room) { return !unexplored(room); });
+		std::vector<const EntityRadar::Entity*> things;
+		for (const auto& room : all) things.push_back(&room);
+		const auto cut = KeyboardService::CutOff(world, things);
+		std::vector<EntityRadar::Entity> beyond;
+		for (size_t i = 0; i < all.size(); ++i) if (cut[i]) beyond.push_back(all[i]);
+		detours = DetourService::Find(world, beyond, true);
+		if (detours.size() > 1) detours.resize(1);
+	}
+	if (detours.size() != g_detoursLogged) {
+		g_detoursLogged = detours.size();
+		AsyncLog::InfoF(g_context, "[survey] level %d: %zu unexplored rooms by way of a neighbouring level from %.0f,%.0f%s%s", world.level,
+			detours.size(), world.player.x, world.player.y, detours.empty() ? "" : ", nearest: ", detours.empty() ? "" : detours.front().name.c_str());
+	}
+	rooms.insert(rooms.end(), detours.begin(), detours.end());
 }
 
 // Reads the world fresh: the answer must reflect where the player is standing
@@ -568,14 +600,17 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	// Rooms are listed whether or not the game has them loaded. Exploration keeps
 	// the rooms stood in and the unexplored ones at the edge of the known map.
 	auto entries = g_rooms.Entries();
-	if (!g_fullAssistance) {
-		const auto& levelRooms = CurrentRooms(state.level, state.session);
-		entries = RoomCatalogue::Exploration(entries, TerrainService::VisitedRooms(state.level, levelRooms),
-			TerrainService::ExploredRooms(state.level, levelRooms, world.player), &grid, g_unexploredEverywhere.load());
-	}
+	const auto& levelRooms = CurrentRooms(state.level, state.session);
+	const auto shown = TerrainService::ExploredRooms(state.level, levelRooms, world.player);
+	const auto visited = TerrainService::VisitedRooms(state.level, levelRooms);
+	const auto everywhere = RoomCatalogue::Exploration(entries, visited, shown, &grid, true);
+	if (!g_fullAssistance) entries = RoomCatalogue::Exploration(entries, visited, shown, &grid, g_unexploredEverywhere.load());
 	const Strings::Table& strings = Strings::Current();
 	auto rooms = RoomCatalogue::Entities(entries, strings.surveyRoom, strings.surveyRoomUnexplored);
-	LeaveOutShutRooms(world, rooms);
+	const auto left = LeaveOutShutRooms(world, rooms);
+	// Most of the level's rooms never shown: then it is not a finished level's walled-in rooms.
+	AddDetours(world, everywhere, rooms, left, shown.size() * 2 < levelRooms.size());
+	if (auto onward = DetourService::Onward(world)) rooms.push_back(std::move(*onward));
 	catalogued.insert(catalogued.end(), rooms.begin(), rooms.end());
 	// An area border is measured to where it is walked across, where the beacon
 	// leads: the crossing loaded now, else one seen this game.
@@ -593,6 +628,23 @@ bool CurrentSurvey(std::vector<MapSurvey::Landmark>& landmarks, int& level) {
 	if (g_reachFilter) LeaveOutCutOff(world, landmarks);
 	PadWays(world, landmarks);
 	return true;
+}
+
+// Come into the level a detour passes through: the way on is said and offered to guidance and walks.
+void SayOnward(const D2RL::PluginContext* context, const Lifecycle& state, uint64_t now) {
+	if (!DetourService::Due(state.session, state.level, now)) return;
+	Radar::World world;
+	if (!NativeWorld::Read(state.player, state.session, state.level, world)) return;
+	DetourService::ForgetReached(world);
+	const auto onward = DetourService::Onward(world);
+	if (!onward) return;
+	const Navigation::Grid grid = Navigation::Build(world, SurveyRadius, Radar::Layer::Movement, false);
+	const auto landmarks = MapSurvey::Survey(world, grid, {*onward}, g_fullAssistance);
+	if (landmarks.empty()) return;
+	if (EntityRadar::Entity offered; !BeaconService::Offered(offered, state.level)) BeaconService::Offer(*onward, state.level, now);
+	const std::string text = Describe(landmarks.front());
+	AsyncLog::InfoF(context, "[survey] detour onward: %s", text.c_str());
+	ScreenReader::Speak(text, false);
 }
 
 void Answer(const D2RL::PluginContext* context, Request request) {
@@ -638,6 +690,7 @@ void Answer(const D2RL::PluginContext* context, Request request) {
 	// the scanner just named. Every answer re-offers, including a plain repeat,
 	// so the offer is always the thing the player heard most recently.
 	BeaconService::Offer(members[index].entity, level, GetTickCount64());
+	DetourService::Chosen(members[index].entity);
 	TutorialService::Scanned(members[index].entity);
 
 	// The category name first when the category changed, so the player knows
@@ -805,6 +858,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 		state = g_state;
 	}
 	if (!Playing(state) || !RadarUi::InPlay()) return;
+	SayOnward(context, state, now);
 	using Clock = std::chrono::steady_clock;
 	const auto start = Clock::now();
 	Radar::World world;

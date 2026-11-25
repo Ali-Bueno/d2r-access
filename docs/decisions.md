@@ -3,6 +3,18 @@
 Dated log of design decisions and explicitly rejected alternatives, newest first. Short entries —
 the *how* lives in the linked docs, this page only records the *why* and what was turned down.
 
+## 2026-11-24 — Dropped items on comma and full stop, objects with Shift
+
+A tester asked for interactables on semicolon and apostrophe, comma and full stop left to loot. The
+user chose Shift+comma and Shift+full stop for the objects, replacing their own 2026-09-28 choice of
+every object on comma and full stop, which Ctrl+S `items-apart` off brings back. Turned down:
+semicolon and apostrophe, whose codes are other keys outside the US layout.
+
+## 2026-11-24 — Cut-off ground is sought through the neighbouring level
+
+Through one neighbouring level, over ground shown this game: unseen ground anywhere would list
+every walled-in room ([detours](detours.md)).
+
 ## 2026-11-04 — Guidance can follow the scanner
 
 The user: a shortcut or a setting so that what is scanned becomes the beacon's target, as BACK+LB does,

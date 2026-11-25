@@ -93,7 +93,8 @@ automap; enemies are the one live category.
   Outer Cloister eight of the listed areas, rows 0-1 of its 7x5 grid of rooms,
   were the monastery's roofed blocks, every cell wall (`0x0005`), so each answered
   "No route through explored areas" and none could ever be explored. What the
-  map cannot tell, a room past ground not seen yet, stays listed. Log, on a
+  map cannot tell, a room past ground not seen yet, stays listed. Since 2026-11-24 a room left out
+  that a neighbouring level leads into is listed as the way through it ([detours](detours.md)). Log, on a
   change: `[survey] level L: N unexplored rooms with no way in from x,y left out: ...`.
   A tester's log, 2026-11-23, the Maggot Lair (level 62, 5 of 18 rooms seen): the
   one corridor out of the first room is four cells wide with two objects

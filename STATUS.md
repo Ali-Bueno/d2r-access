@@ -2,6 +2,18 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## A river's far bank, objects on keys of their own — release 1.0.24 (2026-11-24)
+
+142 tests pass; built and deployed, not run live.
+
+| Report | State | Where |
+|---|---|---|
+| Flayer Jungle come into on the wrong bank: no unexplored area listed (the bridge is in the area before) | fixed in code: rooms cut off on foot are searched for through the neighbouring level walked this game, and led to in two legs (scanner, beacon, route, Shift+Home, H) | [detours](docs/detours.md) |
+| Comma and full stop flooded by objects | comma and full stop step through dropped items, with Shift through objects (the user); Ctrl+S `items-apart` (on) off gives both back to comma and full stop | [keyboard keys](docs/keyboard-keys.md) |
+
+**Next step:** the testers' run: a bank with no way on in Act III (both legs heard, no junk "through"
+entries in finished areas); Shift with comma and full stop heard.
+
 ## A tester's assert on walking to Akara — release 1.0.23 (2026-11-23)
 
 142 tests pass; built, deployed and run live in the Rogue Encampment.

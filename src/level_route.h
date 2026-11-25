@@ -79,6 +79,12 @@ public:
 	// yet, which a way may cross only as a guess. A Plan tells maps apart by
 	// revision, so `revision` must be one no other map planned on has had.
 	Memory Copy(const std::vector<NativeRooms::Room>* rooms, uint64_t revision) const;
+	// Two neighbouring levels as one map, the first one's ground where both have some. `unseenA` and
+	// `unseenB` say whether ground not seen yet of each is kept; else it is no part of the map. False
+	// when together they are too many cells.
+	bool Join(const Memory& a, const Memory& b, bool unseenA, bool unseenB);
+	// Ground of this level loaded while the player stands in `world`'s, a neighbour of the same act.
+	bool LearnBeside(const Radar::World& world);
 	Ground At(int x, int y) const;
 	const std::vector<Ground>& Cells() const { return cells_; } // Width() to a row, from X(), Y()
 	uint64_t Session() const { return session_; }
@@ -91,6 +97,7 @@ public:
 private:
 	struct NotedDoor { int x = 0, y = 0, reach = 0; };
 	bool NearDoor(int x, int y) const;
+	bool LearnRooms(const Radar::World& world, bool own);
 	uint64_t session_ = 0, revision_ = 0;
 	int level_ = 0, x_ = 0, y_ = 0, width_ = 0, height_ = 0;
 	std::vector<Ground> cells_;
@@ -127,6 +134,8 @@ public:
 	// on need not fit the body: the game never tests the cell a move starts from.
 	std::vector<Position> From(Position from) const;
 	bool At(Position from) const; // `from` is at the place
+	// The cell of `area` with the fewest steps to the place; none when no cell of it has a way.
+	std::optional<Position> Nearest(const Area& area) const;
 private:
 	int Steps(int x, int y) const;
 	int x_ = 0, y_ = 0, width_ = 0, height_ = 0;

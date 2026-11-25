@@ -134,8 +134,10 @@ Mod keyboard commands (bladestorm360's scheme).
 | Shift+S | left-hand skill list (the game's S opens the right-hand one). |
 | Tab | next monster on screen. |
 | Shift+Tab | previous monster. |
-| Period | next object on screen, nearest first. It counts everything: ground items, chests, urns, barrels, corpses, shrines, levers, doors, the stash and your corpse. Then D uses that one. |
-| Comma | previous object. |
+| Period | next dropped item on screen, nearest first. Then D picks up that one. |
+| Comma | previous dropped item. |
+| Shift+Period | next object on screen: chests, urns, barrels, corpses, shrines, levers, doors, the stash and your corpse. Then D uses that one. |
+| Shift+Comma | previous object. With "Comma and full stop: dropped items only" off (Ctrl+S, Items and menus) Period and Comma step through items and objects together. |
 | Right bracket | next NPC on screen. Then D talks to that one. |
 | Left bracket | previous NPC. |
 | D | walk to the nearest usable thing and use it. |

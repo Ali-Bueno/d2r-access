@@ -27,7 +27,8 @@ before adding one, and read this file first.
 | Y | swap weapons |
 | Shift+S | the list of skills for the left hand (the game's S opens the right hand's) |
 | Tab, Shift+Tab | next monster, previous monster, on screen |
-| full stop, comma | next item on the ground, previous one, on screen, nearest first; its name, how far and which way. **Every object counts as an item: chests, urns, barrels, dead bodies, shrines, levers, doors, the stash, and a player's corpse** (the user, 2026-09-28). D takes a corpse as it opens a chest: the game's own message for it, `0x13` (READ in the game's click code, not pressed yet). The next D picks up or opens that one and no other; if it has gone, D says so and takes nothing |
+| full stop, comma | next item on the ground, previous one, on screen, nearest first; its name, how far and which way. Dropped items alone since 2026-11-24; with Ctrl+S `items-apart` off (it is on) as from 2026-09-28: **Every object counts as an item: chests, urns, barrels, dead bodies, shrines, levers, doors, the stash, and a player's corpse** (the user, 2026-09-28). D takes a corpse as it opens a chest: the game's own message for it, `0x13` (READ in the game's click code, not pressed yet). The next D picks up or opens that one and no other; if it has gone, D says so and takes nothing |
+| Shift+full stop, Shift+comma | next object, previous one, on screen: everything below that is not a dropped item; the next D uses it (the user, 2026-11-24, on a tester's suggestion) |
 | right bracket, left bracket | next NPC, previous one, on screen, nearest first, as full stop and comma do; the next D talks to that one (the user, 2026-09-28: an NPC close to other things D could take) |
 | D | walk up to the nearest usable thing on screen and use it |
 | H | walk to the nearest unexplored area |

@@ -212,6 +212,8 @@ add_library(d2r-access SHARED
 	src/native_status.cpp
 	src/widgets.cpp
 	src/auto_walk.cpp
+	src/detour_service.cpp
+	src/level_detour.cpp
 	src/level_route.cpp
 	src/pad_links.cpp
 	src/combat_target.cpp
@@ -685,7 +687,7 @@ if(BUILD_TESTING)
 	add_test(NAME route-follow COMMAND route-follow-tests)
 	d2r_test(crossing-memory-tests tests/crossing_memory_tests.cpp src/crossing_memory.cpp)
 	add_test(NAME crossing-memory COMMAND crossing-memory-tests)
-	d2r_test(level-route-tests tests/level_route_tests.cpp src/level_route.cpp src/beacon.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
+	d2r_test(level-route-tests tests/level_route_tests.cpp src/level_detour.cpp src/level_route.cpp src/beacon.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)
 	add_test(NAME level-route COMMAND level-route-tests)
 	# The beacon's guidance over walkable ground: the window's route, the remembered map's way, or none.
 	d2r_test(beacon-guidance-tests tests/beacon_guidance_tests.cpp src/beacon_navigation.cpp src/level_route.cpp src/beacon.cpp src/navigation_policy.cpp src/room_graph.cpp src/navigation_grid.cpp src/radar_grid.cpp src/native_rooms.cpp src/native_memory.cpp)

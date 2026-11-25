@@ -76,7 +76,8 @@ With no stick to aim, the keyboard has these commands of its own:
 | Walk to the nearest usable thing and use it | D |
 | Delete the character you are on, in the character list (then hold A on Yes until the count ends) | Delete |
 | Next/previous monster on screen | Tab/Shift+Tab |
-| Next/previous object on screen (then D uses it) | Period/Comma |
+| Next/previous dropped item on screen (then D picks it up) | Period/Comma |
+| Next/previous object on screen: chests, shrines, doors and so on (then D uses it) | Shift+Period/Shift+Comma |
 | Next/previous NPC on screen (then D talks to it) | Right bracket/Left bracket |
 | Walk to the nearest unexplored room | H |
 | Walk to what the scanner named (an exit is taken) | Shift+Home |

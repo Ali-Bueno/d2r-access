@@ -34,7 +34,12 @@
 #include "interaction_reader.h"
 #include "inventory_arrival_service.h"
 #include "keyboard_menu.h"
+#include "detour_service.h"
+#include "level_areas.h"
+#include "level_detour.h"
 #include "level_route.h"
+#include "native_drlg.h"
+#include "native_level_areas.h"
 #include "map_survey.h"
 #include "map_survey_service.h"
 #include "modal_reader.h"
@@ -130,7 +135,7 @@ using NativeActions::Unit;
 using Radar::Position;
 
 enum class Command : uint32_t {
-	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, NpcNext, NpcPrevious, WalkToTarget, Explore,
+	None, Interact, TargetNext, TargetPrevious, ItemNext, ItemPrevious, NpcNext, NpcPrevious, ObjectNext, ObjectPrevious, WalkToTarget, Explore,
 	Retreat, Stop, RoomLayout,
 	// The pad's BACK + right stick up and BACK + RT: the area's description, the next companion.
 	AreaDescription, Companions,
@@ -223,6 +228,9 @@ Hand g_hand = Hand::Left;
 Entity g_target;            // what a walk, a use or a retreat heads for
 std::optional<LevelRoute::Area> g_border; // a walk to an area border with no crossing known yet: the edge to reach
 std::atomic<bool> g_retreatWay{true};      // Ctrl+S retreat-direction: a retreat's arrival says which way the way out is
+std::atomic<bool> g_itemsApart{true};      // Ctrl+S items-apart: comma and full stop step through dropped items alone
+bool ItemsApart() { return g_itemsApart.load(); }
+void SetItemsApart(bool on) { g_itemsApart = on; }
 bool RetreatWay() { return g_retreatWay.load(); }
 void SetRetreatWay(bool on) { g_retreatWay = on; }
 uint32_t g_itemPick = 0;    // the item, object or NPC comma, full stop, [ or ] chose, which the next D takes
@@ -320,6 +328,46 @@ const LevelRoute::Memory* Remember(const Lifecycle& state, const Radar::World& w
 	found->used = ++g_rememberedClock;
 	(void)found->memory.Learn(world);
 	return &found->memory;
+}
+
+// The maps kept of the levels the act has beside the one stood in, with what of them is loaded now.
+std::vector<Remembered*> Beside(const Radar::World& world) {
+	std::vector<Remembered*> beside;
+	std::vector<NativeLevelAreas::Area> areas;
+	if (g_rememberedSession != world.session || !NativeDrlg::Available()
+		|| !NativeLevelAreas::Read(NativeWorld::PlayerRoom(), areas)) return beside;
+	for (const auto& crossing : LevelAreas::Neighbours(areas, static_cast<uint32_t>(world.level)))
+		for (auto& entry : g_remembered)
+			if (entry.level == static_cast<int>(crossing.level)) {
+				(void)entry.memory.LearnBeside(world);
+				beside.push_back(&entry);
+			}
+	return beside;
+}
+
+// The searches over two levels made from where the player stands, kept while nothing they were made
+// from changes: each is a search of both levels, asked for at every key of the scanner.
+struct Searched {
+	uint64_t session = 0, here = 0, there = 0;
+	int level = 0, neighbour = 0, x = 0, y = 0, pattern = 0;
+	LevelRoute::Detours::Goal goal = LevelRoute::Detours::Goal::Here;
+	bool guess = false;
+	bool operator==(const Searched&) const = default;
+};
+std::vector<std::pair<Searched, LevelRoute::Detours>> g_searched;
+const LevelRoute::Detours& WaysThrough(const LevelRoute::Memory& memory, const LevelRoute::Memory& neighbour,
+	LevelRoute::Detours::Goal goal, const Radar::World& world, bool guess) {
+	const Searched key{memory.Session(), memory.Revision(), neighbour.Revision(), memory.Level(), neighbour.Level(),
+		static_cast<int>(std::lround(world.player.x)), static_cast<int>(std::lround(world.player.y)), world.bodyPattern, goal, guess};
+	std::erase_if(g_searched, [&](const auto& entry) {
+		const auto& old = entry.first;
+		return old.session != key.session || old.level != key.level || old.here != key.here || old.x != key.x || old.y != key.y
+			|| (old.neighbour == key.neighbour && old.there != key.there);
+	});
+	const auto known = std::find_if(g_searched.begin(), g_searched.end(), [&](const auto& entry) { return entry.first == key; });
+	if (known != g_searched.end()) return known->second;
+	g_searched.emplace_back(key, LevelRoute::Detours(memory, neighbour, goal, world.player, world.bodyPattern, guess));
+	return g_searched.back().second;
 }
 
 // The teleport pads seen in a level whose map is kept, and where each leads
@@ -1091,17 +1139,21 @@ void Walk(const Lifecycle& state, uint64_t now) {
 // doors, the stash -- and a player's corpse (the user, 2026-09-28), on screen
 // as Tab's monsters are. [ and ] step through the NPCs on screen the same way,
 // for the next D to talk to the one chosen when other things stand closer
-// (the user, 2026-09-28).
-void StepPick(const Lifecycle& state, int delta, bool npcs) {
+// (the user, 2026-09-28). With Shift they step through the objects alone, and
+// `items-apart` leaves them the items alone without it (a tester and the user, 2026-11-24).
+enum class Picks { Everything, Items, Objects, Npcs };
+void StepPick(const Lifecycle& state, int delta, Picks wanted) {
 	const auto& strings = Strings::Current();
-	const std::string none = npcs ? Format(strings.surveyEmpty, strings.surveyCategories[3]) : strings.interactNothing;
+	const bool npcs = wanted == Picks::Npcs;
+	const std::string none = npcs ? Format(strings.surveyEmpty, strings.surveyCategories[3])
+		: wanted == Picks::Items ? Format(strings.surveyEmpty, strings.surveyCategories[9]) : strings.interactNothing;
 	Scene scene;
 	GroundItems::Snapshot snapshot;
 	if (!Look(state, scene, false)) {
 		ScreenReader::Speak(none, true);
 		return;
 	}
-	if (npcs || !NativeGroundItems::Read(state.player, state.session, snapshot)) snapshot.items.clear();
+	if (npcs || wanted == Picks::Objects || !NativeGroundItems::Read(state.player, state.session, snapshot)) snapshot.items.clear();
 	struct Pick { Entity entity; int steps = 0; };
 	std::vector<Pick> picks;
 	for (const auto& item : snapshot.items) {
@@ -1119,7 +1171,7 @@ void StepPick(const Lifecycle& state, int delta, bool npcs) {
 	}
 	for (const auto& entity : scene.entities) {
 		const bool usable = npcs ? entity.kind == EntityRadar::Kind::Npc
-			: entity.kind == EntityRadar::Kind::Object || entity.kind == EntityRadar::Kind::Corpse;
+			: wanted != Picks::Items && (entity.kind == EntityRadar::Kind::Object || entity.kind == EntityRadar::Kind::Corpse);
 		if (!usable || entity.unit == Entity::NoUnit || !CombatTarget::OnScreen(scene.world.player, entity.position)) continue;
 		const int steps = UseSteps(scene.grid, entity);
 		if (steps >= 0) picks.push_back({entity, steps});
@@ -1243,6 +1295,33 @@ bool ExploreByPad(const Lifecycle& state, const Scene& scene, const RoomGraph::G
 	return true;
 }
 
+// No room left in reach here: the nearest got to by way of a neighbouring level, by the steps of the
+// whole way, is walked toward as far as the crossing out (docs/detours.md). False when there is none.
+bool ExploreByDetour(const Lifecycle& state, const Scene& scene, const RoomGraph::Graph& graph,
+	const std::vector<NativeRooms::Room>& explored, const std::vector<uint64_t>& cut) {
+	std::vector<Entity> rooms;
+	for (size_t i = 0; i < graph.rooms.size(); ++i) {
+		const auto& room = graph.rooms[i];
+		if (std::find(cut.begin(), cut.end(), room.id) == cut.end()
+			|| std::find(g_refused.begin(), g_refused.end(), room.id) != g_refused.end()
+			|| std::any_of(explored.begin(), explored.end(), [&](const auto& known) { return known.id == room.id; })) continue;
+		Entity entity;
+		entity.id = static_cast<uint32_t>(i + 1);
+		entity.kind = EntityRadar::Kind::Room;
+		entity.category = EntityRadar::Category::UnexploredRoom;
+		entity.placeId = room.id;
+		entity.name = Strings::Current().surveyCategories[12];
+		rooms.push_back(std::move(entity));
+	}
+	const auto detours = DetourService::Find(scene.world, rooms, explored.size() * 2 < graph.rooms.size());
+	if (detours.empty() || !SetOut(state, detours.front(), Mode::Walk, "explore")) return false;
+	DetourService::Chosen(detours.front());
+	AsyncLog::InfoF(g_context, "[keyboard] explore: room %u by way of level %u, out at %.0f,%.0f", detours.front().id,
+		detours.front().destinationLevel, detours.front().position.x, detours.front().position.y);
+	ScreenReader::Speak(Format(Strings::Current().walkTo, detours.front().name.c_str()), true);
+	return true;
+}
+
 void BeginExplore(const Lifecycle& state) {
 	const auto& strings = Strings::Current();
 	if (!Ready()) return;
@@ -1260,6 +1339,7 @@ void BeginExplore(const Lifecycle& state) {
 	const size_t cutOff = refused.size() - g_refused.size();
 	const auto choice = ExploreGoal::Nearest(*graph, scene.grid, explored, scene.world.player, refused);
 	if (!choice.found && cutOff && ExploreByPad(state, scene, *graph, explored)) return;
+	if (!choice.found && cutOff && ExploreByDetour(state, scene, *graph, explored, refused)) return;
 	if (!choice.found) {
 		AsyncLog::InfoF(g_context, "[keyboard] explore: nothing left, %zu rooms, %zu explored, %zu given up, %zu cut off", graph->rooms.size(), explored.size(), g_refused.size(), cutOff);
 		ScreenReader::Speak(strings.exploreNothing, true);
@@ -2072,6 +2152,7 @@ std::vector<SettingsList::Group> SettingGroups() {
 		{MapSurveyService::CountedMonsters, MapSurveyService::SetCountedMonsters, phrase(&T::countedMonstersOn, &T::countedMonstersOff), false, "counted-monsters"},
 	}});
 	groups.push_back({GroupName(G::Items), {
+		{ItemsApart, SetItemsApart, phrase(&T::itemsApartOn, &T::itemsApartOff), false, "items-apart"},
 		{item(Item::Speech), setItem(Item::Speech), [](bool on) { return std::string(GroundItemText::Enabled(on)); }, true, "item-speech"},
 		{GroundItemText::SilverEnabled, GroundItemText::SetSilverEnabled, phrase(&T::silverItemsOn, &T::silverItemsOff), true, "silver-items"},
 		{AutoDetail::Enabled, AutoDetail::SetEnabled, phrase(&T::autoDetailEnabled, &T::autoDetailDisabled), true, "auto-detail"},
@@ -2448,7 +2529,8 @@ auto __cdecl OnAction(const D2RL::PluginContext*, const D2RL::Input::ActionEvent
 		return D2RL::Input::ActionResult::Ignored;
 	// A letter typed into a line of chat is the chat's.
 	if ((command == Command::Swap || command == Command::LeftSkill || command == Command::ItemNext || command == Command::ItemPrevious
-		|| command == Command::NpcNext || command == Command::NpcPrevious) && NativeSkillNavigation::TextEditing().value_or(false))
+		|| command == Command::NpcNext || command == Command::NpcPrevious || command == Command::ObjectNext
+		|| command == Command::ObjectPrevious) && NativeSkillNavigation::TextEditing().value_or(false))
 		return D2RL::Input::ActionResult::Ignored;
 	const bool reading = command == Command::Swap || command == Command::LeftSkill
 		|| command == Command::ReadPrevious || command == Command::ReadNext || command == Command::ReadFirst
@@ -2533,8 +2615,10 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 			Entry{"keyboard-cast", "Fight with the right skill (hold)", Key::W, Modifier::None, Command::Cast},
 			Entry{"keyboard-target-next", "Next monster", Key::Tab, Modifier::None, Command::TargetNext},
 			Entry{"keyboard-target-previous", "Previous monster", Key::Tab, Modifier::Shift, Command::TargetPrevious},
-			Entry{"keyboard-item-next", "Next item or object on screen, for D to use", Key::Period, Modifier::None, Command::ItemNext},
-			Entry{"keyboard-item-previous", "Previous item or object on screen, for D to use", Key::Comma, Modifier::None, Command::ItemPrevious},
+			Entry{"keyboard-item-next", "Next dropped item on screen, for D to use", Key::Period, Modifier::None, Command::ItemNext},
+			Entry{"keyboard-item-previous", "Previous dropped item on screen, for D to use", Key::Comma, Modifier::None, Command::ItemPrevious},
+			Entry{"keyboard-object-next", "Next object on screen, for D to use", Key::Period, Modifier::Shift, Command::ObjectNext},
+			Entry{"keyboard-object-previous", "Previous object on screen, for D to use", Key::Comma, Modifier::Shift, Command::ObjectPrevious},
 			Entry{"keyboard-npc-next", "Next NPC on screen, for D to talk to", Key::RightBracket, Modifier::None, Command::NpcNext},
 			Entry{"keyboard-npc-previous", "Previous NPC on screen, for D to talk to", Key::LeftBracket, Modifier::None, Command::NpcPrevious},
 			Entry{"keyboard-use", "Walk up to the nearest thing and use it; in a menu, right click", Key::D, Modifier::None, Command::Interact},
@@ -2672,10 +2756,12 @@ void Tick(const D2RL::PluginContext* context) {
 	case Command::Interact:       BeginUse(state); break;
 	case Command::TargetNext:     StepTarget(state, 1); break;
 	case Command::TargetPrevious: StepTarget(state, -1); break;
-	case Command::ItemNext:       StepPick(state, 1, false); break;
-	case Command::ItemPrevious:   StepPick(state, -1, false); break;
-	case Command::NpcNext:        StepPick(state, 1, true); break;
-	case Command::NpcPrevious:    StepPick(state, -1, true); break;
+	case Command::ItemNext:       StepPick(state, 1, ItemsApart() ? Picks::Items : Picks::Everything); break;
+	case Command::ItemPrevious:   StepPick(state, -1, ItemsApart() ? Picks::Items : Picks::Everything); break;
+	case Command::ObjectNext:     StepPick(state, 1, Picks::Objects); break;
+	case Command::ObjectPrevious: StepPick(state, -1, Picks::Objects); break;
+	case Command::NpcNext:        StepPick(state, 1, Picks::Npcs); break;
+	case Command::NpcPrevious:    StepPick(state, -1, Picks::Npcs); break;
 	case Command::WalkToTarget:   BeginWalk(state); break;
 	case Command::Explore:        BeginExplore(state); break;
 	case Command::Retreat:        BeginRetreat(state); break;
@@ -2769,6 +2855,43 @@ void NoteDoors(const Radar::World& world, const std::vector<EntityRadar::Entity>
 	if (noted) AsyncLog::InfoF(g_context, "[route] shut doors noted on level %d: %zu", state.level, noted);
 }
 
+std::vector<std::optional<RoomDetour>> Detours(const Radar::World& world, const std::vector<const EntityRadar::Entity*>& things, bool guess) {
+	std::vector<std::optional<RoomDetour>> found(things.size());
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	const auto* graph = Rooms(state);
+	const auto* memory = things.empty() ? nullptr : Remember(state, world);
+	if (!graph || !memory) return found;
+	for (const auto* neighbour : Beside(world)) {
+		const auto& ways = WaysThrough(*memory, neighbour->memory, LevelRoute::Detours::Goal::Here, world, guess);
+		for (size_t i = 0; i < things.size(); ++i) {
+			const auto room = std::find_if(graph->rooms.begin(), graph->rooms.end(), [&](const auto& known) { return known.id == things[i]->placeId; });
+			if (room == graph->rooms.end()) continue;
+			const auto way = ways.To(LevelRoute::Area::Of(*room));
+			if (way && (!found[i] || way->steps < found[i]->steps)) found[i] = RoomDetour{neighbour->level, way->leave, way->steps, NativeRooms::Subtiles(*room)};
+		}
+	}
+	return found;
+}
+
+std::optional<RoomDetour> DetourBack(const Radar::World& world, int level, const NativeRooms::Bounds& room) {
+	Lifecycle state;
+	state.session = world.session;
+	state.level = world.level;
+	const auto* memory = Remember(state, world);
+	if (!memory) return std::nullopt;
+	for (const auto* neighbour : Beside(world)) {
+		if (neighbour->level != level) continue;
+		// Over ground seen while there is such a way, as Plan has it.
+		for (const bool guess : {false, true}) {
+			const auto& ways = WaysThrough(*memory, neighbour->memory, LevelRoute::Detours::Goal::There, world, guess);
+			if (const auto way = ways.To({room.minX, room.minY, room.maxX - 1, room.maxY - 1})) return RoomDetour{level, way->back, way->steps, room};
+		}
+	}
+	return std::nullopt;
+}
+
 const LevelRoute::Memory* RememberedMap(const Radar::World& world) {
 	Lifecycle state;
 	state.session = world.session;
@@ -2816,6 +2939,7 @@ void Unregister() {
 	g_graphLevel = 0;
 	g_graphSession = 0;
 	g_remembered.clear();
+	g_searched.clear();
 	g_rememberedSession = 0;
 	g_plan.Clear();
 	g_reach = {};

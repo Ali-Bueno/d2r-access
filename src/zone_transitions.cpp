@@ -113,7 +113,9 @@ std::vector<Radar::LevelExit> Find(const Radar::World& world, const NativeLevelE
 // A portal stands where it is, though it may lead where the area's border does:
 // Harrogath's town portals open on the Bloody Foothills (a tester, 2026-10-27).
 bool Crosses(const EntityRadar::Entity& entity) {
-	return entity.kind == EntityRadar::Kind::Exit && entity.destinationLevel != 0 && entity.category != EntityRadar::Category::Portal;
+	// A detour's crossing is the one on its way, not the nearest (docs/detours.md).
+	return entity.kind == EntityRadar::Kind::Exit && entity.destinationLevel != 0 && entity.category != EntityRadar::Category::Portal
+		&& entity.category != EntityRadar::Category::UnexploredRoom;
 }
 
 bool MoveToCrossing(EntityRadar::Entity& entity, const std::vector<Radar::LevelExit>& crossings) {

@@ -1,5 +1,6 @@
 #include "beacon.h"
 #include "level_fixture.h"
+#include "level_detour.h"
 #include "level_route.h"
 #include "navigation_grid.h"
 #include "test_support.h"
@@ -482,6 +483,46 @@ int main() {
 		Check(pads.Holds(memory, player, 1, 7) && !pads.Holds(memory, {Left + 16.0, Top + 15.0}, 1, 7) && !pads.Holds(memory, player, 1, 8),
 			"the search through pads holds from its own cell, with the same pads");
 		Check(!pads.Holds(memory, player, 1) && !walking.Holds(memory, player, 1, 7), "and the two searches never stand in for each other");
+	}
+	{
+		// A tester's log, 2026-11-24, the Flayer Jungle: come into on the north bank, a river cut off the
+		// rest, and the bridge was in the Spider Forest. The left half of the fixture is the level passed
+		// through, the right half the goal's; a wall of water across both, with a bridge on the left.
+		using LevelRoute::Detours;
+		Level level;
+		const int river = Top + 2 * RoomCells + 10, border = Left + 2 * RoomCells;
+		level.Fill(Left, river, Left + Width - 1, river + 6, Wall);
+		level.Fill(Left + 30, river, Left + 40, river + 6, 0);
+		// Trees along the border, with a gap on each bank.
+		level.Fill(border, Top, border + 1, Top + Height - 1, Wall);
+		level.Fill(border, river - 20, border + 1, river - 12, 0);
+		level.Fill(border, river + 20, border + 1, river + 28, 0);
+		std::vector<NativeRooms::Room> forest, jungle;
+		for (const auto& room : level.Rooms()) (NativeRooms::Subtiles(room).minX < border ? forest : jungle).push_back(room);
+		LevelRoute::Memory via, goal;
+		Check(via.Begin(1, 2, forest) && goal.Begin(1, 1, jungle), "fixture: two levels' maps begin");
+		const Position player{border + 12.0, river - 16.0};
+		(void)goal.Learn(level.Loaded(player, 5));
+		const LevelRoute::Reach onFoot(goal, player, 1);
+		const auto south = NativeRooms::Subtiles(level.Rooms()[4 * Across + 4]);
+		const LevelRoute::Area room{south.minX, south.minY, south.maxX - 1, south.maxY - 1};
+		Check(onFoot.Within(south) == LevelRoute::Reach::Answer::CutOff, "the far bank is cut off in its own level");
+		Check(!Detours(goal, via, Detours::Goal::Here, player, 1, false).To(room), "a neighbour not seen is no known way");
+		Check(Detours(goal, via, Detours::Goal::Here, player, 1, true).To(room).has_value(), "and is one as a guess");
+		Check(!via.Learn(level.Loaded(player, 5)) && via.LearnBeside(level.Loaded(player, 5)), "a neighbour's loaded ground is learnt from beside it");
+		Check(goal.At(border - 5, river - 16) == Ground::Outside, "and never as the level's own");
+		const auto way = Detours(goal, via, Detours::Goal::Here, player, 1, false).To(room);
+		Check(way && way->leave.x == border && way->leave.y >= river - 20 && way->leave.y <= river - 12, "the way leaves by the gap on this bank");
+		Check(way && way->back.x == border - 1 && way->back.y >= river + 20 && way->back.y <= river + 28, "and comes back by the gap past the bridge");
+		auto there = level.Loaded({border - 12.0, river - 16.0}, 5);
+		there.level = 2;
+		const auto onward = Detours(via, goal, Detours::Goal::There, there.player, 1, false).To(room);
+		Check(onward && onward->back.x == border - 1 && onward->back.y >= river + 20, "from the level passed through it is the same gap");
+		level.Fill(Left + 30, river, Left + 40, river + 6, Wall);
+		(void)via.LearnBeside(level.Loaded(player, 5));
+		Check(!Detours(goal, via, Detours::Goal::Here, player, 1, true).To(room), "with no bridge on either side there is no way");
+		LevelRoute::Memory other;
+		Check(other.Begin(2, 2, forest) && !Detours(goal, other, Detours::Goal::Here, player, 1, true).To(room), "another game's map is no neighbour");
 	}
 	Passed();
 	return 0;

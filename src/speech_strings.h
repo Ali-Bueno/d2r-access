@@ -630,6 +630,9 @@ struct Table {
 	const char* distanceYardsOff;
 	const char* retreatWayOn; // a retreat's arrival says which way the way out is (Ctrl+S retreat-direction)
 	const char* retreatWayOff;
+	const char* detourThrough; // %s = an unexplored area cut off on foot, %s = the neighbouring level that leads to it
+	const char* itemsApartOn; // comma and full stop step through dropped items alone (Ctrl+S items-apart)
+	const char* itemsApartOff;
 	const char* exploreForgetAsk; // %s = the level; the first press of the key that forgets its exploration
 	const char* exploreForgotten; // %s = the level whose exploration was forgotten
 	const char* routeLongLegsOn; // %d = the shortest leg before a turn, units (RouteLegs::MinLegUnits)
