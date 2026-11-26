@@ -105,6 +105,10 @@ package). The full lists are in the package's `README.html`, and in
 | — | F1 to F8 | The game's skill keys; the mod says the skill when it changes |
 | LB / RB in the shared stash | Alt+Page Up / Down, Ctrl+Shift+Page Up / Down | Shared stash: previous / next page; ten pages back / forward |
 
+Every mod key can be changed in the game's Options, Controls tab. Press **Apply** before leaving
+Options: a key changed and left with Escape lasts only until the game closes. The mod says so
+([changing a key](docs/keyboard-keys.md#changing-a-key)).
+
 In menus, right stick up reads the detail of what has focus (an item's full description, a
 skill's text) and right stick down the buttons the screen offers.
 

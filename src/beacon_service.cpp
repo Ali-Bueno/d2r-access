@@ -1,4 +1,5 @@
 #include "beacon_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "beacon.h"
 #include "death_place.h"
@@ -861,21 +862,21 @@ bool Register(const D2RL::PluginContext* context) {
 			.defaultPrimary = {D2RL::Input::Key::B, D2RL::Input::Modifier::Control}, .callback = Action,
 			.userData = reinterpret_cast<void*>(Command::Toggle)};
 		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 		// Keyboard equivalent of BACK + right stick down.
 		const D2RL::Input::ActionRegistration route{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "route-describe", .displayName = "Describe the route to the scanned target", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::E, D2RL::Input::Modifier::Control}, .callback = Action,
 			.userData = reinterpret_cast<void*>(Command::Route)};
 		handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &route, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		if (InputActions::Register(g_input, context, &route, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 		// Keyboard equivalent of BACK+A.
 		const D2RL::Input::ActionRegistration follow{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "beacon-follow-scan", .displayName = "Guidance follows the scanner, or stops following it", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::B, D2RL::Input::Modifier::Alt}, .callback = Action,
 			.userData = reinterpret_cast<void*>(Command::FollowScan)};
 		handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &follow, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		if (InputActions::Register(g_input, context, &follow, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-beacon", Console,
 		"Target beacon: lock|clear|status|exploration|full|sounds-on|sounds-off|route. BACK+LB or Ctrl+B requests a route; exploration uses visited areas only.");
@@ -998,7 +999,7 @@ void Unregister() {
 	Release("unregister");
 	BeaconAudio::Stop();
 	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
-	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	if (g_context && g_input) for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_listeners.clear();
 	g_actions.clear();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }

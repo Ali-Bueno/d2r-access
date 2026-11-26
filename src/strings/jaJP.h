@@ -575,6 +575,8 @@ inline constexpr Table jaJP {
 	.detourThrough = "%s、%s経由",
 	.itemsApartOn = "カンマとピリオド：落ちているアイテムのみ",
 	.itemsApartOff = "カンマとピリオド：アイテムとオブジェクト",
+	.bindingsApplyHint = "ゲーム終了後もこのキーを残すには「適用」を押してください",
+	.bindingsNotSaved = "キーの変更は保存されていません。ゲームを閉じるまでしか有効になりません。もう一度変更して「適用」を押してください",
 	.exploreForgetAsk = "もう一度押すと%sの探索記録を消去",
 	.exploreForgotten = "%sの探索記録を消去しました",
 	.routeLongLegsOn = "ルートの区間は%dマス以上",

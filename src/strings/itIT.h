@@ -575,6 +575,8 @@ inline constexpr Table itIT {
 	.detourThrough = "%s, passando per %s",
 	.itemsApartOn = "Virgola e punto: solo oggetti a terra",
 	.itemsApartOff = "Virgola e punto: oggetti a terra e cose da usare",
+	.bindingsApplyHint = "Premi Applica per mantenere questo tasto dopo la chiusura del gioco",
+	.bindingsNotSaved = "Modifiche ai tasti non salvate: durano fino alla chiusura del gioco. Rifalle e premi Applica",
 	.exploreForgetAsk = "Premi di nuovo per dimenticare l'esplorazione di %s",
 	.exploreForgotten = "Esplorazione di %s dimenticata",
 	.routeLongLegsOn = "Tratti del percorso di almeno %d unità",

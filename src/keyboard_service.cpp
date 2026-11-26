@@ -1,4 +1,5 @@
 #include "keyboard_service.h"
+#include "input_actions.h"
 
 #include "async_log.h"
 #include "auto_detail.h"
@@ -2660,7 +2661,7 @@ bool Register(const D2RL::PluginContext* context, bool nativeHooks) {
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
 				.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(entry.command))};
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-			const auto result = g_input->registerAction(context, &action, &handle);
+			const auto result = InputActions::Register(g_input, context, &action, &handle);
 			++offered;
 			if (result != D2RL::Input::Result::Success) {
 				AsyncLog::WarnF(context, "[keyboard] %s was refused by the loader: result %u", entry.id, static_cast<unsigned>(result));
@@ -2687,6 +2688,7 @@ void Tick(const D2RL::PluginContext* context) {
 	if (!g_context) return;
 	auto command = g_command.exchange(Command::None);
 	const uint64_t now = GetTickCount64();
+	InputActions::Tick(context, now);
 	Lifecycle state;
 	{ std::lock_guard lock(g_mutex); state = g_state; }
 	const bool inPlay = state.ready && RadarUi::InPlay();
@@ -2922,7 +2924,7 @@ void Unregister() {
 	g_fill = false;
 	g_swapAsked = 0;
 	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
-	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	if (g_context && g_input) for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_listeners.clear();
 	g_actions.clear();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }

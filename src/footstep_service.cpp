@@ -1,4 +1,5 @@
 #include "footstep_service.h"
+#include "input_actions.h"
 #include "native_footsteps.h"
 #include "wall_slide_service.h"
 #include "async_log.h"
@@ -100,7 +101,7 @@ void Register(const D2RL::PluginContext* context) {
 		const D2RL::Input::ActionRegistration action{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "footsteps-toggle", .displayName = "Toggle stalled footstep filter", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::F, D2RL::Input::Modifier::Control}, .callback = Toggle};
-		(void)g_input->registerAction(context, &action, &g_action);
+		(void)InputActions::Register(g_input, context, &action, &g_action);
 	}
 }
 void ScalePending() {
@@ -163,7 +164,7 @@ void Unregister() {
 	g_enabled = false;
 	std::lock_guard lock(g_mutex);
 	Report(GetTickCount64(), true);
-	if (g_input && g_action != D2RL::Input::InvalidHandle) (void)g_input->unregisterAction(g_context, g_action);
+	if (g_input && g_action != D2RL::Input::InvalidHandle) (void)InputActions::Unregister(g_input, g_context, g_action);
 	g_filter.Reset(); g_context = nullptr; g_input = nullptr; g_action = D2RL::Input::InvalidHandle;
 }
 

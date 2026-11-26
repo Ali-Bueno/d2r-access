@@ -1,4 +1,5 @@
 #include "entity_radar_service.h"
+#include "input_actions.h"
 #include "entity_radar.h"
 #include "async_log.h"
 #include "native_entities.h"
@@ -194,7 +195,7 @@ bool Register(const D2RL::PluginContext* context) {
 			.displayName = "Toggle NPC announcer", .category = "Accessibility", .defaultPrimary = {D2RL::Input::Key::N, D2RL::Input::Modifier::Control},
 			.callback = Action, .userData = reinterpret_cast<void*>(Command::NpcToggle)};
 		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	(void)context->RegisterConsoleCommand("access-npc", NpcConsole,
 		"Friendly NPC announcer: on|off|status|range <subtiles>. Names the nearest NPC in range while playing; Ctrl+N toggles.");
@@ -229,7 +230,7 @@ void Unregister() {
 	if (g_lifecycle && g_context)
 		for (auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	if (g_input && g_context)
-		for (auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+		for (auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_listeners.clear(); g_actions.clear();
 	g_npcTracker.Reset();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }

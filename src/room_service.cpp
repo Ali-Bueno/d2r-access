@@ -1,4 +1,5 @@
 #include "room_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "entity_radar.h"
 #include "generated/level_flags.h"
@@ -193,7 +194,7 @@ bool Register(const D2RL::PluginContext* context) {
 				.defaultPrimary = {D2RL::Input::Key::M, D2RL::Input::Modifier::Control}, .callback = Toggle}};
 		for (const auto& action : actions) {
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+			if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 		}
 	}
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
@@ -257,7 +258,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 void Unregister() {
 	if (g_lifecycle) for (auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	g_listeners.clear();
-	if (g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	if (g_input) for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_actions.clear();
 	std::lock_guard lock(g_mutex);
 	Forget();

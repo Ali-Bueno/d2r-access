@@ -1,4 +1,5 @@
 #include "place_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "descriptions.h"
 #include "entity_radar.h"
@@ -420,7 +421,7 @@ void SetEnabled(bool on) { g_command = on ? Command::On : Command::Off; }
 void Unregister() {
 	if (g_lifecycle) for (auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	g_listeners.clear();
-	if (g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	if (g_input) for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_actions.clear();
 	std::lock_guard lock(g_mutex);
 	g_spots.Forget();

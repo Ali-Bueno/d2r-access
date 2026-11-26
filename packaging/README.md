@@ -121,6 +121,8 @@ The keyboard keys are listed in the [Keyboard](#keyboard) section.
 
 Mod keyboard commands (bladestorm360's scheme).
 
+Every mod key can be changed in the game's Options, Controls tab, under Accessibility. After changing one, go down past the list to the buttons under it and press **Apply** before leaving Options: a key changed and left with Escape lasts only until the game closes. The mod says "Press Apply to keep this key" at the first change, and warns when Options closes with a change not saved.
+
 ### In play
 
 | Key | What it does |

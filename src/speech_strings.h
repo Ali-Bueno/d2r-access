@@ -633,6 +633,8 @@ struct Table {
 	const char* detourThrough; // %s = an unexplored area cut off on foot, %s = the neighbouring level that leads to it
 	const char* itemsApartOn; // comma and full stop step through dropped items alone (Ctrl+S items-apart)
 	const char* itemsApartOff;
+	const char* bindingsApplyHint; // a key changed in Options' Controls: only Apply saves it for the next start
+	const char* bindingsNotSaved; // Options closed with such a change: it lasts until the game closes
 	const char* exploreForgetAsk; // %s = the level; the first press of the key that forgets its exploration
 	const char* exploreForgotten; // %s = the level whose exploration was forgotten
 	const char* routeLongLegsOn; // %d = the shortest leg before a turn, units (RouteLegs::MinLegUnits)
@@ -713,7 +715,7 @@ template<class Visit> constexpr void ForEachPhrase(const Table& t, Visit visit) 
 		t.settingsOpened, t.settingsClosed, t.skillBarReaderOn, t.skillBarReaderOff, t.tradeAlertsOn, t.tradeAlertsOff, t.weaponSwapAlertsOn, t.weaponSwapAlertsOff, t.skillHotkeysOn, t.skillHotkeysOff, t.handSpeechOn, t.handSpeechOff,
 		t.skillGridOn, t.skillGridOff, t.explorationSoundsOn, t.explorationSoundsOff, t.discoveriesOn, t.discoveriesOff,
 		t.beaconSoundsOn, t.beaconSoundsOff, t.beaconFollowScanOn, t.beaconFollowScanOff, t.routePromptsOn, t.routePromptsOff, t.tutorialOn, t.tutorialOff, t.tutorialSoundWaitOn, t.tutorialSoundWaitOff, t.routeToLegs, t.routeTotalOn, t.routeTotalOff, t.routeToLength, t.routeToName, t.routeLegsOn, t.routeLegsOff, t.questEclipse, t.doorwaySoundsOn, t.doorwaySoundsOff, t.openDoorSoundsOn, t.openDoorSoundsOff, t.stepClicksOn, t.stepClicksOff, t.stepClickInterval, t.stepBeepOn, t.stepBeepOff, t.menuNewsOn, t.menuNewsOff, t.updateCheckOn, t.updateCheckOff, t.stepVolume, t.doorVolume, t.doorwayVolume, t.hintWaypointActs, t.modSoundsOn, t.modSoundsOff, t.reachFilterOn, t.reachFilterOff, t.teleported, t.padLeadsBeen, t.padLeadsNew, t.padLeadsOn, t.padLeadsOff, t.padStepsOn, t.padStepsOff, t.padSoundsOn, t.padSoundsOff, t.weaponSet, t.weaponSetNumberOn, t.weaponSetNumberOff, t.gaitWalking, t.gaitRunning, t.staminaPercent, t.staminaOut, t.movementAlertsOn, t.movementAlertsOff, t.ammoLeft, t.ammoAlertsOn, t.ammoAlertsOff, t.durabilityAlertsOn, t.durabilityAlertsOff, t.townNpcsEverywhereOn, t.townNpcsEverywhereOff, t.unexploredSpreadOn, t.unexploredSpreadOff, t.unexploredEverywhereOn, t.unexploredEverywhereOff, t.pickupClickOn, t.pickupClickOff, t.gridEdgeOn, t.gridEdgeOff, t.silverItem, t.silverItemsOn, t.silverItemsOff, t.glossarySound, t.faultMemory, t.faultAction,
-		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff, t.rememberItemsOn, t.rememberItemsOff, t.countedMonstersOn, t.countedMonstersOff, t.menuArrowRepeatOn, t.menuArrowRepeatOff, t.menuArrowGuardOn, t.menuArrowGuardOff, t.itemCellsOn, t.itemCellsOff, t.notSelected};
+		t.doorway, t.secretDraft, t.secretDraftsOn, t.secretDraftsOff, t.doorwaysListedOn, t.doorwaysListedOff, t.rememberItemsOn, t.rememberItemsOff, t.countedMonstersOn, t.countedMonstersOff, t.menuArrowRepeatOn, t.menuArrowRepeatOff, t.menuArrowGuardOn, t.menuArrowGuardOff, t.itemCellsOn, t.itemCellsOff, t.notSelected, t.bindingsApplyHint, t.bindingsNotSaved};
 	for (const char* s : singles) visit(s);
 	const auto each = [&](const auto& list) { for (const char* s : list) visit(s); };
 	each(t.itemSize); each(t.controllerButtons); each(t.equipmentSlots); each(t.radarUiStates);

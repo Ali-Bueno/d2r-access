@@ -575,6 +575,8 @@ inline constexpr Table plPL {
 	.detourThrough = "%s, przez: %s",
 	.itemsApartOn = "Przecinek i kropka: tylko upuszczone przedmioty",
 	.itemsApartOff = "Przecinek i kropka: przedmioty i obiekty",
+	.bindingsApplyHint = "Naciśnij Zastosuj, aby zachować ten klawisz po zamknięciu gry",
+	.bindingsNotSaved = "Zmiany klawiszy niezapisane: działają do zamknięcia gry. Zmień je ponownie i naciśnij Zastosuj",
 	.exploreForgetAsk = "Naciśnij ponownie, aby zapomnieć eksplorację: %s",
 	.exploreForgotten = "Zapomniano eksplorację: %s",
 	.routeLongLegsOn = "Odcinki trasy co najmniej %d jednostek",

@@ -1,4 +1,5 @@
 #include "vitals_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "charge_chord.h"
 #include "charge_tracker.h"
@@ -707,7 +708,7 @@ bool Register(const D2RL::PluginContext* context) {
 				.userData = reinterpret_cast<void*>(static_cast<uintptr_t>(entry.command))};
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
 			// Both keys are the game's own as well (Gordan.key: Z is its action 43); a refusal must show.
-			const auto result = g_input->registerAction(context, &action, &handle);
+			const auto result = InputActions::Register(g_input, context, &action, &handle);
 			if (result == D2RL::Input::Result::Success) {
 				g_actions.push_back(handle);
 			} else {
@@ -737,7 +738,7 @@ void Unregister() {
 	g_listeners.clear();
 	g_lifecycle = nullptr;
 	if (g_input && g_context)
-		for (auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+		for (auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_actions.clear();
 	g_input = nullptr;
 	g_context = nullptr;

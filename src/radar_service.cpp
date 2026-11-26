@@ -1,4 +1,5 @@
 #include "radar_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "native_entities.h"
 #include "native_world.h"
@@ -248,7 +249,7 @@ bool Register(const D2RL::PluginContext* context) {
 				.defaultPrimary = {shortcut.key, D2RL::Input::Modifier::Control}, .callback = Action,
 				.userData = reinterpret_cast<void*>(shortcut.command)};
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+			if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 		}
 	}
 	(void)context->RegisterConsoleCommand("access-radar", Console, "Navigation sonar: on|off|status|dump|test|diagonal|cardinal.");
@@ -362,7 +363,7 @@ void Unregister() {
 	Suspend("unregister");
 	RadarAudio::Stop();
 	if (g_context && g_lifecycle) for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
-	if (g_context && g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	if (g_context && g_input) for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_listeners.clear();
 	g_actions.clear();
 	g_context = nullptr;

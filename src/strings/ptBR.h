@@ -575,6 +575,8 @@ inline constexpr Table ptBR {
 	.detourThrough = "%s, passando por %s",
 	.itemsApartOn = "Vírgula e ponto: só itens caídos",
 	.itemsApartOff = "Vírgula e ponto: itens caídos e objetos",
+	.bindingsApplyHint = "Pressione Aplicar para manter esta tecla depois de fechar o jogo",
+	.bindingsNotSaved = "Mudanças de teclas não salvas: valem até fechar o jogo. Faça-as de novo e pressione Aplicar",
 	.exploreForgetAsk = "Pressione de novo para esquecer a exploração de %s",
 	.exploreForgotten = "Exploração de %s esquecida",
 	.routeLongLegsOn = "Trechos da rota de pelo menos %d unidades",

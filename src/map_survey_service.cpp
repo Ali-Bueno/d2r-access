@@ -1,4 +1,5 @@
 #include "map_survey_service.h"
+#include "input_actions.h"
 #include "generated/level_flags.h"
 #include "input_direction.h"
 
@@ -811,7 +812,7 @@ bool Register(const D2RL::PluginContext* context) {
 				.defaultPrimary = {entry.key, entry.modifier}, .callback = OnAction,
 				.userData = reinterpret_cast<void*>(static_cast<intptr_t>(entry.request))};
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) {
+			if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) {
 				g_actions.push_back(handle);
 			}
 		}
@@ -896,7 +897,7 @@ void Tick(const D2RL::PluginContext* context, bool uiOwnsSpeech) {
 
 void Shutdown() {
 	if (g_context && g_input) {
-		for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+		for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	}
 	if (g_context && g_lifecycle) {
 		for (const auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);

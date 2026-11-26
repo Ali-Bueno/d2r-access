@@ -1,4 +1,5 @@
 #include "beacon_service.h"
+#include "input_actions.h"
 #include "beacon.h"
 #include "beacon_audio.h"
 #include "input_direction.h"
@@ -85,6 +86,10 @@ std::string Format(const char* format, const char* name) {
 }
 }
 
+namespace D2RAccess::InputActions {
+D2RL::Input::Result Register(const D2RL::InputService* input, const D2RL::PluginContext* plugin, const D2RL::Input::ActionRegistration* action, D2RL::Input::ActionHandle* handle) { return input->registerAction(plugin, action, handle); }
+D2RL::Input::Result Unregister(const D2RL::InputService* input, const D2RL::PluginContext* plugin, D2RL::Input::ActionHandle handle) { return input->unregisterAction(plugin, handle); }
+}
 namespace D2RAccess::RadarUi { bool InPlay() { return playing; } }
 namespace D2RAccess::BeaconAudio {
 bool Start(const D2RL::PluginContext*, double, double, double) { return true; }

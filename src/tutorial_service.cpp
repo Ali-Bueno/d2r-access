@@ -1,4 +1,5 @@
 #include "tutorial_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "character_stats.h"
 #include "combat_target.h"
@@ -932,7 +933,7 @@ bool Register(const D2RL::PluginContext* context) {
 				.defaultPrimary = {D2RL::Input::Key::K, D2RL::Input::Modifier::Shift}, .callback = OnKey, .userData = data(Command::First)}};
 		for (const auto& action : actions) {
 			D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-			if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+			if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 			else AsyncLog::WarnF(context, "[tutorial] key %s not registered.", action.logicalId);
 		}
 	}
@@ -1067,7 +1068,7 @@ void Arrived(const EntityRadar::Entity& entity) {
 void Unregister() {
 	if (g_lifecycle && g_context) for (auto handle : g_listeners)
 		(void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
-	if (g_input && g_context) for (auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	if (g_input && g_context) for (auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_listeners.clear();
 	g_actions.clear();
 	{ std::lock_guard lock(g_mutex); g_state = {}; }

@@ -180,6 +180,22 @@ Every switch that has no key of its own is in the Ctrl+S list.
 | Z | portraits | no: life |
 | F, G, E | three later actions, not identified | yes |
 
+## Changing a key
+
+Every mod key is in the game's Options, Controls tab, under Accessibility, and can be changed
+there. **Only the Apply button saves a change** (MEASURED 2026-11-26, D2RLoader 1.3.1-beta, D2R
+3.4.95041): a key assigned and left with Escape works until the game closes and is gone on the
+next start. Apply writes the loader's `d2rloader\config\input-bindings.toml`; Save and Exit and
+closing the game write nothing. With the keyboard, the arrows go past the last row onto the
+buttons under the list (Apply, Default, Discard).
+
+The mod points it out (`InputActions`, `src/input_actions.cpp`): while Options is open, the first
+change to any of its keys says "Press Apply to keep this key after the game closes"
+(`[keys] a key changed in Options` in the log); closing Options with a change the file does not
+hold says it was not saved (`[keys] Options closed with N key change(s) not applied`). Every
+action the mod registers goes through `InputActions::Register`, so new keys are covered. Heard
+in the log live, both lines, and no warning after Apply.
+
 ## What has no key
 
 | what | why | what it would take |

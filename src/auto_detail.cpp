@@ -1,4 +1,5 @@
 #include "auto_detail.h"
+#include "input_actions.h"
 
 #include "async_log.h"
 #include "screen_reader.h"
@@ -42,12 +43,12 @@ bool Register(const D2RL::PluginContext* context) {
 		.defaultPrimary = {D2RL::Input::Key::H, D2RL::Input::Modifier::Control}, .callback = TooltipsAction, .userData = nullptr};
 	// Autodetail has no key: Ctrl+D is the menu's right click with Ctrl (the
 	// user, 2026-09-28). It is changed in the Ctrl+S list.
-	return g_input->registerAction(context, &tooltips, &g_tooltipsAction) == D2RL::Input::Result::Success;
+	return InputActions::Register(g_input, context, &tooltips, &g_tooltipsAction) == D2RL::Input::Result::Success;
 }
 
 void Unregister() {
 	if (g_input != nullptr && g_context != nullptr) {
-		if (g_tooltipsAction != D2RL::Input::InvalidHandle) (void)g_input->unregisterAction(g_context, g_tooltipsAction);
+		if (g_tooltipsAction != D2RL::Input::InvalidHandle) (void)InputActions::Unregister(g_input, g_context, g_tooltipsAction);
 	}
 	g_tooltipsAction = D2RL::Input::InvalidHandle;
 	g_input    = nullptr;

@@ -575,6 +575,8 @@ inline constexpr Table enUS {
 	.detourThrough = "%s, through %s",
 	.itemsApartOn = "Comma and full stop: dropped items only",
 	.itemsApartOff = "Comma and full stop: items and objects",
+	.bindingsApplyHint = "Press Apply to keep this key after the game closes",
+	.bindingsNotSaved = "Key changes not saved: they last until the game closes. Change them again and press Apply",
 	.exploreForgetAsk = "Press again to forget what you explored in %s",
 	.exploreForgotten = "Forgot what you explored in %s",
 	.routeLongLegsOn = "Route legs of at least %d units",

@@ -1,4 +1,5 @@
 #include "automap_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "native_automap.h"
 #include "screen_reader.h"
@@ -182,7 +183,7 @@ bool Register(const D2RL::PluginContext* context) {
 			.logicalId = "automap-watch", .displayName = "Toggle the automap diagnostic watch", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::J, D2RL::Input::Modifier::Control}, .callback = Action};
 		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	return NativeAutomap::Initialize(context);
 }
@@ -212,7 +213,7 @@ void Tick(const D2RL::PluginContext* context) {
 
 void Unregister() {
 	if (g_context && g_input)
-		for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+		for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_actions.clear();
 	g_input = nullptr;
 	g_context = nullptr;

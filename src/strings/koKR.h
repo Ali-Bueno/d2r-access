@@ -575,6 +575,8 @@ inline constexpr Table koKR {
 	.detourThrough = "%s, %s 경유",
 	.itemsApartOn = "쉼표와 마침표: 떨어진 아이템만",
 	.itemsApartOff = "쉼표와 마침표: 아이템과 사물",
+	.bindingsApplyHint = "게임을 닫은 후에도 이 키를 유지하려면 적용을 누르세요",
+	.bindingsNotSaved = "키 변경이 저장되지 않았습니다. 게임을 닫을 때까지만 유지됩니다. 다시 변경하고 적용을 누르세요",
 	.exploreForgetAsk = "한 번 더 누르면 %s 탐험 기록 삭제",
 	.exploreForgotten = "%s 탐험 기록 삭제됨",
 	.routeLongLegsOn = "경로 구간 최소 %d칸",

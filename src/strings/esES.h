@@ -575,6 +575,8 @@ inline constexpr Table esES {
 	.detourThrough = "%s, pasando por %s",
 	.itemsApartOn = "Coma y punto: solo objetos caídos",
 	.itemsApartOff = "Coma y punto: objetos caídos y cosas que usar",
+	.bindingsApplyHint = "Pulsa Aplicar para conservar esta tecla al cerrar el juego",
+	.bindingsNotSaved = "Cambios de teclas sin guardar: duran hasta cerrar el juego. Cámbialas otra vez y pulsa Aplicar",
 	.exploreForgetAsk = "Pulsa otra vez para olvidar lo explorado en %s",
 	.exploreForgotten = "Olvidado lo explorado en %s",
 	.routeLongLegsOn = "Tramos de la ruta de al menos %d unidades",

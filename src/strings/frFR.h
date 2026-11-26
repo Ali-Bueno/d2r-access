@@ -575,6 +575,8 @@ inline constexpr Table frFR {
 	.detourThrough = "%s, en passant par %s",
 	.itemsApartOn = "Virgule et point : objets au sol seulement",
 	.itemsApartOff = "Virgule et point : objets au sol et éléments à utiliser",
+	.bindingsApplyHint = "Appuyez sur Appliquer pour garder cette touche après la fermeture du jeu",
+	.bindingsNotSaved = "Changements de touches non enregistrés : ils durent jusqu'à la fermeture du jeu. Refaites-les et appuyez sur Appliquer",
 	.exploreForgetAsk = "Appuyez encore pour oublier l'exploration de %s",
 	.exploreForgotten = "Exploration de %s oubliée",
 	.routeLongLegsOn = "Étapes de l'itinéraire d'au moins %d unités",

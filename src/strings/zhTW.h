@@ -575,6 +575,8 @@ inline constexpr Table zhTW {
 	.detourThrough = "%s，經由%s",
 	.itemsApartOn = "逗號和句號：僅掉落的物品",
 	.itemsApartOff = "逗號和句號：物品和物體",
+	.bindingsApplyHint = "按「套用」以在關閉遊戲後保留此按鍵",
+	.bindingsNotSaved = "按鍵變更未儲存：僅在關閉遊戲前有效。請重新變更並按「套用」",
 	.exploreForgetAsk = "再按一次以忘記%s的探索記錄",
 	.exploreForgotten = "已忘記%s的探索記錄",
 	.routeLongLegsOn = "路線分段至少%d格",

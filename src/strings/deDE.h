@@ -575,6 +575,8 @@ inline constexpr Table deDE {
 	.detourThrough = "%s, über %s",
 	.itemsApartOn = "Komma und Punkt: nur fallen gelassene Gegenstände",
 	.itemsApartOff = "Komma und Punkt: Gegenstände und Objekte",
+	.bindingsApplyHint = "Drücke Übernehmen, damit diese Taste nach dem Beenden bleibt",
+	.bindingsNotSaved = "Tastenänderungen nicht gespeichert: Sie gelten nur bis zum Beenden des Spiels. Ändere sie erneut und drücke Übernehmen",
 	.exploreForgetAsk = "Nochmal drücken, um die Erkundung von %s zu vergessen",
 	.exploreForgotten = "Erkundung von %s vergessen",
 	.routeLongLegsOn = "Teilstrecken der Route ab %d Einheiten",

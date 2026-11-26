@@ -2,6 +2,16 @@
 
 > Per-mod status ledger. Open first when resuming. Dashboard, not docs.
 
+## Changed keys lost at the next start — release 1.0.25 (2026-11-26)
+
+143 tests pass; built, deployed and run live (Options, Controls, by keyboard and mouse).
+
+| Report | State | Where |
+|---|---|---|
+| Object keys moved to semicolon and apostrophe work that session, back to default on the next | not ours: only Options' Apply makes D2RLoader write `input-bindings.toml`; Escape keeps the key until the game closes (measured live). The mod now says "press Apply" at the first change and warns when Options closes unsaved; both heard in the log live, none after Apply | [keyboard keys](docs/keyboard-keys.md#changing-a-key) |
+
+**Next step:** the tester's run: a key changed, Apply, kept after a restart.
+
 ## A river's far bank, objects on keys of their own — release 1.0.24 (2026-11-24)
 
 142 tests pass; built and deployed, not run live.

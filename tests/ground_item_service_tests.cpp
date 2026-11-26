@@ -1,4 +1,5 @@
 #include "ground_item_service.h"
+#include "input_actions.h"
 #include "doorways.h"
 #include "entity_cue_audio.h"
 #include "ground_items.h"
@@ -66,6 +67,10 @@ void Command(const char* text) {
 	D2RL::ConsoleCommandContext command{}; command.plugin = &context; command.args = text; command.argsLength = static_cast<uint32_t>(strlen(text));
 	Check(console(nullptr, &command, nullptr) == D2RL::ConsoleCommandResult::Handled, "item command accepted"); Tick();
 }
+}
+namespace D2RAccess::InputActions {
+D2RL::Input::Result Register(const D2RL::InputService* input, const D2RL::PluginContext* plugin, const D2RL::Input::ActionRegistration* action, D2RL::Input::ActionHandle* handle) { return input->registerAction(plugin, action, handle); }
+D2RL::Input::Result Unregister(const D2RL::InputService* input, const D2RL::PluginContext* plugin, D2RL::Input::ActionHandle handle) { return input->unregisterAction(plugin, handle); }
 }
 namespace D2RAccess::NativeGroundItems {
 bool Initialize(const D2RL::PluginContext*) { return supported; }

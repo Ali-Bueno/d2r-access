@@ -247,6 +247,8 @@ add_library(d2r-access SHARED
 	src/native_belt_fill.cpp
 	src/native_actions.cpp
 	src/keyboard_service.cpp
+	src/input_actions.cpp
+	src/binding_store.cpp
 	src/keyboard_menu.cpp
 	src/settings_list.cpp
 	src/settings_store.cpp
@@ -405,6 +407,8 @@ if(BUILD_TESTING)
 	add_test(NAME crosshair COMMAND crosshair-tests)
 	d2r_test(death-place-tests tests/death_place_tests.cpp src/death_place.cpp)
 	add_test(NAME death-place COMMAND death-place-tests)
+	d2r_test(binding-store-tests tests/binding_store_tests.cpp src/binding_store.cpp)
+	add_test(NAME binding-store COMMAND binding-store-tests)
 	d2r_test(boss-life-tests tests/boss_life_tests.cpp src/boss_life.cpp src/vitals.cpp)
 	add_test(NAME boss-life COMMAND boss-life-tests)
 	d2r_test(tutorial-tests tests/tutorial_tests.cpp src/tutorial.cpp src/tutorial_text.cpp)

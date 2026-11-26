@@ -1,4 +1,5 @@
 #include "terrain_service.h"
+#include "input_actions.h"
 #include "async_log.h"
 #include "process_lifetime.h"
 #include "entity_radar.h"
@@ -450,12 +451,12 @@ bool Register(const D2RL::PluginContext* context) {
 			.logicalId = "terrain-overview", .displayName = "Read the terrain overview", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::O, D2RL::Input::Modifier::Control}, .callback = Action};
 		D2RL::Input::ActionHandle handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		if (InputActions::Register(g_input, context, &action, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 		const D2RL::Input::ActionRegistration forget{.structSize = D2RL::Input::ActionRegistrationSize,
 			.logicalId = "forget-exploration", .displayName = "Forget this area's exploration (press twice)", .category = "Accessibility",
 			.defaultPrimary = {D2RL::Input::Key::O, D2RL::Input::Modifier::Shift}, .callback = ForgetAction};
 		handle = D2RL::Input::InvalidHandle;
-		if (g_input->registerAction(context, &forget, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
+		if (InputActions::Register(g_input, context, &forget, &handle) == D2RL::Input::Result::Success) g_actions.push_back(handle);
 	}
 	if (context->QueryService(&g_lifecycle) != D2RL::ServiceQueryResult::Success
 		|| !D2RL::HasLifecycleServiceField(g_lifecycle, D2RL::LifecycleServiceRequiredSize)) return false;
@@ -685,7 +686,7 @@ bool Known(int level) {
 void Unregister() {
 	if (g_lifecycle) for (auto handle : g_listeners) (void)g_lifecycle->unregisterGameplayEventListener(g_context, handle);
 	g_listeners.clear();
-	if (g_input) for (const auto handle : g_actions) (void)g_input->unregisterAction(g_context, handle);
+	if (g_input) for (const auto handle : g_actions) (void)InputActions::Unregister(g_input, g_context, handle);
 	g_actions.clear();
 	{
 		std::lock_guard lock(g_mutex);

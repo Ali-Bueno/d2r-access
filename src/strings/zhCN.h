@@ -575,6 +575,8 @@ inline constexpr Table zhCN {
 	.detourThrough = "%s，经由%s",
 	.itemsApartOn = "逗号和句号：仅掉落的物品",
 	.itemsApartOff = "逗号和句号：物品和物体",
+	.bindingsApplyHint = "按“应用”以在关闭游戏后保留此按键",
+	.bindingsNotSaved = "按键更改未保存：仅在关闭游戏前有效。请重新更改并按“应用”",
 	.exploreForgetAsk = "再按一次以忘记%s的探索记录",
 	.exploreForgotten = "已忘记%s的探索记录",
 	.routeLongLegsOn = "路线分段至少%d格",
